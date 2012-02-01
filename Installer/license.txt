@@ -1,0 +1,9 @@
+Copyright (C) 2012 Kindel Systems, LLC.
+
+This license applies to everything in the MCE Controller package, except where otherwise noted.
+
+This software is provided 'as-is', without any express or implied warranty. In no event will the author be held liable for any damages arising from the use of this software. 
+
+This version of MCE Controller is distributed as freeware. Donations of any value appreciated. Make donations using PayPal (www.paypal.com) to charlie@kindel.com. 
+
+The source code to MCE Controller is available under the BSD license. The source code project can be found at http://sourceforge.net/projects/mcecontroller.

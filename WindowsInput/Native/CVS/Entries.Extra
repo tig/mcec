@@ -1,0 +1,11 @@
+/HARDWAREINPUT.cs////*////
+/INPUT.cs////*////
+/InputType.cs////*////
+/KEYBDINPUT.cs////*////
+/KeyboardFlag.cs////*////
+/MOUSEINPUT.cs////*////
+/MOUSEKEYBDHARDWAREINPUT.cs////*////
+/MouseFlag.cs////*////
+/NativeMethods.cs////*////
+/VirtualKeyCode.cs////*////
+/XButton.cs////*////

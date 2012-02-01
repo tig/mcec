@@ -1,0 +1,14 @@
+/IInputDeviceStateAdaptor.cs////*////
+/IInputMessageDispatcher.cs////*////
+/IInputSimulator.cs////*////
+/IKeyboardSimulator.cs////*////
+/IMouseSimulator.cs////*////
+/InputBuilder.cs////*////
+/InputSimulator.cs////*////
+/KeyboardSimulator.cs////*////
+/MouseButton.cs////*////
+/MouseSimulator.cs////*////
+/WindowsInputDeviceStateAdaptor.cs////*////
+/WindowsInputMessageDispatcher.cs////*////
+/license.txt////*////
+/readme.txt////*////

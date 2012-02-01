@@ -1,0 +1,258 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <ProductVersion>8.0.30319</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{9489CAA5-2568-4ED5-A9AA-F5941CC608EB}</ProjectGuid>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ApplicationIcon>ehome.ico</ApplicationIcon>
+    <AssemblyKeyContainerName />
+    <AssemblyName>MCEControl</AssemblyName>
+    <AssemblyOriginatorKeyFile />
+    <DefaultClientScript>JScript</DefaultClientScript>
+    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
+    <DefaultTargetSchema>IE50</DefaultTargetSchema>
+    <DelaySign>false</DelaySign>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>MCEControl</RootNamespace>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <StartupObject>MCEControl.MainWindow</StartupObject>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <OldToolsVersion>0.0</OldToolsVersion>
+    <UpgradeBackupLocation />
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile />
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DocumentationFile />
+    <DebugSymbols>true</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <NoStdLib>false</NoStdLib>
+    <NoWarn />
+    <Optimize>false</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>full</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile />
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile />
+    <DebugSymbols>false</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <NoStdLib>false</NoStdLib>
+    <NoWarn />
+    <Optimize>true</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>none</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System">
+      <Name>System</Name>
+    </Reference>
+    <Reference Include="System.Data">
+      <Name>System.Data</Name>
+    </Reference>
+    <Reference Include="System.Drawing">
+      <Name>System.Drawing</Name>
+    </Reference>
+    <Reference Include="System.Windows.Forms">
+      <Name>System.Windows.Forms</Name>
+    </Reference>
+    <Reference Include="System.Xml">
+      <Name>System.XML</Name>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AboutBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Commands.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="KeyboardCommand.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MainWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ProcessCommands.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="RequestReplyCommands.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SendMessageCommands.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ServerProtocol.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SetForegroundWindowCmd.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SettingsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ShutdownCommand.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SystemControl.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Util.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\AccessToken.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Ace.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\AceAccess.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Aces.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Acl.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Dacl.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\DisposableObject.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Luid.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\MemoryMarshaler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Sacl.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\SecurityAttributes.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\SecurityAttributesMarshaler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\SecurityDescriptor.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\SecurityDescriptorMarshaler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Sid.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Sids.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\TokenGroup.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\TokenGroups.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\TokenPrivilege.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\TokenPrivileges.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\TokenSource.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\TokenStatistics.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\UnmanagedHeapAlloc.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Win32Consts.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Win32Enums.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Win32Helpers.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Win32Interop.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Win32\Win32Structs.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WindowsInput\IInputDeviceStateAdaptor.cs" />
+    <Compile Include="WindowsInput\IInputMessageDispatcher.cs" />
+    <Compile Include="WindowsInput\IInputSimulator.cs" />
+    <Compile Include="WindowsInput\IKeyboardSimulator.cs" />
+    <Compile Include="WindowsInput\IMouseSimulator.cs" />
+    <Compile Include="WindowsInput\InputBuilder.cs" />
+    <Compile Include="WindowsInput\InputSimulator.cs" />
+    <Compile Include="WindowsInput\KeyboardSimulator.cs" />
+    <Compile Include="WindowsInput\MouseButton.cs" />
+    <Compile Include="WindowsInput\MouseSimulator.cs" />
+    <Compile Include="WindowsInput\Native\HARDWAREINPUT.cs" />
+    <Compile Include="WindowsInput\Native\INPUT.cs" />
+    <Compile Include="WindowsInput\Native\InputType.cs" />
+    <Compile Include="WindowsInput\Native\KEYBDINPUT.cs" />
+    <Compile Include="WindowsInput\Native\KeyboardFlag.cs" />
+    <Compile Include="WindowsInput\Native\MouseFlag.cs" />
+    <Compile Include="WindowsInput\Native\MOUSEINPUT.cs" />
+    <Compile Include="WindowsInput\Native\MOUSEKEYBDHARDWAREINPUT.cs" />
+    <Compile Include="WindowsInput\Native\NativeMethods.cs" />
+    <Compile Include="WindowsInput\Native\VirtualKeyCode.cs" />
+    <Compile Include="WindowsInput\Native\XButton.cs" />
+    <Compile Include="WindowsInput\WindowsInputDeviceStateAdaptor.cs" />
+    <Compile Include="WindowsInput\WindowsInputMessageDispatcher.cs" />
+    <Content Include="App.ico" />
+    <Content Include="ehome.ico" />
+    <EmbeddedResource Include="AboutBox.resx">
+      <DependentUpon>AboutBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainWindow.resx">
+      <DependentUpon>MainWindow.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SettingsDialog.resx">
+      <DependentUpon>SettingsDialog.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent />
+    <PostBuildEvent />
+  </PropertyGroup>
+</Project>
