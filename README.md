@@ -1,9 +1,6 @@
-MCE Controller README
+## MCE Controller 
 
-
-[http://sourceforge.net/donate/index.php?group_id=138158](Support this project by donating to the author)
-
-I've put a copy here as a test of github.
+[Support this project by donating to the author](http://sourceforge.net/donate/index.php?group_id=138158)
 
 MCE Controller enables the remote control of a Windows PC over the network. It runs in the background on a Windows PC listening on the network for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. For example: 
 
@@ -15,5 +12,16 @@ The command "chars:Hello World!" will cause the text "Hello World" to be typed, 
 
 The commands that MCE Controller support is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
 
-MCE Controller used to be hosted on [http://sourceforge.net/projects/mcecontroller/](SourceForge). It is now being migrated here.
+## License
+The source code for MCE Controller is available under the BSD license. The source code project can be found at http://github.com/tig/mcecontroller.
 
+(Note: the source code was recently moved from Sourceforge to GitHub. SourceForge continues to be the place for downloading the latest binary and for getting help & particpating in usage discussions.)
+
+## Download
+(Download the latest version)[http://cloud.github.com/downloads/tig/mcecontroller]
+
+## Documentation
+(Read the documentation)[http://cloud.github.com/downloads/tig/mcecontroller/Readme.htm]
+
+## Support 
+For help and support, please visit the (MCE Controller forums)[https://sourceforge.net/projects/mcecontroller/forums/forum/464956].
