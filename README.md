@@ -2,7 +2,7 @@
 
 [**Version 1.4.0 Released February 11, 2012**](https://github.com/tig/mcecontroller/downloads)
 
-Copyright © 2012 [Kindel Systems](www.kindel.com), LLC
+Copyright © 2012 [Kindel Systems](http://www.kindel.com), LLC
 
 ![Screenshot](http://www.kindel.com/products/mcecontroller/MCE%20Controller.png)
 
