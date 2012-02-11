@@ -1,9 +1,7 @@
 MCE Controller README
 
-The "official" source for MCE Controller is on SourceForge at
-http://sourceforge.net/projects/mcecontroller/
 
-["http://sourceforge.net/donate/index.php?group_id=138158">](Support this project by donating to the author)
+[http://sourceforge.net/donate/index.php?group_id=138158](Support this project by donating to the author)
 
 I've put a copy here as a test of github.
 
@@ -16,3 +14,6 @@ The command "maximize" will cause the current window to be maximized on the disp
 The command "chars:Hello World!" will cause the text "Hello World" to be typed, as though it were typed on the keyboard. 
 
 The commands that MCE Controller support is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
+
+MCE Controller used to be hosted on [http://sourceforge.net/projects/mcecontroller/](SourceForge). It is now being migrated here.
+
