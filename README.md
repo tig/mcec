@@ -2,7 +2,7 @@
 
 [**Version 1.4.0 Released February 11, 2012**](https://github.com/tig/mcecontroller/downloads)
 
-![Screenshot](http://cloud.github.com/downloads/tig/mcecontroller/MCE%20Controller.png)
+![Screenshot](http://www.kindel.com/products/mcecontroller/MCE%20Controller.png)
 
 [Support this project by donating to the author](http://sourceforge.net/donate/index.php?group_id=138158)
 
@@ -25,7 +25,9 @@ The source code for MCE Controller is available under the BSD license. The sourc
 [Download the latest version](https://github.com/tig/mcecontroller/downloads)
 
 ## Documentation
-[Read the documentation](http://cloud.github.com/downloads/tig/mcecontroller/Readme.htm)
+* [Read the documentation](http://cloud.github.com/downloads/tig/mcecontroller/Readme.htm)
+* [Charlie's Blog Posts on MCE Controller](http://ceklog.kindel.com/category/passions/homeautomation/mce-controller/)
 
 ## Support 
-For help and support, please visit the [MCE Controller forums](https://sourceforge.net/projects/mcecontroller/forums/forum/464956).
+* For help and support, please visit the [MCE Controller forums](https://sourceforge.net/projects/mcecontroller/forums/forum/464956).
+* More on [kindel.com](http://www.kindel.com).
