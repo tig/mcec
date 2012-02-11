@@ -1,5 +1,7 @@
 ## MCE Controller 
 
+[*Version 1.4.0 Release February 11, 2012*](http://cloud.github.com/downloads/tig/mcecontroller)
+
 [Support this project by donating to the author](http://sourceforge.net/donate/index.php?group_id=138158)
 
 MCE Controller enables the remote control of a Windows PC over the network. It runs in the background on a Windows PC listening on the network for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. For example: 
@@ -18,10 +20,10 @@ The source code for MCE Controller is available under the BSD license. The sourc
 (Note: the source code was recently moved from Sourceforge to GitHub. SourceForge continues to be the place for downloading the latest binary and for getting help & particpating in usage discussions.)
 
 ## Download
-(Download the latest version)[http://cloud.github.com/downloads/tig/mcecontroller]
+[Download the latest version](http://cloud.github.com/downloads/tig/mcecontroller)
 
 ## Documentation
-(Read the documentation)[http://cloud.github.com/downloads/tig/mcecontroller/Readme.htm]
+[Read the documentation](http://cloud.github.com/downloads/tig/mcecontroller/Readme.htm)
 
 ## Support 
-For help and support, please visit the (MCE Controller forums)[https://sourceforge.net/projects/mcecontroller/forums/forum/464956].
+For help and support, please visit the [MCE Controller forums](https://sourceforge.net/projects/mcecontroller/forums/forum/464956).
