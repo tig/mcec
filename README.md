@@ -2,7 +2,7 @@
 
 [**Version 1.4.0 Released February 11, 2012**](http://cloud.github.com/downloads/tig/mcecontroller)
 
-![Screenshot](http://cloud.github.com/downloads/tig/mcecontroller/MCE Controller.png)
+![Screenshot](https://cloud.github.com/downloads/tig/mcecontroller/MCE Controller.png)
 
 [Support this project by donating to the author](http://sourceforge.net/donate/index.php?group_id=138158)
 
@@ -22,10 +22,10 @@ The source code for MCE Controller is available under the BSD license. The sourc
 (Note: the source code was recently moved from Sourceforge to GitHub. SourceForge continues to be the place for downloading the latest binary and for getting help & particpating in usage discussions.)
 
 ## Download
-[Download the latest version](http://cloud.github.com/downloads/tig/mcecontroller)
+[Download the latest version](https://github.com/tig/mcecontroller/downloads)
 
 ## Documentation
-[Read the documentation](http://cloud.github.com/downloads/tig/mcecontroller/Readme.htm)
+[Read the documentation](https://cloud.github.com/downloads/tig/mcecontroller/Readme.htm)
 
 ## Support 
 For help and support, please visit the [MCE Controller forums](https://sourceforge.net/projects/mcecontroller/forums/forum/464956).
