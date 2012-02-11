@@ -1,8 +1,8 @@
 ## MCE Controller 
 
-[**Version 1.4.0 Released February 11, 2012**](http://cloud.github.com/downloads/tig/mcecontroller)
+[**Version 1.4.0 Released February 11, 2012**](https://github.com/tig/mcecontroller/downloads)
 
-![Screenshot](http://cloud.github.com/downloads/tig/mcecontroller/MCE Controller.png)
+![Screenshot](http://cloud.github.com/downloads/tig/mcecontroller/MCE%20Controller.png)
 
 [Support this project by donating to the author](http://sourceforge.net/donate/index.php?group_id=138158)
 
