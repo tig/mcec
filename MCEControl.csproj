@@ -21,7 +21,7 @@
     <StartupObject>MCEControl.MainWindow</StartupObject>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <OldToolsVersion>0.0</OldToolsVersion>
     <UpgradeBackupLocation />
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
@@ -104,13 +104,18 @@
     <Compile Include="ProcessCommands.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="RequestReplyCommands.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SendMessageCommands.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ServerProtocol.cs">
+    <Compile Include="SocketClient.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SetForegroundWindowCmd.cs">
@@ -122,6 +127,7 @@
     <Compile Include="ShutdownCommand.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="SocketServer.cs" />
     <Compile Include="SystemControl.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -242,6 +248,10 @@
     </EmbeddedResource>
     <EmbeddedResource Include="MainWindow.resx">
       <DependentUpon>MainWindow.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="SettingsDialog.resx">
       <DependentUpon>SettingsDialog.cs</DependentUpon>

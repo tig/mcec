@@ -2,7 +2,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "MCE Controller"
-!define PRODUCT_VERSION "1.3.3"
+!define PRODUCT_VERSION "1.4.0"
 !define PRODUCT_PUBLISHER "Kindel Systems"
 !define PRODUCT_WEB_SITE "http://www.kindel.com/products/mcecontroller"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\MCEControl.exe"
@@ -63,6 +63,7 @@ Section "MainSection" SEC01
   CreateShortCut "$DESKTOP\MCE Controller.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
   File "Readme.htm"
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\Readme.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\Readme.htm"
+  File "MCE Controller.png"
   File "MCEControl.commands"
 SectionEnd
 
@@ -98,6 +99,7 @@ Section Uninstall
   Delete "$INSTDIR\uninst.exe"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.commands"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\Readme.htm"
+  Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCE Controller.png"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
 
   Delete "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk"

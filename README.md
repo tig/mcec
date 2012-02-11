@@ -3,6 +3,8 @@ MCE Controller README
 The "official" source for MCE Controller is on SourceForge at
 http://sourceforge.net/projects/mcecontroller/
 
+["http://sourceforge.net/donate/index.php?group_id=138158">](Support this project by donating to the author)
+
 I've put a copy here as a test of github.
 
 MCE Controller enables the remote control of a Windows PC over the network. It runs in the background on a Windows PC listening on the network for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. For example: 

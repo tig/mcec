@@ -7,7 +7,6 @@
 // Source control on SourceForge 
 //    http://sourceforge.net/projects/mcecontroller/
 //-------------------------------------------------------------------
-
 using System;
 using System.Drawing;
 using System.Collections;
@@ -34,8 +33,8 @@ namespace MCEControl
         public AppSettings Settings = null;
         
         // Protocol objects
-        private ServerProtocol Server = null;
-        private ServerProtocol Client = null;
+        private SocketServer Server = null;
+        private SocketClient Client = null;
         private CommandTable Commands = null;
 
         // Indicates whether user hit the close box (minimize)
@@ -62,6 +61,9 @@ namespace MCEControl
         private System.Windows.Forms.MenuItem notifyMenuItemSettings;
         private System.Windows.Forms.MenuItem menuItem3;
         private System.Windows.Forms.MenuItem notifyMenuViewStatus;
+        private MenuItem menuItemHelp;
+        private MenuItem menuItemSupport;
+        private MenuItem menuItemEditCommands;
         private Icon DummyIcon = null;
 
         /// <summary>
@@ -153,8 +155,8 @@ namespace MCEControl
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Resources.ResourceManager resources = new System.Resources.ResourceManager(typeof(MainWindow));
-            this.mainMenu = new System.Windows.Forms.MainMenu();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainWindow));
+            this.mainMenu = new System.Windows.Forms.MainMenu(this.components);
             this.menuItemFileMenu = new System.Windows.Forms.MenuItem();
             this.menuItemSendAwake = new System.Windows.Forms.MenuItem();
             this.menuItem2 = new System.Windows.Forms.MenuItem();
@@ -166,29 +168,33 @@ namespace MCEControl
             this.statusBar = new System.Windows.Forms.StatusBar();
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.notifyMenu = new System.Windows.Forms.ContextMenu();
+            this.notifyMenuViewStatus = new System.Windows.Forms.MenuItem();
+            this.menuItem3 = new System.Windows.Forms.MenuItem();
             this.notifyMenuItemSettings = new System.Windows.Forms.MenuItem();
             this.menuItem4 = new System.Windows.Forms.MenuItem();
             this.notifyMenuItemExit = new System.Windows.Forms.MenuItem();
             this.Log = new System.Windows.Forms.TextBox();
-            this.menuItem3 = new System.Windows.Forms.MenuItem();
-            this.notifyMenuViewStatus = new System.Windows.Forms.MenuItem();
+            this.menuItemHelp = new System.Windows.Forms.MenuItem();
+            this.menuItemSupport = new System.Windows.Forms.MenuItem();
+            this.menuItemEditCommands = new System.Windows.Forms.MenuItem();
             this.SuspendLayout();
             // 
             // mainMenu
             // 
             this.mainMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-                                                                                     this.menuItemFileMenu,
-                                                                                     this.menuItemHelpMenu});
+            this.menuItemFileMenu,
+            this.menuItemHelpMenu});
             // 
             // menuItemFileMenu
             // 
             this.menuItemFileMenu.Index = 0;
             this.menuItemFileMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-                                                                                             this.menuItemSendAwake,
-                                                                                             this.menuItem2,
-                                                                                             this.menuSettings,
-                                                                                             this.menuItem1,
-                                                                                             this.menuItemExit});
+            this.menuItemSendAwake,
+            this.menuItem2,
+            this.menuSettings,
+            this.menuItemEditCommands,
+            this.menuItem1,
+            this.menuItemExit});
             this.menuItemFileMenu.Text = "&File";
             // 
             // menuItemSendAwake
@@ -210,12 +216,12 @@ namespace MCEControl
             // 
             // menuItem1
             // 
-            this.menuItem1.Index = 3;
+            this.menuItem1.Index = 4;
             this.menuItem1.Text = "-";
             // 
             // menuItemExit
             // 
-            this.menuItemExit.Index = 4;
+            this.menuItemExit.Index = 5;
             this.menuItemExit.Text = "E&xit";
             this.menuItemExit.Click += new System.EventHandler(this.menuItemExit_Click);
             // 
@@ -223,12 +229,14 @@ namespace MCEControl
             // 
             this.menuItemHelpMenu.Index = 1;
             this.menuItemHelpMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-                                                                                             this.menuItemAbout});
+            this.menuItemHelp,
+            this.menuItemSupport,
+            this.menuItemAbout});
             this.menuItemHelpMenu.Text = "&Help";
             // 
             // menuItemAbout
             // 
-            this.menuItemAbout.Index = 0;
+            this.menuItemAbout.Index = 2;
             this.menuItemAbout.Text = "&About";
             this.menuItemAbout.Click += new System.EventHandler(this.menuItemAbout_Click);
             // 
@@ -238,8 +246,6 @@ namespace MCEControl
             this.statusBar.Name = "statusBar";
             this.statusBar.Size = new System.Drawing.Size(368, 20);
             this.statusBar.TabIndex = 0;
-            // this.SetStatusBar("Status...");
-
             // 
             // notifyIcon
             // 
@@ -252,11 +258,22 @@ namespace MCEControl
             // notifyMenu
             // 
             this.notifyMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-                                                                                       this.notifyMenuViewStatus,
-                                                                                       this.menuItem3,
-                                                                                       this.notifyMenuItemSettings,
-                                                                                       this.menuItem4,
-                                                                                       this.notifyMenuItemExit});
+            this.notifyMenuViewStatus,
+            this.menuItem3,
+            this.notifyMenuItemSettings,
+            this.menuItem4,
+            this.notifyMenuItemExit});
+            // 
+            // notifyMenuViewStatus
+            // 
+            this.notifyMenuViewStatus.Index = 0;
+            this.notifyMenuViewStatus.Text = "&View Status...";
+            this.notifyMenuViewStatus.Click += new System.EventHandler(this.notifyIcon_DoubleClick);
+            // 
+            // menuItem3
+            // 
+            this.menuItem3.Index = 1;
+            this.menuItem3.Text = "-";
             // 
             // notifyMenuItemSettings
             // 
@@ -278,30 +295,37 @@ namespace MCEControl
             // Log
             // 
             this.Log.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-                | System.Windows.Forms.AnchorStyles.Left) 
-                | System.Windows.Forms.AnchorStyles.Right)));
-            this.Log.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((System.Byte)(0)));
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.Log.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Log.Location = new System.Drawing.Point(0, 0);
             this.Log.Multiline = true;
             this.Log.Name = "Log";
             this.Log.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.Log.Size = new System.Drawing.Size(368, 208);
             this.Log.TabIndex = 1;
-            this.Log.Text = "";
             this.Log.WordWrap = false;
-            this.Log.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.log_KeyPress);
             this.Log.TextChanged += new System.EventHandler(this.log_TextChanged);
+            this.Log.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.log_KeyPress);
             // 
-            // menuItem3
+            // menuItemHelp
             // 
-            this.menuItem3.Index = 1;
-            this.menuItem3.Text = "-";
+            this.menuItemHelp.Index = 0;
+            this.menuItemHelp.Shortcut = System.Windows.Forms.Shortcut.F1;
+            this.menuItemHelp.Text = "&Help...";
+            this.menuItemHelp.Click += new System.EventHandler(this.menuItem5_Click);
             // 
-            // notifyMenuViewStatus
+            // menuItemSupport
             // 
-            this.notifyMenuViewStatus.Index = 0;
-            this.notifyMenuViewStatus.Text = "&View Status...";
-            this.notifyMenuViewStatus.Click += new System.EventHandler(this.notifyIcon_DoubleClick);
+            this.menuItemSupport.Index = 1;
+            this.menuItemSupport.Text = "&Support...";
+            this.menuItemSupport.Click += new System.EventHandler(this.menuItemSupport_Click);
+            // 
+            // menuItemEditCommands
+            // 
+            this.menuItemEditCommands.Index = 3;
+            this.menuItemEditCommands.Text = "&Edit .commands File...";
+            this.menuItemEditCommands.Click += new System.EventHandler(this.menuItemEditCommands_Click);
             // 
             // MainWindow
             // 
@@ -320,6 +344,7 @@ namespace MCEControl
             this.Closing += new System.ComponentModel.CancelEventHandler(this.MainWindow_Closing);
             this.Load += new System.EventHandler(this.MainWindow_Load);
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
         #endregion
@@ -349,8 +374,8 @@ namespace MCEControl
             if(Server!=null)
             {
                 // remove our notification handler
-                Server.Notifications -= new 
-                    ServerProtocol.NotificationCallback(HandleServerNotifications);
+                Server.Notifications -= new
+                    SocketServer.NotificationCallback(HandleServerNotifications);
             
                 Server.Dispose();
             }
@@ -358,7 +383,7 @@ namespace MCEControl
             {
                 // remove our notification handler
                 Client.Notifications -= new 
-                    ServerProtocol.NotificationCallback(HandleClientNotifications);
+                    SocketClient.NotificationCallback(HandleClientNotifications);
             
                 Client.Dispose();
             }
@@ -411,10 +436,10 @@ namespace MCEControl
         {
             if (Server == null)
             {
-                Server = new ServerProtocol(Settings, false);
-                Server.Notifications += new 
-                    ServerProtocol.NotificationCallback(HandleServerNotifications);
-                Server.Start();
+                Server = new SocketServer();
+                Server.Notifications += new
+                    SocketServer.NotificationCallback(HandleServerNotifications);
+                Server.Start(Settings.ServerPort);
                 menuItemSendAwake.Enabled = Settings.WakeupEnabled;
             }
             else
@@ -436,9 +461,9 @@ namespace MCEControl
         {
             if (Client == null)
             {
-                Client = new ServerProtocol(Settings, true);
+                Client = new SocketClient(Settings);
                 Client.Notifications += new 
-                    ServerProtocol.NotificationCallback(HandleClientNotifications);
+                    SocketClient.NotificationCallback(HandleClientNotifications);
                 Client.Start();
             }
             else
@@ -486,49 +511,56 @@ namespace MCEControl
         //
         // Notify callback for the TCP/IP Server
         //
-        public void HandleServerNotifications(ServerProtocol.Notification notify, Object data)
+        public void HandleServerNotifications(SocketServer.Notification notify, SocketServer.Status status, int client, String ipaddress, Object data)
         {
             String s = null;
             switch (notify)
             {
-                case ServerProtocol.Notification.Initialized:
+                case SocketServer.Notification.Initialized:
                     s = "Server: Initialized.";
                     break;
 
-                case ServerProtocol.Notification.StatusChange:
-                    ServerProtocol.Status status = (ServerProtocol.Status)data;
-                    if (status == ServerProtocol.Status.Listening)
+                case SocketServer.Notification.StatusChange:
+                    switch (status)
                     {
-                        s = "Server: Listening on port " + Settings.ServerPort.ToString();
-                        SetStatusBar("Listening on port " + Settings.ServerPort.ToString());
-                    }
-                    else if (status == ServerProtocol.Status.Connected)
-                    {
-                        s = "Server: A client has connected.";
-                        SetStatusBar("Client connected, waiting for commands...");
-                    }
-                    else if (status == ServerProtocol.Status.Closed)
-                    {
-                        s = "Server: Stopped.";
-                        SetStatusBar("Client/Sever Not Active");
+                        case SocketServer.Status.Listening:
+                            s = "Server: Waiting for clients to connect on port " + Settings.ServerPort.ToString();
+                            SetStatusBar("Waiting for clients to connect on port " + Settings.ServerPort.ToString());
+                            if (Settings.WakeupEnabled)
+                                Server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
+                            break;
+
+                        case SocketServer.Status.Connected:
+                            //s = String.Format("Server: Client #{0} at {1} connected.", client, ipaddress);
+                            SetStatusBar("Clients connected, waiting for commands...");
+                            return;
+
+                        case SocketServer.Status.Stopped:
+                            s = "Server: Stopped.";
+                            SetStatusBar("Client/Sever Not Active");
+                            if (Settings.WakeupEnabled)
+                                Server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost, Settings.WakeupPort);
+                            break;
                     }
                     break;
 
-                case ServerProtocol.Notification.ReceivedData:
+                case SocketServer.Notification.ReceivedData:
                     ReceivedData((string)data);
                     return;
 
-                case ServerProtocol.Notification.Error:
-                    s = "Server Error: " + (string)data;
+                case SocketServer.Notification.Error:
+                    s = String.Format("Server: Error (Client #{0} at {1}: {2})", client, ipaddress, (String)data);
                     break;
 
-                // If the server ends it means a client disconnected. Restart it...
-                case ServerProtocol.Notification.End:
-                    s = "Server: " + (string)data + " Restarting server...";
-                    Server.Start();
+                case SocketServer.Notification.ClientConnected:
+                    s = String.Format("Server: Client #{0} at {1} connected.", client, ipaddress);
                     break;
 
-                case ServerProtocol.Notification.Wakeup:
+                case SocketServer.Notification.ClientDisconnected:
+                    s = String.Format("Server: Client #{0} at {1} has disconnected.", client, ipaddress);
+                    break;
+
+                case SocketServer.Notification.Wakeup:
                     s = "Wakeup: " + (string)data;
                     break;
 
@@ -542,48 +574,48 @@ namespace MCEControl
         //
         // Notify callback for the TCP/IP Client
         //
-        public void HandleClientNotifications(ServerProtocol.Notification notify, Object data)
+        public void HandleClientNotifications(SocketClient.Notification notify, Object data)
         {
             String s = null;
             switch (notify)
             {
-                case ServerProtocol.Notification.Initialized:
+                case SocketClient.Notification.Initialized:
                     //s = "Client: Client Initialized.";
                     break;
 
-                case ServerProtocol.Notification.StatusChange:
-                    ServerProtocol.Status status = (ServerProtocol.Status)data;
-                    if (status == ServerProtocol.Status.Listening)
+                case SocketClient.Notification.StatusChange:
+                    SocketClient.Status status = (SocketClient.Status)data;
+                    if (status == SocketClient.Status.Listening)
                     {
                         s = "Client: Connecting to " + Settings.ClientHost + ":" + Settings.ClientPort.ToString();
                         SetStatusBar("Connecting to " + Settings.ClientHost + ":" + Settings.ClientPort.ToString());
                     }
-                    else if (status == ServerProtocol.Status.Connected)
+                    else if (status == SocketClient.Status.Connected)
                     {
                         s = "Client: Connected to " + Settings.ClientHost + ":" + Settings.ClientPort.ToString();
                         SetStatusBar("Connected to " + Settings.ClientHost + ":" + Settings.ClientPort.ToString() + ", waiting for commands...");
                     }
-                    else if (status == ServerProtocol.Status.Closed)
+                    else if (status == SocketClient.Status.Closed)
                     {
                         s = "Client: Stopped.";
                         SetStatusBar("Client/Sever Not Active");                    }
-                    else if (status == ServerProtocol.Status.Sleeping)
+                    else if (status == SocketClient.Status.Sleeping)
                     {
                         s = "Client: Waiting " + (Settings.ClientDelayTime/1000).ToString() + " seconds to connect.";
                         SetStatusBar("Waiting " + (Settings.ClientDelayTime/1000).ToString() + " seconds to connect.");
                     }
                     break;
 
-                case ServerProtocol.Notification.ReceivedData:
+                case SocketClient.Notification.ReceivedData:
                     ReceivedData((string)data);
                     return;
 
-                case ServerProtocol.Notification.Error:
+                case SocketClient.Notification.Error:
                     s = "Client Error: " + (string)data;
 
                     break;
 
-                case ServerProtocol.Notification.End:
+                case SocketClient.Notification.End:
                     s = "Client: " + (string)data + " Reconnecting...";
                     Client.Start(true);
                     break;
@@ -686,8 +718,23 @@ namespace MCEControl
 
         private void menuItemSendAwake_Click(object sender, System.EventArgs e)
         {
-            if (Server != null)
-                Server.SendAwake();
+            Server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
+        }
+
+        private void menuItem5_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(Application.StartupPath + "\\Readme.htm");
+            
+        }
+
+        private void menuItemSupport_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start("https://sourceforge.net/projects/mcecontroller/support");
+        }
+
+        private void menuItemEditCommands_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(Application.StartupPath);
         }
 
     }
