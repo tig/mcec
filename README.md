@@ -6,9 +6,9 @@ Copyright © 2012 [Kindel Systems](http://www.kindel.com), LLC
 
 ![Screenshot](http://www.kindel.com/products/mcecontroller/MCE%20Controller.png)
 
-[Support this project by donating to the author](http://sourceforge.net/donate/index.php?group_id=138158)
+[Support this project](http://sourceforge.net/donate/index.php?group_id=138158)
 
-MCE Controller enables the remote control of a Windows PC over the network. It runs in the background on a Windows PC listening on the network for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. 
+MCE Controller lets you control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP can use MCE Controller to control a Windows PC.
 
 For example: 
 
@@ -17,7 +17,9 @@ For example:
 * The command "chars:Hello World!" will cause the text "Hello World" to be typed, as though it were typed on the keyboard. 
 * The commands that MCE Controller support is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
 
-MCE Controller was initially developed to enable integration of a Windows based home theater PC (HTPC) into a Crestron whole-house audio/video system. However, it is general enough that it can be utilized from any control system that supports sending text strings to a TCP/IP port. Most control systems, such as Crestron or AMX, support IR emitting. For many applications, emitting the MCE IR commands will suffice. However, for some installations the reliability of IR emitting and other factors may make IR emitting problematic and MCE Controller offers a robust solution.
+MCE Controller was initially developed to enable integration of a Windows based home theater PC (HTPC) into a Crestron whole-house audio/video system. However, it is general enough that others have used ti within other control system that support sending text strings to a TCP/IP port. Most control systems, such as Crestron or AMX, support IR emitting. 
+
+For many applications, emitting the MCE IR commands will suffice. However, for some installations the reliability of IR emitting and other factors may make IR emitting problematic and MCE Controller offers a robust solution.
 
 MCE Controller can act as either a TCP/IP client or server. When acting as a client the target host and port can be configured. When acting as a server the incoming port can be configured.
 
