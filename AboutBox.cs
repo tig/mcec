@@ -3,7 +3,7 @@
 // http://www.kindel.com
 // charlie@kindel.com
 // 
-// Published under the BSD License.
+// Published under the MIT License.
 // Source control on SourceForge 
 //    http://sourceforge.net/projects/mcecontroller/
 //-------------------------------------------------------------------
@@ -147,7 +147,7 @@ namespace MCEControl
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(387, 16);
             this.label4.TabIndex = 4;
-            this.label4.Text = "MCE Controller is licensed under the BSD license.  Source code available at:";
+            this.label4.Text = "MCE Controller is licensed under the MIT License.  Source code available at:";
             // 
             // label5
             // 

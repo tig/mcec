@@ -3,7 +3,7 @@
 // http://www.kindel.com
 // charlie@kindel.com
 // 
-// Published under the BSD License.
+// Published under the MIT License.
 // Source control on SourceForge 
 //    http://sourceforge.net/projects/mcecontroller/
 //-------------------------------------------------------------------

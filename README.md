@@ -4,6 +4,8 @@
 
 Copyright © 2012 [Kindel Systems](http://www.kindel.com), LLC
 
+Licensed under the [MIT License] (http://www.opensource.org/licenses/mit-license.php).
+
 ![Screenshot](http://www.kindel.com/products/mcecontroller/MCE%20Controller.png)
 
 [Support this project](http://sourceforge.net/donate/index.php?group_id=138158)
@@ -26,7 +28,7 @@ MCE Controller can act as either a TCP/IP client or server. When acting as a cli
 MCE Controller runs showing only a taskbar icon. By double clicking on the taskbar a status window is displayed that shows a log of all activity. You can also right-click on the taskbar icon for a menu.
 
 ## License
-The source code for MCE Controller is available under the BSD license. The source code project can be found at http://github.com/tig/mcecontroller.
+The source code for MCE Controller is available under the MIT license. The source code project can be found at http://github.com/tig/mcecontroller.
 
 (Note: the source code was recently moved from Sourceforge to GitHub. SourceForge continues to be the place for downloading the latest binary and for getting help & particpating in usage discussions.)
 
