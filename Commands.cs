@@ -13,6 +13,7 @@ using System;
 using System.Collections;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
@@ -67,9 +68,10 @@ namespace MCEControl
             if (String.Compare(cmd, 0, "chars:", 0, 6, true) == 0)
             {
                 // "chars:<chars>
-                MainWindow.AddLogEntry("Sending chars: " + cmd.Substring(6, cmd.Length - 6));
+                String chars = Regex.Unescape(cmd.Substring(6, cmd.Length - 6));
+                MainWindow.AddLogEntry("Sending chars: " + chars);
                 var sim = new InputSimulator();
-                sim.Keyboard.TextEntry(cmd.Substring(6, cmd.Length - 6));
+                sim.Keyboard.TextEntry(chars);
             }
             else if (String.Compare(cmd, 0, "api:", 0, 4, true) == 0)
             {

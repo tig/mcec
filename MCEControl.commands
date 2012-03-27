@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--===================================================================-->
-<!-- MCE Controller 1.4.0                                              -->
+<!-- MCE Controller 1.5.0                                              -->
 <!--===================================================================-->
 <!-- Modify this file to extend/change the commands MCE Controller     -->
 <!-- supports.                                                         -->
@@ -18,6 +18,7 @@
 <!-- Cmd="chars:" - Allows simulating the entering of arbitrary text.  -->
 <!-- e.g. "chars:Hello World!" will enter "Hello World!" as though it  -->
 <!-- were typed on the keyboard.                                       -->
+<!-- e.g. "chars:\u20AC" will send the euro symbol.                    -->
 <!--===================================================================-->
 <!-- StartProcess Commands                                             -->
 <!--      File: The full path to the executable you want to start.     -->
