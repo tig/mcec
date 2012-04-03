@@ -2,7 +2,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "MCE Controller"
-!define PRODUCT_VERSION "1.5.0"
+!define PRODUCT_VERSION "1.5.1"
 !define PRODUCT_PUBLISHER "Kindel Systems"
 !define PRODUCT_WEB_SITE "http://www.kindel.com/products/mcecontroller"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\MCEControl.exe"
@@ -36,7 +36,6 @@ var ICONS_GROUP
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
 !define MUI_FINISHPAGE_RUN "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
-!define MUI_FINISHPAGE_SHOWREADME "$PROGRAMFILES\Kindel Systems\MCE Controller\Readme.htm"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
@@ -61,9 +60,6 @@ Section "MainSection" SEC01
   CreateDirectory "$SMPROGRAMS\$ICONS_GROUP"
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\MCE Controller.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
   CreateShortCut "$DESKTOP\MCE Controller.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
-  File "Readme.htm"
-  CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\Readme.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\Readme.htm"
-  File "MCE Controller.png"
   File "MCEControl.commands"
 SectionEnd
 
@@ -98,12 +94,9 @@ Section Uninstall
   ReadRegStr $ICONS_GROUP ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "${PRODUCT_STARTMENU_REGVAL}"
   Delete "$INSTDIR\uninst.exe"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.commands"
-  Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\Readme.htm"
-  Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCE Controller.png"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
 
   Delete "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk"
-  Delete "$SMPROGRAMS\$ICONS_GROUP\Readme.lnk"
   Delete "$DESKTOP\MCE Controller.lnk"
   Delete "$SMPROGRAMS\$ICONS_GROUP\MCE Controller.lnk"
 

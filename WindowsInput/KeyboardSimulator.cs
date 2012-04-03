@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using WindowsInput.Native;
 
 namespace WindowsInput
@@ -158,7 +159,17 @@ namespace WindowsInput
         public void TextEntry(string text)
         {
             if (text.Length > UInt32.MaxValue / 2) throw new ArgumentException(string.Format("The text parameter is too long. It must be less than {0} characters.", UInt32.MaxValue / 2), "text");
+
+            //var chars = UTF8Encoding.Unicode.GetBytes(text);
+
+            //var len = chars.Length;
+            //INPUT[] inputList = new INPUT[len * 2];
+            //for (int x = 0; x < len; x += 2)
+            //{
+            //    UInt16 scanCode = BitConverter.ToUInt16(chars, x);
+            //}
             var inputList = new InputBuilder().AddCharacters(text).ToArray();
+
             SendSimulatedInput(inputList);
         }
     }

@@ -723,7 +723,7 @@ namespace MCEControl
 
         private void menuItem5_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start(Application.StartupPath + "\\Readme.htm");
+            System.Diagnostics.Process.Start("http://tig.github.com/mcecontroller/");
             
         }
 

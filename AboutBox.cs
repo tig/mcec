@@ -116,7 +116,7 @@ namespace MCEControl
             this.linkLabelMCEController.TabIndex = 7;
             this.linkLabelMCEController.TabStop = true;
             this.linkLabelMCEController.Tag = "http://www.kindel.com/products/mcecontroller";
-            this.linkLabelMCEController.Text = "www.kindel.com/products/mcecontroller";
+            this.linkLabelMCEController.Text = "http://tig.github.com/mcecontroller/";
             this.linkLabelMCEController.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabelMCEController_LinkClicked);
             // 
             // buttonOK
@@ -147,7 +147,7 @@ namespace MCEControl
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(387, 16);
             this.label4.TabIndex = 4;
-            this.label4.Text = "MCE Controller is licensed under the MIT License.  Source code available at:";
+            this.label4.Text = "MCE Controller is licensed under the MIT License.  Source code available at";
             // 
             // label5
             // 
