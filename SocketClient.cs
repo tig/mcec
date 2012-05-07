@@ -7,20 +7,14 @@
 // Source control on SourceForge 
 //    http://sourceforge.net/projects/mcecontroller/
 //-------------------------------------------------------------------
+
 using System;
-using System.Collections;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.IO;
-using System.Net.Sockets;
 using System.Net;
-using System.Xml;
-using System.Xml.Serialization;
-using System.Windows.Forms;
+using System.Net.Sockets;
 using System.Threading;
 
-namespace MCEControl
-{
+namespace MCEControl {
     /// <summary>
     /// SocketClient implements our TCP/IP client.
     /// 
@@ -28,53 +22,17 @@ namespace MCEControl
     /// and must be threadsafe.
     /// 
     /// </summary>
-    public class SocketClient : IDisposable
-    {
-        private TextReader Reader;
-        private TextWriter Writer;
+    public class SocketClient : IDisposable {
+        #region Delegates
 
-        private Socket ServerSocket = null;
-        private Socket ListeningSocket = null;
-        private Status CurrentStatus;
-
-        // These settings are passed into the SocketClient default constructor
-        // 
-        private bool Delay = false;
-        private int Port = 0;
-        private string Host = "";
-        private int ClientDelayTime = 0;
-
-        public SocketClient(AppSettings settings)
-        {
-            this.Port = settings.ClientPort;
-            this.Host = settings.ClientHost;
-            this.ClientDelayTime = settings.ClientDelayTime;
-        }
-
-        // Finalize 
-        ~SocketClient()
-        {
-            Dispose();
-        }
-
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-            GC.SuppressFinalize(this);
-            Stop();
-        }
+        public delegate
+            void NotificationCallback(Notification notify, Object data);
 
         #endregion
 
-        // Nested delegate class and matching event
-        public delegate
-            void NotificationCallback(Notification notify, Object data);
-        public event NotificationCallback Notifications;
+        #region Notification enum
 
-        // Nested enum for notifications
-        public enum Notification
-        {
+        public enum Notification {
             Initialized = 1,
             StatusChange,
             ReceivedData,
@@ -83,67 +41,106 @@ namespace MCEControl
             Wakeup
         }
 
+        #endregion
+
         // Nested enum for supported states
-        public enum Status
-        {
+
+        #region Status enum
+
+        public enum Status {
             Listening,
             Connected,
             Sleeping,
             Closed
         }
 
+        #endregion
 
-        public void Start()
-        {
-            ThreadPool.QueueUserWorkItem(new WaitCallback(EstablishSocket), this);
+        private readonly int _clientDelayTime;
+        private readonly string _host = "";
+        private readonly int _port;
+        private String _currentCmd;
+
+        private Status _currentStatus;
+
+        // These settings are passed into the SocketClient default constructor
+        // 
+        private bool _delay;
+        private Socket _listeningSocket;
+        private TextReader _reader;
+        private Socket _serverSocket;
+        private TextWriter _writer;
+
+        public SocketClient(AppSettings settings) {
+            _port = settings.ClientPort;
+            _host = settings.ClientHost;
+            _clientDelayTime = settings.ClientDelayTime;
+        }
+
+        // Finalize 
+
+        #region IDisposable Members
+
+        public void Dispose() {
+            GC.SuppressFinalize(this);
+            Stop();
+        }
+
+        #endregion
+
+        ~SocketClient() {
+            Dispose();
+        }
+
+        // Nested delegate class and matching event
+
+        public event NotificationCallback Notifications;
+
+        // Nested enum for notifications
+
+
+        public void Start() {
+            ThreadPool.QueueUserWorkItem(EstablishSocket, this);
         }
 
         // If delay is true the client will delay connecting 
         // ClientStartDelay milliseconds
-        public void Start(bool delay)
-        {
-            Delay = delay;
+        public void Start(bool delay) {
+            _delay = delay;
             Start();
         }
 
 
-        public void Stop()
-        {
-            if (Reader != null)
-            {
-                Reader.Close();
-                Reader = null;
+        public void Stop() {
+            if (_reader != null) {
+                _reader.Close();
+                _reader = null;
             }
-            if (Writer != null)
-            {
-                Writer.Close();
-                Writer = null;
+            if (_writer != null) {
+                _writer.Close();
+                _writer = null;
             }
-            if (ListeningSocket != null)
-            {
-                ListeningSocket.Close();
-                ListeningSocket = null;
+            if (_listeningSocket != null) {
+                _listeningSocket.Close();
+                _listeningSocket = null;
             }
-            if (ServerSocket != null)
-            {
-                ServerSocket.Close();
-                ServerSocket = null;
+            if (_serverSocket != null) {
+                _serverSocket.Close();
+                _serverSocket = null;
             }
-            if (CurrentStatus != Status.Closed)
+            if (_currentStatus != Status.Closed)
                 SetStatus(Status.Closed);
         }
 
         // Send text to remote connection
-        public void Send(String newText)
-        {
-            Writer.Write(newText);
-            Writer.Flush();
+        public void Send(String newText) {
+            _writer.Write(newText);
+            _writer.Flush();
         }
 
         // Send a status notification
-        private void SetStatus(Status status)
-        {
-            this.CurrentStatus = status;
+        private void SetStatus(Status status) {
+            _currentStatus = status;
             if (Notifications != null)
                 Notifications(Notification.StatusChange, status);
         }
@@ -151,58 +148,49 @@ namespace MCEControl
         // Establish a socket connection and start receiving (either as a 
         // client or a server)
         //
-        private void EstablishSocket(Object state)
-        {
-            NetworkStream stream = null;
-            IPEndPoint endPoint = null;
-            SocketClient SP = (SocketClient)state;
+        private void EstablishSocket(Object state) {
+            var sp = (SocketClient) state;
 
-            try
-            {
-                endPoint = new IPEndPoint(Dns.GetHostEntry(SP.Host).AddressList[0], SP.Port);
+            try {
+                var endPoint = new IPEndPoint(Dns.GetHostEntry(sp._host).AddressList[0], sp._port);
 
-                try
-                {
+                try {
                     // Do we need to delay? If so sleep the thread.
-                    if (Delay && ClientDelayTime > 0)
-                    {
+                    if (_delay && _clientDelayTime > 0) {
                         SetStatus(Status.Sleeping);
-                        Thread.Sleep(ClientDelayTime);
-                        if (CurrentStatus == Status.Closed)
+                        Thread.Sleep(_clientDelayTime);
+                        if (_currentStatus == Status.Closed)
                             return;
                     }
-                    Socket temp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    temp.Blocking = true;
+                    var temp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) {
+                        Blocking = true
+                    };
                     SetStatus(Status.Listening);
                     temp.Connect(endPoint);
-                    ServerSocket = temp;
+                    _serverSocket = temp;
                     //ServerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 5000);
 
                     // Commented out 4/15/05. I see no reason for a send timeout since we send nothing; this may
                     // be the cause of the bug that is causing the connection to silently drop.
                     //
                     //ServerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 5000);
-                    stream = new NetworkStream(ServerSocket);
-                    Reader = new StreamReader(stream);
-                    Writer = new StreamWriter(stream);
+                    var stream = new NetworkStream(_serverSocket);
+                    _reader = new StreamReader(stream);
+                    _writer = new StreamWriter(stream);
                 }
-                catch (SocketException e)
-                {
-                    if (e != null && 10061 == e.ErrorCode)
-                    {
+                catch (SocketException e) {
+                    if (10061 == e.ErrorCode) {
                         // Connection refused
-                        ListeningSocket = null;
-                        ServerSocket = null;
+                        _listeningSocket = null;
+                        _serverSocket = null;
                         Notifications(Notification.End, "Remote connection was refused.");
                         return;
                     }
-                    else
-                        Notifications(Notification.Error, "Error Initializing Socket:\r\n" + e.Message);
+                    Notifications(Notification.Error, "Error Initializing Socket:\r\n" + e.Message);
                 }
 
                 // If it all worked out, create stream objects
-                if (ServerSocket != null)
-                {
+                if (_serverSocket != null) {
                     SetStatus(Status.Connected);
                     Notifications(Notification.Initialized, this);
                     // Start receiving talk
@@ -219,54 +207,42 @@ namespace MCEControl
                     // WinTalk instance.
                     Notifications(Notification.End, "Remote connection has closed.");
                 }
-                else
-                {
+                else {
                     Notifications(Notification.Error,
-                        "Failed to Establish Socket, did you specify the correct port?");
+                                  "Failed to Establish Socket, did you specify the correct port?");
                 }
             }
-            catch (IOException e)
-            {
-                SocketException sockExcept = e.InnerException as SocketException;
-                if (sockExcept != null && 10054 == sockExcept.ErrorCode)
-                {
+            catch (IOException e) {
+                var sockExcept = e.InnerException as SocketException;
+                if (sockExcept != null && 10054 == sockExcept.ErrorCode) {
                     Notifications(Notification.End, "Remote connection has closed.");
                 }
-                else if (sockExcept != null && 10053 == sockExcept.ErrorCode)
-                {
+                else if (sockExcept != null && 10053 == sockExcept.ErrorCode) {
                     SetStatus(Status.Closed);
                 }
-                else
-                {
+                else {
                     if (Notifications != null)
                         Notifications(Notification.Error, "Socket Error:\r\n" + e.Message);
                 }
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 Notifications(Notification.Error, "General Error:\r\n" + e.Message);
             }
         }
 
-        String CurrentCmd = null;
         /// <summary>
         /// NewData is called when new data arrives.
         /// </summary>
-        private void ReceiveData()
-        {
-            for (int b = Reader.Read(); b != -1; b = Reader.Read())
-            {
-                if (b == 0x0a || b == 0x0d)
-                {
-                    if (CurrentCmd != null && CurrentCmd.Length > 0)
-                    {
-                        Notifications(Notification.ReceivedData, CurrentCmd);
-                        CurrentCmd = null;
+        private void ReceiveData() {
+            for (var b = _reader.Read(); b != -1; b = _reader.Read()) {
+                if (b == 0x0a || b == 0x0d) {
+                    if (!string.IsNullOrEmpty(_currentCmd)) {
+                        Notifications(Notification.ReceivedData, _currentCmd);
+                        _currentCmd = null;
                     }
                 }
-                else
-                {
-                    CurrentCmd = CurrentCmd + Convert.ToChar(b);
+                else {
+                    _currentCmd = _currentCmd + Convert.ToChar(b);
                 }
             }
         }

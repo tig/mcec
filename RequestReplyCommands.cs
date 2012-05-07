@@ -9,32 +9,23 @@
 //-------------------------------------------------------------------
 
 using System;
-using System.Collections;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Diagnostics;
 
-namespace MCEControl 
-{
-	/// <summary>
-	/// TODO: Determine how/if to implement commands that reply
-	/// </summary>
-	[Serializable()]
-	public class RequestReplyCommand : Command
-	{
-		public String Reply;
-		public RequestReplyCommand()
-		{
-		}
-			
-		public RequestReplyCommand(String Reply)
-		{
-			this.Reply = Reply;
-		}
+namespace MCEControl {
+    /// <summary>
+    /// TODO: Determine how/if to implement commands that reply
+    /// </summary>
+    [Serializable]
+    public class RequestReplyCommand : Command {
+        public String Reply;
 
-		public override void Execute()
-		{
+        public RequestReplyCommand() {
+        }
 
-		}
-	}
+        public RequestReplyCommand(String reply) {
+            Reply = reply;
+        }
+
+        public override void Execute() {
+        }
+    }
 }

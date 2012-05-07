@@ -7,78 +7,72 @@
 // Source control on SourceForge 
 //    http://sourceforge.net/projects/mcecontroller/
 //-------------------------------------------------------------------
+
 using System;
-using System.Drawing;
-using System.Collections;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Drawing;
+using System.Globalization;
+using System.Resources;
 using System.Windows.Forms;
-using System.Data;
-using System.Threading;
-using System.Net.Sockets;
-using System.Net;
-using System.Text;
+using MCEControl.Properties;
 using Microsoft.Win32.Security;
 
-namespace MCEControl
-{
+namespace MCEControl {
     /// <summary>
     /// Summary description for MainWindow.
     /// </summary>
-    public class MainWindow : System.Windows.Forms.Form
-    {
+    public class MainWindow : Form {
         // Used to enabled access to AddLogEntry
-        public static MainWindow MainWnd = null;
+        public static MainWindow MainWnd;
 
         // Persisted application settings
-        public AppSettings Settings = null;
-        
+        public AppSettings Settings;
+
         // Protocol objects
-        private SocketServer Server = null;
-        private SocketClient Client = null;
-        private CommandTable Commands = null;
+        private SocketServer _server;
+        private SocketClient _client;
+        private readonly CommandTable _commands;
 
         // Indicates whether user hit the close box (minimize)
         // or the app is exiting
-        private bool ShuttingDown = false;
+        private bool _shuttingDown;
 
         // Window controls
-        private System.Windows.Forms.MainMenu mainMenu;
-        private System.Windows.Forms.MenuItem menuItemFileMenu;
-        private System.Windows.Forms.MenuItem menuItemExit;
-        private System.Windows.Forms.MenuItem menuItemHelpMenu;
-        private System.Windows.Forms.MenuItem menuItemAbout;
-        private System.Windows.Forms.StatusBar statusBar;
-        private System.Windows.Forms.NotifyIcon notifyIcon;
-        private System.Windows.Forms.TextBox Log;
-        private System.Windows.Forms.ContextMenu notifyMenu;
-        private System.Windows.Forms.MenuItem notifyMenuItemExit;
-        private System.ComponentModel.IContainer components;
-        private System.Windows.Forms.MenuItem menuItemSendAwake;
-        private System.Windows.Forms.MenuItem menuItem1;
-        private System.Windows.Forms.MenuItem menuItem2;
-        private System.Windows.Forms.MenuItem menuSettings;
-        private System.Windows.Forms.MenuItem menuItem4;
-        private System.Windows.Forms.MenuItem notifyMenuItemSettings;
-        private System.Windows.Forms.MenuItem menuItem3;
-        private System.Windows.Forms.MenuItem notifyMenuViewStatus;
-        private MenuItem menuItemHelp;
-        private MenuItem menuItemSupport;
-        private MenuItem menuItemEditCommands;
-        private Icon DummyIcon = null;
+        private MainMenu _mainMenu;
+        private MenuItem _menuItemFileMenu;
+        private MenuItem _menuItemExit;
+        private MenuItem _menuItemHelpMenu;
+        private MenuItem _menuItemAbout;
+        private StatusBar _statusBar;
+        private NotifyIcon _notifyIcon;
+        private TextBox _log;
+        private ContextMenu _notifyMenu;
+        private MenuItem _notifyMenuItemExit;
+        private IContainer components;
+        private MenuItem _menuItemSendAwake;
+        private MenuItem _menuSeparator2;
+        private MenuItem _menuSeparator1;
+        private MenuItem _menuSettings;
+        private MenuItem _menuSeparator5;
+        private MenuItem _notifyMenuItemSettings;
+        private MenuItem _menuSeparator4;
+        private MenuItem _notifyMenuViewStatus;
+        private MenuItem _menuItemHelp;
+        private MenuItem _menuItemSupport;
+        private MenuItem _menuItemEditCommands;
+        private readonly Icon _dummyIcon;
 
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        public static void Main(string[] args)
-        {
-
-            MainWindow main = new MainWindow();
+        public static void Main(string[] args) {
+            var main = new MainWindow();
             Application.Run(main);
         }
 
-        public MainWindow()
-        {
+        public MainWindow() {
             MainWnd = this;
             //
             // Required for Windows Form Designer support
@@ -86,51 +80,46 @@ namespace MCEControl
             InitializeComponent();
 
             // Load AppSettings
-            this.Settings = AppSettings.Deserialize(AppSettings.GetSettingsPath());
+            Settings = AppSettings.Deserialize(AppSettings.GetSettingsPath());
 
-            System.Resources.ResourceManager resources = new System.Resources.ResourceManager(typeof(MainWindow));
-            this.DummyIcon= ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
+            var resources = new ResourceManager(typeof (MainWindow));
+            _dummyIcon = ((Icon) (resources.GetObject("notifyIcon.Icon")));
 
-            this.notifyIcon.Visible = true;
-            this.notifyIcon.Icon = this.Icon;
-            this.ShowInTaskbar = true;
+            _notifyIcon.Visible = true;
+            _notifyIcon.Icon = Icon;
+            ShowInTaskbar = true;
 
-            this.SetStatusBar("");
-            notifyIcon.Text = "MCE Controller";
-            menuItemSendAwake.Enabled = false;
+            SetStatusBar("");
+            _notifyIcon.Text = Resources.App_FullName;
+            _menuItemSendAwake.Enabled = false;
 
-            this.Commands = CommandTable.Deserialize();
-            if (Commands == null)
-            {
-                MessageBox.Show(this, "No commands loaded. Something is wrong with the MCEController.commands file. See the log for details, fix, and restart.", "MCE Controller");
-                notifyIcon.Visible = false;
+            _commands = CommandTable.Deserialize();
+            if (_commands == null) {
+                MessageBox.Show(this, Resources.MCEController_commands_read_error, Resources.App_FullName);
+                _notifyIcon.Visible = false;
                 Opacity = 100;
             }
-            else
-            {
-                AddLogEntry("Loaded " + Commands.NumCommands + " commands.");
-                Opacity = (double)Settings.Opacity/100;
+            else {
+                AddLogEntry("Loaded " + _commands.NumCommands + " commands.");
+                Opacity = (double) Settings.Opacity/100;
                 if (Settings.ActAsServer)
                     StartServer();
 
                 if (Settings.ActAsClient)
                     StartClient();
 
-                if (Settings.HideOnStartup)
-                {
-                    this.Opacity = 0;
-                    Win32.PostMessage(this.Handle, (UInt32)WM.SYSCOMMAND, (UInt32)SC.CLOSE, 0);
+                if (Settings.HideOnStartup) {
+                    Opacity = 0;
+                    Win32.PostMessage(Handle, (UInt32) WM.SYSCOMMAND, (UInt32) SC.CLOSE, 0);
                 }
-            }		
+            }
         }
 
         /// <summary>
         /// Clean up any resources being used.
         /// </summary>
-        protected override void Dispose( bool disposing )
-        {
-            if( disposing )
-            {
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
                 // When the app exits we need to un-shift any modify keys that might
                 // have been pressed or they'll still be stuck after exit
                 SendInputCommand.ShiftKey("shift", false);
@@ -139,284 +128,280 @@ namespace MCEControl
                 SendInputCommand.ShiftKey("lwin", false);
                 SendInputCommand.ShiftKey("rwin", false);
 
-                if (components != null) 
-                {
+                if (components != null) {
                     components.Dispose();
                 }
             }
-            base.Dispose( disposing );
+            base.Dispose(disposing);
         }
 
         #region Windows Form Designer generated code
+
         /// <summary>
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent()
-        {
+        private void InitializeComponent() {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainWindow));
-            this.mainMenu = new System.Windows.Forms.MainMenu(this.components);
-            this.menuItemFileMenu = new System.Windows.Forms.MenuItem();
-            this.menuItemSendAwake = new System.Windows.Forms.MenuItem();
-            this.menuItem2 = new System.Windows.Forms.MenuItem();
-            this.menuSettings = new System.Windows.Forms.MenuItem();
-            this.menuItem1 = new System.Windows.Forms.MenuItem();
-            this.menuItemExit = new System.Windows.Forms.MenuItem();
-            this.menuItemHelpMenu = new System.Windows.Forms.MenuItem();
-            this.menuItemAbout = new System.Windows.Forms.MenuItem();
-            this.statusBar = new System.Windows.Forms.StatusBar();
-            this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
-            this.notifyMenu = new System.Windows.Forms.ContextMenu();
-            this.notifyMenuViewStatus = new System.Windows.Forms.MenuItem();
-            this.menuItem3 = new System.Windows.Forms.MenuItem();
-            this.notifyMenuItemSettings = new System.Windows.Forms.MenuItem();
-            this.menuItem4 = new System.Windows.Forms.MenuItem();
-            this.notifyMenuItemExit = new System.Windows.Forms.MenuItem();
-            this.Log = new System.Windows.Forms.TextBox();
-            this.menuItemHelp = new System.Windows.Forms.MenuItem();
-            this.menuItemSupport = new System.Windows.Forms.MenuItem();
-            this.menuItemEditCommands = new System.Windows.Forms.MenuItem();
+            var resources = new System.ComponentModel.ComponentResourceManager(typeof (MainWindow));
+            this._mainMenu = new System.Windows.Forms.MainMenu(this.components);
+            this._menuItemFileMenu = new System.Windows.Forms.MenuItem();
+            this._menuItemSendAwake = new System.Windows.Forms.MenuItem();
+            this._menuSeparator1 = new System.Windows.Forms.MenuItem();
+            this._menuSettings = new System.Windows.Forms.MenuItem();
+            this._menuItemEditCommands = new System.Windows.Forms.MenuItem();
+            this._menuSeparator2 = new System.Windows.Forms.MenuItem();
+            this._menuItemExit = new System.Windows.Forms.MenuItem();
+            this._menuItemHelpMenu = new System.Windows.Forms.MenuItem();
+            this._menuItemHelp = new System.Windows.Forms.MenuItem();
+            this._menuItemSupport = new System.Windows.Forms.MenuItem();
+            this._menuItemAbout = new System.Windows.Forms.MenuItem();
+            this._statusBar = new System.Windows.Forms.StatusBar();
+            this._notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
+            this._notifyMenu = new System.Windows.Forms.ContextMenu();
+            this._notifyMenuViewStatus = new System.Windows.Forms.MenuItem();
+            this._menuSeparator4 = new System.Windows.Forms.MenuItem();
+            this._notifyMenuItemSettings = new System.Windows.Forms.MenuItem();
+            this._menuSeparator5 = new System.Windows.Forms.MenuItem();
+            this._notifyMenuItemExit = new System.Windows.Forms.MenuItem();
+            this._log = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
-            // mainMenu
+            // _mainMenu
             // 
-            this.mainMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.menuItemFileMenu,
-            this.menuItemHelpMenu});
+            this._mainMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
+                                                                                      this._menuItemFileMenu,
+                                                                                      this._menuItemHelpMenu
+                                                                                  });
             // 
-            // menuItemFileMenu
+            // _menuItemFileMenu
             // 
-            this.menuItemFileMenu.Index = 0;
-            this.menuItemFileMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.menuItemSendAwake,
-            this.menuItem2,
-            this.menuSettings,
-            this.menuItemEditCommands,
-            this.menuItem1,
-            this.menuItemExit});
-            this.menuItemFileMenu.Text = "&File";
+            this._menuItemFileMenu.Index = 0;
+            this._menuItemFileMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
+                                                                                              this._menuItemSendAwake,
+                                                                                              this._menuSeparator1,
+                                                                                              this._menuSettings,
+                                                                                              this._menuItemEditCommands
+                                                                                              ,
+                                                                                              this._menuSeparator2,
+                                                                                              this._menuItemExit
+                                                                                          });
+            this._menuItemFileMenu.Text = "&File";
             // 
-            // menuItemSendAwake
+            // _menuItemSendAwake
             // 
-            this.menuItemSendAwake.Index = 0;
-            this.menuItemSendAwake.Text = "Send &Awake Signal";
-            this.menuItemSendAwake.Click += new System.EventHandler(this.menuItemSendAwake_Click);
+            this._menuItemSendAwake.Index = 0;
+            this._menuItemSendAwake.Text = "Send &Awake Signal";
+            this._menuItemSendAwake.Click += new System.EventHandler(this.MenuItemSendAwakeClick);
             // 
-            // menuItem2
+            // _menuSeparator1
             // 
-            this.menuItem2.Index = 1;
-            this.menuItem2.Text = "-";
+            this._menuSeparator1.Index = 1;
+            this._menuSeparator1.Text = "-";
             // 
-            // menuSettings
+            // _menuSettings
             // 
-            this.menuSettings.Index = 2;
-            this.menuSettings.Text = "&Settings...";
-            this.menuSettings.Click += new System.EventHandler(this.menuSettings_Click);
+            this._menuSettings.Index = 2;
+            this._menuSettings.Text = "&Settings...";
+            this._menuSettings.Click += new System.EventHandler(this.MenuSettingsClick);
             // 
-            // menuItem1
+            // _menuItemEditCommands
             // 
-            this.menuItem1.Index = 4;
-            this.menuItem1.Text = "-";
+            this._menuItemEditCommands.Index = 3;
+            this._menuItemEditCommands.Text = "&Edit .commands File...";
+            this._menuItemEditCommands.Click += new System.EventHandler(this.MenuItemEditCommandsClick);
             // 
-            // menuItemExit
+            // _menuSeparator2
             // 
-            this.menuItemExit.Index = 5;
-            this.menuItemExit.Text = "E&xit";
-            this.menuItemExit.Click += new System.EventHandler(this.menuItemExit_Click);
+            this._menuSeparator2.Index = 4;
+            this._menuSeparator2.Text = "-";
             // 
-            // menuItemHelpMenu
+            // _menuItemExit
             // 
-            this.menuItemHelpMenu.Index = 1;
-            this.menuItemHelpMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.menuItemHelp,
-            this.menuItemSupport,
-            this.menuItemAbout});
-            this.menuItemHelpMenu.Text = "&Help";
+            this._menuItemExit.Index = 5;
+            this._menuItemExit.Text = "E&xit";
+            this._menuItemExit.Click += new System.EventHandler(this.MenuItemExitClick);
             // 
-            // menuItemAbout
+            // _menuItemHelpMenu
             // 
-            this.menuItemAbout.Index = 2;
-            this.menuItemAbout.Text = "&About";
-            this.menuItemAbout.Click += new System.EventHandler(this.menuItemAbout_Click);
+            this._menuItemHelpMenu.Index = 1;
+            this._menuItemHelpMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
+                                                                                              this._menuItemHelp,
+                                                                                              this._menuItemSupport,
+                                                                                              this._menuItemAbout
+                                                                                          });
+            this._menuItemHelpMenu.Text = "&Help";
             // 
-            // statusBar
+            // _menuItemHelp
             // 
-            this.statusBar.Location = new System.Drawing.Point(0, 205);
-            this.statusBar.Name = "statusBar";
-            this.statusBar.Size = new System.Drawing.Size(368, 20);
-            this.statusBar.TabIndex = 0;
+            this._menuItemHelp.Index = 0;
+            this._menuItemHelp.Shortcut = System.Windows.Forms.Shortcut.F1;
+            this._menuItemHelp.Text = "&Help...";
+            this._menuItemHelp.Click += new System.EventHandler(this.MenuItemHelpClick);
             // 
-            // notifyIcon
+            // _menuItemSupport
             // 
-            this.notifyIcon.ContextMenu = this.notifyMenu;
-            this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
-            this.notifyIcon.Text = "MCE Controller";
-            this.notifyIcon.Visible = true;
-            this.notifyIcon.DoubleClick += new System.EventHandler(this.notifyIcon_DoubleClick);
+            this._menuItemSupport.Index = 1;
+            this._menuItemSupport.Text = "&Support...";
+            this._menuItemSupport.Click += new System.EventHandler(this.MenuItemSupportClick);
             // 
-            // notifyMenu
+            // _menuItemAbout
             // 
-            this.notifyMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.notifyMenuViewStatus,
-            this.menuItem3,
-            this.notifyMenuItemSettings,
-            this.menuItem4,
-            this.notifyMenuItemExit});
+            this._menuItemAbout.Index = 2;
+            this._menuItemAbout.Text = "&About";
+            this._menuItemAbout.Click += new System.EventHandler(this.MenuItemAboutClick);
             // 
-            // notifyMenuViewStatus
+            // _statusBar
             // 
-            this.notifyMenuViewStatus.Index = 0;
-            this.notifyMenuViewStatus.Text = "&View Status...";
-            this.notifyMenuViewStatus.Click += new System.EventHandler(this.notifyIcon_DoubleClick);
+            this._statusBar.Location = new System.Drawing.Point(0, 205);
+            this._statusBar.Name = "_statusBar";
+            this._statusBar.Size = new System.Drawing.Size(368, 20);
+            this._statusBar.TabIndex = 0;
             // 
-            // menuItem3
+            // _notifyIcon
             // 
-            this.menuItem3.Index = 1;
-            this.menuItem3.Text = "-";
+            this._notifyIcon.ContextMenu = this._notifyMenu;
+            this._notifyIcon.Icon = ((System.Drawing.Icon) (resources.GetObject("_notifyIcon.Icon")));
+            this._notifyIcon.Text = global::MCEControl.Properties.Resources.App_FullName;
+            this._notifyIcon.Visible = true;
+            this._notifyIcon.DoubleClick += new System.EventHandler(this.NotifyIconDoubleClick);
             // 
-            // notifyMenuItemSettings
+            // _notifyMenu
             // 
-            this.notifyMenuItemSettings.Index = 2;
-            this.notifyMenuItemSettings.Text = "&Settings...";
-            this.notifyMenuItemSettings.Click += new System.EventHandler(this.menuSettings_Click);
+            this._notifyMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
+                                                                                        this._notifyMenuViewStatus,
+                                                                                        this._menuSeparator4,
+                                                                                        this._notifyMenuItemSettings,
+                                                                                        this._menuSeparator5,
+                                                                                        this._notifyMenuItemExit
+                                                                                    });
             // 
-            // menuItem4
+            // _notifyMenuViewStatus
             // 
-            this.menuItem4.Index = 3;
-            this.menuItem4.Text = "-";
+            this._notifyMenuViewStatus.Index = 0;
+            this._notifyMenuViewStatus.Text = "&View Status...";
+            this._notifyMenuViewStatus.Click += new System.EventHandler(this.NotifyIconDoubleClick);
             // 
-            // notifyMenuItemExit
+            // _menuSeparator4
             // 
-            this.notifyMenuItemExit.Index = 4;
-            this.notifyMenuItemExit.Text = "&Exit";
-            this.notifyMenuItemExit.Click += new System.EventHandler(this.menuItemExit_Click);
+            this._menuSeparator4.Index = 1;
+            this._menuSeparator4.Text = "-";
             // 
-            // Log
+            // _notifyMenuItemSettings
             // 
-            this.Log.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.Log.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Log.Location = new System.Drawing.Point(0, 0);
-            this.Log.Multiline = true;
-            this.Log.Name = "Log";
-            this.Log.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.Log.Size = new System.Drawing.Size(368, 208);
-            this.Log.TabIndex = 1;
-            this.Log.WordWrap = false;
-            this.Log.TextChanged += new System.EventHandler(this.log_TextChanged);
-            this.Log.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.log_KeyPress);
+            this._notifyMenuItemSettings.Index = 2;
+            this._notifyMenuItemSettings.Text = "&Settings...";
+            this._notifyMenuItemSettings.Click += new System.EventHandler(this.MenuSettingsClick);
             // 
-            // menuItemHelp
+            // _menuSeparator5
             // 
-            this.menuItemHelp.Index = 0;
-            this.menuItemHelp.Shortcut = System.Windows.Forms.Shortcut.F1;
-            this.menuItemHelp.Text = "&Help...";
-            this.menuItemHelp.Click += new System.EventHandler(this.menuItem5_Click);
+            this._menuSeparator5.Index = 3;
+            this._menuSeparator5.Text = "-";
             // 
-            // menuItemSupport
+            // _notifyMenuItemExit
             // 
-            this.menuItemSupport.Index = 1;
-            this.menuItemSupport.Text = "&Support...";
-            this.menuItemSupport.Click += new System.EventHandler(this.menuItemSupport_Click);
+            this._notifyMenuItemExit.Index = 4;
+            this._notifyMenuItemExit.Text = "&Exit";
+            this._notifyMenuItemExit.Click += new System.EventHandler(this.MenuItemExitClick);
             // 
-            // menuItemEditCommands
+            // _log
             // 
-            this.menuItemEditCommands.Index = 3;
-            this.menuItemEditCommands.Text = "&Edit .commands File...";
-            this.menuItemEditCommands.Click += new System.EventHandler(this.menuItemEditCommands_Click);
+            this._log.Anchor =
+                ((System.Windows.Forms.AnchorStyles)
+                 ((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+                    | System.Windows.Forms.AnchorStyles.Left)
+                   | System.Windows.Forms.AnchorStyles.Right)));
+            this._log.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular,
+                                                     System.Drawing.GraphicsUnit.Point, ((byte) (0)));
+            this._log.Location = new System.Drawing.Point(0, 0);
+            this._log.Multiline = true;
+            this._log.Name = "_log";
+            this._log.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this._log.Size = new System.Drawing.Size(368, 208);
+            this._log.TabIndex = 1;
+            this._log.WordWrap = false;
+            this._log.TextChanged += new System.EventHandler(this.LogTextChanged);
+            this._log.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.LogKeyPress);
             // 
             // MainWindow
             // 
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
             this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(368, 225);
-            this.Controls.Add(this.Log);
-            this.Controls.Add(this.statusBar);
+            this.Controls.Add(this._log);
+            this.Controls.Add(this._statusBar);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Icon = ((System.Drawing.Icon) (resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
-            this.Menu = this.mainMenu;
+            this.Menu = this._mainMenu;
             this.MinimizeBox = false;
             this.Name = "MainWindow";
             this.Text = "MCE Controller";
-            this.Closing += new System.ComponentModel.CancelEventHandler(this.MainWindow_Closing);
-            this.Load += new System.EventHandler(this.MainWindow_Load);
+            this.Closing += new System.ComponentModel.CancelEventHandler(this.MainWindowClosing);
+            this.Load += new System.EventHandler(this.MainWindowLoad);
             this.ResumeLayout(false);
             this.PerformLayout();
-
         }
+
         #endregion
 
-        
-        protected override void WndProc(ref Message m)  
-        {
+        protected override void WndProc(ref Message m) {
             // If the session is being logged off, or the machine is shutting
             // down...
-            if (m.Msg==0x11) // WM_QUERYENDSESSION
+            if (m.Msg == 0x11) // WM_QUERYENDSESSION
             {
                 // Allow shut down (m.Result may already be non-zero, but I set it
                 // just in case)
-                m.Result = (IntPtr)1;
+                m.Result = (IntPtr) 1;
 
                 // Indicate to MainWindow_Closing() that we are shutting down;
                 // otherwise it will just minimize to the tray
-                ShuttingDown = true;
+                _shuttingDown = true;
             }
             base.WndProc(ref m);
         }
-        
- 
+
+
         // When the app closes, dispose of the talker object
-        protected override void OnClosed(EventArgs e)
-        {
-            if(Server!=null)
-            {
+        protected override void OnClosed(EventArgs e) {
+            if (_server != null) {
                 // remove our notification handler
-                Server.Notifications -= new
-                    SocketServer.NotificationCallback(HandleServerNotifications);
-            
-                Server.Dispose();
+                _server.Notifications -= HandleServerNotifications;
+
+                _server.Dispose();
             }
-            if(Client!=null)
-            {
+            if (_client != null) {
                 // remove our notification handler
-                Client.Notifications -= new 
-                    SocketClient.NotificationCallback(HandleClientNotifications);
-            
-                Client.Dispose();
+                _client.Notifications -= HandleClientNotifications;
+
+                _client.Dispose();
             }
 
             base.OnClosed(e);
         }
 
-        private void MainWindow_Load(object sender, System.EventArgs e)
-        {
+        private void MainWindowLoad(object sender, EventArgs e) {
             // Location can not be changed in constructor, has to be done here
-            this.Location = Settings.WindowLocation;
-            this.Size = Settings.WindowSize;
+            Location = Settings.WindowLocation;
+            Size = Settings.WindowSize;
         }
 
-        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            if (!ShuttingDown)
-            {
+        private void MainWindowClosing(object sender, CancelEventArgs e) {
+            if (!_shuttingDown) {
                 // If we're NOT shutting down (the user hit the close button or pressed
                 // CTRL-F4) minimize to tray.
                 e.Cancel = true;
 
                 // Hide the form and make sure the taskbar icon is visible
-                notifyIcon.Visible = true;
+                _notifyIcon.Visible = true;
                 Hide();
             }
         }
 
-        private void ShutDown()
-        {
+        private void ShutDown() {
             AddLogEntry("ShutDown");
             // hide icon from the systray
-            notifyIcon.Visible = false; 
+            _notifyIcon.Visible = false;
             StopServer();
             StopClient();
 
@@ -424,110 +409,97 @@ namespace MCEControl
             MainWnd = null;
 
             // Save the window size/location
-            Settings.WindowLocation = this.Location;
-            Settings.WindowSize = this.Size;
+            Settings.WindowLocation = Location;
+            Settings.WindowSize = Size;
             Settings.Serialize();
 
-            ShuttingDown = true;
+            _shuttingDown = true;
             Close();
             Application.Exit();
         }
-        private void StartServer()
-        {
-            if (Server == null)
-            {
-                Server = new SocketServer();
-                Server.Notifications += new
-                    SocketServer.NotificationCallback(HandleServerNotifications);
-                Server.Start(Settings.ServerPort);
-                menuItemSendAwake.Enabled = Settings.WakeupEnabled;
+
+        private void StartServer() {
+            if (_server == null) {
+                _server = new SocketServer();
+                _server.Notifications += HandleServerNotifications;
+                _server.Start(Settings.ServerPort);
+                _menuItemSendAwake.Enabled = Settings.WakeupEnabled;
             }
             else
                 AddLogEntry("Fatal Error: Attempt to StartServer() while an instance already exists!");
         }
 
-        private void StopServer()
-        {
-            if (Server != null)
-            {
+        private void StopServer() {
+            if (_server != null) {
                 // remove our notification handler
-                Server.Stop();            
-                Server = null;
-                menuItemSendAwake.Enabled = false;
+                _server.Stop();
+                _server = null;
+                _menuItemSendAwake.Enabled = false;
             }
         }
 
-        private void StartClient()
-        {
-            if (Client == null)
-            {
-                Client = new SocketClient(Settings);
-                Client.Notifications += new 
-                    SocketClient.NotificationCallback(HandleClientNotifications);
-                Client.Start();
+        private void StartClient() {
+            if (_client == null) {
+                _client = new SocketClient(Settings);
+                _client.Notifications += HandleClientNotifications;
+                _client.Start();
             }
             else
                 AddLogEntry("Fatal Error: Attempt to StartClient() while an instance already exists!");
         }
 
-        private void StopClient()
-        {
-            if (Client != null)
-            {
-                Client.Stop();
-                Client = null;
+        private void StopClient() {
+            if (_client != null) {
+                _client.Stop();
+                _client = null;
             }
         }
 
-        private void ReceivedData(String cmd)
-        {
+        private void ReceivedData(String cmd) {
             FlashNotifyIcon();
             AddLogEntry("Command received: " + cmd);
-            try
-            {
-                Commands.Execute(cmd);
+            try {
+                _commands.Execute(cmd);
             }
-            catch (Exception e)
-            {
-                AddLogEntry("Command error: " + e.ToString());
+            catch (Exception e) {
+                AddLogEntry("Command error: " + e);
             }
         }
 
-        delegate void SetStatusBarCallback(string text);
-        private void SetStatusBar(string text)
-        {
-            if (statusBar.InvokeRequired)
-            {
-                SetStatusBarCallback d = new SetStatusBarCallback(SetStatusBar);
-                statusBar.Invoke(d, new object[] { text });
+        private delegate void SetStatusBarCallback(string text);
+
+        private void SetStatusBar(string text) {
+            if (_statusBar.InvokeRequired) {
+                SetStatusBarCallback d = SetStatusBar;
+                _statusBar.Invoke(d, new object[] {text});
             }
-            else
-            {
-                statusBar.Text = text;
-                notifyIcon.Text = text;
+            else {
+                _statusBar.Text = text;
+                _notifyIcon.Text = text;
             }
         }
 
         //
         // Notify callback for the TCP/IP Server
         //
-        public void HandleServerNotifications(SocketServer.Notification notify, SocketServer.Status status, int client, String ipaddress, Object data)
-        {
+        public void HandleServerNotifications(SocketServer.Notification notify, SocketServer.Status status, int client,
+                                              String ipaddress, Object data) {
             String s = null;
-            switch (notify)
-            {
+            switch (notify) {
                 case SocketServer.Notification.Initialized:
                     s = "Server: Initialized.";
                     break;
 
                 case SocketServer.Notification.StatusChange:
-                    switch (status)
-                    {
+                    switch (status) {
                         case SocketServer.Status.Listening:
-                            s = "Server: Waiting for clients to connect on port " + Settings.ServerPort.ToString();
-                            SetStatusBar("Waiting for clients to connect on port " + Settings.ServerPort.ToString());
+                            s = "Server: Waiting for clients to connect on port " +
+                                Settings.ServerPort.ToString(CultureInfo.InvariantCulture);
+                            SetStatusBar("Waiting for clients to connect on port " +
+                                         Settings.ServerPort.ToString(CultureInfo.InvariantCulture));
                             if (Settings.WakeupEnabled)
-                                Server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
+                                _server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
+                                                         Settings.WakeupPort);
                             break;
 
                         case SocketServer.Status.Connected:
@@ -539,17 +511,18 @@ namespace MCEControl
                             s = "Server: Stopped.";
                             SetStatusBar("Client/Sever Not Active");
                             if (Settings.WakeupEnabled)
-                                Server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost, Settings.WakeupPort);
+                                _server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost,
+                                                         Settings.WakeupPort);
                             break;
                     }
                     break;
 
                 case SocketServer.Notification.ReceivedData:
-                    ReceivedData((string)data);
+                    ReceivedData((string) data);
                     return;
 
                 case SocketServer.Notification.Error:
-                    s = String.Format("Server: Error (Client #{0} at {1}: {2})", client, ipaddress, (String)data);
+                    s = String.Format("Server: Error (Client #{0} at {1}: {2})", client, ipaddress, data);
                     break;
 
                 case SocketServer.Notification.ClientConnected:
@@ -561,7 +534,7 @@ namespace MCEControl
                     break;
 
                 case SocketServer.Notification.Wakeup:
-                    s = "Wakeup: " + (string)data;
+                    s = "Wakeup: " + (string) data;
                     break;
 
                 default:
@@ -574,50 +547,52 @@ namespace MCEControl
         //
         // Notify callback for the TCP/IP Client
         //
-        public void HandleClientNotifications(SocketClient.Notification notify, Object data)
-        {
+        public void HandleClientNotifications(SocketClient.Notification notify, Object data) {
             String s = null;
-            switch (notify)
-            {
+            switch (notify) {
                 case SocketClient.Notification.Initialized:
                     //s = "Client: Client Initialized.";
                     break;
 
                 case SocketClient.Notification.StatusChange:
-                    SocketClient.Status status = (SocketClient.Status)data;
-                    if (status == SocketClient.Status.Listening)
-                    {
-                        s = "Client: Connecting to " + Settings.ClientHost + ":" + Settings.ClientPort.ToString();
-                        SetStatusBar("Connecting to " + Settings.ClientHost + ":" + Settings.ClientPort.ToString());
+                    var status = (SocketClient.Status) data;
+                    if (status == SocketClient.Status.Listening) {
+                        s = "Client: Connecting to " + Settings.ClientHost + ":" +
+                            Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
+                        SetStatusBar("Connecting to " + Settings.ClientHost + ":" +
+                                     Settings.ClientPort.ToString(CultureInfo.InvariantCulture));
                     }
-                    else if (status == SocketClient.Status.Connected)
-                    {
-                        s = "Client: Connected to " + Settings.ClientHost + ":" + Settings.ClientPort.ToString();
-                        SetStatusBar("Connected to " + Settings.ClientHost + ":" + Settings.ClientPort.ToString() + ", waiting for commands...");
+                    else if (status == SocketClient.Status.Connected) {
+                        s = "Client: Connected to " + Settings.ClientHost + ":" +
+                            Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
+                        SetStatusBar("Connected to " + Settings.ClientHost + ":" +
+                                     Settings.ClientPort.ToString(CultureInfo.InvariantCulture) +
+                                     ", waiting for commands...");
                     }
-                    else if (status == SocketClient.Status.Closed)
-                    {
+                    else if (status == SocketClient.Status.Closed) {
                         s = "Client: Stopped.";
-                        SetStatusBar("Client/Sever Not Active");                    }
-                    else if (status == SocketClient.Status.Sleeping)
-                    {
-                        s = "Client: Waiting " + (Settings.ClientDelayTime/1000).ToString() + " seconds to connect.";
-                        SetStatusBar("Waiting " + (Settings.ClientDelayTime/1000).ToString() + " seconds to connect.");
+                        SetStatusBar("Client/Sever Not Active");
+                    }
+                    else if (status == SocketClient.Status.Sleeping) {
+                        s = "Client: Waiting " + (Settings.ClientDelayTime/1000).ToString(CultureInfo.InvariantCulture) +
+                            " seconds to connect.";
+                        SetStatusBar("Waiting " + (Settings.ClientDelayTime/1000).ToString(CultureInfo.InvariantCulture) +
+                                     " seconds to connect.");
                     }
                     break;
 
                 case SocketClient.Notification.ReceivedData:
-                    ReceivedData((string)data);
+                    ReceivedData((string) data);
                     return;
 
                 case SocketClient.Notification.Error:
-                    s = "Client Error: " + (string)data;
+                    s = "Client Error: " + (string) data;
 
                     break;
 
                 case SocketClient.Notification.End:
-                    s = "Client: " + (string)data + " Reconnecting...";
-                    Client.Start(true);
+                    s = "Client: " + (string) data + " Reconnecting...";
+                    _client.Start(true);
                     break;
 
                 default:
@@ -627,62 +602,54 @@ namespace MCEControl
             AddLogEntry(s);
         }
 
-        delegate void AddLogEntryCallback(string text);
+        private delegate void AddLogEntryCallback(string text);
 
-        public static void AddLogEntry(String text)
-        {
-            if (MainWnd != null)
-            {
-                if (MainWnd.InvokeRequired)
-                {
-                    AddLogEntryCallback d = new AddLogEntryCallback(AddLogEntry);
-                    MainWnd.Invoke(d, new object[] { text });
+        public static void AddLogEntry(String text) {
+            if (MainWnd != null) {
+                if (MainWnd.InvokeRequired) {
+                    AddLogEntryCallback d = AddLogEntry;
+                    MainWnd.Invoke(d, new object[] {text});
                 }
                 else
-                    MainWnd.Log.AppendText("[" + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss") + "] " + text + "\r\n");
+                    MainWnd._log.AppendText("[" + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss") + "] " + text +
+                                            "\r\n");
             }
         }
 
-        private void FlashNotifyIcon()
-        {
-            notifyIcon.Icon = DummyIcon;
-            notifyIcon.Icon = this.Icon;
+        private void FlashNotifyIcon() {
+            _notifyIcon.Icon = _dummyIcon;
+            _notifyIcon.Icon = Icon;
         }
 
-        private void menuItemExit_Click(object sender, System.EventArgs e)
-        {
+        private void MenuItemExitClick(object sender, EventArgs e) {
             ShutDown();
         }
 
-        private void notifyIcon_DoubleClick(object sender, System.EventArgs e)
-        {
+        private void NotifyIconDoubleClick(object sender, EventArgs e) {
             // Show the form when the user double clicks on the notify icon.
 
             // Set the WindowState to normal if the form is minimized.
-            if (this.WindowState == FormWindowState.Minimized)
-                this.WindowState = FormWindowState.Normal;
+            if (WindowState == FormWindowState.Minimized)
+                WindowState = FormWindowState.Normal;
 
             // Activate the form.
-            notifyIcon.Visible = false;
-            this.Activate();
-            this.Show();
-            Opacity = (double)Settings.Opacity/100;
+            _notifyIcon.Visible = false;
+            Activate();
+            Show();
+            Opacity = (double) Settings.Opacity/100;
         }
 
-        private void menuItemAbout_Click(object sender, System.EventArgs e)
-        {
-            AboutBox a = new AboutBox();
+        private void MenuItemAboutClick(object sender, EventArgs e) {
+            var a = new AboutBox();
             a.ShowDialog(this);
         }
 
-        private void menuSettings_Click(object sender, System.EventArgs e)
-        {
-            SettingsDialog d = new SettingsDialog(Settings);
-            if (d.ShowDialog(this) == DialogResult.OK)
-            {
+        private void MenuSettingsClick(object sender, EventArgs e) {
+            var d = new SettingsDialog(Settings);
+            if (d.ShowDialog(this) == DialogResult.OK) {
                 Settings = d.Settings;
 
-                Opacity = (double)Settings.Opacity/100;
+                Opacity = (double) Settings.Opacity/100;
 
                 StopClient();
                 StopServer();
@@ -692,51 +659,40 @@ namespace MCEControl
 
                 if (Settings.ActAsClient)
                     StartClient();
-
             }
         }
 
         // Prevent input into the edit box
-        private void log_KeyPress(object sender, System.Windows.Forms.KeyPressEventArgs e)
-        {
+        private void LogKeyPress(object sender, KeyPressEventArgs e) {
             e.Handled = true;
         }
 
         // Keep the end of the log visible and prevent it from overflowing
-        private void log_TextChanged(object sender, System.EventArgs e)
-        {
+        private void LogTextChanged(object sender, EventArgs e) {
             // We don't want to overrun the size a textbox can handle
             // limit to 16k
-            if (Log.TextLength > (16*1024))
-            {
-                Log.Text = Log.Text.Remove(0, Log.Text.IndexOf("\r\n")+2);
-                Log.Select(Log.TextLength, 0);
+            if (_log.TextLength > (16*1024)) {
+                _log.Text = _log.Text.Remove(0, _log.Text.IndexOf("\r\n", StringComparison.Ordinal) + 2);
+                _log.Select(_log.TextLength, 0);
             }
-                
-            Log.ScrollToCaret();
+
+            _log.ScrollToCaret();
         }
 
-        private void menuItemSendAwake_Click(object sender, System.EventArgs e)
-        {
-            Server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
+        private void MenuItemSendAwakeClick(object sender, EventArgs e) {
+            _server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
         }
 
-        private void menuItem5_Click(object sender, EventArgs e)
-        {
-            System.Diagnostics.Process.Start("http://tig.github.com/mcecontroller/");
-            
+        private void MenuItemHelpClick(object sender, EventArgs e) {
+            Process.Start("http://tig.github.com/mcecontroller/");
         }
 
-        private void menuItemSupport_Click(object sender, EventArgs e)
-        {
-            System.Diagnostics.Process.Start("https://sourceforge.net/projects/mcecontroller/support");
+        private void MenuItemSupportClick(object sender, EventArgs e) {
+            Process.Start("https://sourceforge.net/projects/mcecontroller/support");
         }
 
-        private void menuItemEditCommands_Click(object sender, EventArgs e)
-        {
-            System.Diagnostics.Process.Start(Application.StartupPath);
+        private void MenuItemEditCommandsClick(object sender, EventArgs e) {
+            Process.Start(Application.StartupPath);
         }
-
     }
-
 }

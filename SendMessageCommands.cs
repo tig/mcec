@@ -9,86 +9,66 @@
 //-------------------------------------------------------------------
 
 using System;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Diagnostics;
-using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Win32.Security;
 
-namespace MCEControl
-{
-	using Microsoft.Win32.Security.Win32Structs;
-	using HWND = System.IntPtr;
-	using DWORD = System.UInt32;
+namespace MCEControl {
+    using HWND = IntPtr;
+    using DWORD = UInt32;
 
-	/// <summary>
-	/// Summary description for SendMessageCommand.
-	/// </summary>
-	public class SendMessageCommand : Command
-	{
+    /// <summary>
+    /// Summary description for SendMessageCommand.
+    /// </summary>
+    public class SendMessageCommand : Command {
+        [XmlAttribute("Msg")] public int Msg;
+
+        // This is int so that -1 can be specified in the XML
+        [XmlAttribute("lParam")] public int LParam;
+        [XmlAttribute("wParam")] public int WParam;
+
+        public SendMessageCommand() {
+        }
+
+        public SendMessageCommand(String className, String windowName, DWORD msg, DWORD wParam, DWORD lParam) {
+            ClassName = className;
+            WindowName = windowName;
+            Msg = (int) msg;
+            WParam = (int) wParam;
+            LParam = (int) lParam;
+        }
+
         [XmlAttribute("ClassName")]
         public String ClassName { get; set; }
 
         [XmlAttribute("WindowName")]
         public String WindowName { get; set; }
 
-        [XmlAttribute("Msg")]
-        public int Msg;
+        public override void Execute() {
+            try {
+                if (ClassName != null) {
+                    var procs = Process.GetProcessesByName(ClassName);
+                    if (procs.Length > 0) {
+                        var h = procs[0].MainWindowHandle;
 
-		[XmlAttribute("wParam")]
-		public int wParam;
-
-        // This is int so that -1 can be specified in the XML
-        [XmlAttribute("lParam")]
-        public int lParam;
-
-		public SendMessageCommand()
-		{
-		}
-
-		public SendMessageCommand(String ClassName, String WindowName, DWORD Msg, DWORD wParam, DWORD lParam)
-		{
-			this.ClassName = ClassName;
-			this.WindowName = WindowName;
-			this.Msg = (int)Msg;
-			this.wParam = (int)wParam;
-			this.lParam = (int)lParam;
-		}
-
-		public override void Execute()
-		{
-			try
-			{
-				unsafe
-				{
-					if (ClassName != null)
-					{
-						Process[] procs = Process.GetProcessesByName(ClassName);
-						if (procs.Length > 0)
-						{
-							HWND h = procs[0].MainWindowHandle;
-
-                            MainWindow.AddLogEntry(String.Format("SendMessage ({0}): {1} {2} {3}", ClassName, Msg, wParam, lParam));
-                            Win32.SendMessage(h, (DWORD)Msg, (DWORD)wParam, (DWORD)lParam);
-						}
-						else
-						{
-							MainWindow.AddLogEntry("GetProcessByName for " + ClassName + " failed");
-						}
-					}
-					else
-					{
-						HWND h = Win32.GetForegroundWindow();
-						MainWindow.AddLogEntry(String.Format("SendMessage (forground window): {0} {1} {2}", Msg, wParam, lParam));
-                        Win32.SendMessage(h, (DWORD)Msg, (DWORD)wParam, (DWORD)lParam);
+                        MainWindow.AddLogEntry(String.Format("SendMessage ({0}): {1} {2} {3}", ClassName, Msg, WParam,
+                                                             LParam));
+                        Win32.SendMessage(h, (DWORD) Msg, (DWORD) WParam, (DWORD) LParam);
                     }
-				}
-			}
-			catch(Exception e)
-			{
-				MainWindow.AddLogEntry("SendMessageCommand.Execute failed for " + ClassName + " with error: " + e.Message);
-			}
-		}
-	}
+                    else {
+                        MainWindow.AddLogEntry("GetProcessByName for " + ClassName + " failed");
+                    }
+                }
+                else {
+                    var h = Win32.GetForegroundWindow();
+                    MainWindow.AddLogEntry(String.Format("SendMessage (forground window): {0} {1} {2}", Msg, WParam, LParam));
+                    Win32.SendMessage(h, (DWORD) Msg, (DWORD) WParam, (DWORD) LParam);
+                }
+            }
+            catch (Exception e) {
+                MainWindow.AddLogEntry("SendMessageCommand.Execute failed for " + ClassName + " with error: " +
+                                       e.Message);
+            }
+        }
+    }
 }

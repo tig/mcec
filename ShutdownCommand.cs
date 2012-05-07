@@ -9,61 +9,49 @@
 //-------------------------------------------------------------------
 
 using System;
-using System.Collections;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Diagnostics;
-using System.Xml;
 using System.Xml.Serialization;
 
-namespace MCEControl
-{
-	/// <summary>
-	/// Summary description for ShutdownCommand.
-	/// </summary>
-	public class ShutdownCommand : Command
-	{
-		[XmlAttribute("Type")]
-		public String Type;
+namespace MCEControl {
+    /// <summary>
+    /// Summary description for ShutdownCommand.
+    /// </summary>
+    public class ShutdownCommand : Command {
+        [XmlAttribute("Type")] public String Type;
 
-		public ShutdownCommand()
-		{
-		}
+        public ShutdownCommand() {
+        }
 
-		public ShutdownCommand(string type)
-		{
-			Type = type;
-		}
+        public ShutdownCommand(string type) {
+            Type = type;
+        }
 
-		public override void Execute()
-		{
-			MainWindow.AddLogEntry("ShutdownCommand: " + Type );
+        public override void Execute() {
+            MainWindow.AddLogEntry("ShutdownCommand: " + Type);
 
-			SystemControl sc = new SystemControl();
-			switch (Type.ToLower())
-			{
-				case "shutdown":
-					sc.Shutdown("MCE Controller Forced Shutdown", 30, true, false);
-					break;
+            var sc = new SystemControl();
+            switch (Type.ToLower()) {
+                case "shutdown":
+                    sc.Shutdown("MCE Controller Forced Shutdown", 30, true, false);
+                    break;
 
-				case "restart":
-					sc.Shutdown("MCE Controller Forced Restart", 30, true, true);
-					break;
+                case "restart":
+                    sc.Shutdown("MCE Controller Forced Restart", 30, true, true);
+                    break;
 
-				case "standby":
-					sc.Standby();
-					break;
+                case "standby":
+                    sc.Standby();
+                    break;
 
-				case "hibernate":
-					sc.Hibernate();
-					break;
+                case "hibernate":
+                    sc.Hibernate();
+                    break;
 
-				case "abort":
-					sc.Abort();
-					break;
-			}
+                case "abort":
+                    sc.Abort();
+                    break;
+            }
 
-			sc.Dispose(true);
-		}
-	}
+            sc.Dispose(true);
+        }
+    }
 }

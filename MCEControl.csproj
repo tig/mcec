@@ -243,6 +243,7 @@
     <Compile Include="WindowsInput\WindowsInputMessageDispatcher.cs" />
     <Content Include="App.ico" />
     <Content Include="ehome.ico" />
+    <None Include="Resources\notifyIcon.Icon.ico" />
     <EmbeddedResource Include="AboutBox.resx">
       <DependentUpon>AboutBox.cs</DependentUpon>
     </EmbeddedResource>
