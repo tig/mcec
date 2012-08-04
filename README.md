@@ -51,7 +51,7 @@ MCE Controller is free to use. [Donations are encouraged](http://sourceforge.net
 
 ## Support 
 
-* For help and support, please visit the [MCE Controller forums](https://sourceforge.net/projects/mcecontroller/forums/forum/464956).
+* For help and support, please visit the [MCE Controller forums](http://sourceforge.net/projects/mcecontroller/forums/forum/464957).
 * [Charlie's Blog Posts on MCE Controller](http://ceklog.kindel.com/category/passions/homeautomation/mce-controller/)
 * More on [kindel.com](http://www.kindel.com).
 
