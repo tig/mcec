@@ -1,6 +1,8 @@
-# MCE Controller 
+# MCE Controller 1.5.2
 
-By Charlie Kindel (@tig) - Copyright © 2012 [Kindel Systems](http://www.kindel.com), LLC. [Follow Charlie on Twitter](http://www.twitter.com/ckindel)
+By Charlie Kindel (@tig) - Copyright © 2012 [Kindel Systems](http://www.kindel.com), LLC. 
+
+[Follow Charlie on Twitter](http://www.twitter.com/ckindel)
 
 Licensed under the [MIT License](http://www.opensource.org/licenses/mit-license.php).
 
