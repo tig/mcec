@@ -94,6 +94,26 @@ namespace MCEControl {
         }
 
         private void SettingsChanged() {
+            if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked)
+            {
+                UInt32 port = 0;
+                UInt32.TryParse(_editWakeupPort.Text, out port);
+                _buttonOk.Enabled = !(String.IsNullOrEmpty(_editWakeupServer.Text) ||
+                                      String.IsNullOrEmpty(_editWakeupCommand.Text) ||
+                                      String.IsNullOrEmpty(_editClosingCommand.Text) ||
+                                      (port == 0));
+                return;
+            }
+
+            if (_checkBoxEnableClient.Checked)
+            {
+                UInt32 port = 0;
+                UInt32.TryParse(_editClientPort.Text, out port);
+                _buttonOk.Enabled = !(String.IsNullOrEmpty(_editClientHost.Text) ||
+                                      (port == 0));
+                return;
+            }
+
             _buttonOk.Enabled = true;
         }
 
@@ -114,78 +134,80 @@ namespace MCEControl {
         }
 
         private void CheckBoxHideOnStartupCheckedChanged(object sender, EventArgs e) {
-            SettingsChanged();
             Settings.HideOnStartup = _checkBoxHideOnStartup.Checked;
+            SettingsChanged();
         }
 
         private void CheckBoxAutoStartCheckedChanged(object sender, EventArgs e) {
-            SettingsChanged();
             Settings.AutoStart = _checkBoxAutoStart.Checked;
+            SettingsChanged();
         }
 
         private void CheckBoxEnableServerCheckedChanged(object sender, EventArgs e) {
-            SettingsChanged();
             Settings.ActAsServer = _checkBoxEnableServer.Checked;
 
             _serverGroup.Enabled = _checkBoxEnableServer.Checked;
+            SettingsChanged();
         }
 
         private void EditServerPortTextChanged(object sender, EventArgs e) {
-            SettingsChanged();
-            if (_editServerPort.Text.Length > 0)
-                Settings.ServerPort = Convert.ToInt32(_editServerPort.Text);
+            UInt32 port = 0;
+            if (UInt32.TryParse(_editServerPort.Text, out port))
+                Settings.ServerPort = (int)port;
+            SettingsChanged(); 
         }
 
         private void CheckBoxEnableWakeupCheckedChanged(object sender, EventArgs e) {
-            SettingsChanged();
             Settings.WakeupEnabled = _checkBoxEnableWakeup.Checked;
-
             _wakeupGroup.Enabled = _checkBoxEnableWakeup.Checked;
+            SettingsChanged();
         }
 
         private void EditWakeupServerTextChanged(object sender, EventArgs e) {
-            SettingsChanged();
             Settings.WakeupHost = _editWakeupServer.Text;
+            SettingsChanged();
         }
 
         private void EditWakeupPortTextChanged(object sender, EventArgs e) {
+            UInt32 port = 0;
+            if (UInt32.TryParse(_editWakeupPort.Text, out port))
+                Settings.WakeupPort = (int)port;
             SettingsChanged();
-            if (_editWakeupPort.Text.Length > 0)
-                Settings.WakeupPort = Convert.ToInt32(_editWakeupPort.Text);
         }
 
         private void EditWakeupCommandTextChanged(object sender, EventArgs e) {
-            SettingsChanged();
             Settings.WakeupCommand = _editWakeupCommand.Text;
+            SettingsChanged();
         }
 
         private void EditClosingCommandTextChanged(object sender, EventArgs e) {
-            SettingsChanged();
             Settings.ClosingCommand = _editClosingCommand.Text;
+            SettingsChanged();
         }
 
         private void CheckEnableClientCheckedChanged(object sender, EventArgs e) {
-            SettingsChanged();
             Settings.ActAsClient = _checkBoxEnableClient.Checked;
 
             _clientGroup.Enabled = _checkBoxEnableClient.Checked;
+            SettingsChanged();
         }
 
         private void EditClientPortTextChanged(object sender, EventArgs e) {
+            UInt32 port = 0;
+            if (UInt32.TryParse(_editClientPort.Text, out port))
+                Settings.ClientPort = (int)port;
             SettingsChanged();
-            if (_editClientPort.Text.Length > 0)
-                Settings.ClientPort = Convert.ToInt32(_editClientPort.Text);
         }
 
         private void EditClientHostTextChanged(object sender, EventArgs e) {
-            SettingsChanged();
             Settings.ClientHost = _editClientHost.Text;
+            SettingsChanged();
         }
 
         private void EditClientDelayTimeTextChanged(object sender, EventArgs e) {
-            SettingsChanged();
             if (_editClientDelayTime.Text.Length > 0)
                 Settings.ClientDelayTime = Convert.ToInt32(_editClientDelayTime.Text);
+            SettingsChanged();
         }
 
         #region Windows Form Designer generated code
@@ -602,24 +624,26 @@ namespace MCEControl {
         // is ACLd to allow only admin writes on Win7. 
         public static String GetSettingsPath() {
             String path = Application.StartupPath;
-            if (HasWritePermissionOnDir(path))
-                return path;
-            // Strip off the trainling version ("\\0.0.0.xxxx");
-            path = Application.UserAppDataPath.Substring(0,
-                                                         Application.UserAppDataPath.Length -
-                                                         (Application.ProductVersion.Length + 1));
-            if (HasWritePermissionOnDir(path))
-                return path;
-            return "";
+            // If app was started from within ProgramFiles then use UserAppDataPath.
+            if (path.Contains(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles))) {
+                // Strip off the trailing version ("\\0.0.0.xxxx")
+                path = Application.UserAppDataPath.Substring(0,
+                                                             Application.UserAppDataPath.Length -
+                                                             (Application.ProductVersion.Length + 1));
+            }
+
+            return path;
         }
 
         public void Serialize() {
             var settingsPath = GetSettingsPath();
             try {
+                var filePath = settingsPath + "\\" + SettingsFileName;
                 var ser = new XmlSerializer(typeof (AppSettings));
-                var sw = new StreamWriter(settingsPath + "\\" + SettingsFileName);
+                var sw = new StreamWriter(filePath);
                 ser.Serialize(sw, this);
                 sw.Close();
+                MainWindow.AddLogEntry("Wrote settings to " + filePath);
             }
             catch (Exception e) {
                 MessageBox.Show(String.Format("Settings file could not be written. {0}", e.Message));
@@ -632,13 +656,16 @@ namespace MCEControl {
             var serializer = new XmlSerializer(typeof (AppSettings));
             // A FileStream is needed to read the XML document.
             try {
-                var fs = new FileStream(settingsPath + "\\" + SettingsFileName, FileMode.Open, FileAccess.Read);
+                var filePath = settingsPath + "\\" + SettingsFileName;
+                var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
                 XmlReader reader = new XmlTextReader(fs);
                 settings = (AppSettings) serializer.Deserialize(reader);
                 fs.Close();
+                MainWindow.AddLogEntry("Read settings from " + filePath);
             }
             catch (FileNotFoundException) {
                 // First time through, so create file with defaults
+                MainWindow.AddLogEntry("Creating default settings file.");
                 settings = new AppSettings();
                 settings.Serialize();
             }
@@ -646,20 +673,6 @@ namespace MCEControl {
                 MessageBox.Show(String.Format("Settings file could not be loaded. {0}", e.Message));
             }
             return settings;
-        }
-
-        public static bool HasWritePermissionOnDir(string path) {
-            try {
-                using (File.CreateText(path + "\\" + "~test.tmp")) {
-                }
-            }
-            catch (UnauthorizedAccessException) {
-                return false;
-            }
-            finally {
-                File.Delete(path + "\\" + "~test.tmp");
-            }
-            return true;
         }
     }
 }

@@ -275,6 +275,14 @@ namespace MCEControl {
         }
 
         public void SendAwakeCommand(String cmd, String host, int port) {
+            if (String.IsNullOrEmpty(host)) {
+                SendNotification(Notification.Wakeup, Status.Connected, 0, "n/a", "No wakeup host specified.");
+                return;
+            }
+            if (port == 0) {
+                SendNotification(Notification.Wakeup, Status.Connected, 0, "n/a", "Invalid port.");
+                return;
+            }
             try {
                 // Try to resolve the remote host name or address
                 var resolvedHost = Dns.GetHostEntry(host);
@@ -289,7 +297,7 @@ namespace MCEControl {
                     clientSocket.Connect(destination);
                 }
                 catch (SocketException err) {
-                    // Connect faile so close the socket and try the next address
+                    // Connect failed so close the socket and try the next address
                     clientSocket.Close();
                     clientSocket = null;
                     SendNotification(Notification.Wakeup, Status.Connected, 0, "n/a",
