@@ -246,16 +246,39 @@ namespace MCEControl {
                     CloseSocket(socketData);
                     return;
                 }
-                // Extract the characters as a buffer
-                char[] charsToTrim = {'\r', '\n', '\0'};
-                var data = Encoding.UTF8.GetString(socketData.DataBuffer, 0, iRx).Trim(charsToTrim);
 
-                // TODO: Notify with client #
-                //string msg = "" + socketData.m_clientNumber + ":";
-                //AppendToRichEditControl(msg + szData);
-                SendNotification(Notification.ReceivedData,
+                byte[] cmd = new byte[iRx];
+                int n = 0;
+                for (int i = 0; i < iRx; i++) {
+                    if (socketData.DataBuffer[i] == '\r' || 
+                        socketData.DataBuffer[i] == '\n' || 
+                        socketData.DataBuffer[i] == '\0') {
+
+                        // If we're at the start of a new cmd, throw away any cr/lfs
+                        if (n == 0) continue;
+
+                        // End of cmd
+                        SendNotification(Notification.ReceivedData,
                                  Status.Connected, socketData.ClientNumber,
-                                 socketData.Socket.RemoteEndPoint.ToString(), data);
+                                 socketData.Socket.RemoteEndPoint.ToString(), Encoding.UTF8.GetString(cmd, 0, n));
+                        n = 0;
+                        continue;
+                    }
+                    cmd[n++] = socketData.DataBuffer[i];
+                }
+
+                Debug.Assert(n == 0);
+
+                //// Extract the characters as a buffer
+                //char[] charsToTrim = {'\r', '\n', '\0'};
+                //var data = Encoding.UTF8.GetString(socketData.DataBuffer, 0, iRx).Trim(charsToTrim);
+
+                //// TODO: Notify with client #
+                ////string msg = "" + socketData.m_clientNumber + ":";
+                ////AppendToRichEditControl(msg + szData);
+                //SendNotification(Notification.ReceivedData,
+                //                 Status.Connected, socketData.ClientNumber,
+                //                 socketData.Socket.RemoteEndPoint.ToString(), data);
 
                 // Continue the waiting for data on the Socket
                 BeginReceive(socketData.Socket, socketData.ClientNumber);

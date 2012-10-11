@@ -67,6 +67,11 @@ namespace MCEControl {
                 // Modifyer key up
                 SendInputCommand.ShiftKey(cmd.Substring(8, cmd.Length - 8), false);
             }
+            else if (String.Compare(cmd, 0, MouseCommand.Cmd, 0, MouseCommand.Cmd.Length, true) == 0) {
+                // mouse:<action>[,<parameter>,<parameter>]
+                var mouseCmd = new MouseCommand(cmd);
+                mouseCmd.Execute();
+            }
             else if (_hashTable.ContainsKey(cmd)) {
                 // Command in MCEControl.commands
                 Command command = FindKey(cmd);

@@ -1,4 +1,4 @@
-# MCE Controller 1.5.2
+# MCE Controller 1.6
 
 By Charlie Kindel (@tig) - Copyright © 2012 [Kindel Systems](http://www.kindel.com), LLC. 
 
@@ -42,6 +42,7 @@ MCE Controller is free to use. [Donations are encouraged](http://sourceforge.net
 
 * Can act as a TCP/IP client or server. Supports any number of simultaneous clients.
 * Supports simulating keypresses (e.g. Alt-Tab, or Win-S) with `SendInput` commands.
+* Supports simulating the mouse.
 * Supports simulating Windows messages (e.g. `WM_SYSCOMMAND` / `SC_MAXIMIZE`) with `SendMessage` commands.
 * Supports simulating start process commands (e.g. run `notepad.exe`) with the `StartProcess` command.
 * Supports simulating changing the window focus with the `SetForegroundWindow` command.
@@ -136,6 +137,7 @@ The following command types are supported by MCE Controller:
 * **Shutdown** - Allows the host computer to be shutdown, restarted, put in standby, or hibernate mode.
 * **SendMessage** - Enables the sending of window messages to windows. E.g. the 'mcemaximize' command causes the Media Center window to go full screen.
 * **SendInput** - Sends keyboard input to the forground window.
+* **Mouse** - Sends mouse movement and button actions.
 * Built-In - Single characters, `chars:`, `shiftdown:`, and `shiftup:`.
 
 The `MCEControl.commands` file included with MCE Controller includes a set of default commands for controlling Windows Media Center as well as standard keyboard input. See the section below for instructions on how to add, remove, or change these commands. Note that there are some other commands in `MCEControl.commands` such as "notepad" which starts `notepad.exe`; these are there just for illustrative purposes.
@@ -183,6 +185,30 @@ This scheme can be used as an alternative way of sending ctrl-, alt-, and win- k
 Anytime MCE Controller recevies `chars:` plus some text, it simluates the typing of that text on the keyboard. The syntax of the command is `chars:*` where '*'' represents one or more characters. This is equivalent to typing those characters on the keyboard. E.g. `chars:3` will cause the number 3 to be typed as though the user had pressed the 3 key on the keyboard. `chars:Hello` will cause `Hello` to be typed.
 
 Unicode (and other excaped charcter sequences are supported). `chars:\u20AC` will cause the &euro; character to be input into the foreground window on the machine MCE Controller is running on.
+
+### mouse:
+
+MCE Controller can simulate mouse movement. With this it is possible to build a remote control that acts like a mouse (I have built a test app for Windows Phone 7 that enables WP7 to work like a touchpad; contact me if you are interested in it).
+
+The general format of the mouse commands is:
+
+    mouse:<action>[,<param>,...,<param>]
+
+The available mouse actions are:
+
+* **lbc** - Left button click (`mouse:lbc`)
+* **lbdc** - Left button double-click (`mouse:lbdc`)
+* **lbd** - Left button down (`mouse:lbd`)
+* **lbu** - Left button up (`mouse:lbu`);
+* **rbc, rbdc, rbd, rbu** - Same same but for the right mouse button.
+* **xbc, etc...** - x button click where x is a button number (`mouse:xbc,3` for button 3 click)
+* **mm,x,y** - Move the mouse x, y pixels (`mouse:mm,7,-3` would move the mouse right 7 and up 3 pixels)
+* **mt,x,y** - Move the mouse to a location. The coordinates represent the absolute X/Y-coordinates on the primary display device where 0 is the extreme left/bottom of the display device and 65535 is the extreme right/bottom hand side of the display device (`mouse:mt,0,65535` would move the mouse to the bottom left corner of the primary display).
+* **mtv,x,y** - Move the mouse to a location on the virtual desktop. The coordinates represent the absolute X/Y-coordinates on the virtual desktop where 0 is the extreme left/top of the virtual desktop and 65535 is the extreme right/bottom (`mouse:mtv,65535,0` would move the mouse to the top right corner of the virutal desktop).
+* **hs,n** - Simlate a horizontal scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated to the right; a negative value indicates that the wheel was rotated to the left (`mouse:hs,3`).
+* **vs,n** - Simlate a vertical scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated forward, away from the user; a negative value indicates that the wheel was rotated backward, toward the user (`mouse:vs,3`).
+
+Note that when sending mouse movements it is best if the MCE Controller window is hidden as the display log tends to chew up a lot of resoruces, making things jerky.
 
 NOTE: Older versions of MCE Controller suppored a `keys:` command that purported to do the same thing. It never actually worked right and has been replaced with the new `chars:` command.
 
@@ -252,3 +278,4 @@ Renamed a few commands ("mce_start" is now "mcestart" for example) to be more co
 * Version 1.5.0 (March 27, 2012) - 'chars:' command now supports escaped characters. This allows the sending of Unicode characters such as &euro; (e.g. 'chars:\u20AC' will cause the &euro; character to be input on the server machine).</li>
 * Version 1.5.1 (April 2, 2012) - Removed readme file from distribution and updated online docs. 
 * Version 1.5.2 (October, 4, 2012) - Fixed .settings file bug where it would sometimes read from Program Files and write to AppData. Now always writes to AppData unless started outside of Program Files. Fixed Setting dialog to be more resilient to bad data. Fixed Send Awake so that it does not fault on bad data, but logs errors. General code clean up. Built with VS2012.
+* Version 1.6.0 (October 10, 2012) - Added mouse simulation support. 

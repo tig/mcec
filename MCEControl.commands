@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--===================================================================-->
-<!-- MCE Controller 1.5                                                -->
+<!-- MCE Controller 1.6                                                -->
 <!--===================================================================-->
 <!-- Modify this file to extend/change the commands MCE Controller     -->
 <!-- supports.                                                         -->
@@ -14,7 +14,7 @@
 
 <!--===================================================================-->
 <!-- Builtin Commands:                                                 -->
-<!-- (Cannot be configured/changed)                                    -->
+<!-- See the readme for full documentation.                            -->
 <!-- Cmd="chars:" - Allows simulating the entering of arbitrary text.  -->
 <!-- e.g. "chars:Hello World!" will enter "Hello World!" as though it  -->
 <!-- were typed on the keyboard.                                       -->
