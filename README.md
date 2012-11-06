@@ -279,3 +279,5 @@ Renamed a few commands ("mce_start" is now "mcestart" for example) to be more co
 * Version 1.5.1 (April 2, 2012) - Removed readme file from distribution and updated online docs. 
 * Version 1.5.2 (October, 4, 2012) - Fixed .settings file bug where it would sometimes read from Program Files and write to AppData. Now always writes to AppData unless started outside of Program Files. Fixed Setting dialog to be more resilient to bad data. Fixed Send Awake so that it does not fault on bad data, but logs errors. General code clean up. Built with VS2012.
 * Version 1.6.0 (October 10, 2012) - Added mouse simulation support. 
+* Version 1.6.1 (November 6, 2012) - Fixed bug with some Telnet clients that don't buffer each line before sending.
+

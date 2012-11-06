@@ -9,11 +9,14 @@
 //-------------------------------------------------------------------
 
 using System;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Resources;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using MCEControl.Properties;
 using Microsoft.Win32.Security;
@@ -456,22 +459,19 @@ namespace MCEControl {
         }
 
         private void ReceivedData(String cmd) {
-            FlashNotifyIcon();
-            AddLogEntry("Command received: " + cmd);
             try {
                 _commands.Execute(cmd);
+                AddLogEntry("Command received: " + cmd);
             }
             catch (Exception e) {
-                AddLogEntry("Command error: " + e);
+                AddLogEntry(String.Format("Command ({0}) error: {1}", cmd, e));
             }
         }
 
         private delegate void SetStatusBarCallback(string text);
-
         private void SetStatusBar(string text) {
             if (_statusBar.InvokeRequired) {
-                SetStatusBarCallback d = SetStatusBar;
-                _statusBar.Invoke(d, new object[] {text});
+                 _statusBar.BeginInvoke((SetStatusBarCallback)SetStatusBar, new object[] { text });
             }
             else {
                 _statusBar.Text = text;
@@ -603,22 +603,14 @@ namespace MCEControl {
         }
 
         private delegate void AddLogEntryCallback(string text);
-
-        public static void AddLogEntry(String text) {
-            if (MainWnd != null) {
-                if (MainWnd.InvokeRequired) {
-                    AddLogEntryCallback d = AddLogEntry;
-                    MainWnd.Invoke(d, new object[] {text});
-                }
-                else
-                    MainWnd._log.AppendText("[" + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss") + "] " + text +
-                                            "\r\n");
-            }
-        }
-
-        private void FlashNotifyIcon() {
-            _notifyIcon.Icon = _dummyIcon;
-            _notifyIcon.Icon = Icon;
+        public static void AddLogEntry(String text)
+        {
+            if (MainWnd == null) return;
+            if (MainWnd.InvokeRequired) 
+                MainWnd.BeginInvoke((AddLogEntryCallback)AddLogEntry, new object[] { text });
+            else
+                MainWnd._log.AppendText("[" + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss") + "] " + text +
+                                        Environment.NewLine);
         }
 
         private void MenuItemExitClick(object sender, EventArgs e) {
@@ -675,7 +667,6 @@ namespace MCEControl {
                 _log.Text = _log.Text.Remove(0, _log.Text.IndexOf("\r\n", StringComparison.Ordinal) + 2);
                 _log.Select(_log.TextLength, 0);
             }
-
             _log.ScrollToCaret();
         }
 

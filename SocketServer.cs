@@ -232,6 +232,9 @@ namespace MCEControl {
                 SetStatus(Status.Listening);
         }
 
+        private byte[] _currentCmd = new byte[1024*4];
+        private int _currentIndex;
+
         // This the call back function which will be invoked when the socket
         // detects any client writing of data on the stream
         public void OnDataReceived(IAsyncResult async) {
@@ -247,38 +250,28 @@ namespace MCEControl {
                     return;
                 }
 
-                byte[] cmd = new byte[iRx];
-                int n = 0;
+                // _currentCommand contains the current command we are parsing out and 
+                // _currentIndex is the index into it
+                //int n = 0;
                 for (int i = 0; i < iRx; i++) {
                     if (socketData.DataBuffer[i] == '\r' || 
                         socketData.DataBuffer[i] == '\n' || 
                         socketData.DataBuffer[i] == '\0') {
 
-                        // If we're at the start of a new cmd, throw away any cr/lfs
-                        if (n == 0) continue;
-
-                        // End of cmd
-                        SendNotification(Notification.ReceivedData,
-                                 Status.Connected, socketData.ClientNumber,
-                                 socketData.Socket.RemoteEndPoint.ToString(), Encoding.UTF8.GetString(cmd, 0, n));
-                        n = 0;
-                        continue;
+                        // Skip any delimiter chars that might have been left from earlier input
+                        if (_currentIndex > 0) {
+                            SendNotification(Notification.ReceivedData,
+                                             Status.Connected, 
+                                             socketData.ClientNumber,
+                                             socketData.Socket.RemoteEndPoint.ToString(),
+                                             Encoding.UTF8.GetString(_currentCmd, 0, _currentIndex));
+                            // Reset n to start new command
+                            _currentIndex = 0;
+                        }
                     }
-                    cmd[n++] = socketData.DataBuffer[i];
+                    else
+                        _currentCmd[_currentIndex++] = socketData.DataBuffer[i];
                 }
-
-                Debug.Assert(n == 0);
-
-                //// Extract the characters as a buffer
-                //char[] charsToTrim = {'\r', '\n', '\0'};
-                //var data = Encoding.UTF8.GetString(socketData.DataBuffer, 0, iRx).Trim(charsToTrim);
-
-                //// TODO: Notify with client #
-                ////string msg = "" + socketData.m_clientNumber + ":";
-                ////AppendToRichEditControl(msg + szData);
-                //SendNotification(Notification.ReceivedData,
-                //                 Status.Connected, socketData.ClientNumber,
-                //                 socketData.Socket.RemoteEndPoint.ToString(), data);
 
                 // Continue the waiting for data on the Socket
                 BeginReceive(socketData.Socket, socketData.ClientNumber);

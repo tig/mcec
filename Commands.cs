@@ -88,6 +88,9 @@ namespace MCEControl {
                 MainWindow.AddLogEntry("Sending keydown for: " + cmd);
                 sim.Keyboard.KeyPress((VirtualKeyCode) c);
             }
+            else {
+                MainWindow.AddLogEntry("Unknown command: " + cmd);
+            }
         }
 
         private Command FindKey(String key) {
