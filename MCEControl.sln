@@ -7,6 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Installer\license.txt = Installer\license.txt
 		MCEControl.commands = MCEControl.commands
 		Installer\MCEController.nsi = Installer\MCEController.nsi
+		README.md = README.md
 	EndProjectSection
 EndProject
 Global

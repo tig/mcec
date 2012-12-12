@@ -11,7 +11,7 @@ Licensed under the [MIT License](http://www.opensource.org/licenses/mit-license.
 ## Download 
 
 Download MCE Controller for Windows (installer)
-[Download the latest version](https://github.com/tig/mcecontroller/downloads)
+[Download the latest version](http://ceklog.wpengine.netdna-cdn.com/wp-content/uploads/2012/12/MCEController-1.6.1-Setup.exe)
 
 ![Screenshot](http://www.kindel.com/products/mcecontroller/MCE%20Controller.png)
 
