@@ -35,6 +35,7 @@ namespace MCEControl {
         // Protocol objects
         private SocketServer _server;
         private SocketClient _client;
+        private SerialServer _serialServer;
         private readonly CommandTable _commands;
 
         // Indicates whether user hit the close box (minimize)
@@ -107,6 +108,9 @@ namespace MCEControl {
                 Opacity = (double) Settings.Opacity/100;
                 if (Settings.ActAsServer)
                     StartServer();
+
+                if (Settings.ActAsSerialServer)
+                    StartSerialServer();
 
                 if (Settings.ActAsClient)
                     StartClient();
@@ -370,14 +374,17 @@ namespace MCEControl {
             if (_server != null) {
                 // remove our notification handler
                 _server.Notifications -= HandleServerNotifications;
-
                 _server.Dispose();
             }
             if (_client != null) {
                 // remove our notification handler
                 _client.Notifications -= HandleClientNotifications;
-
                 _client.Dispose();
+            }
+
+            if (_serialServer != null) {
+                _serialServer.Notifications -= HandleSerialServerNotifications;
+                _serialServer.Dispose();
             }
 
             base.OnClosed(e);
@@ -407,6 +414,7 @@ namespace MCEControl {
             _notifyIcon.Visible = false;
             StopServer();
             StopClient();
+            StopSerialServer();
 
             // Prevent access to the static MainWnd
             MainWnd = null;
@@ -438,6 +446,33 @@ namespace MCEControl {
                 _server.Stop();
                 _server = null;
                 _menuItemSendAwake.Enabled = false;
+            }
+        }
+
+        private void StartSerialServer()
+        {
+            if (_serialServer == null)
+            {
+                _serialServer = new SerialServer();
+                _serialServer.Notifications += HandleSerialServerNotifications;
+                _serialServer.Start(Settings.SerialServerPortName, 
+                    Settings.SerialServerBaudRate, 
+                    Settings.SerialServerParity, 
+                    Settings.SerialServerDataBits, 
+                    Settings.SerialServerStopBits, 
+                    Settings.SerialServerHandshake);
+            }
+            else
+                AddLogEntry("Fatal Error: Attempt to StartSerialServer() while an instance already exists!");
+        }
+
+        private void StopSerialServer()
+        {
+            if (_serialServer != null)
+            {
+                // remove our notification handler
+                _serialServer.Stop();
+                _serialServer = null;
             }
         }
 
@@ -602,6 +637,47 @@ namespace MCEControl {
             AddLogEntry(s);
         }
 
+        //
+        // Notify callback for the Serial Server
+        //
+        public void HandleSerialServerNotifications(SerialServer.Notification notify, SerialServer.Status status, String message,
+                                              Object data)
+        {
+            String s = null;
+            switch (notify)
+            {
+                case SerialServer.Notification.StatusChange:
+                    switch (status)
+                    {
+                        case SerialServer.Status.Started:
+                            s = String.Format("SerialServer: Waiting for commands on {0}...", message);
+                            SetStatusBar("Waiting for Serial commands...");
+                            break;
+
+                        case SerialServer.Status.Stopped:
+                            s = "SerialServer: Stopped.";
+                            SetStatusBar("Serial Server Not Active");
+                            break;
+                    }
+                    break;
+
+                case SerialServer.Notification.ReceivedData:
+                    ReceivedData((string)data);
+                    return;
+
+                case SerialServer.Notification.Error:
+                    s = String.Format("SerialServer: Error ({0}) {1}", message, data);
+                    break;
+
+                default:
+                    s = "SerialServer: Unknown notification";
+                    break;
+            }
+            AddLogEntry(s);
+        }
+
+      
+
         private delegate void AddLogEntryCallback(string text);
         public static void AddLogEntry(String text)
         {
@@ -645,9 +721,13 @@ namespace MCEControl {
 
                 StopClient();
                 StopServer();
+                StopSerialServer();
 
                 if (Settings.ActAsServer)
                     StartServer();
+
+                if (Settings.ActAsSerialServer)
+                    StartSerialServer();
 
                 if (Settings.ActAsClient)
                     StartClient();

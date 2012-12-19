@@ -95,6 +95,7 @@
     <Compile Include="Commands.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="SerialServer.cs" />
     <Compile Include="KeyboardCommand.cs">
       <SubType>Code</SubType>
     </Compile>

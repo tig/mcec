@@ -1,4 +1,4 @@
-# MCE Controller 1.6
+# MCE Controller 1.7
 
 By Charlie Kindel (@tig) - Copyright © 2012 [Kindel Systems](http://www.kindel.com), LLC. 
 
@@ -30,6 +30,8 @@ For many applications, emitting the MCE IR commands will suffice. However, for s
 
 MCE Controller can act as either a TCP/IP client or server. When acting as a client the target host and port can be configured. When acting as a server the incoming port can be configured.
 
+MCE Controller can also listen on an RS-232 serial port.
+
 MCE Controller runs showing only a taskbar icon. By double clicking on the taskbar a status window is displayed that shows a log of all activity. You can also right-click on the taskbar icon for a menu.
 
 ## License
@@ -41,6 +43,7 @@ MCE Controller is free to use. [Donations are encouraged](http://sourceforge.net
 ## Features
 
 * Can act as a TCP/IP client or server. Supports any number of simultaneous clients.
+* Can act as a serial server listening on RS-232 COM port.
 * Supports simulating keypresses (e.g. Alt-Tab, or Win-S) with `SendInput` commands.
 * Supports simulating the mouse.
 * Supports simulating Windows messages (e.g. `WM_SYSCOMMAND` / `SC_MAXIMIZE`) with `SendMessage` commands.
@@ -50,6 +53,7 @@ MCE Controller is free to use. [Donations are encouraged](http://sourceforge.net
 * `MCEController.commands` includes common Windows Media Center commands. It can easily be extended to suit your needs.
 * Supports running multiple instances.
 * TCP/IP port can be changed in Settings.
+* COM port and settings can be changed in Settings.
 * Runs minimzed as a taskbar icon by default. This can be changed in Settings...
 
 ## Support 
@@ -280,4 +284,4 @@ Renamed a few commands ("mce_start" is now "mcestart" for example) to be more co
 * Version 1.5.2 (October, 4, 2012) - Fixed .settings file bug where it would sometimes read from Program Files and write to AppData. Now always writes to AppData unless started outside of Program Files. Fixed Setting dialog to be more resilient to bad data. Fixed Send Awake so that it does not fault on bad data, but logs errors. General code clean up. Built with VS2012.
 * Version 1.6.0 (October 10, 2012) - Added mouse simulation support. 
 * Version 1.6.1 (November 6, 2012) - Fixed bug with some Telnet clients that don't buffer each line before sending.
-
+* Version 1.7.0 (December 19, 2012) - Added Serial Server support (experimental).
