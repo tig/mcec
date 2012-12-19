@@ -95,6 +95,14 @@ namespace MCEControl {
                 SendNotification(Notification.Error, Status.Started, GetSettingsDisplayString(), ioe.Message);
                 Stop();
             }
+            catch (UnauthorizedAccessException uae) {
+                SendNotification(Notification.Error, Status.Started, GetSettingsDisplayString(), "Port in use? " + uae.Message);
+                Stop();
+            }
+            catch (Exception e) {
+                SendNotification(Notification.Error, Status.Started, GetSettingsDisplayString(), e.Message);
+                Stop();              
+            }
      }
 
         public void Stop() {
@@ -212,9 +220,11 @@ namespace MCEControl {
                 catch (TimeoutException) {
                     Debug.WriteLine("SerialServer: TimeoutException");
                 }
-                catch (IOException e) {
-                    Debug.WriteLine("SerialServer: IOException: "+e.Message);
-                    //break;
+                catch (IOException ioe) {
+                    Debug.WriteLine("SerialServer: IOException: "+ ioe.Message);
+                }
+                catch (Exception e) {
+                    Debug.WriteLine("SerialServer: Exception: " + e.Message);
                 }
             }
             Debug.WriteLine("SerialServer: Exiting Read()");
