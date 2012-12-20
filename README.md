@@ -1,6 +1,6 @@
 # MCE Controller 1.7
 
-By Charlie Kindel (@tig) - Copyright © 2012 [Kindel Systems](http://www.kindel.com), LLC. 
+By Charlie Kindel (@tig) - Copyright © 2012 [Kindel Systems](http://www.kindel.com), LLC.
 
 [Follow Charlie on Twitter](http://www.twitter.com/ckindel)
 
