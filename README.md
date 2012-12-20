@@ -13,7 +13,7 @@ Licensed under the [MIT License](http://www.opensource.org/licenses/mit-license.
 Download MCE Controller for Windows (installer)
 [Download the latest version](http://ceklog.wpengine.netdna-cdn.com/wp-content/uploads/2012/12/MCEController-1.6.1-Setup.exe)
 
-![Screenshot](http://www.kindel.com/products/mcecontroller/MCE%20Controller.png)
+![Screenshot](http://i.imgur.com/fAR59.png)
 
 MCE Controller lets you control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP can use MCE Controller to control a Windows PC.
 
@@ -77,13 +77,13 @@ To install, simply run the `MCEController 1.x.x Setup.exe` to install. The follo
 
 When MCEControl runs, it defaults to showing itself as only a taskbar icon. Double clicking on the taskbar icon will show the configuration/status window.
 
-![MCE Controller running in the taskbar] (http://i.imgur.com/AsrJP.png)
+![MCE Controller running in the taskbar](http://i.imgur.com/AsrJP.png)
 
 If you would like it to show it’s configuration/status window upon startup, uncheck the “Hide Window at Startup” checkbox in the settings dialog.
 
 ## Configuration
 
-![Settings Dialog] (http://i.imgur.com/rL2P0.png)
+![Settings Dialog](http://i.imgur.com/Ov4lo.png)
 
 Note that all configuration settings are stored in a file that will be created in the `%APPDATA%\Roaming\Kindel Systems\MCE Controller` directory when MCE Controller is first run. The configuration settings file is named `MCEControl.settings`.
 
@@ -95,7 +95,7 @@ MCE Controller can act as either a TCP/IP client or server (it can actually oper
 
 The Client tab in the Settings dialog controls MCE Controller’s TCP/IP client functionality. When acting as a client, MCE Controller will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. MCE Controller sends nothing to the host.
 
-![Client Tab] (http://i.imgur.com/95d3U.png)
+![Client Tab](http://i.imgur.com/iSZXa.png)
 
 * Enable Client. This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
 * Host. This is the IP address or host name of the server MCE Controller is to connect to.
@@ -108,11 +108,22 @@ The Server tab in the Settings dialog controls MCE Controller’s TCP/IP server 
 
 In server mode, MCE Controller supports any number of multiple-simultaneous connections. 
 
-![Server Tab] (http://i.imgur.com/M2THm.png)
+![Server Tab](http://i.imgur.com/1WPgb.png)
 
 * Enable Server. This checkbox enables or disables the TCP/IP server functionality. If enabled, the followings settings apply:
 * Port. This is the port that MCE Controller will listen on.
 * Enable Wakeup. If enabled, MCE Controller will attempt to connect to the specified host/port, send the “Wakeup command” and disconnect when it first starts. When it shuts down it will send the “Closing command”. This functionality is useful when the remote client needs to be notified that MCE Controller is ready (for example after the server PC has rebooted).
+
+## The Serial Server Tab
+
+The Serial Server tab in the Settings dialog controls MCE Controller’s serial port (RS-232) functionality.  When the Serial Server is enabled, MCE Controller will open the specified COM port (e.g. COM1) and wait commands to be sent. 
+
+![Serial Server Tab](http://i.imgur.com/zHCgr.png)
+
+* Enable Server. This checkbox enables or disables the Serial Server functionality. It is disabled by default. If enabled, the followings settings apply:
+* Port. This is the serial port that MCE Controller will listen on (e.g. COM1).
+* Baud Rate. Sets the speed of the serial port.
+* Data Bits, Parity, Stop Bits, and Handshake: Set the serial port configuration.
 
 ## Testing MCE Controller
 
@@ -126,9 +137,31 @@ There is a telnet client supplied with Windows, but it is not installed by defau
 
 NetCat (nc.exe) is an open source program ported from Unix that supports sending network packets. You can get [NetCat here] (http://netcat.sourceforge.net/). Like this:
 
-![Using NetCat] (http://i.imgur.com/DUhXP.png)
+![Using NetCat](http://i.imgur.com/DUhXP.png)
 
 Note the Windows version of NetCat does not exit automaticaly. The `-w` parameter you see in the screenshot above tells it to wait 1 second before exiting. On other platforms NetCat works as expected. 
+
+### Using PUTTY
+
+PuTTY is a free terminal emulator (and Telnet and SSH client). It works well for testing MCE Controller. You can download [PuTTY here](http://www.chiark.greenend.org.uk/~sgtatham/putty/).
+
+#### Using PUTTY to test TCP/IP interactions
+
+![Using PUTTY over TCP/IP](http://i.imgur.com/PwXOX.png)
+
+1. Run PUTTY.EXE
+2. Set *Host Name* to *localhost* (or the network name of the PC running MCE Controller
+3. Set *Port* to the port MCE Controller is set to listen on (e.g. 5150)
+4. Set the *Connection Type* to *Raw*.
+5. Click *Open*
+
+Type commands in the PuTTY Window and see how MCE Controller reacts. In the example above the command *close* was typed, followed by the enter key. This caused *Alt-F4* to be sent to the foreground windows (PuTTY).
+
+![PUTTY example](http://i.imgur.com/vwIoQ.png)
+
+#### Using PUTTY to test serial connections
+
+PuTTY supports connecting via serial ports. The usage is the same as in the TCP/IP example above except you set the appropriate COM port settings in PuTTY and choose the *Serial* destination type.
 
 ## Commands
 
