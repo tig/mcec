@@ -150,7 +150,7 @@ namespace MCEControl {
         /// </summary>
         private void InitializeComponent() {
             this.components = new System.ComponentModel.Container();
-            var resources = new System.ComponentModel.ComponentResourceManager(typeof (MainWindow));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainWindow));
             this._mainMenu = new System.Windows.Forms.MainMenu(this.components);
             this._menuItemFileMenu = new System.Windows.Forms.MenuItem();
             this._menuItemSendAwake = new System.Windows.Forms.MenuItem();
@@ -177,22 +177,19 @@ namespace MCEControl {
             // _mainMenu
             // 
             this._mainMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-                                                                                      this._menuItemFileMenu,
-                                                                                      this._menuItemHelpMenu
-                                                                                  });
+            this._menuItemFileMenu,
+            this._menuItemHelpMenu});
             // 
             // _menuItemFileMenu
             // 
             this._menuItemFileMenu.Index = 0;
             this._menuItemFileMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-                                                                                              this._menuItemSendAwake,
-                                                                                              this._menuSeparator1,
-                                                                                              this._menuSettings,
-                                                                                              this._menuItemEditCommands
-                                                                                              ,
-                                                                                              this._menuSeparator2,
-                                                                                              this._menuItemExit
-                                                                                          });
+            this._menuItemSendAwake,
+            this._menuSeparator1,
+            this._menuSettings,
+            this._menuItemEditCommands,
+            this._menuSeparator2,
+            this._menuItemExit});
             this._menuItemFileMenu.Text = "&File";
             // 
             // _menuItemSendAwake
@@ -233,10 +230,9 @@ namespace MCEControl {
             // 
             this._menuItemHelpMenu.Index = 1;
             this._menuItemHelpMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-                                                                                              this._menuItemHelp,
-                                                                                              this._menuItemSupport,
-                                                                                              this._menuItemAbout
-                                                                                          });
+            this._menuItemHelp,
+            this._menuItemSupport,
+            this._menuItemAbout});
             this._menuItemHelpMenu.Text = "&Help";
             // 
             // _menuItemHelp
@@ -260,7 +256,7 @@ namespace MCEControl {
             // 
             // _statusBar
             // 
-            this._statusBar.Location = new System.Drawing.Point(0, 205);
+            this._statusBar.Location = new System.Drawing.Point(0, 184);
             this._statusBar.Name = "_statusBar";
             this._statusBar.Size = new System.Drawing.Size(368, 20);
             this._statusBar.TabIndex = 0;
@@ -268,7 +264,7 @@ namespace MCEControl {
             // _notifyIcon
             // 
             this._notifyIcon.ContextMenu = this._notifyMenu;
-            this._notifyIcon.Icon = ((System.Drawing.Icon) (resources.GetObject("_notifyIcon.Icon")));
+            this._notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("_notifyIcon.Icon")));
             this._notifyIcon.Text = global::MCEControl.Properties.Resources.App_FullName;
             this._notifyIcon.Visible = true;
             this._notifyIcon.DoubleClick += new System.EventHandler(this.NotifyIconDoubleClick);
@@ -276,12 +272,11 @@ namespace MCEControl {
             // _notifyMenu
             // 
             this._notifyMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-                                                                                        this._notifyMenuViewStatus,
-                                                                                        this._menuSeparator4,
-                                                                                        this._notifyMenuItemSettings,
-                                                                                        this._menuSeparator5,
-                                                                                        this._notifyMenuItemExit
-                                                                                    });
+            this._notifyMenuViewStatus,
+            this._menuSeparator4,
+            this._notifyMenuItemSettings,
+            this._menuSeparator5,
+            this._notifyMenuItemExit});
             // 
             // _notifyMenuViewStatus
             // 
@@ -313,18 +308,14 @@ namespace MCEControl {
             // 
             // _log
             // 
-            this._log.Anchor =
-                ((System.Windows.Forms.AnchorStyles)
-                 ((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                    | System.Windows.Forms.AnchorStyles.Left)
-                   | System.Windows.Forms.AnchorStyles.Right)));
-            this._log.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular,
-                                                     System.Drawing.GraphicsUnit.Point, ((byte) (0)));
+            this._log.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._log.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this._log.Location = new System.Drawing.Point(0, 0);
             this._log.Multiline = true;
             this._log.Name = "_log";
-            this._log.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this._log.Size = new System.Drawing.Size(368, 208);
+            this._log.Size = new System.Drawing.Size(368, 187);
             this._log.TabIndex = 1;
             this._log.WordWrap = false;
             this._log.TextChanged += new System.EventHandler(this.LogTextChanged);
@@ -334,11 +325,10 @@ namespace MCEControl {
             // 
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
             this.BackColor = System.Drawing.SystemColors.Control;
-            this.ClientSize = new System.Drawing.Size(368, 225);
+            this.ClientSize = new System.Drawing.Size(368, 204);
             this.Controls.Add(this._log);
             this.Controls.Add(this._statusBar);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
-            this.Icon = ((System.Drawing.Icon) (resources.GetObject("$this.Icon")));
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Menu = this._mainMenu;
             this.MinimizeBox = false;
@@ -348,6 +338,7 @@ namespace MCEControl {
             this.Load += new System.EventHandler(this.MainWindowLoad);
             this.ResumeLayout(false);
             this.PerformLayout();
+
         }
 
         #endregion

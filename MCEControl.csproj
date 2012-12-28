@@ -7,7 +7,8 @@
     <ProjectGuid>{9489CAA5-2568-4ED5-A9AA-F5941CC608EB}</ProjectGuid>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ApplicationIcon>ehome.ico</ApplicationIcon>
+    <ApplicationIcon>
+    </ApplicationIcon>
     <AssemblyKeyContainerName />
     <AssemblyName>MCEControl</AssemblyName>
     <AssemblyOriginatorKeyFile />
@@ -243,8 +244,6 @@
     <Compile Include="WindowsInput\Native\XButton.cs" />
     <Compile Include="WindowsInput\WindowsInputDeviceStateAdaptor.cs" />
     <Compile Include="WindowsInput\WindowsInputMessageDispatcher.cs" />
-    <Content Include="App.ico" />
-    <Content Include="ehome.ico" />
     <None Include="Resources\notifyIcon.Icon.ico" />
     <EmbeddedResource Include="AboutBox.resx">
       <DependentUpon>AboutBox.cs</DependentUpon>
@@ -262,6 +261,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\mcecontrol.Icon.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

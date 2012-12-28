@@ -19,7 +19,7 @@ using System.Reflection;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Kindel Systems")]
 [assembly: AssemblyProduct("MCE Controller")]
-[assembly: AssemblyCopyright("Copyright © 2012 Kindel Systems, LLC")]
+[assembly: AssemblyCopyright("Copyright © 2013 Kndel Systems, LLC")]
 [assembly: AssemblyTrademark("MCE Controller")]
 [assembly: AssemblyCulture("")]		
 
@@ -34,7 +34,7 @@ using System.Reflection;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("1.7.0.*")]
+[assembly: AssemblyVersion("1.7.1.*")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 
