@@ -74,170 +74,11 @@ namespace MCEControl {
         private Label _labelBuadRate;
         private ComboBox _comboBoxSerialPort;
         private Label _labelSerialPort;
+        private ToolTip toolTipClient;
+        private System.ComponentModel.IContainer components;
+        private ToolTip _toolTipServer;
+        private CheckBox _checkBoxClientCmdUi;
         private TabPage _tabServer;
-
-        public SettingsDialog(AppSettings settings) {
-            //
-            // Required for Windows Form Designer support
-            //
-            InitializeComponent();
-
-            // Clone the settings object
-            Settings = (AppSettings) settings.Clone();
-
-            // Handle General tab setup
-            _checkBoxHideOnStartup.Checked = Settings.HideOnStartup;
-            _checkBoxAutoStart.Checked = Settings.AutoStart;
-
-            // Client tab setup
-            _checkBoxEnableClient.Checked = Settings.ActAsClient;
-            _editClientPort.Text = Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
-            _editClientHost.Text = Settings.ClientHost;
-            _editClientDelayTime.Text = Settings.ClientDelayTime.ToString(CultureInfo.InvariantCulture);
-
-            // Server tab setup
-            _checkBoxEnableServer.Checked = Settings.ActAsServer;
-            _editServerPort.Text = Settings.ServerPort.ToString(CultureInfo.InvariantCulture);
-            _checkBoxEnableWakeup.Checked = Settings.WakeupEnabled;
-            _editWakeupServer.Text = Settings.WakeupHost;
-            _editWakeupPort.Text = Settings.WakeupPort.ToString(CultureInfo.InvariantCulture);
-            _editWakeupCommand.Text = Settings.WakeupCommand;
-            _editClosingCommand.Text = Settings.ClosingCommand;
-
-            // Serial Server tab setup
-            _checkBoxEnableSerialServer.Checked = Settings.ActAsSerialServer;
-            _comboBoxSerialPort.SelectedItem = Settings.SerialServerPortName;
-            _comboBoxBaudRate.SelectedItem = Settings.SerialServerBaudRate.ToString();
-            _comboBoxDataBits.SelectedItem = Settings.SerialServerDataBits.ToString();
-            // For the enum types, we cheat and rely on knowledge of what the enum 
-            // values are. The combo boxes are pre-filled with in-order strings.
-            _comboBoxParity.SelectedIndex = (int)Settings.SerialServerParity; 
-            _comboBoxStopBits.SelectedIndex = (int) Settings.SerialServerStopBits - 1; // None (0) is not allowed
-            _comboBoxHandshake.SelectedIndex = (int) Settings.SerialServerHandshake; 
-
-            _wakeupGroup.Enabled = _checkBoxEnableWakeup.Checked;
-            _serverGroup.Enabled = _checkBoxEnableServer.Checked;
-            _serialServerGroup.Enabled = _checkBoxEnableSerialServer.Checked;
-
-            _buttonOk.Enabled = false;
-        }
-
-        private void SettingsChanged() {
-            if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked)
-            {
-                UInt32 port = 0;
-                UInt32.TryParse(_editWakeupPort.Text, out port);
-                _buttonOk.Enabled = !(String.IsNullOrEmpty(_editWakeupServer.Text) ||
-                                      String.IsNullOrEmpty(_editWakeupCommand.Text) ||
-                                      String.IsNullOrEmpty(_editClosingCommand.Text) ||
-                                      (port == 0));
-                return;
-            }
-
-            if (_checkBoxEnableClient.Checked)
-            {
-                UInt32 port = 0;
-                UInt32.TryParse(_editClientPort.Text, out port);
-                _buttonOk.Enabled = !(String.IsNullOrEmpty(_editClientHost.Text) ||
-                                      (port == 0));
-                return;
-            }
-
-            _buttonOk.Enabled = true;
-        }
-
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        protected override void Dispose(bool disposing) {
-        }
-
-        private void ButtonCancelClick(object sender, EventArgs e) {
-            Close();
-        }
-
-        private void ButtonOkClick(object sender, EventArgs e) {
-            Settings.Serialize();
-            DialogResult = DialogResult.OK;
-            Close();
-        }
-
-        private void CheckBoxHideOnStartupCheckedChanged(object sender, EventArgs e) {
-            Settings.HideOnStartup = _checkBoxHideOnStartup.Checked;
-            SettingsChanged();
-        }
-
-        private void CheckBoxAutoStartCheckedChanged(object sender, EventArgs e) {
-            Settings.AutoStart = _checkBoxAutoStart.Checked;
-            SettingsChanged();
-        }
-
-        private void CheckBoxEnableServerCheckedChanged(object sender, EventArgs e) {
-            Settings.ActAsServer = _checkBoxEnableServer.Checked;
-
-            _serverGroup.Enabled = _checkBoxEnableServer.Checked;
-            SettingsChanged();
-        }
-
-        private void EditServerPortTextChanged(object sender, EventArgs e) {
-            UInt32 port = 0;
-            if (UInt32.TryParse(_editServerPort.Text, out port))
-                Settings.ServerPort = (int)port;
-            SettingsChanged(); 
-        }
-
-        private void CheckBoxEnableWakeupCheckedChanged(object sender, EventArgs e) {
-            Settings.WakeupEnabled = _checkBoxEnableWakeup.Checked;
-            _wakeupGroup.Enabled = _checkBoxEnableWakeup.Checked;
-            SettingsChanged();
-        }
-
-        private void EditWakeupServerTextChanged(object sender, EventArgs e) {
-            Settings.WakeupHost = _editWakeupServer.Text;
-            SettingsChanged();
-        }
-
-        private void EditWakeupPortTextChanged(object sender, EventArgs e) {
-            UInt32 port = 0;
-            if (UInt32.TryParse(_editWakeupPort.Text, out port))
-                Settings.WakeupPort = (int)port;
-            SettingsChanged();
-        }
-
-        private void EditWakeupCommandTextChanged(object sender, EventArgs e) {
-            Settings.WakeupCommand = _editWakeupCommand.Text;
-            SettingsChanged();
-        }
-
-        private void EditClosingCommandTextChanged(object sender, EventArgs e) {
-            Settings.ClosingCommand = _editClosingCommand.Text;
-            SettingsChanged();
-        }
-
-        private void CheckEnableClientCheckedChanged(object sender, EventArgs e) {
-            Settings.ActAsClient = _checkBoxEnableClient.Checked;
-
-            _clientGroup.Enabled = _checkBoxEnableClient.Checked;
-            SettingsChanged();
-        }
-
-        private void EditClientPortTextChanged(object sender, EventArgs e) {
-            UInt32 port = 0;
-            if (UInt32.TryParse(_editClientPort.Text, out port))
-                Settings.ClientPort = (int)port;
-            SettingsChanged();
-        }
-
-        private void EditClientHostTextChanged(object sender, EventArgs e) {
-            Settings.ClientHost = _editClientHost.Text;
-            SettingsChanged();
-        }
-
-        private void EditClientDelayTimeTextChanged(object sender, EventArgs e) {
-            if (_editClientDelayTime.Text.Length > 0)
-                Settings.ClientDelayTime = Convert.ToInt32(_editClientDelayTime.Text);
-            SettingsChanged();
-        }
 
         #region Windows Form Designer generated code
 
@@ -245,7 +86,9 @@ namespace MCEControl {
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent() {
+        private void InitializeComponent()
+        {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SettingsDialog));
             this._buttonCancel = new System.Windows.Forms.Button();
             this._buttonOk = new System.Windows.Forms.Button();
@@ -256,6 +99,7 @@ namespace MCEControl {
             this._tabClient = new System.Windows.Forms.TabPage();
             this._checkBoxEnableClient = new System.Windows.Forms.CheckBox();
             this._clientGroup = new System.Windows.Forms.GroupBox();
+            this._checkBoxClientCmdUi = new System.Windows.Forms.CheckBox();
             this._editClientPort = new System.Windows.Forms.TextBox();
             this._label6 = new System.Windows.Forms.Label();
             this._label8 = new System.Windows.Forms.Label();
@@ -292,6 +136,8 @@ namespace MCEControl {
             this._labelBuadRate = new System.Windows.Forms.Label();
             this._comboBoxSerialPort = new System.Windows.Forms.ComboBox();
             this._labelSerialPort = new System.Windows.Forms.Label();
+            this.toolTipClient = new System.Windows.Forms.ToolTip(this.components);
+            this._toolTipServer = new System.Windows.Forms.ToolTip(this.components);
             this._tabControl.SuspendLayout();
             this._general.SuspendLayout();
             this._tabClient.SuspendLayout();
@@ -383,10 +229,13 @@ namespace MCEControl {
             this._checkBoxEnableClient.Size = new System.Drawing.Size(104, 16);
             this._checkBoxEnableClient.TabIndex = 0;
             this._checkBoxEnableClient.Text = "Enable &Client";
+            this.toolTipClient.SetToolTip(this._checkBoxEnableClient, "Starts a TCP/IP client connection to the specified address:port. Commands will be" +
+        " recieved as replies.");
             this._checkBoxEnableClient.CheckedChanged += new System.EventHandler(this.CheckEnableClientCheckedChanged);
             // 
             // _clientGroup
             // 
+            this._clientGroup.Controls.Add(this._checkBoxClientCmdUi);
             this._clientGroup.Controls.Add(this._editClientPort);
             this._clientGroup.Controls.Add(this._label6);
             this._clientGroup.Controls.Add(this._label8);
@@ -398,6 +247,17 @@ namespace MCEControl {
             this._clientGroup.Size = new System.Drawing.Size(307, 220);
             this._clientGroup.TabIndex = 8;
             this._clientGroup.TabStop = false;
+            // 
+            // _checkBoxClientCmdUi
+            // 
+            this._checkBoxClientCmdUi.AutoSize = true;
+            this._checkBoxClientCmdUi.Location = new System.Drawing.Point(16, 197);
+            this._checkBoxClientCmdUi.Name = "_checkBoxClientCmdUi";
+            this._checkBoxClientCmdUi.Size = new System.Drawing.Size(177, 17);
+            this._checkBoxClientCmdUi.TabIndex = 4;
+            this._checkBoxClientCmdUi.Text = "&Show \"send command\" window";
+            this._checkBoxClientCmdUi.UseVisualStyleBackColor = true;
+            this._checkBoxClientCmdUi.CheckedChanged += new System.EventHandler(this.CheckBoxClientCmdUiCheckedChanged);
             // 
             // _editClientPort
             // 
@@ -465,6 +325,7 @@ namespace MCEControl {
             this._checkBoxEnableServer.Size = new System.Drawing.Size(104, 16);
             this._checkBoxEnableServer.TabIndex = 0;
             this._checkBoxEnableServer.Text = "Enable &Server";
+            this._toolTipServer.SetToolTip(this._checkBoxEnableServer, "Enables the TCP/IP server. It will listen on the specified port for commands.");
             this._checkBoxEnableServer.CheckedChanged += new System.EventHandler(this.CheckBoxEnableServerCheckedChanged);
             // 
             // _serverGroup
@@ -653,7 +514,6 @@ namespace MCEControl {
             this._labelHandshake.Size = new System.Drawing.Size(65, 13);
             this._labelHandshake.TabIndex = 11;
             this._labelHandshake.Text = "&Handshake:";
-            this._labelHandshake.Click += new System.EventHandler(this._labelHandshake_Click);
             // 
             // _comboBoxStopBits
             // 
@@ -677,7 +537,6 @@ namespace MCEControl {
             this._labelStopBits.Size = new System.Drawing.Size(52, 13);
             this._labelStopBits.TabIndex = 9;
             this._labelStopBits.Text = "&Stop Bits:";
-            this._labelStopBits.Click += new System.EventHandler(this._labelStopBits_Click);
             // 
             // _comboBoxParity
             // 
@@ -703,7 +562,6 @@ namespace MCEControl {
             this._labelParity.Size = new System.Drawing.Size(36, 13);
             this._labelParity.TabIndex = 7;
             this._labelParity.Text = "&Parity:";
-            this._labelParity.Click += new System.EventHandler(this._labelParity_Click);
             // 
             // _comboBoxDataBits
             // 
@@ -730,7 +588,6 @@ namespace MCEControl {
             this._labelDataBits.Size = new System.Drawing.Size(53, 13);
             this._labelDataBits.TabIndex = 5;
             this._labelDataBits.Text = "&Data Bits:";
-            this._labelDataBits.Click += new System.EventHandler(this._labelDataBits_Click);
             // 
             // _comboBoxBaudRate
             // 
@@ -758,7 +615,6 @@ namespace MCEControl {
             this._labelBuadRate.Size = new System.Drawing.Size(61, 13);
             this._labelBuadRate.TabIndex = 3;
             this._labelBuadRate.Text = "&Baud Rate:";
-            this._labelBuadRate.Click += new System.EventHandler(this._labelBuadRate_Click);
             // 
             // _comboBoxSerialPort
             // 
@@ -787,7 +643,14 @@ namespace MCEControl {
             this._labelSerialPort.Size = new System.Drawing.Size(29, 13);
             this._labelSerialPort.TabIndex = 1;
             this._labelSerialPort.Text = "&Port:";
-            this._labelSerialPort.Click += new System.EventHandler(this._labelSerialPort_Click);
+            // 
+            // toolTipClient
+            // 
+            this.toolTipClient.ToolTipTitle = "Client";
+            // 
+            // _toolTipServer
+            // 
+            this._toolTipServer.ToolTipTitle = "Server";
             // 
             // SettingsDialog
             // 
@@ -806,7 +669,7 @@ namespace MCEControl {
             this.Name = "SettingsDialog";
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "MCE Controller Settings";
+            this.Text = "Settings";
             this._tabControl.ResumeLayout(false);
             this._general.ResumeLayout(false);
             this._tabClient.ResumeLayout(false);
@@ -818,7 +681,6 @@ namespace MCEControl {
             this._wakeupGroup.ResumeLayout(false);
             this._wakeupGroup.PerformLayout();
             this._tabSerialServer.ResumeLayout(false);
-            this._tabSerialServer.PerformLayout();
             this._serialServerGroup.ResumeLayout(false);
             this._serialServerGroup.PerformLayout();
             this.ResumeLayout(false);
@@ -826,6 +688,171 @@ namespace MCEControl {
         }
 
         #endregion
+
+        public SettingsDialog(AppSettings settings) {
+            //
+            // Required for Windows Form Designer support
+            //
+            InitializeComponent();
+
+            // Clone the settings object
+            Settings = (AppSettings) settings.Clone();
+
+            // Handle General tab setup
+            _checkBoxHideOnStartup.Checked = Settings.HideOnStartup;
+            _checkBoxAutoStart.Checked = Settings.AutoStart;
+
+            // Client tab setup
+            _checkBoxEnableClient.Checked = Settings.ActAsClient;
+            _editClientPort.Text = Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
+            _editClientHost.Text = Settings.ClientHost;
+            _editClientDelayTime.Text = Settings.ClientDelayTime.ToString(CultureInfo.InvariantCulture);
+            _checkBoxClientCmdUi.Checked = Settings.ShowCommandWindow;
+
+            // Server tab setup
+            _checkBoxEnableServer.Checked = Settings.ActAsServer;
+            _editServerPort.Text = Settings.ServerPort.ToString(CultureInfo.InvariantCulture);
+            _checkBoxEnableWakeup.Checked = Settings.WakeupEnabled;
+            _editWakeupServer.Text = Settings.WakeupHost;
+            _editWakeupPort.Text = Settings.WakeupPort.ToString(CultureInfo.InvariantCulture);
+            _editWakeupCommand.Text = Settings.WakeupCommand;
+            _editClosingCommand.Text = Settings.ClosingCommand;
+
+            // Serial Server tab setup
+            _checkBoxEnableSerialServer.Checked = Settings.ActAsSerialServer;
+            _comboBoxSerialPort.SelectedItem = Settings.SerialServerPortName;
+            _comboBoxBaudRate.SelectedItem = Settings.SerialServerBaudRate.ToString();
+            _comboBoxDataBits.SelectedItem = Settings.SerialServerDataBits.ToString();
+            // For the enum types, we cheat and rely on knowledge of what the enum 
+            // values are. The combo boxes are pre-filled with in-order strings.
+            _comboBoxParity.SelectedIndex = (int)Settings.SerialServerParity; 
+            _comboBoxStopBits.SelectedIndex = (int) Settings.SerialServerStopBits - 1; // None (0) is not allowed
+            _comboBoxHandshake.SelectedIndex = (int) Settings.SerialServerHandshake;
+
+            _clientGroup.Enabled = _checkBoxEnableClient.Checked;
+            _wakeupGroup.Enabled = _checkBoxEnableWakeup.Checked;
+            _serverGroup.Enabled = _checkBoxEnableServer.Checked;
+            _serialServerGroup.Enabled = _checkBoxEnableSerialServer.Checked;
+
+            _buttonOk.Enabled = false;
+        }
+
+        private void SettingsChanged() {
+            if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked)
+            {
+                UInt32 port = 0;
+                UInt32.TryParse(_editWakeupPort.Text, out port);
+                _buttonOk.Enabled = !(String.IsNullOrEmpty(_editWakeupServer.Text) ||
+                                      String.IsNullOrEmpty(_editWakeupCommand.Text) ||
+                                      String.IsNullOrEmpty(_editClosingCommand.Text) ||
+                                      (port == 0));
+                return;
+            }
+
+            if (_checkBoxEnableClient.Checked)
+            {
+                UInt32 port = 0;
+                UInt32.TryParse(_editClientPort.Text, out port);
+                _buttonOk.Enabled = !(String.IsNullOrEmpty(_editClientHost.Text) ||
+                                      (port == 0));
+                return;
+            }
+
+            _buttonOk.Enabled = true;
+        }
+
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        protected override void Dispose(bool disposing) {
+        }
+
+        private void ButtonCancelClick(object sender, EventArgs e) {
+            Close();
+        }
+
+        private void ButtonOkClick(object sender, EventArgs e) {
+            Settings.Serialize();
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+
+        private void CheckBoxHideOnStartupCheckedChanged(object sender, EventArgs e) {
+            Settings.HideOnStartup = _checkBoxHideOnStartup.Checked;
+            SettingsChanged();
+        }
+
+        private void CheckBoxAutoStartCheckedChanged(object sender, EventArgs e) {
+            Settings.AutoStart = _checkBoxAutoStart.Checked;
+            SettingsChanged();
+        }
+
+        private void CheckBoxEnableServerCheckedChanged(object sender, EventArgs e) {
+            Settings.ActAsServer = _checkBoxEnableServer.Checked;
+
+            _serverGroup.Enabled = _checkBoxEnableServer.Checked;
+            SettingsChanged();
+        }
+
+        private void EditServerPortTextChanged(object sender, EventArgs e) {
+            UInt32 port = 0;
+            if (UInt32.TryParse(_editServerPort.Text, out port))
+                Settings.ServerPort = (int)port;
+            SettingsChanged(); 
+        }
+
+        private void CheckBoxEnableWakeupCheckedChanged(object sender, EventArgs e) {
+            Settings.WakeupEnabled = _checkBoxEnableWakeup.Checked;
+            _wakeupGroup.Enabled = _checkBoxEnableWakeup.Checked;
+            SettingsChanged();
+        }
+
+        private void EditWakeupServerTextChanged(object sender, EventArgs e) {
+            Settings.WakeupHost = _editWakeupServer.Text;
+            SettingsChanged();
+        }
+
+        private void EditWakeupPortTextChanged(object sender, EventArgs e) {
+            UInt32 port = 0;
+            if (UInt32.TryParse(_editWakeupPort.Text, out port))
+                Settings.WakeupPort = (int)port;
+            SettingsChanged();
+        }
+
+        private void EditWakeupCommandTextChanged(object sender, EventArgs e) {
+            Settings.WakeupCommand = _editWakeupCommand.Text;
+            SettingsChanged();
+        }
+
+        private void EditClosingCommandTextChanged(object sender, EventArgs e) {
+            Settings.ClosingCommand = _editClosingCommand.Text;
+            SettingsChanged();
+        }
+
+        private void CheckEnableClientCheckedChanged(object sender, EventArgs e) {
+            Settings.ActAsClient = _checkBoxEnableClient.Checked;
+
+            _clientGroup.Enabled = _checkBoxEnableClient.Checked;
+            SettingsChanged();
+        }
+
+        private void EditClientPortTextChanged(object sender, EventArgs e) {
+            UInt32 port = 0;
+            if (UInt32.TryParse(_editClientPort.Text, out port))
+                Settings.ClientPort = (int)port;
+            SettingsChanged();
+        }
+
+        private void EditClientHostTextChanged(object sender, EventArgs e) {
+            Settings.ClientHost = _editClientHost.Text;
+            SettingsChanged();
+        }
+
+        private void EditClientDelayTimeTextChanged(object sender, EventArgs e) {
+            if (_editClientDelayTime.Text.Length > 0)
+                Settings.ClientDelayTime = Convert.ToInt32(_editClientDelayTime.Text);
+            SettingsChanged();
+        }
 
         // Serial Server handlers
         private void CheckBoxEnableSerialServerCheckedChanged(object sender, EventArgs e)
@@ -882,35 +909,11 @@ namespace MCEControl {
                 SettingsChanged();
             }
         }
-
-        private void _labelSerialPort_Click(object sender, EventArgs e)
+        
+        private void CheckBoxClientCmdUiCheckedChanged(object sender, EventArgs e)
         {
-
-        }
-
-        private void _labelBuadRate_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void _labelDataBits_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void _labelParity_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void _labelStopBits_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void _labelHandshake_Click(object sender, EventArgs e)
-        {
-
+            Settings.ShowCommandWindow = _checkBoxClientCmdUi.Checked;
+            SettingsChanged();
         }
     }
 
@@ -949,6 +952,7 @@ namespace MCEControl {
         public Handshake SerialServerHandshake;
         public Point WindowLocation = new Point(120, 50);
         public Size WindowSize = new Size(640, 400);
+        public bool ShowCommandWindow;
 
         #region ICloneable Members
 

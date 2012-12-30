@@ -28,6 +28,7 @@ namespace MCEControl {
     public class MainWindow : Form {
         // Used to enabled access to AddLogEntry
         public static MainWindow MainWnd;
+        public readonly CommandTable CmdTable;
 
         // Persisted application settings
         public AppSettings Settings;
@@ -36,11 +37,12 @@ namespace MCEControl {
         private SocketServer _server;
         private SocketClient _client;
         private SerialServer _serialServer;
-        private readonly CommandTable _commands;
 
         // Indicates whether user hit the close box (minimize)
         // or the app is exiting
         private bool _shuttingDown;
+
+        private CommandWindow _cmdWindow;
 
         // Window controls
         private MainMenu _mainMenu;
@@ -67,17 +69,20 @@ namespace MCEControl {
         private MenuItem _menuItemEditCommands;
         private readonly Icon _dummyIcon;
 
+        public SocketClient Client {
+            get { return _client; }
+        }
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
         public static void Main(string[] args) {
-            var main = new MainWindow();
-            Application.Run(main);
+            MainWindow.MainWnd = new MainWindow();
+            Application.Run(MainWindow.MainWnd);
         }
 
         public MainWindow() {
-            MainWnd = this;
             //
             // Required for Windows Form Designer support
             //
@@ -97,23 +102,16 @@ namespace MCEControl {
             _notifyIcon.Text = Resources.App_FullName;
             _menuItemSendAwake.Enabled = false;
 
-            _commands = CommandTable.Deserialize();
-            if (_commands == null) {
+            CmdTable = CommandTable.Deserialize();
+            if (CmdTable == null) {
                 MessageBox.Show(this, Resources.MCEController_commands_read_error, Resources.App_FullName);
                 _notifyIcon.Visible = false;
                 Opacity = 100;
             }
             else {
-                AddLogEntry("Loaded " + _commands.NumCommands + " commands.");
+
+                AddLogEntry("Loaded " + CmdTable.NumCommands + " commands.");
                 Opacity = (double) Settings.Opacity/100;
-                if (Settings.ActAsServer)
-                    StartServer();
-
-                if (Settings.ActAsSerialServer)
-                    StartSerialServer();
-
-                if (Settings.ActAsClient)
-                    StartClient();
 
                 if (Settings.HideOnStartup) {
                     Opacity = 0;
@@ -178,6 +176,7 @@ namespace MCEControl {
             // 
             this._mainMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
             this._menuItemFileMenu,
+            this._menuSettings,
             this._menuItemHelpMenu});
             // 
             // _menuItemFileMenu
@@ -186,7 +185,6 @@ namespace MCEControl {
             this._menuItemFileMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
             this._menuItemSendAwake,
             this._menuSeparator1,
-            this._menuSettings,
             this._menuItemEditCommands,
             this._menuSeparator2,
             this._menuItemExit});
@@ -205,30 +203,30 @@ namespace MCEControl {
             // 
             // _menuSettings
             // 
-            this._menuSettings.Index = 2;
-            this._menuSettings.Text = "&Settings...";
+            this._menuSettings.Index = 1;
+            this._menuSettings.Text = "&Settings";
             this._menuSettings.Click += new System.EventHandler(this.MenuSettingsClick);
             // 
             // _menuItemEditCommands
             // 
-            this._menuItemEditCommands.Index = 3;
+            this._menuItemEditCommands.Index = 2;
             this._menuItemEditCommands.Text = "&Edit .commands File...";
             this._menuItemEditCommands.Click += new System.EventHandler(this.MenuItemEditCommandsClick);
             // 
             // _menuSeparator2
             // 
-            this._menuSeparator2.Index = 4;
+            this._menuSeparator2.Index = 3;
             this._menuSeparator2.Text = "-";
             // 
             // _menuItemExit
             // 
-            this._menuItemExit.Index = 5;
+            this._menuItemExit.Index = 4;
             this._menuItemExit.Text = "E&xit";
             this._menuItemExit.Click += new System.EventHandler(this.MenuItemExitClick);
             // 
             // _menuItemHelpMenu
             // 
-            this._menuItemHelpMenu.Index = 1;
+            this._menuItemHelpMenu.Index = 2;
             this._menuItemHelpMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
             this._menuItemHelp,
             this._menuItemSupport,
@@ -385,6 +383,18 @@ namespace MCEControl {
             // Location can not be changed in constructor, has to be done here
             Location = Settings.WindowLocation;
             Size = Settings.WindowSize;
+            if (_cmdWindow == null)
+                _cmdWindow = new CommandWindow();
+            //_cmdWindow.Visible = Settings.ShowCommandWindow;
+
+            //var t = new System.Timers.Timer() {
+            //    AutoReset = false,
+            //    Interval = 2000
+            //};
+            //t.Elapsed += (sender, args) => Start();
+            //AddLogEntry("Starting services...");
+            //t.Start();
+            Start();
         }
 
         private void MainWindowClosing(object sender, CancelEventArgs e) {
@@ -397,6 +407,18 @@ namespace MCEControl {
                 _notifyIcon.Visible = true;
                 Hide();
             }
+        }
+
+        private void Start()
+        {
+            if (Settings.ActAsServer)
+                StartServer();
+
+            if (Settings.ActAsSerialServer)
+                StartSerialServer();
+
+            if (Settings.ActAsClient)
+                StartClient();
         }
 
         private void ShutDown() {
@@ -477,17 +499,46 @@ namespace MCEControl {
                 AddLogEntry("Fatal Error: Attempt to StartClient() while an instance already exists!");
         }
 
+        private delegate void StopClientCallback();
         private void StopClient() {
             if (_client != null) {
                 _client.Stop();
                 _client = null;
             }
+
+            if (_cmdWindow != null) {
+                if (this.InvokeRequired)
+                    this.BeginInvoke((StopClientCallback) StopClient);
+                else
+                    _cmdWindow.Visible = false;
+            }
+        }
+
+        private delegate void ShowCommandWindowCallback();
+        private void ShowCommandWindow()
+        {
+            if (this.InvokeRequired)
+                this.BeginInvoke((ShowCommandWindowCallback)ShowCommandWindow);
+            else {
+                _cmdWindow.Visible = Settings.ShowCommandWindow;
+            }
+        }
+
+        private delegate void HideCommandWindowCallback();
+        private void HideCommandWindow()
+        {
+            if (this.InvokeRequired)
+                this.BeginInvoke((HideCommandWindowCallback)HideCommandWindow);
+            else
+            {
+                _cmdWindow.Visible = false;
+            }
         }
 
         private void ReceivedData(String cmd) {
             try {
-                _commands.Execute(cmd);
                 AddLogEntry("Command received: " + cmd);
+                CmdTable.Execute(cmd);
             }
             catch (Exception e) {
                 AddLogEntry(String.Format("Command ({0}) error: {1}", cmd, e));
@@ -587,6 +638,7 @@ namespace MCEControl {
                             Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
                         SetStatusBar("Connecting to " + Settings.ClientHost + ":" +
                                      Settings.ClientPort.ToString(CultureInfo.InvariantCulture));
+                        HideCommandWindow();
                     }
                     else if (status == SocketClient.Status.Connected) {
                         s = "Client: Connected to " + Settings.ClientHost + ":" +
@@ -594,16 +646,20 @@ namespace MCEControl {
                         SetStatusBar("Connected to " + Settings.ClientHost + ":" +
                                      Settings.ClientPort.ToString(CultureInfo.InvariantCulture) +
                                      ", waiting for commands...");
+
+                        ShowCommandWindow();
                     }
                     else if (status == SocketClient.Status.Closed) {
                         s = "Client: Stopped.";
                         SetStatusBar("Client/Sever Not Active");
+                        HideCommandWindow();
                     }
                     else if (status == SocketClient.Status.Sleeping) {
                         s = "Client: Waiting " + (Settings.ClientDelayTime/1000).ToString(CultureInfo.InvariantCulture) +
                             " seconds to connect.";
                         SetStatusBar("Waiting " + (Settings.ClientDelayTime/1000).ToString(CultureInfo.InvariantCulture) +
                                      " seconds to connect.");
+                        HideCommandWindow();
                     }
                     break;
 
@@ -613,10 +669,12 @@ namespace MCEControl {
 
                 case SocketClient.Notification.Error:
                     s = "Client Error: " + (string) data;
-
                     break;
 
                 case SocketClient.Notification.End:
+                    if (_client == null)
+                        return;
+                    _client.Stop();
                     s = "Client: " + (string) data + " Reconnecting...";
                     _client.Start(true);
                     break;
@@ -671,9 +729,9 @@ namespace MCEControl {
 
         private delegate void AddLogEntryCallback(string text);
         public static void AddLogEntry(String text)
-        {
+        {   
             if (MainWnd == null) return;
-            if (MainWnd.InvokeRequired) 
+            if (MainWnd.InvokeRequired || MainWnd._log.InvokeRequired) 
                 MainWnd.BeginInvoke((AddLogEntryCallback)AddLogEntry, new object[] { text });
             else
                 MainWnd._log.AppendText("[" + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss") + "] " + text +
@@ -720,8 +778,9 @@ namespace MCEControl {
                 if (Settings.ActAsSerialServer)
                     StartSerialServer();
 
-                if (Settings.ActAsClient)
+                if (Settings.ActAsClient) {
                     StartClient();
+                }
             }
         }
 

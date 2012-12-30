@@ -25,12 +25,12 @@ namespace MCEControl {
         [XmlAttribute("Ctrl")] public bool Ctrl;
         [XmlAttribute("Shift")] public bool Shift;
         [XmlAttribute("Win")] public bool Win;
-        [XmlAttribute("vk")] public ushort Vk;
+        [XmlAttribute("vk")] public string Vk;
 
         public SendInputCommand() {
         }
 
-        public SendInputCommand(ushort vk, bool shift, bool ctrl, bool alt) {
+        public SendInputCommand(string vk, bool shift, bool ctrl, bool alt) {
             Vk = vk;
             Shift = shift;
             Ctrl = ctrl;
@@ -38,7 +38,7 @@ namespace MCEControl {
             Win = false;
         }
 
-        public SendInputCommand(ushort vk, bool shift, bool ctrl, bool alt, bool win) {
+        public SendInputCommand(string vk, bool shift, bool ctrl, bool alt, bool win) {
             Vk = vk;
             Shift = shift;
             Ctrl = ctrl;
@@ -48,12 +48,36 @@ namespace MCEControl {
 
         public override void Execute() {
             try {
-                var s = Convert.ToChar(Vk).ToString(CultureInfo.InvariantCulture);
+                VirtualKeyCode vkcode;
+                if (!Vk.ToUpper().StartsWith("VK_") ||
+                    (!Enum.TryParse(Vk.ToUpper(), true, out vkcode) &&
+                     !Enum.TryParse(Vk.ToUpper().Substring(3), true, out vkcode))) {
+                    // Not a VK_ string
+                    // Hex?
+                    ushort num;
+                    if ((!Vk.ToUpper().StartsWith("0X") ||
+                         !ushort.TryParse(Vk.Substring(2), NumberStyles.HexNumber,
+                                          CultureInfo.InvariantCulture.NumberFormat, out num)) &&
+                         !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
+                                         out num)) {
+                        // bad format. barf.
+                        MainWindow.AddLogEntry(String.Format("Invalid virtual key-code: {0}", Vk));
+                        return;
+                    }
+                    vkcode = (VirtualKeyCode) num;
+                }
+
+                string s;
+                if (vkcode > VirtualKeyCode.HELP && vkcode < VirtualKeyCode.LWIN)
+                    s = char.ToUpper((char)vkcode).ToString();
+                else 
+                    s = "VK_" + vkcode.ToString();
                 if (Alt) s = "Alt-" + s;
                 if (Ctrl) s = "Ctrl-" + s;
                 if (Shift) s = "Shift-" + s;
                 if (Win) s = "Win-" + s;
-                MainWindow.AddLogEntry("Sending keystroke: " + s);
+
+                MainWindow.AddLogEntry(String.Format("Sending keystroke: '{0}' (0x{1:x2})", s, (ushort)vkcode));
 
                 var sim = new KeyboardSimulator();
 
@@ -70,7 +94,7 @@ namespace MCEControl {
                     sim.KeyDown(VirtualKeyCode.LWIN);
                 }
 
-                sim.KeyPress((VirtualKeyCode) Vk);
+                sim.KeyPress(vkcode);
 
                 // Key up shift, ctrl, and/or alt
                 if (Shift) {

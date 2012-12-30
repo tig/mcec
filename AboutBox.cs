@@ -19,12 +19,10 @@ namespace MCEControl {
     /// </summary>
     public class AboutBox : Form {
         private Label _labelTitle;
-        private Label _labelCopyright;
         private Button _buttonOk;
         private LinkLabel _linkLabelMceController;
         private LinkLabel _linkLabelKindelSystems;
         private Label _labelLicense;
-        private LinkLabel _linkLabelSourceCode;
         private Label _labelSummary;
         private PictureBox pictureBox1;
         private PictureBox _pictureBoxDonate;
@@ -50,12 +48,10 @@ namespace MCEControl {
         private void InitializeComponent() {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AboutBox));
             this._labelTitle = new System.Windows.Forms.Label();
-            this._labelCopyright = new System.Windows.Forms.Label();
             this._linkLabelMceController = new System.Windows.Forms.LinkLabel();
             this._buttonOk = new System.Windows.Forms.Button();
             this._linkLabelKindelSystems = new System.Windows.Forms.LinkLabel();
             this._labelLicense = new System.Windows.Forms.Label();
-            this._linkLabelSourceCode = new System.Windows.Forms.LinkLabel();
             this._labelSummary = new System.Windows.Forms.Label();
             this._pictureBoxDonate = new System.Windows.Forms.PictureBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
@@ -72,19 +68,10 @@ namespace MCEControl {
             this._labelTitle.TabIndex = 0;
             this._labelTitle.Text = "MCE Controller";
             // 
-            // _labelCopyright
-            // 
-            this._labelCopyright.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._labelCopyright.Location = new System.Drawing.Point(123, 43);
-            this._labelCopyright.Name = "_labelCopyright";
-            this._labelCopyright.Size = new System.Drawing.Size(53, 16);
-            this._labelCopyright.TabIndex = 2;
-            this._labelCopyright.Text = "© 2013";
-            // 
             // _linkLabelMceController
             // 
             this._linkLabelMceController.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._linkLabelMceController.Location = new System.Drawing.Point(123, 215);
+            this._linkLabelMceController.Location = new System.Drawing.Point(123, 195);
             this._linkLabelMceController.Name = "_linkLabelMceController";
             this._linkLabelMceController.Size = new System.Drawing.Size(208, 16);
             this._linkLabelMceController.TabIndex = 7;
@@ -96,7 +83,7 @@ namespace MCEControl {
             // _buttonOk
             // 
             this._buttonOk.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._buttonOk.Location = new System.Drawing.Point(357, 242);
+            this._buttonOk.Location = new System.Drawing.Point(357, 216);
             this._buttonOk.Name = "_buttonOk";
             this._buttonOk.Size = new System.Drawing.Size(75, 23);
             this._buttonOk.TabIndex = 8;
@@ -106,34 +93,22 @@ namespace MCEControl {
             // _linkLabelKindelSystems
             // 
             this._linkLabelKindelSystems.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._linkLabelKindelSystems.Location = new System.Drawing.Point(164, 43);
+            this._linkLabelKindelSystems.Location = new System.Drawing.Point(123, 43);
             this._linkLabelKindelSystems.Name = "_linkLabelKindelSystems";
-            this._linkLabelKindelSystems.Size = new System.Drawing.Size(115, 16);
+            this._linkLabelKindelSystems.Size = new System.Drawing.Size(253, 16);
             this._linkLabelKindelSystems.TabIndex = 3;
             this._linkLabelKindelSystems.TabStop = true;
             this._linkLabelKindelSystems.Tag = "http://www.kindel.com";
-            this._linkLabelKindelSystems.Text = "Kindel Systems, LLC.";
+            this._linkLabelKindelSystems.Text = "© 2013 Kindel Systems, LLC.";
             this._linkLabelKindelSystems.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabelCharlieLinkClicked);
             // 
             // _labelLicense
             // 
-            this._labelLicense.Location = new System.Drawing.Point(123, 176);
+            this._labelLicense.Location = new System.Drawing.Point(123, 165);
             this._labelLicense.Name = "_labelLicense";
             this._labelLicense.Size = new System.Drawing.Size(287, 30);
             this._labelLicense.TabIndex = 4;
-            this._labelLicense.Text = "MCE Controller is open source under the MIT License.  Source code available at";
-            // 
-            // _linkLabelSourceCode
-            // 
-            this._linkLabelSourceCode.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._linkLabelSourceCode.Location = new System.Drawing.Point(250, 189);
-            this._linkLabelSourceCode.Name = "_linkLabelSourceCode";
-            this._linkLabelSourceCode.Size = new System.Drawing.Size(162, 26);
-            this._linkLabelSourceCode.TabIndex = 5;
-            this._linkLabelSourceCode.TabStop = true;
-            this._linkLabelSourceCode.Tag = "https://github.com/tig/mcecontroller";
-            this._linkLabelSourceCode.Text = "github.com/tig/mcecontroller";
-            this._linkLabelSourceCode.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel1LinkClicked);
+            this._labelLicense.Text = "MCE Controller is open source under the MIT License.  ";
             // 
             // _labelSummary
             // 
@@ -148,7 +123,7 @@ namespace MCEControl {
             // 
             this._pictureBoxDonate.Image = ((System.Drawing.Image)(resources.GetObject("_pictureBoxDonate.Image")));
             this._pictureBoxDonate.ImageLocation = "";
-            this._pictureBoxDonate.Location = new System.Drawing.Point(220, 123);
+            this._pictureBoxDonate.Location = new System.Drawing.Point(217, 112);
             this._pictureBoxDonate.Name = "_pictureBoxDonate";
             this._pictureBoxDonate.Size = new System.Drawing.Size(90, 34);
             this._pictureBoxDonate.TabIndex = 8;
@@ -161,6 +136,7 @@ namespace MCEControl {
             this.pictureBox1.Location = new System.Drawing.Point(12, 13);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(96, 96);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pictureBox1.TabIndex = 9;
             this.pictureBox1.TabStop = false;
             // 
@@ -168,25 +144,23 @@ namespace MCEControl {
             // 
             this.AcceptButton = this._buttonOk;
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
-            this.ClientSize = new System.Drawing.Size(444, 277);
+            this.ClientSize = new System.Drawing.Size(444, 251);
             this.ControlBox = false;
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this._pictureBoxDonate);
             this.Controls.Add(this._labelSummary);
-            this.Controls.Add(this._linkLabelSourceCode);
             this.Controls.Add(this._labelLicense);
             this.Controls.Add(this._linkLabelKindelSystems);
             this.Controls.Add(this._buttonOk);
             this.Controls.Add(this._linkLabelMceController);
             this.Controls.Add(this._labelTitle);
-            this.Controls.Add(this._labelCopyright);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "AboutBox";
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "About MCE Controller";
+            this.Text = "About";
             ((System.ComponentModel.ISupportInitialize)(this._pictureBoxDonate)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
@@ -205,10 +179,6 @@ namespace MCEControl {
 
         private void LinkLabelCharlieLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
             Process.Start(_linkLabelKindelSystems.Tag.ToString());
-        }
-
-        private void LinkLabel1LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-            Process.Start(_linkLabelSourceCode.Tag.ToString());
         }
 
         private void PictureBoxDonateClick(object sender, EventArgs e) {

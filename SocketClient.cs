@@ -134,8 +134,13 @@ namespace MCEControl {
 
         // Send text to remote connection
         public void Send(String newText) {
-            _writer.Write(newText);
-            _writer.Flush();
+            if (_writer != null && _currentStatus == Status.Connected) {
+                _writer.Write(newText);
+                _writer.Flush();
+            }
+            else {
+                Notifications(Notification.Error, "Send attempted without valid connection: " + newText);
+            }
         }
 
         // Send a status notification
@@ -179,14 +184,24 @@ namespace MCEControl {
                     _writer = new StreamWriter(stream);
                 }
                 catch (SocketException e) {
-                    if (10061 == e.ErrorCode) {
-                        // Connection refused
-                        _listeningSocket = null;
-                        _serverSocket = null;
-                        Notifications(Notification.End, "Remote connection was refused.");
-                        return;
+                    switch (e.ErrorCode) {
+                        case 10061:
+                            // Connection refused
+                            Notifications(Notification.End, "Connection refused.");
+                            break;
+
+                        case 10060:
+                            // Connection timeout
+                            Notifications(Notification.End, "Connection timed out.");
+                            break;
+
+                        default:
+                            Notifications(Notification.End, String.Format("SocketException. ErrorCode: {0}{1}{2}", e.ErrorCode, Environment.NewLine, e.Message));
+                            break;
                     }
-                    Notifications(Notification.Error, "Error Initializing Socket:\r\n" + e.Message);
+                    _listeningSocket = null;
+                    _serverSocket = null;
+                    return;
                 }
 
                 // If it all worked out, create stream objects
@@ -208,25 +223,41 @@ namespace MCEControl {
                     Notifications(Notification.End, "Remote connection has closed.");
                 }
                 else {
-                    Notifications(Notification.Error,
-                                  "Failed to Establish Socket, did you specify the correct port?");
+                    Notifications(Notification.End,
+                                  "Could not connect.");
                 }
             }
             catch (IOException e) {
                 var sockExcept = e.InnerException as SocketException;
-                if (sockExcept != null && 10054 == sockExcept.ErrorCode) {
-                    Notifications(Notification.End, "Remote connection has closed.");
-                }
-                else if (sockExcept != null && 10053 == sockExcept.ErrorCode) {
-                    SetStatus(Status.Closed);
+
+                if (sockExcept != null) {
+                    switch (sockExcept.ErrorCode)
+                    {
+                        case 10054:
+                            Notifications(Notification.End, "Remote connection has closed.");
+                            break;
+
+                        case 10053:
+                            SetStatus(Status.Closed);
+                            break;
+
+                        case 10060:
+                            // Connection timeout
+                            Notifications(Notification.End, "Connection timed out.");
+                            break;
+
+                        default:
+                            Notifications(Notification.End, 
+                                String.Format("SocketException (RecieveData). ErrorCode: {0}{1}{2}", sockExcept.ErrorCode, Environment.NewLine, e.Message));
+                            break;
+                    }                    
                 }
                 else {
-                    if (Notifications != null)
-                        Notifications(Notification.Error, "Socket Error:\r\n" + e.Message);
+                    Notifications(Notification.End, String.Format("IOException. ErrorCode: {0}{1}{2}", sockExcept.ErrorCode, Environment.NewLine, e.Message));
                 }
             }
             catch (Exception e) {
-                Notifications(Notification.Error, "General Error:\r\n" + e.Message);
+                Notifications(Notification.End, "General Error:\r\n" + e.Message);
             }
         }
 
