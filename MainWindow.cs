@@ -672,11 +672,11 @@ namespace MCEControl {
                     break;
 
                 case SocketClient.Notification.End:
-                    if (_client == null)
-                        return;
-                    _client.Stop();
-                    s = "Client: " + (string) data + " Reconnecting...";
-                    _client.Start(true);
+                    if (_client != null) {
+                        _client.Stop();
+                        s = "Client: " + (string) data + " Reconnecting...";
+                        _client.Start(true);
+                    }
                     break;
 
                 default:
