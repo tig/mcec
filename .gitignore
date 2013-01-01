@@ -30,7 +30,7 @@ _UpgradeReport_Files/
 bin/
 obj/
 TestResults/
-Build/
+build/
 ###################
 # Web publish log #
 ###################
