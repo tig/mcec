@@ -103,21 +103,6 @@ namespace MCEControl {
             _menuItemSendAwake.Enabled = false;
 
             CmdTable = CommandTable.Deserialize();
-            if (CmdTable == null) {
-                MessageBox.Show(this, Resources.MCEController_commands_read_error, Resources.App_FullName);
-                _notifyIcon.Visible = false;
-                Opacity = 100;
-            }
-            else {
-
-                AddLogEntry("Loaded " + CmdTable.NumCommands + " commands.");
-                Opacity = (double) Settings.Opacity/100;
-
-                if (Settings.HideOnStartup) {
-                    Opacity = 0;
-                    Win32.PostMessage(Handle, (UInt32) WM.SYSCOMMAND, (UInt32) SC.CLOSE, 0);
-                }
-            }
         }
 
         /// <summary>
@@ -153,10 +138,10 @@ namespace MCEControl {
             this._menuItemFileMenu = new System.Windows.Forms.MenuItem();
             this._menuItemSendAwake = new System.Windows.Forms.MenuItem();
             this._menuSeparator1 = new System.Windows.Forms.MenuItem();
-            this._menuSettings = new System.Windows.Forms.MenuItem();
             this._menuItemEditCommands = new System.Windows.Forms.MenuItem();
             this._menuSeparator2 = new System.Windows.Forms.MenuItem();
             this._menuItemExit = new System.Windows.Forms.MenuItem();
+            this._menuSettings = new System.Windows.Forms.MenuItem();
             this._menuItemHelpMenu = new System.Windows.Forms.MenuItem();
             this._menuItemHelp = new System.Windows.Forms.MenuItem();
             this._menuItemSupport = new System.Windows.Forms.MenuItem();
@@ -201,12 +186,6 @@ namespace MCEControl {
             this._menuSeparator1.Index = 1;
             this._menuSeparator1.Text = "-";
             // 
-            // _menuSettings
-            // 
-            this._menuSettings.Index = 1;
-            this._menuSettings.Text = "&Settings";
-            this._menuSettings.Click += new System.EventHandler(this.MenuSettingsClick);
-            // 
             // _menuItemEditCommands
             // 
             this._menuItemEditCommands.Index = 2;
@@ -223,6 +202,12 @@ namespace MCEControl {
             this._menuItemExit.Index = 4;
             this._menuItemExit.Text = "E&xit";
             this._menuItemExit.Click += new System.EventHandler(this.MenuItemExitClick);
+            // 
+            // _menuSettings
+            // 
+            this._menuSettings.Index = 1;
+            this._menuSettings.Text = "&Settings";
+            this._menuSettings.Click += new System.EventHandler(this.MenuSettingsClick);
             // 
             // _menuItemHelpMenu
             // 
@@ -326,12 +311,14 @@ namespace MCEControl {
             this.ClientSize = new System.Drawing.Size(368, 204);
             this.Controls.Add(this._log);
             this.Controls.Add(this._statusBar);
+            this.HelpButton = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Menu = this._mainMenu;
             this.MinimizeBox = false;
             this.Name = "MainWindow";
             this.Text = "MCE Controller";
+            this.HelpButtonClicked += new System.ComponentModel.CancelEventHandler(this.MainWindow_HelpButtonClicked);
             this.Closing += new System.ComponentModel.CancelEventHandler(this.MainWindowClosing);
             this.Load += new System.EventHandler(this.MainWindowLoad);
             this.ResumeLayout(false);
@@ -383,6 +370,26 @@ namespace MCEControl {
             // Location can not be changed in constructor, has to be done here
             Location = Settings.WindowLocation;
             Size = Settings.WindowSize;
+
+            if (CmdTable == null)
+            {
+                MessageBox.Show(this, Resources.MCEController_commands_read_error, Resources.App_FullName);
+                _notifyIcon.Visible = false;
+                Opacity = 100;
+            }
+            else
+            {
+
+                AddLogEntry("Loaded " + CmdTable.NumCommands + " commands.");
+                Opacity = (double)Settings.Opacity / 100;
+
+                if (Settings.HideOnStartup)
+                {
+                    Opacity = 0;
+                    Win32.PostMessage(Handle, (UInt32)WM.SYSCOMMAND, (UInt32)SC.CLOSE, 0);
+                }
+            }
+
             if (_cmdWindow == null)
                 _cmdWindow = new CommandWindow();
             //_cmdWindow.Visible = Settings.ShowCommandWindow;
@@ -423,6 +430,7 @@ namespace MCEControl {
 
         private void ShutDown() {
             AddLogEntry("ShutDown");
+            _shuttingDown = true;
             // hide icon from the systray
             _notifyIcon.Visible = false;
             StopServer();
@@ -437,7 +445,6 @@ namespace MCEControl {
             Settings.WindowSize = Size;
             Settings.Serialize();
 
-            _shuttingDown = true;
             Close();
             Application.Exit();
         }
@@ -672,7 +679,8 @@ namespace MCEControl {
                     break;
 
                 case SocketClient.Notification.End:
-                    if (_client != null) {
+                    if (!_shuttingDown && _client != null)
+                    {
                         _client.Stop();
                         s = "Client: " + (string) data + " Reconnecting...";
                         _client.Start(true);
@@ -805,15 +813,20 @@ namespace MCEControl {
         }
 
         private void MenuItemHelpClick(object sender, EventArgs e) {
-            Process.Start("http://tig.github.com/mcecontroller/");
+            Process.Start("http://mcec.codeplex.com/documentation/");
         }
 
         private void MenuItemSupportClick(object sender, EventArgs e) {
-            Process.Start("https://sourceforge.net/projects/mcecontroller/support");
+            Process.Start("http://mcec.codeplex.com/discussions/");
         }
 
         private void MenuItemEditCommandsClick(object sender, EventArgs e) {
             Process.Start(Application.StartupPath);
+        }
+
+        private void MainWindow_HelpButtonClicked(object sender, CancelEventArgs e)
+        {
+            Process.Start("http://mcec.codeplex.com/documentation/");
         }
     }
 }

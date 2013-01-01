@@ -16,7 +16,7 @@ Copyright 2013 Kindel Sytems, LLC.
 
 <!--
 ===================================================================
-See the documentation at http://tig.github.com/mcecontroller/ for 
+See the documentation at http://mcec.codeplex.com/documentation for 
 full details on the commands supported by MCE Controller.
 
 The following types of commands can be defined/overridden in this

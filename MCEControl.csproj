@@ -7,7 +7,7 @@
     <ProjectGuid>{9489CAA5-2568-4ED5-A9AA-F5941CC608EB}</ProjectGuid>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ApplicationIcon>Resources\Control Panel.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\mcecontrol.Icon.ico</ApplicationIcon>
     <AssemblyKeyContainerName />
     <AssemblyName>MCEControl</AssemblyName>
     <AssemblyOriginatorKeyFile />
@@ -270,6 +270,7 @@
     <None Include="Resources\notifyIcon.Icon.ico" />
     <EmbeddedResource Include="AboutBox.resx">
       <DependentUpon>AboutBox.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="CommandWindow.resx">
       <DependentUpon>CommandWindow.cs</DependentUpon>
@@ -289,6 +290,7 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="mcecontrol.Icon.ico" />
     <Content Include="Resources\Control Panel.ico" />
     <Content Include="Resources\Control Panel.png" />
     <Content Include="Resources\mcecontrol.Icon.ico" />
@@ -318,6 +320,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent />
-    <PostBuildEvent />
+    <PostBuildEvent>@echo Copying MCEControl.commands to output directory...
+copy $(SolutionDir)MCEControl.commands $(SolutionDir)$(OutDir)
+</PostBuildEvent>
   </PropertyGroup>
 </Project>

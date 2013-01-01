@@ -15,7 +15,7 @@ using System.Reflection;
 // associated with an assembly.
 //
 [assembly: AssemblyTitle("MCE Controller")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Control a Windows PC over the network")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Kindel Systems")]
 [assembly: AssemblyProduct("MCE Controller")]
@@ -34,7 +34,7 @@ using System.Reflection;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("1.8.0.*")]
+[assembly: AssemblyVersion("1.8.1.*")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 

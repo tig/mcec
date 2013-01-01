@@ -2,9 +2,9 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "MCE Controller"
-!define PRODUCT_VERSION "1.8.0"
+!define PRODUCT_VERSION "1.8.1"
 !define PRODUCT_PUBLISHER "Kindel Systems"
-!define PRODUCT_WEB_SITE "http://www.kindel.com/products/mcecontroller"
+!define PRODUCT_WEB_SITE "http://mcec.codeplex.com"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\MCEControl.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
