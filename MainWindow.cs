@@ -68,9 +68,7 @@ namespace MCEControl {
         private MenuItem _menuItemHelp;
         private MenuItem _menuItemSupport;
         private MenuItem _menuItemEditCommands;
-        private MenuItem menuItem1;
-        private readonly Icon _dummyIcon;
-
+        private MenuItem _menuItemCheckVersion;
         public SocketClient Client {
             get { return _client; }
         }
@@ -94,7 +92,6 @@ namespace MCEControl {
             Settings = AppSettings.Deserialize(AppSettings.GetSettingsPath());
 
             var resources = new ResourceManager(typeof (MainWindow));
-            _dummyIcon = ((Icon) (resources.GetObject("notifyIcon.Icon")));
 
             _notifyIcon.Visible = true;
             _notifyIcon.Icon = Icon;
@@ -157,7 +154,7 @@ namespace MCEControl {
             this._menuSeparator5 = new System.Windows.Forms.MenuItem();
             this._notifyMenuItemExit = new System.Windows.Forms.MenuItem();
             this._log = new System.Windows.Forms.TextBox();
-            this.menuItem1 = new System.Windows.Forms.MenuItem();
+            this._menuItemCheckVersion = new System.Windows.Forms.MenuItem();
             this.SuspendLayout();
             // 
             // _mainMenu
@@ -219,7 +216,7 @@ namespace MCEControl {
             this._menuItemHelp,
             this._menuItemSupport,
             this._menuItemAbout,
-            this.menuItem1});
+            this._menuItemCheckVersion});
             this._menuItemHelpMenu.Text = "&Help";
             // 
             // _menuItemHelp
@@ -310,9 +307,9 @@ namespace MCEControl {
             // 
             // menuItem1
             // 
-            this.menuItem1.Index = 3;
-            this.menuItem1.Text = "&Check for a newer version...";
-            this.menuItem1.Click += new System.EventHandler(this.menuItemCheckVersion_Click);
+            this._menuItemCheckVersion.Index = 3;
+            this._menuItemCheckVersion.Text = "&Check for a newer version...";
+            this._menuItemCheckVersion.Click += new System.EventHandler(this.menuItemCheckVersion_Click);
             // 
             // MainWindow
             // 
@@ -430,9 +427,9 @@ namespace MCEControl {
         private void CheckVersion() {
             AddLogEntry(String.Format("MCEC: Version: {0}", Application.ProductVersion));
             var lv = new LatestVersion();
-            lv.GetLatestStableVersion((o, version) =>
+            lv.GetLatestStableVersionAsync((o, version) =>
             {
-                if (String.IsNullOrWhiteSpace(version) && !String.IsNullOrWhiteSpace(lv.ErrorMessage)) {
+                if (version == null && !String.IsNullOrWhiteSpace(lv.ErrorMessage)) {
                     AddLogEntry(
                         String.Format(
                         "MCEC: Could not access mcec.codeplex.com to see if a newer version is available. {0}", lv.ErrorMessage));

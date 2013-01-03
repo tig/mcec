@@ -26,6 +26,7 @@
     <UpgradeBackupLocation />
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -38,7 +39,6 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -274,7 +274,6 @@
     <Compile Include="WindowsInput\WindowsInputDeviceStateAdaptor.cs" />
     <Compile Include="WindowsInput\WindowsInputMessageDispatcher.cs" />
     <None Include="packages.config" />
-    <None Include="Resources\notifyIcon.Icon.ico" />
     <EmbeddedResource Include="AboutBox.resx">
       <DependentUpon>AboutBox.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -298,8 +297,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="mcecontrol.Icon.ico" />
-    <Content Include="Resources\Control Panel.ico" />
-    <Content Include="Resources\Control Panel.png" />
     <Content Include="Resources\mcecontrol.Icon.ico" />
   </ItemGroup>
   <ItemGroup>

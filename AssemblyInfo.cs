@@ -19,7 +19,7 @@ using System.Reflection;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Kindel Systems")]
 [assembly: AssemblyProduct("MCE Controller")]
-[assembly: AssemblyCopyright("Copyright © 2013 Kndel Systems, LLC")]
+[assembly: AssemblyCopyright("Copyright © 2013 Kindel Systems, LLC")]
 [assembly: AssemblyTrademark("MCE Controller")]
 [assembly: AssemblyCulture("")]		
 

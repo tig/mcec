@@ -117,13 +117,13 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="App_FullName">
-    <value xml:space="preserve">MCE Controller</value>
+  <data name="App_FullName" xml:space="preserve">
+    <value>MCE Controller</value>
   </data>
-  <data name="MCEController_commands_read_error">
-    <value xml:space="preserve">No commands loaded. Something is wrong with the MCEController.commands file. See the log for details, fix, and restart.</value>
+  <data name="MCEController_commands_read_error" xml:space="preserve">
+    <value>No commands loaded. Something is wrong with the MCEController.commands file. See the log for details, fix, and restart.</value>
   </data>
-  <data name="MCE_Controller_Version_label">
-    <value xml:space="preserve">MCE Controller Version </value>
+  <data name="MCE_Controller_Version_label" xml:space="preserve">
+    <value>MCE Controller Version </value>
   </data>
 </root>
