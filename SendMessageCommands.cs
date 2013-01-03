@@ -44,29 +44,30 @@ namespace MCEControl {
         [XmlAttribute("WindowName")]
         public String WindowName { get; set; }
 
-        public override void Execute() {
+        public override void Execute(Reply reply)
+        {
             try {
                 if (ClassName != null) {
                     var procs = Process.GetProcessesByName(ClassName);
                     if (procs.Length > 0) {
                         var h = procs[0].MainWindowHandle;
 
-                        MainWindow.AddLogEntry(String.Format("SendMessage ({0}): {1} {2} {3}", ClassName, Msg, WParam,
+                        MainWindow.AddLogEntry(String.Format("Cmd: SendMessage ({0}): {1} {2} {3}", ClassName, Msg, WParam,
                                                              LParam));
                         Win32.SendMessage(h, (DWORD) Msg, (DWORD) WParam, (DWORD) LParam);
                     }
                     else {
-                        MainWindow.AddLogEntry("GetProcessByName for " + ClassName + " failed");
+                        MainWindow.AddLogEntry("Cmd: GetProcessByName for " + ClassName + " failed");
                     }
                 }
                 else {
                     var h = Win32.GetForegroundWindow();
-                    MainWindow.AddLogEntry(String.Format("SendMessage (forground window): {0} {1} {2}", Msg, WParam, LParam));
+                    MainWindow.AddLogEntry(String.Format("Cmd: SendMessage (forground window): {0} {1} {2}", Msg, WParam, LParam));
                     Win32.SendMessage(h, (DWORD) Msg, (DWORD) WParam, (DWORD) LParam);
                 }
             }
             catch (Exception e) {
-                MainWindow.AddLogEntry("SendMessageCommand.Execute failed for " + ClassName + " with error: " +
+                MainWindow.AddLogEntry("Cmd: SendMessageCommand.Execute failed for " + ClassName + " with error: " +
                                        e.Message);
             }
         }

@@ -36,8 +36,8 @@ namespace MCEControl {
             NextCommand = cmd;
         }
 
-        public override void Execute() {
-            MainWindow.AddLogEntry("Starting process: " + File);
+        public override void Execute(Reply reply) {
+            MainWindow.AddLogEntry("Cmd: Starting process: " + File);
             if (File != null) {
                 var p = new Process {StartInfo = {FileName = File}};
                 p.Start();
@@ -46,7 +46,7 @@ namespace MCEControl {
             }
 
             if (NextCommand != null)
-                NextCommand.Execute();
+                NextCommand.Execute(reply);
         }
     }
 }

@@ -25,8 +25,8 @@ namespace MCEControl {
             Type = type;
         }
 
-        public override void Execute() {
-            MainWindow.AddLogEntry("ShutdownCommand: " + Type);
+        public override void Execute(Reply reply) {
+            MainWindow.AddLogEntry("Cmd: ShutdownCommand: " + Type);
 
             var sc = new SystemControl();
             switch (Type.ToLower()) {

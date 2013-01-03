@@ -32,23 +32,24 @@ namespace MCEControl {
             WindowName = windowName;
         }
 
-        public override void Execute() {
+        public override void Execute(Reply reply)
+        {
             try {
                 if (ClassName != null) {
                     var procs = Process.GetProcessesByName(ClassName);
                     if (procs.Length > 0) {
                         var h = procs[0].MainWindowHandle;
 
-                        MainWindow.AddLogEntry("SetForegroundWindow(\"" + ClassName + "\")");
+                        MainWindow.AddLogEntry("Cmd: SetForegroundWindow(\"" + ClassName + "\")");
                         Win32.SetForegroundWindow(h);
                     }
                     else {
-                        MainWindow.AddLogEntry("GetProcessByName for " + ClassName + " failed");
+                        MainWindow.AddLogEntry("Cmd: GetProcessByName for " + ClassName + " failed");
                     }
                 }
             }
             catch (Exception e) {
-                MainWindow.AddLogEntry("SetForegroundWindowCommand.Execute failed for " + ClassName + " with error: " +
+                MainWindow.AddLogEntry("Cmd: SetForegroundWindowCommand.Execute failed for " + ClassName + " with error: " +
                                        e.Message);
             }
         }

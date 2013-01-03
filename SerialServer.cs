@@ -19,35 +19,7 @@ namespace MCEControl {
     /// <summary>
     /// Implements the serial port server 
     /// </summary>
-    public class SerialServer : IDisposable {
-
-        #region Delegates
-
-        public delegate void NotificationCallback(
-            Notification notification, Status status, String message, Object data);
-
-        #endregion
-
-        #region Notification enum
-
-        public enum Notification {
-            StatusChange,
-            ReceivedData,
-            Error
-        }
-
-        #endregion
-
-        #region Status enum
-
-        // Nested enum for supported states
-        public enum Status
-        {
-            Started,
-            Stopped
-        }
-
-        #endregion
+    public class SerialServer : ServiceBase, IDisposable {
 
         #region IDisposable Members
 
@@ -85,22 +57,23 @@ namespace MCEControl {
             try {
                 // Set the read/write timeouts
                 Debug.WriteLine("Opening serial port: " + GetSettingsDisplayString());
+                SetStatus(ServiceStatus.Connecting, GetSettingsDisplayString());
                 _serialPort.Open();
 
                 _readThread = new Thread(Read);
                 _readThread.Start();
-                SetStatus(Status.Started);
+                SetStatus(ServiceStatus.Connected);
             }
             catch (IOException ioe) {
-                SendNotification(Notification.Error, Status.Started, GetSettingsDisplayString(), ioe.Message);
+                Error(ioe.Message);
                 Stop();
             }
             catch (UnauthorizedAccessException uae) {
-                SendNotification(Notification.Error, Status.Started, GetSettingsDisplayString(), "Port in use? " + uae.Message);
+                Error(String.Format("Port in use? {0} ({1})", uae.Message, GetSettingsDisplayString()));
                 Stop();
             }
             catch (Exception e) {
-                SendNotification(Notification.Error, Status.Started, GetSettingsDisplayString(), e.Message);
+                Error(e.Message);
                 Stop();              
             }
      }
@@ -111,7 +84,7 @@ namespace MCEControl {
                 _serialPort.Close();
             if (_readThread != null)
                 _readThread.Abort();
-            SetStatus(Status.Stopped);
+            SetStatus(ServiceStatus.Stopped);
 
             _readThread = null;
             _serialPort = null;
@@ -173,25 +146,6 @@ namespace MCEControl {
             return String.Format("{0} {1} baud {2}{3}{4} {5}", _serialPort.PortName, _serialPort.BaudRate, p, _serialPort.DataBits, sbits, hand);
         }
 
-        //-----------------------------------------------------------
-        // Events
-        //-----------------------------------------------------------
-        // Nested delegate class and matching event for Notification events
-        public event NotificationCallback Notifications;
-
-        // Send a status notification
-        private void SetStatus(Status status) {
-            SendNotification(Notification.StatusChange, status, GetSettingsDisplayString(), null);
-        }
-
-        private void SendNotification(Notification notification, Status status, String message, Object data) {
-            if (Notifications != null)
-                Notifications(notification,
-                              status,
-                              message,
-                              data);
-        }
-
         private void Read()
         {
             Debug.WriteLine(String.Format("Serial Read thread starting: {0}", GetSettingsDisplayString()));
@@ -205,13 +159,14 @@ namespace MCEControl {
                         break;
                     }
                     char c = (char)_serialPort.ReadChar();
-                    if (c == '\r' || c == '\n')
+                    if (c == '\r' || c == '\n' || c == '\0')
                     {
                         string cmd = sb.ToString();
                         sb.Length = 0;
-                        SendNotification(Notification.ReceivedData,
-                                            Status.Started,
-                                            null,
+                        if (cmd.Length > 0)
+                            SendNotification(ServiceNotification.ReceivedData,
+                                            CurrentStatus,
+                                            new SerialReplyContext(_serialPort),
                                             cmd);
                     }
                     else sb.Append(c);
@@ -229,5 +184,19 @@ namespace MCEControl {
             }
             Debug.WriteLine("SerialServer: Exiting Read()");
         }
+
+        #region Nested type: SerialReplyContext
+        public class SerialReplyContext : Reply {
+            private SerialPort _rs232;
+            public SerialReplyContext(SerialPort rs232) {
+                _rs232 = rs232;
+            }
+            public override void Write(String text) {
+                if (_rs232 != null && _rs232.IsOpen) {
+                    _rs232.Write(text);
+                }
+            }
+        }
+        #endregion
     }
 }

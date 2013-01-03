@@ -35,7 +35,7 @@ namespace MCEControl {
             //
             InitializeComponent();
 
-            _labelTitle.Text = Resources.MCE_Controller_Version_label + Application.ProductVersion;
+            _labelTitle.Text = Resources.MCE_Controller_Version_label + LatestVersion.CurrentVersion;
         }
 
         #region Windows Form Designer generated code

@@ -25,7 +25,7 @@ namespace MCEControl {
     public class Command {
         [XmlAttribute("Cmd")] public String Key;
 
-        public virtual void Execute() {
+        public virtual void Execute(Reply reply) {
         }
     }
 
@@ -64,35 +64,39 @@ namespace MCEControl {
             get { return _hashTable.Count; }
         }
 
-        public void Execute(String cmd) {
-            if (String.Compare(cmd, 0, "chars:", 0, 6, true) == 0) {
+        public void Execute(Reply reply, String cmd) {
+            if (cmd.StartsWith(McecCommand.CmdPrefix)) {
+                var command = new McecCommand(cmd);
+                command.Execute(reply);
+            }
+            else if (cmd.StartsWith("chars:")) {
                 // "chars:<chars>
                 String chars = Regex.Unescape(cmd.Substring(6, cmd.Length - 6));
-                MainWindow.AddLogEntry(String.Format("Sending {0} chars: {1}", chars.Length, chars));
+                MainWindow.AddLogEntry(String.Format("Cmd: Sending {0} chars: {1}", chars.Length, chars));
                 var sim = new InputSimulator();
                 sim.Keyboard.TextEntry(chars);
             }
-            else if (String.Compare(cmd, 0, "api:", 0, 4, true) == 0) {
+            else if (cmd.StartsWith("api:")) {
                 // "api:API(params)
                 // TODO: Implement API stuff
             }
-            else if (String.Compare(cmd, 0, "shiftdown:", 0, 10, true) == 0) {
+            else if (cmd.StartsWith("shiftdown:")) {
                 // Modifyer key down
                 SendInputCommand.ShiftKey(cmd.Substring(10, cmd.Length - 10), true);
             }
-            else if (String.Compare(cmd, 0, "shiftup:", 0, 8, true) == 0) {
+            else if (cmd.StartsWith("shiftup:")) {
                 // Modifyer key up
                 SendInputCommand.ShiftKey(cmd.Substring(8, cmd.Length - 8), false);
             }
-            else if (String.Compare(cmd, 0, MouseCommand.Cmd, 0, MouseCommand.Cmd.Length, true) == 0) {
+            else if (cmd.StartsWith(MouseCommand.CmdPrefix)) {
                 // mouse:<action>[,<parameter>,<parameter>]
                 var mouseCmd = new MouseCommand(cmd);
-                mouseCmd.Execute();
+                mouseCmd.Execute(reply);
             }
             else if (_hashTable.ContainsKey(cmd.ToUpper())) {
                 // Command in MCEControl.commands
                 Command command = FindKey(cmd.ToUpper());
-                command.Execute();
+                command.Execute(reply);
             }
             else if (cmd.Length == 1) {
                 // It's a single character, just send it
@@ -102,11 +106,11 @@ namespace MCEControl {
 
                 var sim = new InputSimulator();
 
-                MainWindow.AddLogEntry("Sending keydown for: " + cmd);
+                MainWindow.AddLogEntry("Cmd: Sending keydown for: " + cmd);
                 sim.Keyboard.KeyPress((VirtualKeyCode) c);
             }
             else {
-                MainWindow.AddLogEntry("Unknown command: " + cmd);
+                MainWindow.AddLogEntry("Cmd: Unknown Cmd: " + cmd);
             }
         }
 
@@ -136,20 +140,20 @@ namespace MCEControl {
             catch (FileNotFoundException ex) {
                 MainWindow.AddLogEntry(
                     String.Format(
-                        "No commands loaded. Make sure MCEControl.commands is in the program directory and restart. {0}",
+                        "MCEC: No commands loaded. Make sure MCEControl.commands is in the program directory and restart. {0}",
                         ex.Message));
                 Util.DumpException(ex);
             }
             catch (InvalidOperationException ex) {
                 MainWindow.AddLogEntry(
-                    String.Format("No commands loaded. Error parsing MCEControl.commands file. {0} {1}", ex.Message,
+                    String.Format("MCEC: No commands loaded. Error parsing MCEControl.commands file. {0} {1}", ex.Message,
                                   ex.InnerException.Message));
                 Util.DumpException(ex);
             }
             catch (Exception ex) {
                 MessageBox.Show(String.Format("No commands loaded. Error parsing MCEControl.commands file. {0}",
                                               ex.Message));
-                MainWindow.AddLogEntry(String.Format("No commands loaded. Error parsing MCEControl.commands file. {0}",
+                MainWindow.AddLogEntry(String.Format("MCEC: No commands loaded. Error parsing MCEControl.commands file. {0}",
                                                      ex.Message));
                 Util.DumpException(ex);
             }

@@ -19,18 +19,18 @@ namespace MCEControl
     /// <summary>
     /// Simulates mouse movements.
     /// </summary>
-    class MouseCommand  {
+    class MouseCommand : Command  {
         private String _action ;
         private String[] _parameters;
-        public static readonly string Cmd = "mouse:";
+        public static readonly string CmdPrefix = "mouse:";
 
         public MouseCommand(String cmd) {
-            _parameters = cmd.Substring(Cmd.Length, cmd.Length - Cmd.Length).Split(',');
+            _parameters = cmd.Substring(CmdPrefix.Length, cmd.Length - CmdPrefix.Length).Split(',');
             if (_parameters.Length > 0)
                 _action = _parameters[0];
         }
 
-        public void Execute()
+        public override void Execute(Reply reply)
         {
             var sim = new InputSimulator();
             // Format is "mouse:<action>[,<parameters>]

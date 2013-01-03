@@ -70,7 +70,7 @@ namespace MCEControl
         private void Send()
         {
             Debug.WriteLine("Send");
-            MainWindow.AddLogEntry("Sending Command: " + textBoxSendCommand.Text);
+            MainWindow.AddLogEntry("Client: Sending Command: " + textBoxSendCommand.Text);
             MainWindow.MainWnd.Client.Send(textBoxSendCommand.Text + "\n");
         }
 

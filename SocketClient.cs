@@ -9,9 +9,12 @@
 //-------------------------------------------------------------------
 
 using System;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 
 namespace MCEControl {
@@ -22,54 +25,12 @@ namespace MCEControl {
     /// and must be threadsafe.
     /// 
     /// </summary>
-    public class SocketClient : IDisposable {
-        #region Delegates
+    public class SocketClient : ServiceBase, IDisposable {
 
-        public delegate
-            void NotificationCallback(Notification notify, Object data);
-
-        #endregion
-
-        #region Notification enum
-
-        public enum Notification {
-            Initialized = 1,
-            StatusChange,
-            ReceivedData,
-            End,
-            Error,
-            Wakeup
-        }
-
-        #endregion
-
-        // Nested enum for supported states
-
-        #region Status enum
-
-        public enum Status {
-            Listening,
-            Connected,
-            Sleeping,
-            Closed
-        }
-
-        #endregion
-
-        private readonly int _clientDelayTime;
+        private TcpClient _tcpClient;
         private readonly string _host = "";
         private readonly int _port;
-        private String _currentCmd;
-
-        private Status _currentStatus;
-
-        // These settings are passed into the SocketClient default constructor
-        // 
-        private bool _delay;
-        private Socket _listeningSocket;
-        private TextReader _reader;
-        private Socket _serverSocket;
-        private TextWriter _writer;
+        private readonly int _clientDelayTime;
 
         public SocketClient(AppSettings settings) {
             _port = settings.ClientPort;
@@ -80,202 +41,155 @@ namespace MCEControl {
         // Finalize 
 
         #region IDisposable Members
-
         public void Dispose() {
             GC.SuppressFinalize(this);
-            Stop();
         }
-
         #endregion
 
         ~SocketClient() {
             Dispose();
         }
 
-        // Nested delegate class and matching event
-
-        public event NotificationCallback Notifications;
-
-        // Nested enum for notifications
-
-
-        public void Start() {
-            ThreadPool.QueueUserWorkItem(EstablishSocket, this);
+        private BackgroundWorker _bw;
+        public void Start(bool delay = false) {
+            var currentCmd = new StringBuilder();
+            _tcpClient = new TcpClient();
+            _bw = new BackgroundWorker();
+            _bw.WorkerReportsProgress = false;
+            _bw.WorkerSupportsCancellation = true;
+            _bw.DoWork += (sender, args) => {
+                if (delay && _clientDelayTime > 0)
+                {
+                    SetStatus(ServiceStatus.Sleeping);
+                    Thread.Sleep(_clientDelayTime);
+                    if (_bw.CancellationPending)
+                        return;
+                }
+                Connect();
+            };
+            _bw.RunWorkerAsync();
         }
-
-        // If delay is true the client will delay connecting 
-        // ClientStartDelay milliseconds
-        public void Start(bool delay) {
-            _delay = delay;
-            Start();
-        }
-
 
         public void Stop() {
-            if (_reader != null) {
-                _reader.Close();
-                _reader = null;
+            _bw.CancelAsync();
+            if (_tcpClient != null) {
+                _tcpClient.Close();
+                _tcpClient= null;
             }
-            if (_writer != null) {
-                _writer.Close();
-                _writer = null;
-            }
-            if (_listeningSocket != null) {
-                _listeningSocket.Close();
-                _listeningSocket = null;
-            }
-            if (_serverSocket != null) {
-                _serverSocket.Close();
-                _serverSocket = null;
-            }
-            if (_currentStatus != Status.Closed)
-                SetStatus(Status.Closed);
+            if (CurrentStatus != ServiceStatus.Stopped)
+                SetStatus(ServiceStatus.Stopped);
         }
 
         // Send text to remote connection
         public void Send(String newText) {
-            if (_writer != null && _currentStatus == Status.Connected) {
-                _writer.Write(newText);
-                _writer.Flush();
-            }
-            else {
-                Notifications(Notification.Error, "Send attempted without valid connection: " + newText);
-            }
-        }
-
-        // Send a status notification
-        private void SetStatus(Status status) {
-            _currentStatus = status;
-            if (Notifications != null)
-                Notifications(Notification.StatusChange, status);
-        }
-
-        // Establish a socket connection and start receiving (either as a 
-        // client or a server)
-        //
-        private void EstablishSocket(Object state) {
-            var sp = (SocketClient) state;
-
+            if (!_tcpClient.Connected || _bw.CancellationPending) return;
             try {
-                var endPoint = new IPEndPoint(Dns.GetHostEntry(sp._host).AddressList[0], sp._port);
+                byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(newText.Replace("\0xFF", "\0xFF\0xFF"));
+                _tcpClient.GetStream().Write(buf, 0, buf.Length);
+            }
+            catch (IOException ioe) {
+                Error(ioe.Message);
+            }
+        }
 
+        private void Connect() {
+            SetStatus(ServiceStatus.Connecting, String.Format("{0}:{1}", _host, _port));
+            var endPoint = new IPEndPoint(Dns.GetHostEntry(_host).AddressList[0], _port);
+            _tcpClient.BeginConnect(endPoint.Address, _port, ar => {
+                if (_tcpClient == null)
+                    return;
                 try {
-                    // Do we need to delay? If so sleep the thread.
-                    if (_delay && _clientDelayTime > 0) {
-                        SetStatus(Status.Sleeping);
-                        Thread.Sleep(_clientDelayTime);
-                        if (_currentStatus == Status.Closed)
-                            return;
-                    }
-                    var temp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) {
-                        Blocking = true
-                    };
-                    SetStatus(Status.Listening);
-                    temp.Connect(endPoint);
-                    _serverSocket = temp;
-                    //ServerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 5000);
+                    _tcpClient.EndConnect(ar);
+                    SetStatus(ServiceStatus.Connected);
+                    StringBuilder sb = new StringBuilder();
+                    while (!_bw.CancellationPending && CurrentStatus == ServiceStatus.Connected && _tcpClient != null &&
+                           _tcpClient.Connected) {
+                        int input = _tcpClient.GetStream().ReadByte();
+                        switch (input) {
+                            case (byte) '\r':
+                            case (byte) '\n':
+                            case (byte) '\0':
+                                if (sb.Length > 0) {
+                                    SendNotification(ServiceNotification.ReceivedData, ServiceStatus.Connected, new ClientReplyContext(_tcpClient), sb.ToString());
+                                    sb.Clear();
+                                    System.Threading.Thread.Sleep(100);
+                                }
+                                break;
 
-                    // Commented out 4/15/05. I see no reason for a send timeout since we send nothing; this may
-                    // be the cause of the bug that is causing the connection to silently drop.
-                    //
-                    //ServerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 5000);
-                    var stream = new NetworkStream(_serverSocket);
-                    _reader = new StreamReader(stream);
-                    _writer = new StreamWriter(stream);
+                            case -1:
+                                Error("No more data.");
+                                return;
+
+                            default:
+                                sb.Append((char) input);
+                                break;
+                        }
+                    }
                 }
                 catch (SocketException e) {
                     switch (e.ErrorCode) {
                         case 10061:
-                            // Connection refused
-                            Notifications(Notification.End, "Connection refused.");
+                            Error("Connection refused.");
                             break;
 
                         case 10060:
-                            // Connection timeout
-                            Notifications(Notification.End, "Connection timed out.");
+                            Error("Connection timed out.");
                             break;
 
                         default:
-                            Notifications(Notification.End, String.Format("SocketException. ErrorCode: {0}{1}{2}", e.ErrorCode, Environment.NewLine, e.Message));
+                            Error(String.Format("SocketException. ErrorCode: {0}{1}{2}", e.ErrorCode,
+                                                        Environment.NewLine, e.Message));
                             break;
                     }
-                    _listeningSocket = null;
-                    _serverSocket = null;
-                    return;
                 }
+                catch (IOException e) {
+                    var sockExcept = e.InnerException as SocketException;
 
-                // If it all worked out, create stream objects
-                if (_serverSocket != null) {
-                    SetStatus(Status.Connected);
-                    Notifications(Notification.Initialized, this);
-                    // Start receiving talk
-                    // Note: on w2k and later platforms, the NetworkStream.Read()
-                    // method called in ReceiveData will generate an exception when
-                    // the remote connection closes. We handle this case in our
-                    // catch block below.
-                    ReceiveData();
+                    if (sockExcept != null) {
+                        switch (sockExcept.ErrorCode) {
+                            case 10054:
+                                Error("Remote connection has closed.");
+                                break;
 
-                    // On Win9x platforms, NetworkStream.Read() returns 0 when
-                    // the remote connection closes, prompting a graceful return
-                    // from ReceiveData() above. We will generate a Notification.End
-                    // message here to handle the case and shut down the remaining
-                    // WinTalk instance.
-                    Notifications(Notification.End, "Remote connection has closed.");
+                            case 10053:
+                                SetStatus(ServiceStatus.Stopped);
+                                break;
+
+                            case 10060:
+                                Error("Connection timed out.");
+                                break;
+
+                            default:
+                                Error(String.Format("SocketException (RecieveData). ErrorCode: {0}{1}{2}",
+                                                            sockExcept.ErrorCode, Environment.NewLine, e.Message));
+                                break;
+                        }
+                    }
+                    else {
+                        Error(String.Format("IOException. {0}", e.Message));
+                    }
                 }
-                else {
-                    Notifications(Notification.End,
-                                  "Could not connect.");
-                }
+            }, null);
+
+            Debug.WriteLine("BeginConnect returned");
+        }
+        #region Nested type: ClientReplyContext
+
+        public class ClientReplyContext : Reply {
+            private readonly TcpClient _tcpClient;
+            // Constructor which takes a Socket and a client number
+            public ClientReplyContext(TcpClient tcpClient) {
+                _tcpClient = tcpClient;
             }
-            catch (IOException e) {
-                var sockExcept = e.InnerException as SocketException;
 
-                if (sockExcept != null) {
-                    switch (sockExcept.ErrorCode)
-                    {
-                        case 10054:
-                            Notifications(Notification.End, "Remote connection has closed.");
-                            break;
+            public override void Write(String text) {
+                if (!_tcpClient.Connected) return;
 
-                        case 10053:
-                            SetStatus(Status.Closed);
-                            break;
-
-                        case 10060:
-                            // Connection timeout
-                            Notifications(Notification.End, "Connection timed out.");
-                            break;
-
-                        default:
-                            Notifications(Notification.End, 
-                                String.Format("SocketException (RecieveData). ErrorCode: {0}{1}{2}", sockExcept.ErrorCode, Environment.NewLine, e.Message));
-                            break;
-                    }                    
-                }
-                else {
-                    Notifications(Notification.End, String.Format("IOException. ErrorCode: {0}{1}{2}", sockExcept.ErrorCode, Environment.NewLine, e.Message));
-                }
-            }
-            catch (Exception e) {
-                Notifications(Notification.End, "General Error:\r\n" + e.Message);
+                byte[] buf = System.Text.Encoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
+                _tcpClient.GetStream().Write(buf, 0, buf.Length);
             }
         }
 
-        /// <summary>
-        /// NewData is called when new data arrives.
-        /// </summary>
-        private void ReceiveData() {
-            for (var b = _reader.Read(); b != -1; b = _reader.Read()) {
-                if (b == 0x0a || b == 0x0d) {
-                    if (!string.IsNullOrEmpty(_currentCmd)) {
-                        Notifications(Notification.ReceivedData, _currentCmd);
-                        _currentCmd = null;
-                    }
-                }
-                else {
-                    _currentCmd = _currentCmd + Convert.ToChar(b);
-                }
-            }
-        }
+        #endregion
     }
 }

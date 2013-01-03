@@ -465,7 +465,7 @@ namespace MCEControl {
             // 
             this._checkBoxEnableSerialServer.Location = new System.Drawing.Point(24, 6);
             this._checkBoxEnableSerialServer.Name = "_checkBoxEnableSerialServer";
-            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(122, 16);
+            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(145, 16);
             this._checkBoxEnableSerialServer.TabIndex = 0;
             this._checkBoxEnableSerialServer.Text = "Enable Serial Server";
             this._checkBoxEnableSerialServer.UseVisualStyleBackColor = true;
@@ -1000,7 +1000,7 @@ namespace MCEControl {
                 var sw = new StreamWriter(filePath);
                 ser.Serialize(sw, this);
                 sw.Close();
-                MainWindow.AddLogEntry("Wrote settings to " + filePath);
+                MainWindow.AddLogEntry("MCEC: Wrote settings to " + filePath);
             }
             catch (Exception e) {
                 MessageBox.Show(String.Format("Settings file could not be written. {0}", e.Message));
@@ -1018,11 +1018,11 @@ namespace MCEControl {
                 XmlReader reader = new XmlTextReader(fs);
                 settings = (AppSettings) serializer.Deserialize(reader);
                 fs.Close();
-                MainWindow.AddLogEntry("Read settings from " + filePath);
+                MainWindow.AddLogEntry("MCEC: Read settings from " + filePath);
             }
             catch (FileNotFoundException) {
                 // First time through, so create file with defaults
-                MainWindow.AddLogEntry("Creating default settings file.");
+                MainWindow.AddLogEntry("MCEC: Creating default settings file.");
                 settings = new AppSettings();
                 settings.Serialize();
             }

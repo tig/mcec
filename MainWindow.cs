@@ -14,6 +14,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.Net.Sockets;
 using System.Resources;
 using System.Threading;
 using System.Threading.Tasks;
@@ -67,6 +68,7 @@ namespace MCEControl {
         private MenuItem _menuItemHelp;
         private MenuItem _menuItemSupport;
         private MenuItem _menuItemEditCommands;
+        private MenuItem menuItem1;
         private readonly Icon _dummyIcon;
 
         public SocketClient Client {
@@ -155,6 +157,7 @@ namespace MCEControl {
             this._menuSeparator5 = new System.Windows.Forms.MenuItem();
             this._notifyMenuItemExit = new System.Windows.Forms.MenuItem();
             this._log = new System.Windows.Forms.TextBox();
+            this.menuItem1 = new System.Windows.Forms.MenuItem();
             this.SuspendLayout();
             // 
             // _mainMenu
@@ -215,7 +218,8 @@ namespace MCEControl {
             this._menuItemHelpMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
             this._menuItemHelp,
             this._menuItemSupport,
-            this._menuItemAbout});
+            this._menuItemAbout,
+            this.menuItem1});
             this._menuItemHelpMenu.Text = "&Help";
             // 
             // _menuItemHelp
@@ -304,6 +308,12 @@ namespace MCEControl {
             this._log.TextChanged += new System.EventHandler(this.LogTextChanged);
             this._log.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.LogKeyPress);
             // 
+            // menuItem1
+            // 
+            this.menuItem1.Index = 3;
+            this.menuItem1.Text = "&Check for a newer version...";
+            this.menuItem1.Click += new System.EventHandler(this.menuItemCheckVersion_Click);
+            // 
             // MainWindow
             // 
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
@@ -367,6 +377,7 @@ namespace MCEControl {
         }
 
         private void MainWindowLoad(object sender, EventArgs e) {
+            CheckVersion();
             // Location can not be changed in constructor, has to be done here
             Location = Settings.WindowLocation;
             Size = Settings.WindowSize;
@@ -380,7 +391,7 @@ namespace MCEControl {
             else
             {
 
-                AddLogEntry("Loaded " + CmdTable.NumCommands + " commands.");
+                AddLogEntry("MCEC: Loaded " + CmdTable.NumCommands + " commands.");
                 Opacity = (double)Settings.Opacity / 100;
 
                 if (Settings.HideOnStartup)
@@ -416,6 +427,32 @@ namespace MCEControl {
             }
         }
 
+        private void CheckVersion() {
+            AddLogEntry(String.Format("MCEC: Version: {0}", Application.ProductVersion));
+            var lv = new LatestVersion();
+            lv.GetLatestStableVersion((o, version) =>
+            {
+                if (String.IsNullOrWhiteSpace(version) && !String.IsNullOrWhiteSpace(lv.ErrorMessage)) {
+                    AddLogEntry(
+                        String.Format(
+                        "MCEC: Could not access mcec.codeplex.com to see if a newer version is available. {0}", lv.ErrorMessage));
+                }
+                else if (lv.CompareVersions() < 0) {
+                    AddLogEntry(
+                        String.Format(
+                            "MCEC: A newer version of MCE Controller ({0}) is available at mcec.codeplex.com.", version));
+                }
+                else if (lv.CompareVersions() > 0) {
+                    AddLogEntry(
+                        String.Format(
+                            "MCEC: You are are running a MORE recent version than can be found at mcec.codeplex.com ({0}).", version));
+                }
+                else {
+                    AddLogEntry("MCEC: You are running the most recent version of MCE Controller.");
+                }
+            });            
+        }
+
         private void Start()
         {
             if (Settings.ActAsServer)
@@ -428,7 +465,7 @@ namespace MCEControl {
                 StartClient();
         }
 
-        private void ShutDown() {
+        public void ShutDown() {
             AddLogEntry("ShutDown");
             _shuttingDown = true;
             // hide icon from the systray
@@ -457,7 +494,7 @@ namespace MCEControl {
                 _menuItemSendAwake.Enabled = Settings.WakeupEnabled;
             }
             else
-                AddLogEntry("Fatal Error: Attempt to StartServer() while an instance already exists!");
+                AddLogEntry("MCEC: Attempt to StartServer() while an instance already exists!");
         }
 
         private void StopServer() {
@@ -483,7 +520,7 @@ namespace MCEControl {
                     Settings.SerialServerHandshake);
             }
             else
-                AddLogEntry("Fatal Error: Attempt to StartSerialServer() while an instance already exists!");
+                AddLogEntry("MCEC: Attempt to StartSerialServer() while an instance already exists!");
         }
 
         private void StopSerialServer()
@@ -496,28 +533,36 @@ namespace MCEControl {
             }
         }
 
-        private void StartClient() {
+        private void StartClient(bool delay = false) {
             if (_client == null) {
                 _client = new SocketClient(Settings);
                 _client.Notifications += HandleClientNotifications;
-                _client.Start();
+                _client.Start(delay);
             }
-            else
-                AddLogEntry("Fatal Error: Attempt to StartClient() while an instance already exists!");
         }
 
-        private delegate void StopClientCallback();
         private void StopClient() {
             if (_client != null) {
+                _cmdWindow.Visible = false;
+                AddLogEntry("Client: Stopping...");
                 _client.Stop();
                 _client = null;
             }
+        }
 
+        private delegate void RestartClientCallback();
+        private void RestartClient() {
             if (_cmdWindow != null) {
                 if (this.InvokeRequired)
-                    this.BeginInvoke((StopClientCallback) StopClient);
-                else
-                    _cmdWindow.Visible = false;
+                    this.BeginInvoke((RestartClientCallback) RestartClient);
+                else {
+                    StopClient();
+                    if (!_shuttingDown && Settings.ActAsClient)
+                    {
+                        AddLogEntry("Client: Reconnecting...");
+                        StartClient(true);
+                    }
+                }
             }
         }
 
@@ -542,13 +587,12 @@ namespace MCEControl {
             }
         }
 
-        private void ReceivedData(String cmd) {
+        private void ReceivedData(Reply reply, String cmd) {
             try {
-                AddLogEntry("Command received: " + cmd);
-                CmdTable.Execute(cmd);
+                CmdTable.Execute(reply, cmd);
             }
             catch (Exception e) {
-                AddLogEntry(String.Format("Command ({0}) error: {1}", cmd, e));
+                AddLogEntry(String.Format("Command: ({0}) error: {1}", cmd, e));
             }
         }
 
@@ -566,33 +610,28 @@ namespace MCEControl {
         //
         // Notify callback for the TCP/IP Server
         //
-        public void HandleServerNotifications(SocketServer.Notification notify, SocketServer.Status status, int client,
-                                              String ipaddress, Object data) {
+        public void HandleServerNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg)
+        {
+            SocketServer.ServerReplyContext serverReplyContext = (SocketServer.ServerReplyContext)reply;
+
             String s = null;
             switch (notify) {
-                case SocketServer.Notification.Initialized:
-                    s = "Server: Initialized.";
-                    break;
-
-                case SocketServer.Notification.StatusChange:
+                case ServiceNotification.StatusChange:
                     switch (status) {
-                        case SocketServer.Status.Listening:
-                            s = "Server: Waiting for clients to connect on port " +
-                                Settings.ServerPort.ToString(CultureInfo.InvariantCulture);
-                            SetStatusBar("Waiting for clients to connect on port " +
-                                         Settings.ServerPort.ToString(CultureInfo.InvariantCulture));
+                        case ServiceStatus.Connecting:
+                            s = "Waiting for clients to connect on port " + Settings.ServerPort;
+                            SetStatusBar(s);
                             if (Settings.WakeupEnabled)
                                 _server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
                                                          Settings.WakeupPort);
                             break;
 
-                        case SocketServer.Status.Connected:
-                            //s = String.Format("Server: Client #{0} at {1} connected.", client, ipaddress);
+                        case ServiceStatus.Connected:
                             SetStatusBar("Clients connected, waiting for commands...");
                             return;
 
-                        case SocketServer.Status.Stopped:
-                            s = "Server: Stopped.";
+                        case ServiceStatus.Stopped:
+                            s = "Stopped.";
                             SetStatusBar("Client/Sever Not Active");
                             if (Settings.WakeupEnabled)
                                 _server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost,
@@ -601,129 +640,137 @@ namespace MCEControl {
                     }
                     break;
 
-                case SocketServer.Notification.ReceivedData:
-                    ReceivedData((string) data);
+                case ServiceNotification.ReceivedData:
+                    s = String.Format("Server: Received from client #{0} at {1}: {2}",
+                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);
+                    AddLogEntry(s);
+                    ReceivedData(serverReplyContext, msg);
                     return;
 
-                case SocketServer.Notification.Error:
-                    s = String.Format("Server: Error (Client #{0} at {1}: {2})", client, ipaddress, data);
+                case ServiceNotification.Write:
+                    s = String.Format("Wrote to client #{0} at {1}: {2}",
+                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);                    
                     break;
 
-                case SocketServer.Notification.ClientConnected:
-                    s = String.Format("Server: Client #{0} at {1} connected.", client, ipaddress);
+                case ServiceNotification.WriteFailed:
+                    s = String.Format("Write failed to client #{0} at {1}: {2}",
+                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);
                     break;
 
-                case SocketServer.Notification.ClientDisconnected:
-                    s = String.Format("Server: Client #{0} at {1} has disconnected.", client, ipaddress);
-                    break;
-
-                case SocketServer.Notification.Wakeup:
-                    s = "Wakeup: " + (string) data;
-                    break;
-
-                default:
-                    s = "Server: Unknown notification";
-                    break;
-            }
-            AddLogEntry(s);
-        }
-
-        //
-        // Notify callback for the TCP/IP Client
-        //
-        public void HandleClientNotifications(SocketClient.Notification notify, Object data) {
-            String s = null;
-            switch (notify) {
-                case SocketClient.Notification.Initialized:
-                    //s = "Client: Client Initialized.";
-                    break;
-
-                case SocketClient.Notification.StatusChange:
-                    var status = (SocketClient.Status) data;
-                    if (status == SocketClient.Status.Listening) {
-                        s = "Client: Connecting to " + Settings.ClientHost + ":" +
-                            Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
-                        SetStatusBar("Connecting to " + Settings.ClientHost + ":" +
-                                     Settings.ClientPort.ToString(CultureInfo.InvariantCulture));
-                        HideCommandWindow();
+                case ServiceNotification.Error:
+                    if (status == ServiceStatus.Connected) {
+                        s = String.Format("Error (Client #{0} at {1}): {2}",
+                                          serverReplyContext.ClientNumber,
+                                          serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);
                     }
-                    else if (status == SocketClient.Status.Connected) {
-                        s = "Client: Connected to " + Settings.ClientHost + ":" +
-                            Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
-                        SetStatusBar("Connected to " + Settings.ClientHost + ":" +
-                                     Settings.ClientPort.ToString(CultureInfo.InvariantCulture) +
-                                     ", waiting for commands...");
-
-                        ShowCommandWindow();
-                    }
-                    else if (status == SocketClient.Status.Closed) {
-                        s = "Client: Stopped.";
-                        SetStatusBar("Client/Sever Not Active");
-                        HideCommandWindow();
-                    }
-                    else if (status == SocketClient.Status.Sleeping) {
-                        s = "Client: Waiting " + (Settings.ClientDelayTime/1000).ToString(CultureInfo.InvariantCulture) +
-                            " seconds to connect.";
-                        SetStatusBar("Waiting " + (Settings.ClientDelayTime/1000).ToString(CultureInfo.InvariantCulture) +
-                                     " seconds to connect.");
-                        HideCommandWindow();
+                    else {
+                        s = String.Format("Error: {0}", msg);       
                     }
                     break;
 
-                case SocketClient.Notification.ReceivedData:
-                    ReceivedData((string) data);
-                    return;
-
-                case SocketClient.Notification.Error:
-                    s = "Client Error: " + (string) data;
+                case ServiceNotification.ClientConnected:
+                    s = String.Format("Client #{0} at {1} connected.",
+                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString());
                     break;
 
-                case SocketClient.Notification.End:
-                    if (!_shuttingDown && _client != null)
-                    {
-                        _client.Stop();
-                        s = "Client: " + (string) data + " Reconnecting...";
-                        _client.Start(true);
-                    }
+                case ServiceNotification.ClientDisconnected:
+                    s = String.Format("Client #{0} at {1} has disconnected.",
+                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString());
+                    break;
+
+                case ServiceNotification.Wakeup:
+                    s = "Wakeup: " + (string) msg;
                     break;
 
                 default:
                     s = "Unknown notification";
                     break;
             }
-            AddLogEntry(s);
+            AddLogEntry("Server: " + s);
+        }
+
+        //
+        // Notify callback for the TCP/IP Client
+        //
+        public void HandleClientNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg)
+        {
+            String s = null;
+            switch (notify) {
+                case ServiceNotification.StatusChange:
+                    if (status == ServiceStatus.Connecting) {
+                        s = "Connecting to " + Settings.ClientHost + ":" + Settings.ClientPort;
+                        SetStatusBar(s);
+                        HideCommandWindow();
+                    }
+                    else if (status == ServiceStatus.Connected) {
+                        s = "Connected to " + Settings.ClientHost + ":" + Settings.ClientPort;
+                        SetStatusBar(s);
+                        ShowCommandWindow();
+                    }
+                    else if (status == ServiceStatus.Stopped) {
+                        s = "Client: Stopped.";
+                        SetStatusBar("Client/Sever Not Active");
+                        HideCommandWindow();
+                    }
+                    else if (status == ServiceStatus.Sleeping) {
+                        s = "Waiting " + (Settings.ClientDelayTime/1000) +
+                            " seconds to connect.";
+                        SetStatusBar(s);
+                        HideCommandWindow();
+                    }
+                    break;
+
+                case ServiceNotification.ReceivedData:
+                    AddLogEntry(String.Format("Client: Received: {0}", msg));
+                    ReceivedData(reply, (string) msg);
+                    return;
+
+                case ServiceNotification.Error:
+                    AddLogEntry("Client: Error: " + (string)msg);
+                    RestartClient();
+                    return;
+
+                default:
+                    s = "Unknown notification";
+                    break;
+            }
+            AddLogEntry("Client: " + s);
         }
 
         //
         // Notify callback for the Serial Server
         //
-        public void HandleSerialServerNotifications(SerialServer.Notification notify, SerialServer.Status status, String message,
-                                              Object data)
+        public void HandleSerialServerNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg)
         {
             String s = null;
             switch (notify)
             {
-                case SerialServer.Notification.StatusChange:
+                case ServiceNotification.StatusChange:
                     switch (status)
                     {
-                        case SerialServer.Status.Started:
-                            s = String.Format("SerialServer: Waiting for commands on {0}...", message);
+                        case ServiceStatus.Connecting:
+                            s = String.Format("SerialServer: Opening port: {0}", msg);
+                            break;
+
+                        case ServiceStatus.Connected:
+                            s = String.Format("SerialServer: Waiting for commands on {0}...", msg);
                             SetStatusBar("Waiting for Serial commands...");
                             break;
 
-                        case SerialServer.Status.Stopped:
+                        case ServiceStatus.Stopped:
                             s = "SerialServer: Stopped.";
                             SetStatusBar("Serial Server Not Active");
                             break;
                     }
                     break;
 
-                case SerialServer.Notification.ReceivedData:
-                    ReceivedData((string)data);
+                case ServiceNotification.ReceivedData:
+                    AddLogEntry(String.Format("SerialServer: Received: {0}", msg));
+                    ReceivedData(reply, (string)msg);
                     return;
 
-                case SerialServer.Notification.Error:
-                    s = String.Format("SerialServer: Error ({0}) {1}", message, data);
+                case ServiceNotification.Error:
+                    s = String.Format("SerialServer: Error: {0}", msg);
                     break;
 
                 default:
@@ -776,7 +823,7 @@ namespace MCEControl {
 
                 Opacity = (double) Settings.Opacity/100;
 
-                StopClient();
+                RestartClient();
                 StopServer();
                 StopSerialServer();
 
@@ -827,6 +874,10 @@ namespace MCEControl {
         private void MainWindow_HelpButtonClicked(object sender, CancelEventArgs e)
         {
             Process.Start("http://mcec.codeplex.com/documentation/");
+        }
+
+        private void menuItemCheckVersion_Click(object sender, EventArgs e) {
+            CheckVersion();
         }
     }
 }

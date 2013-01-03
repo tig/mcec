@@ -46,7 +46,8 @@ namespace MCEControl {
             Win = win;
         }
 
-        public override void Execute() {
+        public override void Execute(Reply reply)
+        {
             try {
                 VirtualKeyCode vkcode;
                 if (!Vk.ToUpper().StartsWith("VK_") ||
@@ -61,7 +62,7 @@ namespace MCEControl {
                          !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
                                          out num)) {
                         // bad format. barf.
-                        MainWindow.AddLogEntry(String.Format("Invalid virtual key-code: {0}", Vk));
+                        MainWindow.AddLogEntry(String.Format("Cmd: Invalid VK: {0}", Vk));
                         return;
                     }
                     vkcode = (VirtualKeyCode) num;
@@ -77,7 +78,7 @@ namespace MCEControl {
                 if (Shift) s = "Shift-" + s;
                 if (Win) s = "Win-" + s;
 
-                MainWindow.AddLogEntry(String.Format("Sending keystroke: '{0}' (0x{1:x2})", s, (ushort)vkcode));
+                MainWindow.AddLogEntry(String.Format("Cmd: Sending VK: '{0}' (0x{1:x2})", s, (ushort)vkcode));
 
                 var sim = new KeyboardSimulator();
 
@@ -111,12 +112,12 @@ namespace MCEControl {
                 }
             }
             catch (Exception e) {
-                MainWindow.AddLogEntry("SendInput failed:" + e.Message);
+                MainWindow.AddLogEntry("Cmd: SendInput failed:" + e.Message);
             }
         }
 
         public static void ShiftKey(String key, Boolean down) {
-            MainWindow.AddLogEntry(String.Format("{0} {1}", key, (down ? "down" : "up")));
+            MainWindow.AddLogEntry(String.Format("Cmd: {0} {1}", key, (down ? "down" : "up")));
 
             var sim = new InputSimulator();
             switch (key) {
