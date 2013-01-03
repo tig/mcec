@@ -14,8 +14,8 @@ namespace MCEControl
             get { return new Version(Application.ProductVersion); }
         }
 
-        public String ErrorMessage { get; set; }
-        public String LatestStableRelease { get; set; }
+        public String ErrorMessage { get; private set; }
+        public String LatestStableRelease { get; private set; }
 
         public async void GetLatestStableVersion(GotVersionInfo callback) {
             var client = new WebClient();
