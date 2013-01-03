@@ -59,7 +59,7 @@ namespace MCEControl {
             // _labelTitle
             // 
             this._labelTitle.Font = new System.Drawing.Font("Lucida Sans", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this._labelTitle.Location = new System.Drawing.Point(146, 12);
+            this._labelTitle.Location = new System.Drawing.Point(111, 12);
             this._labelTitle.Name = "_labelTitle";
             this._labelTitle.Size = new System.Drawing.Size(321, 21);
             this._labelTitle.TabIndex = 0;
@@ -68,7 +68,7 @@ namespace MCEControl {
             // _linkLabelMceController
             // 
             this._linkLabelMceController.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._linkLabelMceController.Location = new System.Drawing.Point(146, 94);
+            this._linkLabelMceController.Location = new System.Drawing.Point(111, 94);
             this._linkLabelMceController.Name = "_linkLabelMceController";
             this._linkLabelMceController.Size = new System.Drawing.Size(321, 16);
             this._linkLabelMceController.TabIndex = 3;
@@ -81,7 +81,7 @@ namespace MCEControl {
             // 
             this._buttonOk.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this._buttonOk.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._buttonOk.Location = new System.Drawing.Point(392, 162);
+            this._buttonOk.Location = new System.Drawing.Point(357, 162);
             this._buttonOk.Name = "_buttonOk";
             this._buttonOk.Size = new System.Drawing.Size(75, 23);
             this._buttonOk.TabIndex = 0;
@@ -91,7 +91,7 @@ namespace MCEControl {
             // _linkLabelKindelSystems
             // 
             this._linkLabelKindelSystems.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._linkLabelKindelSystems.Location = new System.Drawing.Point(146, 33);
+            this._linkLabelKindelSystems.Location = new System.Drawing.Point(111, 33);
             this._linkLabelKindelSystems.Name = "_linkLabelKindelSystems";
             this._linkLabelKindelSystems.Size = new System.Drawing.Size(321, 16);
             this._linkLabelKindelSystems.TabIndex = 1;
@@ -102,7 +102,7 @@ namespace MCEControl {
             // 
             // _labelSummary
             // 
-            this._labelSummary.Location = new System.Drawing.Point(146, 58);
+            this._labelSummary.Location = new System.Drawing.Point(111, 58);
             this._labelSummary.Name = "_labelSummary";
             this._labelSummary.Size = new System.Drawing.Size(321, 27);
             this._labelSummary.TabIndex = 2;
@@ -112,7 +112,7 @@ namespace MCEControl {
             // _linkLabelHomePage
             // 
             this._linkLabelHomePage.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._linkLabelHomePage.Location = new System.Drawing.Point(146, 125);
+            this._linkLabelHomePage.Location = new System.Drawing.Point(111, 125);
             this._linkLabelHomePage.Name = "_linkLabelHomePage";
             this._linkLabelHomePage.Size = new System.Drawing.Size(321, 16);
             this._linkLabelHomePage.TabIndex = 4;
@@ -125,9 +125,9 @@ namespace MCEControl {
             // 
             this._pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("_pictureBox1.Image")));
             this._pictureBox1.InitialImage = null;
-            this._pictureBox1.Location = new System.Drawing.Point(13, 13);
+            this._pictureBox1.Location = new System.Drawing.Point(9, 12);
             this._pictureBox1.Name = "_pictureBox1";
-            this._pictureBox1.Size = new System.Drawing.Size(128, 128);
+            this._pictureBox1.Size = new System.Drawing.Size(96, 96);
             this._pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this._pictureBox1.TabIndex = 5;
             this._pictureBox1.TabStop = false;
@@ -137,7 +137,7 @@ namespace MCEControl {
             this.AcceptButton = this._buttonOk;
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
             this.CancelButton = this._buttonOk;
-            this.ClientSize = new System.Drawing.Size(479, 197);
+            this.ClientSize = new System.Drawing.Size(447, 197);
             this.ControlBox = false;
             this.Controls.Add(this._pictureBox1);
             this.Controls.Add(this._linkLabelHomePage);
@@ -153,6 +153,7 @@ namespace MCEControl {
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "About";
+            this.Load += new System.EventHandler(this.AboutBox_Load);
             ((System.ComponentModel.ISupportInitialize)(this._pictureBox1)).EndInit();
             this.ResumeLayout(false);
 
@@ -175,6 +176,9 @@ namespace MCEControl {
         private void linkLabelHomePage_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             Process.Start(_linkLabelHomePage.Tag.ToString());
+        }
+
+        private void AboutBox_Load(object sender, EventArgs e) {
         }
     }
 }

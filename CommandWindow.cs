@@ -20,8 +20,8 @@ namespace MCEControl
         }
 
 
-        private void CommandWindow_Load(object sender, EventArgs e)
-        {
+        private void CommandWindow_Load(object sender, EventArgs e) {
+            Icon = MainWindow.MainWnd.Icon;
             foreach (Command cmd in MainWindow.MainWnd.CmdTable.List) {
                 var item = new ListViewItem(cmd.Key);
                 Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");

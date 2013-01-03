@@ -89,7 +89,6 @@ namespace MCEControl {
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SettingsDialog));
             this._buttonCancel = new System.Windows.Forms.Button();
             this._buttonOk = new System.Windows.Forms.Button();
             this._tabControl = new System.Windows.Forms.TabControl();
@@ -663,7 +662,6 @@ namespace MCEControl {
             this.Controls.Add(this._buttonCancel);
             this.Controls.Add(this._buttonOk);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "SettingsDialog";
