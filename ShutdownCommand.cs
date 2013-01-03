@@ -19,6 +19,7 @@ namespace MCEControl {
         [XmlAttribute("Type")] public String Type;
 
         public ShutdownCommand() {
+            // Serialzable, must have constructor
         }
 
         public ShutdownCommand(string type) {
@@ -27,31 +28,29 @@ namespace MCEControl {
 
         public override void Execute(Reply reply) {
             MainWindow.AddLogEntry("Cmd: ShutdownCommand: " + Type);
+            using (var sc = new SystemControl()) {
+                switch (Type.ToLower()) {
+                    case "shutdown":
+                        sc.Shutdown("MCE Controller Forced Shutdown", 30, true, false);
+                        break;
 
-            var sc = new SystemControl();
-            switch (Type.ToLower()) {
-                case "shutdown":
-                    sc.Shutdown("MCE Controller Forced Shutdown", 30, true, false);
-                    break;
+                    case "restart":
+                        sc.Shutdown("MCE Controller Forced Restart", 30, true, true);
+                        break;
 
-                case "restart":
-                    sc.Shutdown("MCE Controller Forced Restart", 30, true, true);
-                    break;
+                    case "standby":
+                        sc.Standby();
+                        break;
 
-                case "standby":
-                    sc.Standby();
-                    break;
+                    case "hibernate":
+                        sc.Hibernate();
+                        break;
 
-                case "hibernate":
-                    sc.Hibernate();
-                    break;
-
-                case "abort":
-                    sc.Abort();
-                    break;
+                    case "abort":
+                        sc.Abort();
+                        break;
+                }
             }
-
-            sc.Dispose(true);
         }
     }
 }

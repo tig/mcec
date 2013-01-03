@@ -9,15 +9,9 @@
 //-------------------------------------------------------------------
 
 using System;
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
-using System.Globalization;
-using System.Net.Sockets;
 using System.Resources;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using MCEControl.Properties;
 using Microsoft.Win32.Security;
@@ -78,8 +72,8 @@ namespace MCEControl {
         /// </summary>
         [STAThread]
         public static void Main(string[] args) {
-            MainWindow.MainWnd = new MainWindow();
-            Application.Run(MainWindow.MainWnd);
+            MainWnd = new MainWindow();
+            Application.Run(MainWnd);
         }
 
         public MainWindow() {
@@ -90,8 +84,6 @@ namespace MCEControl {
 
             // Load AppSettings
             Settings = AppSettings.Deserialize(AppSettings.GetSettingsPath());
-
-            var resources = new ResourceManager(typeof (MainWindow));
 
             _notifyIcon.Visible = true;
             _notifyIcon.Icon = Icon;
@@ -119,6 +111,25 @@ namespace MCEControl {
 
                 if (components != null) {
                     components.Dispose();
+                }
+
+                if (_server != null)
+                {
+                    // remove our notification handler
+                    _server.Notifications -= HandleServerNotifications;
+                    _server.Dispose();
+                }
+                if (_client != null)
+                {
+                    // remove our notification handler
+                    _client.Notifications -= HandleClientNotifications;
+                    _client.Dispose();
+                }
+
+                if (_serialServer != null)
+                {
+                    _serialServer.Notifications -= HandleSerialServerNotifications;
+                    _serialServer.Dispose();
                 }
             }
             base.Dispose(disposing);
@@ -349,28 +360,6 @@ namespace MCEControl {
                 _shuttingDown = true;
             }
             base.WndProc(ref m);
-        }
-
-
-        // When the app closes, dispose of the talker object
-        protected override void OnClosed(EventArgs e) {
-            if (_server != null) {
-                // remove our notification handler
-                _server.Notifications -= HandleServerNotifications;
-                _server.Dispose();
-            }
-            if (_client != null) {
-                // remove our notification handler
-                _client.Notifications -= HandleClientNotifications;
-                _client.Dispose();
-            }
-
-            if (_serialServer != null) {
-                _serialServer.Notifications -= HandleSerialServerNotifications;
-                _serialServer.Dispose();
-            }
-
-            base.OnClosed(e);
         }
 
         private void MainWindowLoad(object sender, EventArgs e) {

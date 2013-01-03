@@ -125,6 +125,7 @@
     <Compile Include="CommandWindow.Designer.cs">
       <DependentUpon>CommandWindow.cs</DependentUpon>
     </Compile>
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="LatestVersion.cs" />
     <Compile Include="SerialServer.cs" />
     <Compile Include="KeyboardCommand.cs">

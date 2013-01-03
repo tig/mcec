@@ -765,6 +765,9 @@ namespace MCEControl {
         /// Clean up any resources being used.
         /// </summary>
         protected override void Dispose(bool disposing) {
+            if (components != null) {
+                components.Dispose();
+            }
         }
 
         private void ButtonCancelClick(object sender, EventArgs e) {

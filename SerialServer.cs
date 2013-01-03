@@ -19,19 +19,30 @@ namespace MCEControl {
     /// <summary>
     /// Implements the serial port server 
     /// </summary>
-    public class SerialServer : ServiceBase, IDisposable {
+    sealed public class SerialServer : ServiceBase, IDisposable {
 
         #region IDisposable Members
 
         public void Dispose() {
+            Dispose(true);
             GC.SuppressFinalize(this);
-            Stop();
         }
-
         #endregion
 
         private Thread _readThread ;
         private SerialPort _serialPort;
+
+        private void Dispose(bool disposing)
+        {
+            if (disposing) {
+                if (_serialPort != null)
+                    _serialPort.Close();
+                _serialPort = null;
+                if (_readThread != null)
+                    _readThread.Abort();
+                _readThread = null;
+            }
+        }
 
         //-----------------------------------------------------------
         // Control functions (Start, Stop, etc...)
@@ -76,18 +87,12 @@ namespace MCEControl {
                 Error(e.Message);
                 Stop();              
             }
-     }
+        }
 
         public void Stop() {
             Debug.WriteLine("Serial Server Stop");
-            if (_serialPort != null)
-                _serialPort.Close();
-            if (_readThread != null)
-                _readThread.Abort();
+            Dispose(true);
             SetStatus(ServiceStatus.Stopped);
-
-            _readThread = null;
-            _serialPort = null;
         }
 
         // Returns a string with serial settings, e.g. "COM1 9600 baud N81 Xon/Xoff"

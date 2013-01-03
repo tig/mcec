@@ -20,7 +20,7 @@ namespace MCEControl {
     /// <summary>
     /// Implements the TCP/IP server using asynchronous sockets
     /// </summary>
-    public class SocketServer : ServiceBase, IDisposable {
+    sealed public class SocketServer : ServiceBase, IDisposable {
         // An ConcurrentDictionary is used to keep track of worker sockets that are designed
         // to communicate with each connected client. For thread safety.
         private readonly ConcurrentDictionary<int, Socket> _socketList = new ConcurrentDictionary<int, Socket>();
@@ -30,18 +30,37 @@ namespace MCEControl {
         // can access this variable, modifying this variable should be done
         // in a thread safe manner
         private int _clientCount;
-        private Socket _mainSocket;
-
         public int Port { get; set; }
 
         #region IDisposable Members
-
         public void Dispose() {
+            Dispose(true);
             GC.SuppressFinalize(this);
-            Stop();
         }
-
         #endregion
+
+        // Disposable members
+        private Socket _mainSocket;
+
+        private void Dispose(bool disposing)
+        {
+            if (!disposing) return;
+            foreach (var i in _socketList.Keys)
+            {
+                Socket socket;
+                _socketList.TryRemove(i, out socket);
+                if (socket != null)
+                {
+                    Debug.WriteLine("Closing Socket #" + i);
+                    socket.Close();
+                }
+            }
+            if (_mainSocket != null)
+            {
+                _mainSocket.Close();
+                _mainSocket = null;
+            }
+        }
 
         //-----------------------------------------------------------
         // Control functions (Start, Stop, etc...)
@@ -68,30 +87,16 @@ namespace MCEControl {
         }
 
         public void Stop() {
-            CloseSockets();
+            Dispose(true);
             Debug.WriteLine("Server Stop");
             SetStatus(ServiceStatus.Stopped);
-        }
-
-        private void CloseSockets() {
-            if (_mainSocket != null) {
-                _mainSocket.Close();
-            }
-
-            foreach (var i in _socketList.Keys) {
-                Socket socket;
-                _socketList.TryRemove(i, out socket);
-                if (socket != null) {
-                    Debug.WriteLine("Closing Socket #" + i);
-                    socket.Close();
-                }
-            }
         }
 
         //-----------------------------------------------------------
         // Async handlers
         //-----------------------------------------------------------
         private void OnClientConnect(IAsyncResult async) {
+            if (_mainSocket == null) return;
             ServerReplyContext serverReplyContext = null;
             try {
                 // Here we complete/end the BeginAccept() asynchronous call
@@ -158,9 +163,6 @@ namespace MCEControl {
             Debug.WriteLine("Closing Socket #" + serverReplyContext.ClientNumber);
             SendNotification(ServiceNotification.ClientDisconnected, CurrentStatus, serverReplyContext);
             socket.Close();
-
-            if (_socketList.Count == 0)
-                SetStatus(ServiceStatus.Connecting);
         }
 
         enum TelnetVerbs
@@ -181,7 +183,8 @@ namespace MCEControl {
         // This the call back function which will be invoked when the socket
         // detects any client writing of data on the stream
         private void OnDataReceived(IAsyncResult async) {
-            var clientContext = (ServerReplyContext) async.AsyncState;
+            var clientContext = (ServerReplyContext)async.AsyncState;
+            if (_mainSocket == null || !clientContext.Socket.Connected) return;
             try {
                 // Complete the BeginReceive() asynchronous call by EndReceive() method
                 // which will return the number of characters written to the stream 
@@ -256,9 +259,9 @@ namespace MCEControl {
                 // Continue the waiting for data on the Socket
                 BeginReceive(clientContext);
             }
-            catch (ObjectDisposedException) {
+            //catch (ObjectDisposedException) {
                 //SendNotification(Notification.Error, Status.Connected, 0, "n/a", "OnDataReceived: Socket has been closed: " + e.Message);
-            }
+            //}
             catch (SocketException se) {
                 if (se.ErrorCode == 10054) // Error code for Connection reset by peer
                 {
