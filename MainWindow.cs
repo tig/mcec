@@ -72,8 +72,19 @@ namespace MCEControl {
         /// </summary>
         [STAThread]
         public static void Main(string[] args) {
+            if (!IsNet45OrNewer()) {
+                MessageBox.Show(
+                    "MCE Controller requires .NET Framework 4.5 or newer.\r\n\r\nDownload and install from http://www.microsoft.com/net/");
+                return;
+            }
             MainWnd = new MainWindow();
             Application.Run(MainWnd);
+        }
+
+        public static bool IsNet45OrNewer()
+        {
+            // Class "ReflectionContext" exists from .NET 4.5 onwards.
+            return Type.GetType("System.Reflection.ReflectionContext", false) != null;
         }
 
         public MainWindow() {
@@ -81,20 +92,19 @@ namespace MCEControl {
             // Required for Windows Form Designer support
             //
             InitializeComponent();
+            _notifyIcon.Icon = Icon;
 
             // Load AppSettings
             Settings = AppSettings.Deserialize(AppSettings.GetSettingsPath());
 
-            _notifyIcon.Visible = true;
-            _notifyIcon.Icon = Icon;
             ShowInTaskbar = true;
 
             SetStatusBar("");
-            _notifyIcon.Text = Resources.App_FullName;
             _menuItemSendAwake.Enabled = false;
 
             CmdTable = CommandTable.Deserialize();
         }
+
 
         /// <summary>
         /// Clean up any resources being used.
@@ -167,6 +177,7 @@ namespace MCEControl {
             this._log = new System.Windows.Forms.TextBox();
             this._menuItemCheckVersion = new System.Windows.Forms.MenuItem();
             this.SuspendLayout();
+
             // 
             // _mainMenu
             // 
@@ -259,7 +270,6 @@ namespace MCEControl {
             // _notifyIcon
             // 
             this._notifyIcon.ContextMenu = this._notifyMenu;
-            this._notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("_notifyIcon.Icon")));
             this._notifyIcon.Text = global::MCEControl.Properties.Resources.App_FullName;
             this._notifyIcon.Visible = true;
             this._notifyIcon.DoubleClick += new System.EventHandler(this.NotifyIconDoubleClick);

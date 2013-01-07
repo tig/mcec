@@ -8,6 +8,7 @@
 //    http://sourceforge.net/projects/mcecontroller/
 //-------------------------------------------------------------------
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 //
 // General Information about an assembly is controlled through the following 
@@ -64,3 +65,4 @@ using System.Reflection;
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("")]
 [assembly: AssemblyKeyName("")]
+[assembly: ComVisibleAttribute(false)]
