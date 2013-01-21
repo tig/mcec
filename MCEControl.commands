@@ -150,6 +150,7 @@ The following command starts Media Center and makes it full screen
   <SendInput Cmd="mute" vk="VK_VOLUME_MUTE" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="pause" vk="VK_MEDIA_PLAY_PAUSE" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="play" vk="VK_MEDIA_PLAY_PAUSE" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="ctrl-x" vk="VK_X" Shift="false" Ctrl="true" Alt="false" />
 
   <!-- Windows Media Center specific keyboard commands -->
   <SendInput Cmd="cc" vk="67" Shift="true" Ctrl="true" Alt="false" />

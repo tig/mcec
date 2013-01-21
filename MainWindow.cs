@@ -62,6 +62,8 @@ namespace MCEControl {
         private MenuItem _menuItemHelp;
         private MenuItem _menuItemSupport;
         private MenuItem _menuItemEditCommands;
+        private MenuItem menuItem2;
+        private MenuItem menuItem1;
         private MenuItem _menuItemCheckVersion;
         public SocketClient Client {
             get { return _client; }
@@ -166,6 +168,7 @@ namespace MCEControl {
             this._menuItemHelp = new System.Windows.Forms.MenuItem();
             this._menuItemSupport = new System.Windows.Forms.MenuItem();
             this._menuItemAbout = new System.Windows.Forms.MenuItem();
+            this._menuItemCheckVersion = new System.Windows.Forms.MenuItem();
             this._statusBar = new System.Windows.Forms.StatusBar();
             this._notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this._notifyMenu = new System.Windows.Forms.ContextMenu();
@@ -175,9 +178,9 @@ namespace MCEControl {
             this._menuSeparator5 = new System.Windows.Forms.MenuItem();
             this._notifyMenuItemExit = new System.Windows.Forms.MenuItem();
             this._log = new System.Windows.Forms.TextBox();
-            this._menuItemCheckVersion = new System.Windows.Forms.MenuItem();
+            this.menuItem1 = new System.Windows.Forms.MenuItem();
+            this.menuItem2 = new System.Windows.Forms.MenuItem();
             this.SuspendLayout();
-
             // 
             // _mainMenu
             // 
@@ -211,7 +214,7 @@ namespace MCEControl {
             // _menuItemEditCommands
             // 
             this._menuItemEditCommands.Index = 2;
-            this._menuItemEditCommands.Text = "&Edit .commands File...";
+            this._menuItemEditCommands.Text = "&Open .commands file location...";
             this._menuItemEditCommands.Click += new System.EventHandler(this.MenuItemEditCommandsClick);
             // 
             // _menuSeparator2
@@ -237,28 +240,36 @@ namespace MCEControl {
             this._menuItemHelpMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
             this._menuItemHelp,
             this._menuItemSupport,
-            this._menuItemAbout,
-            this._menuItemCheckVersion});
+            this.menuItem2,
+            this._menuItemCheckVersion,
+            this.menuItem1,
+            this._menuItemAbout});
             this._menuItemHelpMenu.Text = "&Help";
             // 
             // _menuItemHelp
             // 
             this._menuItemHelp.Index = 0;
             this._menuItemHelp.Shortcut = System.Windows.Forms.Shortcut.F1;
-            this._menuItemHelp.Text = "&Help...";
+            this._menuItemHelp.Text = "&Documentation...";
             this._menuItemHelp.Click += new System.EventHandler(this.MenuItemHelpClick);
             // 
             // _menuItemSupport
             // 
             this._menuItemSupport.Index = 1;
-            this._menuItemSupport.Text = "&Support...";
+            this._menuItemSupport.Text = "&Get Support...";
             this._menuItemSupport.Click += new System.EventHandler(this.MenuItemSupportClick);
             // 
             // _menuItemAbout
             // 
-            this._menuItemAbout.Index = 2;
-            this._menuItemAbout.Text = "&About";
+            this._menuItemAbout.Index = 5;
+            this._menuItemAbout.Text = "&About MCE Controller";
             this._menuItemAbout.Click += new System.EventHandler(this.MenuItemAboutClick);
+            // 
+            // _menuItemCheckVersion
+            // 
+            this._menuItemCheckVersion.Index = 3;
+            this._menuItemCheckVersion.Text = "&Check for a newer version";
+            this._menuItemCheckVersion.Click += new System.EventHandler(this.menuItemCheckVersion_Click);
             // 
             // _statusBar
             // 
@@ -328,9 +339,13 @@ namespace MCEControl {
             // 
             // menuItem1
             // 
-            this._menuItemCheckVersion.Index = 3;
-            this._menuItemCheckVersion.Text = "&Check for a newer version...";
-            this._menuItemCheckVersion.Click += new System.EventHandler(this.menuItemCheckVersion_Click);
+            this.menuItem1.Index = 4;
+            this.menuItem1.Text = "-";
+            // 
+            // menuItem2
+            // 
+            this.menuItem2.Index = 2;
+            this.menuItem2.Text = "-";
             // 
             // MainWindow
             // 
