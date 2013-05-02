@@ -4,8 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCEControl", "MCEControl.cs
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5ACFD7B1-E7F8-4138-86F8-2FA75EFEC9A7}"
 	ProjectSection(SolutionItems) = preProject
+		Example.MCEControl.commands = Example.MCEControl.commands
 		Installer\license.txt = Installer\license.txt
-		MCEControl.commands = MCEControl.commands
 		Installer\MCEController.nsi = Installer\MCEController.nsi
 		README.md = README.md
 	EndProjectSection

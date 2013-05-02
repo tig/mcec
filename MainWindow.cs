@@ -23,7 +23,7 @@ namespace MCEControl {
     public class MainWindow : Form {
         // Used to enabled access to AddLogEntry
         public static MainWindow MainWnd;
-        public readonly CommandTable CmdTable;
+        public CommandTable CmdTable;
 
         // Persisted application settings
         public AppSettings Settings;
@@ -103,8 +103,6 @@ namespace MCEControl {
 
             SetStatusBar("");
             _menuItemSendAwake.Enabled = false;
-
-            CmdTable = CommandTable.Deserialize();
         }
 
 
@@ -393,6 +391,7 @@ namespace MCEControl {
             Location = Settings.WindowLocation;
             Size = Settings.WindowSize;
 
+            CmdTable = CommandTable.Deserialize();
             if (CmdTable == null)
             {
                 MessageBox.Show(this, Resources.MCEController_commands_read_error, Resources.App_FullName);
@@ -401,8 +400,7 @@ namespace MCEControl {
             }
             else
             {
-
-                AddLogEntry("MCEC: Loaded " + CmdTable.NumCommands + " commands.");
+                AddLogEntry("MCEC: " + CmdTable.NumCommands + " commands available.");
                 Opacity = (double)Settings.Opacity / 100;
 
                 if (Settings.HideOnStartup)
@@ -652,6 +650,7 @@ namespace MCEControl {
                     break;
 
                 case ServiceNotification.ReceivedData:
+                    Debug.Assert(serverReplyContext == null, notify.ToString());
                     s = String.Format("Server: Received from client #{0} at {1}: {2}",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);
                     AddLogEntry(s);
@@ -659,16 +658,19 @@ namespace MCEControl {
                     return;
 
                 case ServiceNotification.Write:
+                    Debug.Assert(serverReplyContext == null, notify.ToString());
                     s = String.Format("Wrote to client #{0} at {1}: {2}",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);                    
                     break;
 
                 case ServiceNotification.WriteFailed:
+                    Debug.Assert(serverReplyContext == null, notify.ToString());
                     s = String.Format("Write failed to client #{0} at {1}: {2}",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);
                     break;
 
                 case ServiceNotification.Error:
+                    Debug.Assert(serverReplyContext == null, notify.ToString());
                     if (status == ServiceStatus.Connected) {
                         s = String.Format("Error (Client #{0} at {1}): {2}",
                                           serverReplyContext.ClientNumber,
@@ -680,11 +682,13 @@ namespace MCEControl {
                     break;
 
                 case ServiceNotification.ClientConnected:
+                    Debug.Assert(serverReplyContext == null, notify.ToString());
                     s = String.Format("Client #{0} at {1} connected.",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString());
                     break;
 
                 case ServiceNotification.ClientDisconnected:
+                    Debug.Assert(serverReplyContext == null, notify.ToString());
                     s = String.Format("Client #{0} at {1} has disconnected.",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString());
                     break;

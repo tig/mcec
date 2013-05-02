@@ -13,6 +13,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
@@ -122,26 +123,48 @@ namespace MCEControl {
 
         public static CommandTable Deserialize() {
             CommandTable cmds = null;
-            FileStream fs = null;
+            CommandTable userCmds = null;
 
+            // Load the built-in commands from an assembly resource
             try {
                 var serializer = new XmlSerializer(typeof (CommandTable));
-                // A FileStream is needed to read the XML document.
-                fs = new FileStream("MCEControl.commands", FileMode.Open, FileAccess.Read);
-                XmlReader reader = new XmlTextReader(fs);
-                cmds = (CommandTable) serializer.Deserialize(reader);
-                foreach (var cmd in cmds.List) {
-                    if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())) {
+                XmlReader reader = new XmlTextReader(Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.commands"));
+                cmds = (CommandTable)serializer.Deserialize(reader);
+                foreach (var cmd in cmds.List){
+                    if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())){
                         cmds._hashTable.Remove(cmd.Key.ToUpper());
                     }
                     cmds._hashTable.Add(cmd.Key.ToUpper(), cmd);
                 }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(String.Format("No commands loaded. Error parsing built-in commands. {0}",
+                                              ex.Message));
+                MainWindow.AddLogEntry(String.Format("MCEC: No commands loaded. Error parsing built-in commands. {0}",
+                                                     ex.Message));
+                Util.DumpException(ex);
+                return null;
+            }
+
+            // Load any over-rides from a text file
+            FileStream fs = null;
+            try {
+                var serializer = new XmlSerializer(typeof (CommandTable));
+                // A FileStream is needed to read the XML document.
+                fs = new FileStream("MCEControl.commands", FileMode.Open, FileAccess.Read);
+                XmlReader reader = new XmlTextReader(fs);
+                userCmds = (CommandTable)serializer.Deserialize(reader);
+                foreach (var cmd in userCmds.List){
+                    if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())){
+                        cmds._hashTable.Remove(cmd.Key.ToUpper());
+                    }
+                    cmds._hashTable.Add(cmd.Key.ToUpper(), cmd);
+                }
+                MainWindow.AddLogEntry(String.Format("MCEC: User defined commands loaded."));
+            }
             catch (FileNotFoundException ex) {
-                MainWindow.AddLogEntry(
-                    String.Format(
-                        "MCEC: No commands loaded. Make sure MCEControl.commands is in the program directory and restart. {0}",
-                        ex.Message));
+                MainWindow.AddLogEntry("MCEC: No user defined commands loaded; MCEControl.commands was not found.");
                 Util.DumpException(ex);
             }
             catch (InvalidOperationException ex) {

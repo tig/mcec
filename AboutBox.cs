@@ -150,11 +150,11 @@ namespace MCEControl {
             // _label1
             // 
             this._label1.AutoSize = true;
-            this._label1.Location = new System.Drawing.Point(16, 111);
+            this._label1.Location = new System.Drawing.Point(39, 111);
             this._label1.Name = "_label1";
-            this._label1.Size = new System.Drawing.Size(88, 13);
+            this._label1.Size = new System.Drawing.Size(42, 13);
             this._label1.TabIndex = 7;
-            this._label1.Text = "Icon designed by";
+            this._label1.Text = "Icon by";
             // 
             // AboutBox
             // 

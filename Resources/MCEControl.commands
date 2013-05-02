@@ -176,5 +176,26 @@ The following command starts Media Center and makes it full screen
   <SendInput Cmd="skipback" vk="66" Shift="false" Ctrl="true" Alt="false" />
   <SendInput Cmd="skipfwd" vk="70" Shift="false" Ctrl="true" Alt="false" />
 
+  <SendInput Cmd="enter" vk="13" shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="escape" vk="27" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="delete" vk="46" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="end" vk="35" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="left" vk="37" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="up" vk="38" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="right" vk="39" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="down" vk="40" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="help" vk="47" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="home" vk="36" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="insert" vk="45" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="select" vk="41" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="moreinfo" vk="68" Shift="false" Ctrl="true" Alt="false" />
+  <SendInput Cmd="close" vk="115" Shift="false" Ctrl="false" Alt="true" />
+  <SendInput Cmd="next" vk="34" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="ok" vk="13" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="print" vk="42" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="tab" vk="9" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="snapshot" vk="44" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="zoom" vk="90" Shift="false" Ctrl="false" Alt="false" />
+
 </Commands>
 </MCEController>

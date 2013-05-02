@@ -60,7 +60,6 @@ Section "MainSection" SEC01
   CreateDirectory "$SMPROGRAMS\$ICONS_GROUP"
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\MCE Controller.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
   CreateShortCut "$DESKTOP\MCE Controller.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
-  File "MCEControl.commands"
   File "HtmlAgilityPack.dll"
 SectionEnd
 
@@ -94,7 +93,6 @@ FunctionEnd
 Section Uninstall
   ReadRegStr $ICONS_GROUP ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "${PRODUCT_STARTMENU_REGVAL}"
   Delete "$INSTDIR\uninst.exe"
-  Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.commands"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\HtmlAgilityPack.dll"
 

@@ -294,6 +294,9 @@
     </EmbeddedResource>
     <Content Include="Guillen.Icon.ico" />
     <Content Include="Resources\Guillen.Icon.ico" />
+    <EmbeddedResource Include="Resources\MCEControl.commands">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
@@ -326,8 +329,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent />
-    <PostBuildEvent>@echo Copying MCEControl.commands to output directory...
-copy $(SolutionDir)MCEControl.commands $(SolutionDir)$(OutDir)
+    <PostBuildEvent>
 </PostBuildEvent>
   </PropertyGroup>
 </Project>
