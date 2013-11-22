@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-MCE Controller 1.8
+MCE Controller 1.8.4
 Copyright 2013 Kindel Sytems, LLC.
 ===================================================================
  Modify this file to extend/change the commands MCE Controller     
@@ -9,12 +9,12 @@ Copyright 2013 Kindel Sytems, LLC.
 ===================================================================
 -->
 
-<MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+<MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
-<Commands xmlns="http://www.kindel.com/products/mcecontroller">
+  <Commands xmlns="http://www.kindel.com/products/mcecontroller">
 
-<!--
+    <!--
 ===================================================================
 See the documentation at http://mcec.codeplex.com/documentation for 
 full details on the commands supported by MCE Controller.
@@ -49,26 +49,27 @@ Single characters, 'chars:', 'shiftdown:', 'shiftup:', and
 ==================================================================
 -->
 
-<!--
+    <!--
 ==================================================================
 StartProcess Commands
 File: The full path to the executable you want to start.
+Arguements: Any arguments you want passed on the command line.
 <nextCommand> element: Can contain other commands you want   
                             invoked after the process             
                             has started.                          
 The following command starts Media Center and makes it full screen
 ==================================================================
 -->
-  
-<StartProcess Cmd="mcestart" File="C:\windows\ehome\ehshell.exe">
-  <nextCommand xsi:type="SendMessage" 
-               ClassName="ehshell" 
-               Msg="274" wParam="61488" lParam="0" />
-</StartProcess>
-<StartProcess Cmd="notepad" File="C:\windows\system32\notepad.exe" />
-<StartProcess Cmd="netflix" File="windowsmediacenterapp:{e6f46126-f8a9-4a97-9159-b70b07890112}\{982ea9d3-915c-4713-a3c8-99a4688b7c59}?EntryPointParameters="/>
 
-<!--
+    <StartProcess Cmd="mcestart" File="C:\windows\ehome\ehshell.exe">
+      <nextCommand xsi:type="SendMessage"
+                   ClassName="ehshell"
+                   Msg="274" wParam="61488" lParam="0" />
+    </StartProcess>
+    <StartProcess Cmd="notepad" File="C:\windows\system32\notepad.exe" Arguments="MCEControl.commands"/>
+    <StartProcess Cmd="netflix" File="windowsmediacenterapp:{e6f46126-f8a9-4a97-9159-b70b07890112}\{982ea9d3-915c-4713-a3c8-99a4688b7c59}?EntryPointParameters="/>
+
+    <!--
 ===================================================================
  SetForgroundWindow Commands                                       
       ClassName: The windows classname of the applicaton window    
@@ -76,22 +77,22 @@ The following command starts Media Center and makes it full screen
 ===================================================================
 -->
 
-<SetForegroundWindow Cmd="mceactivate" ClassName="ehshell"/>
+    <SetForegroundWindow Cmd="mceactivate" ClassName="ehshell"/>
 
-<!--
+    <!--
 ===================================================================
  Shutdown Commands                                                  
       Type: One of shutdown, restart, abort, standby, or hibernate.
 ===================================================================
 -->
-  
-<Shutdown Cmd="shutdown" Type="shutdown"/>
-<Shutdown Cmd="restart" Type="restart"/>
-<Shutdown Cmd="abort" Type="abort"/>
-<Shutdown Cmd="standby" Type="standby"/>
-<Shutdown Cmd="hibernate" Type="hibernate"/>
 
-<!--
+    <Shutdown Cmd="shutdown" Type="shutdown"/>
+    <Shutdown Cmd="restart" Type="restart"/>
+    <Shutdown Cmd="abort" Type="abort"/>
+    <Shutdown Cmd="standby" Type="standby"/>
+    <Shutdown Cmd="hibernate" Type="hibernate"/>
+
+    <!--
 ===================================================================
  SendMessage Commands                                              
       ClassName: The windows classnmae of the applicaton window    
@@ -101,19 +102,19 @@ The following command starts Media Center and makes it full screen
       lParam: Integer (in decimal) representing the lParam         
 ===================================================================
 -->
-  
-<SendMessage Cmd="mcemaximize" ClassName="ehshell" 
-         Msg="274" wParam="61488" lParam="0" />
-<SendMessage Cmd="maximizenotepad" ClassName="Notepad" 
-         Msg="274" wParam="61488" lParam="0" />
-<SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
-<!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
-<SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
-<!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
-<SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
-<SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
 
-<!--
+    <SendMessage Cmd="mcemaximize" ClassName="ehshell"
+             Msg="274" wParam="61488" lParam="0" />
+    <SendMessage Cmd="maximizenotepad" ClassName="Notepad"
+             Msg="274" wParam="61488" lParam="0" />
+    <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
+    <!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
+    <SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
+    <!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
+    <SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
+    <SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
+
+    <!--
 ===================================================================
  SendInput Commands                                                
       vk: Windows virtual keycode for the key to simulate. Can be
@@ -131,49 +132,49 @@ The following command starts Media Center and makes it full screen
   The commands provided below are EXAMPLES. 
 ===================================================================
 -->
-  <!-- Example SendInput commands -->
-  <SendInput Cmd="atlesc" vk="VK_ESCAPE" Alt="true" />
-  <SendInput Cmd="wintab" vk="VK_TAB" Win="true" />
-  <SendInput Cmd="close" vk="VK_F4" Alt="true" />
-  <SendInput Cmd="ctrl-F1" vk="0x70" Ctrl="true" />
-  <SendInput Cmd="winkey" vk="VK_LWIN"/>
-  <SendInput Cmd="desktop" vk="VK_D" Win="true"/>
-  <SendInput Cmd="winsearch" vk="VK_Q" Win="true"/>
-  <SendInput Cmd="Windows Explorer" vk="VK_E" Shift="false" Ctrl="false" Alt="false" Win="true" />
-  <SendInput Cmd="Windows Desktop" vk="VK_D" Shift="false" Ctrl="false" Alt="false" Win="true" />
-  <SendInput Cmd="run" vk="VK_R" Shift="false" Ctrl="false" Alt="false" Win="true" />
-  <SendInput Cmd="Tile Left" vk="37" Shift="false" Ctrl="false" Alt="false" Win="true" />
-  <SendInput Cmd="Tile Right" vk="39" Shift="false" Ctrl="false" Alt="false" Win="true" />
-  <SendInput Cmd="back" vk="8" Shift="false" Ctrl="false" Alt="false" />
-  <SendInput Cmd="vol-" vk="VK_VOLUME_DOWN" Shift="false" Ctrl="false" Alt="false" />
-  <SendInput Cmd="vol+" vk="VK_VOLUME_UP" Shift="false" Ctrl="false" Alt="false" />
-  <SendInput Cmd="mute" vk="VK_VOLUME_MUTE" Shift="false" Ctrl="false" Alt="false" />
-  <SendInput Cmd="pause" vk="VK_MEDIA_PLAY_PAUSE" Shift="false" Ctrl="false" Alt="false" />
-  <SendInput Cmd="play" vk="VK_MEDIA_PLAY_PAUSE" Shift="false" Ctrl="false" Alt="false" />
+    <!-- Example SendInput commands -->
+    <SendInput Cmd="atlesc" vk="VK_ESCAPE" Alt="true" />
+    <SendInput Cmd="wintab" vk="VK_TAB" Win="true" />
+    <SendInput Cmd="close" vk="VK_F4" Alt="true" />
+    <SendInput Cmd="ctrl-F1" vk="0x70" Ctrl="true" />
+    <SendInput Cmd="winkey" vk="VK_LWIN"/>
+    <SendInput Cmd="desktop" vk="VK_D" Win="true"/>
+    <SendInput Cmd="winsearch" vk="VK_Q" Win="true"/>
+    <SendInput Cmd="Windows Explorer" vk="VK_E" Shift="false" Ctrl="false" Alt="false" Win="true" />
+    <SendInput Cmd="Windows Desktop" vk="VK_D" Shift="false" Ctrl="false" Alt="false" Win="true" />
+    <SendInput Cmd="run" vk="VK_R" Shift="false" Ctrl="false" Alt="false" Win="true" />
+    <SendInput Cmd="Tile Left" vk="37" Shift="false" Ctrl="false" Alt="false" Win="true" />
+    <SendInput Cmd="Tile Right" vk="39" Shift="false" Ctrl="false" Alt="false" Win="true" />
+    <SendInput Cmd="back" vk="8" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="vol-" vk="VK_VOLUME_DOWN" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="vol+" vk="VK_VOLUME_UP" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="mute" vk="VK_VOLUME_MUTE" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="pause" vk="VK_MEDIA_PLAY_PAUSE" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="play" vk="VK_MEDIA_PLAY_PAUSE" Shift="false" Ctrl="false" Alt="false" />
 
-  <!-- Windows Media Center specific keyboard commands -->
-  <SendInput Cmd="cc" vk="67" Shift="true" Ctrl="true" Alt="false" />
-  <SendInput Cmd="ch+" vk="187" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="ch-" vk="189" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="dvdaudio" vk="65" Shift="true" Ctrl="true" Alt="false" />
-  <SendInput Cmd="dvdmenu" vk="77" Shift="true" Ctrl="true" Alt="false" />
-  <SendInput Cmd="dvdsubtitle" vk="85" Shift="true" Ctrl="true" Alt="false" />
-  <SendInput Cmd="execute" vk="43" Shift="false" Ctrl="false" Alt="false" />
-  <SendInput Cmd="fwd" vk="70" Shift="true" Ctrl="true" Alt="false" />
-  <SendInput Cmd="guide" vk="71" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="prior" vk="33" Shift="false" Ctrl="false" Alt="false" />
-  <SendInput Cmd="livetv" vk="84" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="greenbutton" vk="13" Shift="false" Ctrl="false" Alt="true" Win="true" />
-  <SendInput Cmd="mymusic" vk="77" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="mytv" vk="84" Shift="true" Ctrl="true" Alt="false" />
-  <SendInput Cmd="myvideos" vk="69" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="record" vk="82" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="recordedtv" vk="79" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="rew" vk="66" Shift="true" Ctrl="true" Alt="false" />
-  <SendInput Cmd="stop" vk="83" Shift="true" Ctrl="true" Alt="false" />
-  <SendInput Cmd="skipback" vk="66" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="skipfwd" vk="70" Shift="false" Ctrl="true" Alt="false" />
+    <!-- Windows Media Center specific keyboard commands -->
+    <SendInput Cmd="cc" vk="67" Shift="true" Ctrl="true" Alt="false" />
+    <SendInput Cmd="ch+" vk="187" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="ch-" vk="189" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="dvdaudio" vk="65" Shift="true" Ctrl="true" Alt="false" />
+    <SendInput Cmd="dvdmenu" vk="77" Shift="true" Ctrl="true" Alt="false" />
+    <SendInput Cmd="dvdsubtitle" vk="85" Shift="true" Ctrl="true" Alt="false" />
+    <SendInput Cmd="execute" vk="43" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="fwd" vk="70" Shift="true" Ctrl="true" Alt="false" />
+    <SendInput Cmd="guide" vk="71" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="prior" vk="33" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="livetv" vk="84" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="greenbutton" vk="13" Shift="false" Ctrl="false" Alt="true" Win="true" />
+    <SendInput Cmd="mymusic" vk="77" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="mytv" vk="84" Shift="true" Ctrl="true" Alt="false" />
+    <SendInput Cmd="myvideos" vk="69" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="record" vk="82" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="recordedtv" vk="79" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="rew" vk="66" Shift="true" Ctrl="true" Alt="false" />
+    <SendInput Cmd="stop" vk="83" Shift="true" Ctrl="true" Alt="false" />
+    <SendInput Cmd="skipback" vk="66" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="skipfwd" vk="70" Shift="false" Ctrl="true" Alt="false" />
 
-</Commands>
+  </Commands>
 </MCEController>

@@ -18,6 +18,7 @@ namespace MCEControl {
     /// </summary>
     public class StartProcessCommand : Command {
         [XmlAttribute("File")] public String File;
+        [XmlAttribute("Arguments")] public String Arguments;
 
         [XmlElement("StartProcess", typeof (StartProcessCommand))] 
         [XmlElement("SendInput", typeof (SendInputCommand))] 
@@ -28,18 +29,10 @@ namespace MCEControl {
         public StartProcessCommand() {
         }
 
-        public StartProcessCommand(String file) {
-            File = file;
-        }
-
-        public StartProcessCommand(String file, Command cmd) : this(file) {
-            NextCommand = cmd;
-        }
-
         public override void Execute(Reply reply) {
-            MainWindow.AddLogEntry("Cmd: Starting process: " + File);
+            MainWindow.AddLogEntry("Cmd: Starting process: " + File + " " + Arguments);
             if (File != null) {
-                var p = new Process {StartInfo = {FileName = File}};
+                var p = new Process {StartInfo = {FileName = File, Arguments = Arguments}};
                 p.Start();
                 if (NextCommand != null)
                     p.WaitForInputIdle(10000); // TODO: Make this settable
