@@ -650,7 +650,8 @@ namespace MCEControl {
                     break;
 
                 case ServiceNotification.ReceivedData:
-                    Debug.Assert(serverReplyContext == null, notify.ToString());
+                    Debug.Assert(serverReplyContext != null, notify.ToString());
+                    Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notify.ToString());
                     s = String.Format("Server: Received from client #{0} at {1}: {2}",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);
                     AddLogEntry(s);
@@ -658,23 +659,25 @@ namespace MCEControl {
                     return;
 
                 case ServiceNotification.Write:
-                    Debug.Assert(serverReplyContext == null, notify.ToString());
+                    Debug.Assert(serverReplyContext != null, notify.ToString());
+                    Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notify.ToString());
                     s = String.Format("Wrote to client #{0} at {1}: {2}",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);                    
                     break;
 
                 case ServiceNotification.WriteFailed:
-                    Debug.Assert(serverReplyContext == null, notify.ToString());
+                    Debug.Assert(serverReplyContext != null, notify.ToString());
+                    Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notify.ToString());
                     s = String.Format("Write failed to client #{0} at {1}: {2}",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);
                     break;
 
                 case ServiceNotification.Error:
-                    Debug.Assert(serverReplyContext == null, notify.ToString());
-                    if (status == ServiceStatus.Connected) {
+                    Debug.Assert(serverReplyContext != null, notify.ToString());
+                    if (status == ServiceStatus.Connected && serverReplyContext != null) {
                         s = String.Format("Error (Client #{0} at {1}): {2}",
-                                          serverReplyContext.ClientNumber,
-                                          serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);
+                            serverReplyContext.ClientNumber,
+                            serverReplyContext.Socket == null ? "n/a" : serverReplyContext.Socket.RemoteEndPoint.ToString(), msg);
                     }
                     else {
                         s = String.Format("Error: {0}", msg);       
@@ -682,13 +685,15 @@ namespace MCEControl {
                     break;
 
                 case ServiceNotification.ClientConnected:
-                    Debug.Assert(serverReplyContext == null, notify.ToString());
+                    Debug.Assert(serverReplyContext != null, notify.ToString());
+                    Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notify.ToString());
                     s = String.Format("Client #{0} at {1} connected.",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString());
                     break;
 
                 case ServiceNotification.ClientDisconnected:
-                    Debug.Assert(serverReplyContext == null, notify.ToString());
+                    Debug.Assert(serverReplyContext != null, notify.ToString());
+                    Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notify.ToString());
                     s = String.Format("Client #{0} at {1} has disconnected.",
                         serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint.ToString());
                     break;
