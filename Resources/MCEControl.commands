@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-MCE Controller 1.8
+MCE Controller 1.8.4
 Copyright 2013 Kindel Sytems, LLC.
 ===================================================================
  Modify this file to extend/change the commands MCE Controller     
@@ -9,7 +9,7 @@ Copyright 2013 Kindel Sytems, LLC.
 ===================================================================
 -->
 
-<MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+<MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
 <Commands xmlns="http://www.kindel.com/products/mcecontroller">
@@ -53,20 +53,21 @@ Single characters, 'chars:', 'shiftdown:', 'shiftup:', and
 ==================================================================
 StartProcess Commands
 File: The full path to the executable you want to start.
+Arguements: Any arguments you want passed on the command line.
 <nextCommand> element: Can contain other commands you want   
                             invoked after the process             
                             has started.                          
 The following command starts Media Center and makes it full screen
 ==================================================================
 -->
-  
-<StartProcess Cmd="mcestart" File="C:\windows\ehome\ehshell.exe">
-  <nextCommand xsi:type="SendMessage" 
-               ClassName="ehshell" 
-               Msg="274" wParam="61488" lParam="0" />
-</StartProcess>
-<StartProcess Cmd="notepad" File="C:\windows\system32\notepad.exe" />
-<StartProcess Cmd="netflix" File="windowsmediacenterapp:{e6f46126-f8a9-4a97-9159-b70b07890112}\{982ea9d3-915c-4713-a3c8-99a4688b7c59}?EntryPointParameters="/>
+
+    <StartProcess Cmd="mcestart" File="C:\windows\ehome\ehshell.exe">
+      <nextCommand xsi:type="SendMessage"
+                   ClassName="ehshell"
+                   Msg="274" wParam="61488" lParam="0" />
+    </StartProcess>
+    <StartProcess Cmd="notepad" File="C:\windows\system32\notepad.exe" Arguments="MCEControl.commands"/>
+    <StartProcess Cmd="netflix" File="windowsmediacenterapp:{e6f46126-f8a9-4a97-9159-b70b07890112}\{982ea9d3-915c-4713-a3c8-99a4688b7c59}?EntryPointParameters="/>
 
 <!--
 ===================================================================
@@ -76,7 +77,7 @@ The following command starts Media Center and makes it full screen
 ===================================================================
 -->
 
-<SetForegroundWindow Cmd="mceactivate" ClassName="ehshell"/>
+    <SetForegroundWindow Cmd="mceactivate" ClassName="ehshell"/>
 
 <!--
 ===================================================================
@@ -84,12 +85,12 @@ The following command starts Media Center and makes it full screen
       Type: One of shutdown, restart, abort, standby, or hibernate.
 ===================================================================
 -->
-  
-<Shutdown Cmd="shutdown" Type="shutdown"/>
-<Shutdown Cmd="restart" Type="restart"/>
-<Shutdown Cmd="abort" Type="abort"/>
-<Shutdown Cmd="standby" Type="standby"/>
-<Shutdown Cmd="hibernate" Type="hibernate"/>
+
+    <Shutdown Cmd="shutdown" Type="shutdown"/>
+    <Shutdown Cmd="restart" Type="restart"/>
+    <Shutdown Cmd="abort" Type="abort"/>
+    <Shutdown Cmd="standby" Type="standby"/>
+    <Shutdown Cmd="hibernate" Type="hibernate"/>
 
 <!--
 ===================================================================
@@ -101,17 +102,17 @@ The following command starts Media Center and makes it full screen
       lParam: Integer (in decimal) representing the lParam         
 ===================================================================
 -->
-  
-<SendMessage Cmd="mcemaximize" ClassName="ehshell" 
-         Msg="274" wParam="61488" lParam="0" />
-<SendMessage Cmd="maximizenotepad" ClassName="Notepad" 
-         Msg="274" wParam="61488" lParam="0" />
-<SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
-<!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
-<SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
-<!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
-<SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
-<SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
+
+    <SendMessage Cmd="mcemaximize" ClassName="ehshell"
+             Msg="274" wParam="61488" lParam="0" />
+    <SendMessage Cmd="maximizenotepad" ClassName="Notepad"
+             Msg="274" wParam="61488" lParam="0" />
+    <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
+    <!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
+    <SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
+    <!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
+    <SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
+    <SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
 
 <!--
 ===================================================================
@@ -196,6 +197,5 @@ The following command starts Media Center and makes it full screen
   <SendInput Cmd="tab" vk="9" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="snapshot" vk="44" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="zoom" vk="90" Shift="false" Ctrl="false" Alt="false" />
-
 </Commands>
 </MCEController>
