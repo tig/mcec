@@ -2,7 +2,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "MCE Controller"
-!define PRODUCT_VERSION "1.8.4"
+!define PRODUCT_VERSION "1.8.6"
 !define PRODUCT_PUBLISHER "Kindel Systems"
 !define PRODUCT_WEB_SITE "http://mcec.codeplex.com"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\MCEControl.exe"
@@ -61,6 +61,7 @@ Section "MainSection" SEC01
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\MCE Controller.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
   CreateShortCut "$DESKTOP\MCE Controller.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
   File "HtmlAgilityPack.dll"
+  File "log4net.dll"
 SectionEnd
 
 Section -AdditionalIcons
@@ -95,6 +96,7 @@ Section Uninstall
   Delete "$INSTDIR\uninst.exe"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\HtmlAgilityPack.dll"
+  Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\log4net.dll"
 
   Delete "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk"
   Delete "$DESKTOP\MCE Controller.lnk"

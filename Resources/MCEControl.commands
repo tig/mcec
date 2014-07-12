@@ -162,7 +162,7 @@ The following command starts Media Center and makes it full screen
   <SendInput Cmd="execute" vk="43" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="fwd" vk="70" Shift="true" Ctrl="true" Alt="false" />
   <SendInput Cmd="guide" vk="71" Shift="false" Ctrl="true" Alt="false" />
-  <SendInput Cmd="prior" vk="33" Shift="false" Ctrl="false" Alt="false" />
+  <SendInput Cmd="prior" vk="8" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="livetv" vk="84" Shift="false" Ctrl="true" Alt="false" />
   <SendInput Cmd="greenbutton" vk="13" Shift="false" Ctrl="false" Alt="true" Win="true" />
   <SendInput Cmd="mymusic" vk="77" Shift="false" Ctrl="true" Alt="false" />

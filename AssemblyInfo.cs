@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Kindel Systems")]
 [assembly: AssemblyProduct("MCE Controller")]
-[assembly: AssemblyCopyright("Copyright © 2013 Kindel Systems, LLC")]
+[assembly: AssemblyCopyright("Copyright © 2014 Kindel Systems, LLC")]
 [assembly: AssemblyTrademark("MCE Controller")]
 [assembly: AssemblyCulture("")]		
 
@@ -35,7 +35,7 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("1.8.4.*")]
+[assembly: AssemblyVersion("1.8.6.*")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 
@@ -66,3 +66,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyKeyFile("")]
 [assembly: AssemblyKeyName("")]
 [assembly: ComVisibleAttribute(false)]
+//[assembly: log4net.Config.XmlConfigurator(Watch = true)]

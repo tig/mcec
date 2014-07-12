@@ -105,7 +105,7 @@ namespace MCEControl {
         }
 
         private void Connect() {
-            SetStatus(ServiceStatus.Connecting, String.Format("{0}:{1}", _host, _port));
+            SetStatus(ServiceStatus.Started, String.Format("{0}:{1}", _host, _port));
 
             IPEndPoint endPoint;
             try {

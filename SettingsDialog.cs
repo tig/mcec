@@ -17,6 +17,8 @@ using System.IO.Ports;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
+using MCEControl.Properties;
+using Microsoft.Win32;
 
 namespace MCEControl {
     /// <summary>
@@ -28,6 +30,7 @@ namespace MCEControl {
         /// </summary>
 
         private GroupBox _clientGroup;
+
         private TabPage _general;
         private GroupBox _serverGroup;
 
@@ -86,8 +89,7 @@ namespace MCEControl {
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent()
-        {
+        private void InitializeComponent() {
             this.components = new System.ComponentModel.Container();
             this._buttonCancel = new System.Windows.Forms.Button();
             this._buttonOk = new System.Windows.Forms.Button();
@@ -154,7 +156,7 @@ namespace MCEControl {
             this._buttonCancel.Location = new System.Drawing.Point(285, 291);
             this._buttonCancel.Name = "_buttonCancel";
             this._buttonCancel.Size = new System.Drawing.Size(75, 23);
-            this._buttonCancel.TabIndex = 1;
+            this._buttonCancel.TabIndex = 2;
             this._buttonCancel.Text = "Cancel";
             this._buttonCancel.Click += new System.EventHandler(this.ButtonCancelClick);
             // 
@@ -163,15 +165,17 @@ namespace MCEControl {
             this._buttonOk.Location = new System.Drawing.Point(204, 291);
             this._buttonOk.Name = "_buttonOk";
             this._buttonOk.Size = new System.Drawing.Size(75, 23);
-            this._buttonOk.TabIndex = 0;
+            this._buttonOk.TabIndex = 1;
             this._buttonOk.Text = "OK";
             this._buttonOk.Click += new System.EventHandler(this.ButtonOkClick);
             // 
             // _tabControl
             // 
-            this._tabControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this._tabControl.Anchor =
+                ((System.Windows.Forms.AnchorStyles)
+                    ((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+                       | System.Windows.Forms.AnchorStyles.Left)
+                      | System.Windows.Forms.AnchorStyles.Right)));
             this._tabControl.Controls.Add(this._general);
             this._tabControl.Controls.Add(this._tabClient);
             this._tabControl.Controls.Add(this._tabServer);
@@ -197,13 +201,14 @@ namespace MCEControl {
             this._checkBoxHideOnStartup.Location = new System.Drawing.Point(16, 8);
             this._checkBoxHideOnStartup.Name = "_checkBoxHideOnStartup";
             this._checkBoxHideOnStartup.Size = new System.Drawing.Size(160, 16);
-            this._checkBoxHideOnStartup.TabIndex = 0;
+            this._checkBoxHideOnStartup.TabIndex = 1;
             this._checkBoxHideOnStartup.Text = "&Hide window on startup";
-            this._checkBoxHideOnStartup.CheckedChanged += new System.EventHandler(this.CheckBoxHideOnStartupCheckedChanged);
+            this._checkBoxHideOnStartup.CheckedChanged +=
+                new System.EventHandler(this.CheckBoxHideOnStartupCheckedChanged);
             // 
             // _checkBoxAutoStart
             // 
-            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 32);
+            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 30);
             this._checkBoxAutoStart.Name = "_checkBoxAutoStart";
             this._checkBoxAutoStart.Size = new System.Drawing.Size(160, 16);
             this._checkBoxAutoStart.TabIndex = 0;
@@ -228,8 +233,9 @@ namespace MCEControl {
             this._checkBoxEnableClient.Size = new System.Drawing.Size(104, 16);
             this._checkBoxEnableClient.TabIndex = 0;
             this._checkBoxEnableClient.Text = "Enable &Client";
-            this.toolTipClient.SetToolTip(this._checkBoxEnableClient, "Starts a TCP/IP client connection to the specified address:port. Commands will be" +
-        " recieved as replies.");
+            this.toolTipClient.SetToolTip(this._checkBoxEnableClient,
+                "Starts a TCP/IP client connection to the specified address:port. Commands will be" +
+                " recieved as replies.");
             this._checkBoxEnableClient.CheckedChanged += new System.EventHandler(this.CheckEnableClientCheckedChanged);
             // 
             // _clientGroup
@@ -324,7 +330,8 @@ namespace MCEControl {
             this._checkBoxEnableServer.Size = new System.Drawing.Size(104, 16);
             this._checkBoxEnableServer.TabIndex = 0;
             this._checkBoxEnableServer.Text = "Enable &Server";
-            this._toolTipServer.SetToolTip(this._checkBoxEnableServer, "Enables the TCP/IP server. It will listen on the specified port for commands.");
+            this._toolTipServer.SetToolTip(this._checkBoxEnableServer,
+                "Enables the TCP/IP server. It will listen on the specified port for commands.");
             this._checkBoxEnableServer.CheckedChanged += new System.EventHandler(this.CheckBoxEnableServerCheckedChanged);
             // 
             // _serverGroup
@@ -468,7 +475,8 @@ namespace MCEControl {
             this._checkBoxEnableSerialServer.TabIndex = 0;
             this._checkBoxEnableSerialServer.Text = "Enable Serial Server";
             this._checkBoxEnableSerialServer.UseVisualStyleBackColor = true;
-            this._checkBoxEnableSerialServer.CheckedChanged += new System.EventHandler(this.CheckBoxEnableSerialServerCheckedChanged);
+            this._checkBoxEnableSerialServer.CheckedChanged +=
+                new System.EventHandler(this.CheckBoxEnableSerialServerCheckedChanged);
             // 
             // _serialServerGroup
             // 
@@ -495,15 +503,17 @@ namespace MCEControl {
             this._comboBoxHandshake.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this._comboBoxHandshake.FormattingEnabled = true;
             this._comboBoxHandshake.Items.AddRange(new object[] {
-            "None",
-            "Xon / Xoff",
-            "Hardware",
-            "Both"});
+                "None",
+                "Xon / Xoff",
+                "Hardware",
+                "Both"
+            });
             this._comboBoxHandshake.Location = new System.Drawing.Point(95, 158);
             this._comboBoxHandshake.Name = "_comboBoxHandshake";
             this._comboBoxHandshake.Size = new System.Drawing.Size(116, 21);
             this._comboBoxHandshake.TabIndex = 12;
-            this._comboBoxHandshake.SelectedIndexChanged += new System.EventHandler(this.ComboBoxHandshakeSelectedIndexChanged);
+            this._comboBoxHandshake.SelectedIndexChanged +=
+                new System.EventHandler(this.ComboBoxHandshakeSelectedIndexChanged);
             // 
             // _labelHandshake
             // 
@@ -519,14 +529,16 @@ namespace MCEControl {
             this._comboBoxStopBits.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this._comboBoxStopBits.FormattingEnabled = true;
             this._comboBoxStopBits.Items.AddRange(new object[] {
-            "1",
-            "2",
-            "1.5"});
+                "1",
+                "2",
+                "1.5"
+            });
             this._comboBoxStopBits.Location = new System.Drawing.Point(95, 131);
             this._comboBoxStopBits.Name = "_comboBoxStopBits";
             this._comboBoxStopBits.Size = new System.Drawing.Size(116, 21);
             this._comboBoxStopBits.TabIndex = 10;
-            this._comboBoxStopBits.SelectedIndexChanged += new System.EventHandler(this.ComboBoxStopBitsSelectedIndexChanged);
+            this._comboBoxStopBits.SelectedIndexChanged +=
+                new System.EventHandler(this.ComboBoxStopBitsSelectedIndexChanged);
             // 
             // _labelStopBits
             // 
@@ -542,11 +554,12 @@ namespace MCEControl {
             this._comboBoxParity.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this._comboBoxParity.FormattingEnabled = true;
             this._comboBoxParity.Items.AddRange(new object[] {
-            "None",
-            "Odd",
-            "Even",
-            "Mark",
-            "Space"});
+                "None",
+                "Odd",
+                "Even",
+                "Mark",
+                "Space"
+            });
             this._comboBoxParity.Location = new System.Drawing.Point(95, 104);
             this._comboBoxParity.Name = "_comboBoxParity";
             this._comboBoxParity.Size = new System.Drawing.Size(116, 21);
@@ -567,17 +580,19 @@ namespace MCEControl {
             this._comboBoxDataBits.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this._comboBoxDataBits.FormattingEnabled = true;
             this._comboBoxDataBits.Items.AddRange(new object[] {
-            "4",
-            "5",
-            "6",
-            "7",
-            "8",
-            "9"});
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9"
+            });
             this._comboBoxDataBits.Location = new System.Drawing.Point(95, 77);
             this._comboBoxDataBits.Name = "_comboBoxDataBits";
             this._comboBoxDataBits.Size = new System.Drawing.Size(116, 21);
             this._comboBoxDataBits.TabIndex = 6;
-            this._comboBoxDataBits.SelectedIndexChanged += new System.EventHandler(this.ComboBoxDataBitsSelectedIndexChanged);
+            this._comboBoxDataBits.SelectedIndexChanged +=
+                new System.EventHandler(this.ComboBoxDataBitsSelectedIndexChanged);
             // 
             // _labelDataBits
             // 
@@ -593,18 +608,20 @@ namespace MCEControl {
             this._comboBoxBaudRate.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this._comboBoxBaudRate.FormattingEnabled = true;
             this._comboBoxBaudRate.Items.AddRange(new object[] {
-            "2400",
-            "4800",
-            "9600",
-            "19200",
-            "38400",
-            "57600",
-            "115200"});
+                "2400",
+                "4800",
+                "9600",
+                "19200",
+                "38400",
+                "57600",
+                "115200"
+            });
             this._comboBoxBaudRate.Location = new System.Drawing.Point(95, 50);
             this._comboBoxBaudRate.Name = "_comboBoxBaudRate";
             this._comboBoxBaudRate.Size = new System.Drawing.Size(116, 21);
             this._comboBoxBaudRate.TabIndex = 4;
-            this._comboBoxBaudRate.SelectedIndexChanged += new System.EventHandler(this.ComboBoxBaudRateSelectedIndexChanged);
+            this._comboBoxBaudRate.SelectedIndexChanged +=
+                new System.EventHandler(this.ComboBoxBaudRateSelectedIndexChanged);
             // 
             // _labelBuadRate
             // 
@@ -620,19 +637,21 @@ namespace MCEControl {
             this._comboBoxSerialPort.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this._comboBoxSerialPort.FormattingEnabled = true;
             this._comboBoxSerialPort.Items.AddRange(new object[] {
-            "COM1",
-            "COM2",
-            "COM3",
-            "COM4",
-            "COM5",
-            "COM6",
-            "COM7",
-            "COM8"});
+                "COM1",
+                "COM2",
+                "COM3",
+                "COM4",
+                "COM5",
+                "COM6",
+                "COM7",
+                "COM8"
+            });
             this._comboBoxSerialPort.Location = new System.Drawing.Point(95, 23);
             this._comboBoxSerialPort.Name = "_comboBoxSerialPort";
             this._comboBoxSerialPort.Size = new System.Drawing.Size(116, 21);
             this._comboBoxSerialPort.TabIndex = 2;
-            this._comboBoxSerialPort.SelectedIndexChanged += new System.EventHandler(this.ComboBoxSerialPortSelectedIndexChanged);
+            this._comboBoxSerialPort.SelectedIndexChanged +=
+                new System.EventHandler(this.ComboBoxSerialPortSelectedIndexChanged);
             // 
             // _labelSerialPort
             // 
@@ -723,7 +742,7 @@ namespace MCEControl {
             _comboBoxDataBits.SelectedItem = Settings.SerialServerDataBits.ToString();
             // For the enum types, we cheat and rely on knowledge of what the enum 
             // values are. The combo boxes are pre-filled with in-order strings.
-            _comboBoxParity.SelectedIndex = (int)Settings.SerialServerParity; 
+            _comboBoxParity.SelectedIndex = (int) Settings.SerialServerParity;
             _comboBoxStopBits.SelectedIndex = (int) Settings.SerialServerStopBits - 1; // None (0) is not allowed
             _comboBoxHandshake.SelectedIndex = (int) Settings.SerialServerHandshake;
 
@@ -736,8 +755,7 @@ namespace MCEControl {
         }
 
         private void SettingsChanged() {
-            if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked)
-            {
+            if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked) {
                 UInt32 port = 0;
                 UInt32.TryParse(_editWakeupPort.Text, out port);
                 _buttonOk.Enabled = !(String.IsNullOrEmpty(_editWakeupServer.Text) ||
@@ -747,8 +765,7 @@ namespace MCEControl {
                 return;
             }
 
-            if (_checkBoxEnableClient.Checked)
-            {
+            if (_checkBoxEnableClient.Checked) {
                 UInt32 port = 0;
                 UInt32.TryParse(_editClientPort.Text, out port);
                 _buttonOk.Enabled = !(String.IsNullOrEmpty(_editClientHost.Text) ||
@@ -798,8 +815,8 @@ namespace MCEControl {
         private void EditServerPortTextChanged(object sender, EventArgs e) {
             UInt32 port = 0;
             if (UInt32.TryParse(_editServerPort.Text, out port))
-                Settings.ServerPort = (int)port;
-            SettingsChanged(); 
+                Settings.ServerPort = (int) port;
+            SettingsChanged();
         }
 
         private void CheckBoxEnableWakeupCheckedChanged(object sender, EventArgs e) {
@@ -816,7 +833,7 @@ namespace MCEControl {
         private void EditWakeupPortTextChanged(object sender, EventArgs e) {
             UInt32 port = 0;
             if (UInt32.TryParse(_editWakeupPort.Text, out port))
-                Settings.WakeupPort = (int)port;
+                Settings.WakeupPort = (int) port;
             SettingsChanged();
         }
 
@@ -840,7 +857,7 @@ namespace MCEControl {
         private void EditClientPortTextChanged(object sender, EventArgs e) {
             UInt32 port = 0;
             if (UInt32.TryParse(_editClientPort.Text, out port))
-                Settings.ClientPort = (int)port;
+                Settings.ClientPort = (int) port;
             SettingsChanged();
         }
 
@@ -856,8 +873,7 @@ namespace MCEControl {
         }
 
         // Serial Server handlers
-        private void CheckBoxEnableSerialServerCheckedChanged(object sender, EventArgs e)
-        {
+        private void CheckBoxEnableSerialServerCheckedChanged(object sender, EventArgs e) {
             Settings.ActAsSerialServer = _checkBoxEnableSerialServer.Checked;
 
             _serialServerGroup.Enabled = _checkBoxEnableSerialServer.Checked;
@@ -871,9 +887,8 @@ namespace MCEControl {
             }
         }
 
-        private void ComboBoxBaudRateSelectedIndexChanged(object sender, EventArgs e)
-        {
-            int baud  = 0;
+        private void ComboBoxBaudRateSelectedIndexChanged(object sender, EventArgs e) {
+            int baud = 0;
             if (int.TryParse(_comboBoxBaudRate.SelectedItem.ToString(), out baud))
                 Settings.SerialServerBaudRate = baud;
             SettingsChanged();
@@ -886,36 +901,33 @@ namespace MCEControl {
             }
         }
 
-        private void ComboBoxDataBitsSelectedIndexChanged(object sender, EventArgs e)
-        {
+        private void ComboBoxDataBitsSelectedIndexChanged(object sender, EventArgs e) {
             int bits = 0;
             if (int.TryParse(_comboBoxDataBits.SelectedItem.ToString(), out bits))
                 Settings.SerialServerDataBits = bits;
             SettingsChanged();
         }
 
-        private void ComboBoxStopBitsSelectedIndexChanged(object sender, EventArgs e)
-        {
+        private void ComboBoxStopBitsSelectedIndexChanged(object sender, EventArgs e) {
             if (_comboBoxStopBits.SelectedItem != null) {
                 // Add one because None is invalid and is not included in the combo box
-                Settings.SerialServerStopBits = (StopBits)_comboBoxStopBits.SelectedIndex + 1;
+                Settings.SerialServerStopBits = (StopBits) _comboBoxStopBits.SelectedIndex + 1;
                 SettingsChanged();
             }
         }
 
-        private void ComboBoxHandshakeSelectedIndexChanged(object sender, EventArgs e)
-        {
+        private void ComboBoxHandshakeSelectedIndexChanged(object sender, EventArgs e) {
             if (_comboBoxHandshake.SelectedItem != null) {
                 Settings.SerialServerHandshake = (Handshake) _comboBoxHandshake.SelectedIndex;
                 SettingsChanged();
             }
         }
-        
-        private void CheckBoxClientCmdUiCheckedChanged(object sender, EventArgs e)
-        {
+
+        private void CheckBoxClientCmdUiCheckedChanged(object sender, EventArgs e) {
             Settings.ShowCommandWindow = _checkBoxClientCmdUi.Checked;
             SettingsChanged();
         }
+
     }
 
     public class AppSettings : ICloneable {
@@ -926,18 +938,21 @@ namespace MCEControl {
         // within this class.
 
         // General
+        public bool AutoStart;
+        public bool HideOnStartup;
+
+        // Global
+        [XmlIgnore] public bool DisableInternalCommands;
 
         // Client
         public bool ActAsClient;
 
         // Server
         public bool ActAsServer = true;
-        public bool AutoStart;
         public int ClientDelayTime = 30000;
         public String ClientHost;
         public int ClientPort;
         public String ClosingCommand;
-        public bool HideOnStartup;
         public int Opacity = 100;
         public int ServerPort = 5150;
         public String WakeupCommand;
@@ -986,8 +1001,8 @@ namespace MCEControl {
             if (path.Contains(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles))) {
                 // Strip off the trailing version ("\\0.0.0.xxxx")
                 path = Application.UserAppDataPath.Substring(0,
-                                                             Application.UserAppDataPath.Length -
-                                                             (Application.ProductVersion.Length + 1));
+                    Application.UserAppDataPath.Length -
+                    (Application.ProductVersion.Length + 1));
             }
 
             return path;
@@ -1001,6 +1016,7 @@ namespace MCEControl {
                 var sw = new StreamWriter(filePath);
                 ser.Serialize(sw, this);
                 sw.Close();
+
                 MainWindow.AddLogEntry("MCEC: Wrote settings to " + filePath);
             }
             catch (Exception e) {
@@ -1018,7 +1034,13 @@ namespace MCEControl {
                 var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
                 XmlReader reader = new XmlTextReader(fs);
                 settings = (AppSettings) serializer.Deserialize(reader);
+
+                settings.DisableInternalCommands = Convert.ToBoolean(
+                    Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
+                                    "DisableInternalCommands", false));
+
                 fs.Close();
+
                 MainWindow.AddLogEntry("MCEC: Read settings from " + filePath);
             }
             catch (FileNotFoundException) {
@@ -1026,10 +1048,16 @@ namespace MCEControl {
                 MainWindow.AddLogEntry("MCEC: Creating default settings file.");
                 settings = new AppSettings();
                 settings.Serialize();
+
+                // even if it's first run, read global commands
+                settings.DisableInternalCommands = Convert.ToBoolean(
+                    Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
+                                    "DisableInternalCommands", false));
             }
             catch (UnauthorizedAccessException e) {
                 MessageBox.Show(String.Format("Settings file could not be loaded. {0}", e.Message));
             }
+
             return settings;
         }
     }

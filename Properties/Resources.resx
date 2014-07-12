@@ -126,4 +126,10 @@
   <data name="MCE_Controller_Version_label" xml:space="preserve">
     <value>MCE Controller Version </value>
   </data>
+  <data name="SettingsDialog_CheckDisableInternalCommands_Restart_MCE_Controller_for_change_to_take_effect_" xml:space="preserve">
+    <value>Restart MCE Controller for change to take effect.</value>
+  </data>
+  <data name="SettingsDialog_CheckDisableInternalCommands_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
 </root>
