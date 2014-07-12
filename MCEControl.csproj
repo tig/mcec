@@ -93,6 +93,9 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>packages\HtmlAgilityPack.1.4.6\lib\Net45\HtmlAgilityPack.dll</HintPath>
     </Reference>
+    <Reference Include="log4net">
+      <HintPath>packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
+    </Reference>
     <Reference Include="System">
       <Name>System</Name>
     </Reference>
@@ -127,6 +130,11 @@
     </Compile>
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="LatestVersion.cs" />
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
     <Compile Include="SerialServer.cs" />
     <Compile Include="KeyboardCommand.cs">
       <SubType>Code</SubType>
@@ -147,6 +155,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ServiceBase.cs" />
+    <Compile Include="Settings.cs" />
     <Compile Include="SocketClient.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -298,9 +307,15 @@
     <EmbeddedResource Include="Resources\MCEControl.commands">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="mcecontrol.Icon.ico" />

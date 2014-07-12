@@ -2,7 +2,7 @@
 
 By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
-Copyright © 2013 [Kindel Systems](http://www.kindel.com), LLC.
+Copyright © 2014 [Kindel Systems](http://www.kindel.com), LLC.
 
 ## License
 

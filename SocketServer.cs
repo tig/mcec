@@ -15,6 +15,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using log4net;
 
 namespace MCEControl {
     /// <summary>
@@ -32,6 +33,8 @@ namespace MCEControl {
         private int _clientCount;
         public int Port { get; set; }
 
+        private ILog _log4;
+
         #region IDisposable Members
         public void Dispose() {
             Dispose(true);
@@ -42,8 +45,8 @@ namespace MCEControl {
         // Disposable members
         private Socket _mainSocket;
 
-        private void Dispose(bool disposing)
-        {
+        private void Dispose(bool disposing) {
+            _log4.Debug("SocketServer disposing...");
             if (!disposing) return;
             foreach (var i in _socketList.Keys)
             {
@@ -51,7 +54,7 @@ namespace MCEControl {
                 _socketList.TryRemove(i, out socket);
                 if (socket != null)
                 {
-                    Debug.WriteLine("Closing Socket #" + i);
+                    _log4.Debug("Closing Socket #" + i);
                     socket.Close();
                 }
             }
@@ -66,29 +69,32 @@ namespace MCEControl {
         // Control functions (Start, Stop, etc...)
         //-----------------------------------------------------------
         public void Start(int port) {
+            _log4 = log4net.LogManager.GetLogger("MCEControl");
             try {
-                Debug.WriteLine("Server Start");
+                _log4.Debug("SocketServer Start");
                 // Create the listening socket...
                 _mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 var ipLocal = new IPEndPoint(IPAddress.Any, port);
                 // Bind to local IP Address...
+                _log4.Debug("Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
                 _mainSocket.Bind(ipLocal);
                 // Start listening...
+                _log4.Debug("_mainSocket.Listen");
                 _mainSocket.Listen(4);
                 // Create the call back for any client connections...
+                SetStatus(ServiceStatus.Started);
+                SetStatus(ServiceStatus.Waiting);
                 _mainSocket.BeginAccept(OnClientConnect, null);
-
-                SetStatus(ServiceStatus.Connecting);
             }
             catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, null, "Start: " + se.Message);
+                SendNotification(ServiceNotification.Error, CurrentStatus, null, String.Format("Start: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
                 SetStatus(ServiceStatus.Stopped);
             }
         }
 
         public void Stop() {
+            _log4.Debug("SocketServer Stop");
             Dispose(true);
-            Debug.WriteLine("Server Stop");
             SetStatus(ServiceStatus.Stopped);
         }
 
@@ -96,6 +102,8 @@ namespace MCEControl {
         // Async handlers
         //-----------------------------------------------------------
         private void OnClientConnect(IAsyncResult async) {
+            _log4.Debug("SocketServer OnClientConnect");
+
             if (_mainSocket == null) return;
             ServerReplyContext serverReplyContext = null;
             try {
@@ -113,36 +121,44 @@ namespace MCEControl {
 
                 serverReplyContext = new ServerReplyContext(this, workerSocket, _clientCount);
 
-                Debug.WriteLine("Opened Socket #" + _clientCount);
+                _log4.Debug("Opened Socket #" + _clientCount);
 
-                // Send a welcome message to client
                 SetStatus(ServiceStatus.Connected);
                 SendNotification(ServiceNotification.ClientConnected, CurrentStatus, serverReplyContext);
 
+                // Send a welcome message to client
                 // TODO: Notify client # & IP address
-
                 //string msg = "Welcome client " + _clientCount + "\n";
                 //SendMsgToClient(msg, m_clientCount);
 
                 // Let the worker Socket do the further processing for the 
                 // just connected client
                 BeginReceive(serverReplyContext);
-
-                // Since the main Socket is now free, it can go back and wait for
-                // other clients who are attempting to connect
-                _mainSocket.BeginAccept(OnClientConnect, null);
-            }
-            catch (ObjectDisposedException) {
-                // Ignore this
-                //SendNotification(Notification.Error, Status.Connected, 0, "n/a", "OnClientConnection: Socket has been closed: " + e.Message);
             }
             catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, "OnClientConnection: " + se.Message);
+                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, String.Format("OnClientConnect: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
+                // See http://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
+                //if (se.SocketErrorCode == SocketError.ConnectionReset) // WSAECONNRESET (10054)
+                {
+                    // Forcibly closed
+                    CloseSocket(serverReplyContext);
+                } 
             }
+            catch (Exception e)
+            {
+                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, String.Format("OnClientConnect: {0}", e.Message));
+                CloseSocket(serverReplyContext);
+            }
+
+            // Since the main Socket is now free, it can go back and wait for
+            // other clients who are attempting to connect
+            SetStatus(ServiceStatus.Waiting);
+            _mainSocket.BeginAccept(OnClientConnect, null);
         }
 
         // Start waiting for data from the client
         private void BeginReceive(ServerReplyContext serverReplyContext) {
+            _log4.Debug("SocketServer BeginReceive");
             try {
                 serverReplyContext.Socket.BeginReceive(serverReplyContext.DataBuffer, 0,
                                     serverReplyContext.DataBuffer.Length,
@@ -151,18 +167,25 @@ namespace MCEControl {
                                     serverReplyContext);
             }
             catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, "BeginReceive: " + se.Message);
+                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, String.Format("BeginReceive: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
+                CloseSocket(serverReplyContext);
             }
         }
 
         private void CloseSocket(ServerReplyContext serverReplyContext) {
+            _log4.Debug("SocketServer CloseSocket"); 
+            if (serverReplyContext == null) return;
+
             // Remove the reference to the worker socket of the closed client
             // so that this object will get garbage collected
             Socket socket;
             _socketList.TryRemove(serverReplyContext.ClientNumber, out socket);
-            Debug.WriteLine("Closing Socket #" + serverReplyContext.ClientNumber);
-            SendNotification(ServiceNotification.ClientDisconnected, CurrentStatus, serverReplyContext);
-            socket.Close();
+            if (socket != null) {
+                _log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
+                Interlocked.Decrement(ref _clientCount);
+                SendNotification(ServiceNotification.ClientDisconnected, CurrentStatus, serverReplyContext);
+                socket.Close();
+            }
         }
 
         enum TelnetVerbs
@@ -259,21 +282,20 @@ namespace MCEControl {
                 // Continue the waiting for data on the Socket
                 BeginReceive(clientContext);
             }
-            //catch (ObjectDisposedException) {
-                //SendNotification(Notification.Error, Status.Connected, 0, "n/a", "OnDataReceived: Socket has been closed: " + e.Message);
-            //}
             catch (SocketException se) {
-                if (se.ErrorCode == 10054) // Error code for Connection reset by peer
+                if (se.SocketErrorCode == SocketError.ConnectionReset) // Error code for Connection reset by peer 
                 {
+                    SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, String.Format("OnDataReceived: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
                     CloseSocket(clientContext);
                 }
                 else {
-                    SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, "OnDataReceived: " + se.Message);
+                    SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, String.Format("OnDataReceived: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
                 }
             }
         }
 
         public void SendAwakeCommand(String cmd, String host, int port) {
+            _log4.Debug("SocketServer SendAwakeCommand");
             if (String.IsNullOrEmpty(host)) {
                 SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "No wakeup host specified.");
                 return;

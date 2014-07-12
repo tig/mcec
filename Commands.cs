@@ -48,17 +48,6 @@ namespace MCEControl {
             if (_hashTable == null) 
                 _hashTable = new Hashtable();
 
-            // Populate default VK_ codes
-            foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
-                string s;
-                if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
-                    s = vk.ToString();  // already have VK_
-                else
-                    s = "VK_" + vk.ToString(); 
-                var cmd = new SendInputCommand(s, false, false, false, false);
-                if (!_hashTable.ContainsKey(s))
-                    _hashTable.Add(s, cmd);
-            }
         }
 
         public int NumCommands {
@@ -66,49 +55,65 @@ namespace MCEControl {
         }
 
         public void Execute(Reply reply, String cmd) {
-            if (cmd.StartsWith(McecCommand.CmdPrefix)) {
-                var command = new McecCommand(cmd);
-                command.Execute(reply);
+            if (!MainWindow.MainWnd.Settings.DisableInternalCommands) {
+                if (cmd.StartsWith(McecCommand.CmdPrefix)) {
+                    var command = new McecCommand(cmd);
+                    command.Execute(reply);
+                    return;
+                }
+
+                if (cmd.StartsWith("chars:")) {
+                    // "chars:<chars>
+                    String chars = Regex.Unescape(cmd.Substring(6, cmd.Length - 6));
+                    MainWindow.AddLogEntry(String.Format("Cmd: Sending {0} chars: {1}", chars.Length, chars));
+                    var sim = new InputSimulator();
+                    sim.Keyboard.TextEntry(chars);
+                    return;
+                }
+
+                if (cmd.StartsWith("api:")) {
+                    // "api:API(params)
+                    // TODO: Implement API stuff
+                    return;
+                }
+
+                if (cmd.StartsWith("shiftdown:")) {
+                    // Modifyer key down
+                    SendInputCommand.ShiftKey(cmd.Substring(10, cmd.Length - 10), true);
+                    return;
+                }
+
+                if (cmd.StartsWith("shiftup:")) {
+                    // Modifyer key up
+                    SendInputCommand.ShiftKey(cmd.Substring(8, cmd.Length - 8), false);
+                    return;
+                }
+
+                if (cmd.StartsWith(MouseCommand.CmdPrefix)) {
+                    // mouse:<action>[,<parameter>,<parameter>]
+                    var mouseCmd = new MouseCommand(cmd);
+                    mouseCmd.Execute(reply);
+                    return;
+                }
+
+                if (cmd.Length == 1) {
+                    // It's a single character, just send it
+                    // must be upper case (VirtualKeyCode codes are for upper case)
+                    cmd = cmd.ToUpper();
+                    char c = cmd.ToCharArray()[0];
+
+                    var sim = new InputSimulator();
+
+                    MainWindow.AddLogEntry("Cmd: Sending keydown for: " + cmd);
+                    sim.Keyboard.KeyPress((VirtualKeyCode) c);
+                    return;
+                }
             }
-            else if (cmd.StartsWith("chars:")) {
-                // "chars:<chars>
-                String chars = Regex.Unescape(cmd.Substring(6, cmd.Length - 6));
-                MainWindow.AddLogEntry(String.Format("Cmd: Sending {0} chars: {1}", chars.Length, chars));
-                var sim = new InputSimulator();
-                sim.Keyboard.TextEntry(chars);
-            }
-            else if (cmd.StartsWith("api:")) {
-                // "api:API(params)
-                // TODO: Implement API stuff
-            }
-            else if (cmd.StartsWith("shiftdown:")) {
-                // Modifyer key down
-                SendInputCommand.ShiftKey(cmd.Substring(10, cmd.Length - 10), true);
-            }
-            else if (cmd.StartsWith("shiftup:")) {
-                // Modifyer key up
-                SendInputCommand.ShiftKey(cmd.Substring(8, cmd.Length - 8), false);
-            }
-            else if (cmd.StartsWith(MouseCommand.CmdPrefix)) {
-                // mouse:<action>[,<parameter>,<parameter>]
-                var mouseCmd = new MouseCommand(cmd);
-                mouseCmd.Execute(reply);
-            }
-            else if (_hashTable.ContainsKey(cmd.ToUpper())) {
-                // Command in MCEControl.commands
+
+            // Command is in MCEControl.commands
+            if (_hashTable.ContainsKey(cmd.ToUpper())) {
                 Command command = FindKey(cmd.ToUpper());
                 command.Execute(reply);
-            }
-            else if (cmd.Length == 1) {
-                // It's a single character, just send it
-                // must be upper case (VirtualKeyCode codes are for upper case)
-                cmd = cmd.ToUpper();
-                char c = cmd.ToCharArray()[0];
-
-                var sim = new InputSimulator();
-
-                MainWindow.AddLogEntry("Cmd: Sending keydown for: " + cmd);
-                sim.Keyboard.KeyPress((VirtualKeyCode) c);
             }
             else {
                 MainWindow.AddLogEntry("Cmd: Unknown Cmd: " + cmd);
@@ -121,32 +126,51 @@ namespace MCEControl {
             return null;
         }
 
-        public static CommandTable Deserialize() {
+        public static CommandTable Deserialize(bool DisableInternalCommands) {
             CommandTable cmds = null;
             CommandTable userCmds = null;
 
-            // Load the built-in commands from an assembly resource
-            try {
-                var serializer = new XmlSerializer(typeof (CommandTable));
-                XmlReader reader = new XmlTextReader(Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.commands"));
-                cmds = (CommandTable)serializer.Deserialize(reader);
-                foreach (var cmd in cmds.List){
-                    if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())){
-                        cmds._hashTable.Remove(cmd.Key.ToUpper());
+            if (!DisableInternalCommands) {
+                // Load the built-in commands from an assembly resource
+                try {
+                    var serializer = new XmlSerializer(typeof (CommandTable));
+                    XmlReader reader =
+                        new XmlTextReader(
+                            Assembly.GetExecutingAssembly()
+                                .GetManifestResourceStream("MCEControl.Resources.MCEControl.commands"));
+                    cmds = (CommandTable) serializer.Deserialize(reader);
+                    foreach (var cmd in cmds.List) {
+                        if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())) {
+                            cmds._hashTable.Remove(cmd.Key.ToUpper());
+                        }
+                        cmds._hashTable.Add(cmd.Key.ToUpper(), cmd);
                     }
-                    cmds._hashTable.Add(cmd.Key.ToUpper(), cmd);
+                }
+                catch (Exception ex) {
+                    MessageBox.Show(String.Format("No commands loaded. Error parsing built-in commands. {0}",
+                        ex.Message));
+                    MainWindow.AddLogEntry(
+                        String.Format("MCEC: No commands loaded. Error parsing built-in commands. {0}",
+                            ex.Message));
+                    Util.DumpException(ex);
+                    return null;
+                }
+                // Populate default VK_ codes
+                foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode)))
+                {
+                    string s;
+                    if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
+                        s = vk.ToString();  // already have VK_
+                    else
+                        s = "VK_" + vk.ToString();
+                    var cmd = new SendInputCommand(s, false, false, false, false);
+                    if (!cmds._hashTable.ContainsKey(s))
+                        cmds._hashTable.Add(s, cmd);
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(String.Format("No commands loaded. Error parsing built-in commands. {0}",
-                                              ex.Message));
-                MainWindow.AddLogEntry(String.Format("MCEC: No commands loaded. Error parsing built-in commands. {0}",
-                                                     ex.Message));
-                Util.DumpException(ex);
-                return null;
+            else {
+                cmds = new CommandTable();
             }
-
             // Load any over-rides from a text file
             FileStream fs = null;
             try {

@@ -20,7 +20,8 @@ namespace MCEControl
 
     public enum ServiceStatus
     {
-        Connecting,
+        Started,
+        Waiting,
         Connected,
         Sleeping,
         Stopped

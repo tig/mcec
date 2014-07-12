@@ -68,12 +68,12 @@ namespace MCEControl {
             try {
                 // Set the read/write timeouts
                 Debug.WriteLine("Opening serial port: " + GetSettingsDisplayString());
-                SetStatus(ServiceStatus.Connecting, GetSettingsDisplayString());
+                SetStatus(ServiceStatus.Started, GetSettingsDisplayString());
                 _serialPort.Open();
 
                 _readThread = new Thread(Read);
                 _readThread.Start();
-                SetStatus(ServiceStatus.Connected);
+                SetStatus(ServiceStatus.Waiting);
             }
             catch (IOException ioe) {
                 Error(ioe.Message);

@@ -101,7 +101,7 @@ namespace MCEControl {
             this._linkLabelKindelSystems.TabIndex = 1;
             this._linkLabelKindelSystems.TabStop = true;
             this._linkLabelKindelSystems.Tag = "http://www.kindel.com";
-            this._linkLabelKindelSystems.Text = "© 2013 Kindel Systems, LLC.";
+            this._linkLabelKindelSystems.Text = "© 2014 Kindel Systems, LLC.";
             this._linkLabelKindelSystems.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabelCharlieLinkClicked);
             // 
             // _labelSummary
