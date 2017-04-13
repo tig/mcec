@@ -12,8 +12,8 @@ MCE Controller lets you control a Windows HTPC (or any PC) over the network. It 
 
 ## Documentation
 
-[MCE Controler Wiki](https://github.com/tig/mcec/wiki)
-[MCE Controller documentation](https://github.com/tig/mcec/wiki/Documentation)
+* [MCE Controler Wiki](https://github.com/tig/mcec/wiki)
+* [MCE Controller documentation](https://github.com/tig/mcec/wiki/Documentation)
 
 ## Support 
 
