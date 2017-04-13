@@ -2,11 +2,11 @@
 
 By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
-Copyright © 2014 [Kindel Systems](http://www.kindel.com), LLC.
+Copyright © 2017 [Kindel Systems](http://www.kindel.com), LLC.
 
 ## License
 
-Licensed under the [MIT License](http://mcec.codeplex.com/license). The source code project can be found at [http://mcec.codeplex.com](http://mcec.codeplex.com).
+Licensed under the [MIT License](https://github.com/tig/mcec/blob/master/license.md). The source code project can be found at [https://github.com/tig/mcec](https://github.com/tig/mcec).
 
 ## Download
 
@@ -18,9 +18,9 @@ MCE Controller lets you control a Windows HTPC (or any PC) over the network. It 
 
 ## Support 
 
-* For help and support, please visit the [MCE Controller forums](http://mcec.codeplex.com/discussions).
+* For help and support, visit the [MCE Controller forums](http://mcec.codeplex.com/discussions).
 * [Charlie's Blog Posts on MCE Controller](http://ceklog.kindel.com/category/passions/homeautomation/mce-controller/)
 
 ## Documentation
 
-[MCE Controller documentation](http://mcec.codeplex.com/documentation)
+[MCE Controller documentation](https://github.com/tig/mcec/wiki/Documentation)
