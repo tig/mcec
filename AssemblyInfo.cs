@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Kindel Systems")]
 [assembly: AssemblyProduct("MCE Controller")]
-[assembly: AssemblyCopyright("Copyright © 2017 Kindel Systems, LLC")]
+//[assembly: AssemblyCopyright("Copyright © 2017 Kindel Systems, LLC")]
 [assembly: AssemblyTrademark("MCE Controller")]
 [assembly: AssemblyCulture("")]		
 
@@ -35,7 +35,8 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("1.9.0.*")]
+// Now generated via AssemblyFileVersion.tt    
+// [assembly: AssemblyVersion("1.9.0.*")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 
