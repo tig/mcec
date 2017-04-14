@@ -1,5 +1,5 @@
 ﻿//-------------------------------------------------------------------
-// Copyright © 2012 Kindel Systems, LLC
+// Copyright © 2017 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 // 
