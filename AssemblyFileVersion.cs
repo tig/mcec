@@ -8,7 +8,7 @@
 // the next time this project is built (via AssemblyFileVersion.tt).
 using System.Reflection;
 
-[assembly: AssemblyVersion("1.9.0.46")]
-[assembly: AssemblyFileVersion("1.9.0.46")]
+[assembly: AssemblyVersion("1.9.0.49")]
+[assembly: AssemblyFileVersion("1.9.0.49")]
 [assembly: AssemblyCopyright("Copyright © 2017 Kindel Systems, LLC.")]
  
