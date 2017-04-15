@@ -458,18 +458,18 @@ namespace MCEControl {
                 if (version == null && !String.IsNullOrWhiteSpace(lv.ErrorMessage)) {
                     AddLogEntry(
                         String.Format(
-                            "MCEC: Could not access mcec.codeplex.com to see if a newer version is available. {0}",
+                            "MCEC: Could not access tig.github.io/mcec to see if a newer version is available. {0}",
                             lv.ErrorMessage));
                 }
                 else if (lv.CompareVersions() < 0) {
                     AddLogEntry(
                         String.Format(
-                            "MCEC: A newer version of MCE Controller ({0}) is available at mcec.codeplex.com.", version));
+                            "MCEC: A newer version of MCE Controller ({0}) is available at tig.github.io/mcec.", version));
                 }
                 else if (lv.CompareVersions() > 0) {
                     AddLogEntry(
                         String.Format(
-                            "MCEC: You are are running a MORE recent version than can be found at mcec.codeplex.com ({0}).",
+                            "MCEC: You are are running a MORE recent version than can be found at tig.github.io/mcec ({0}).",
                             version));
                 }
                 else {
@@ -930,11 +930,11 @@ namespace MCEControl {
         }
 
         private void MenuItemHelpClick(object sender, EventArgs e) {
-            Process.Start("http://mcec.codeplex.com/documentation/");
+            Process.Start("https://github.com/tig/mcec/wiki");
         }
 
         private void MenuItemSupportClick(object sender, EventArgs e) {
-            Process.Start("http://mcec.codeplex.com/discussions/");
+            Process.Start("https://github.com/tig/mcec/wiki");
         }
 
         private void MenuItemEditCommandsClick(object sender, EventArgs e) {
@@ -943,7 +943,7 @@ namespace MCEControl {
 
         private void MainWindow_HelpButtonClicked(object sender, CancelEventArgs e)
         {
-            Process.Start("http://mcec.codeplex.com/documentation/");
+            Process.Start("https://github.com/tig/mcec/wiki");
         }
 
         private void menuItemCheckVersion_Click(object sender, EventArgs e) {

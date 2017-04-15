@@ -19,14 +19,22 @@ namespace MCEControl
         public async void GetLatestStableVersionAsync(GotVersionInfo callback) {
             var client = new WebClient();
             try {
-                byte[] bytes =
-                    await client.DownloadDataTaskAsync(
-                        "http://mcec.codeplex.com/wikipage?title=Latest%20Stable%20Version%20Number");
-                var htmlDoc = new HtmlDocument();
-                htmlDoc.Load(new MemoryStream(bytes));
-                var div = htmlDoc.DocumentNode.SelectSingleNode("//*/div[@class='wikidoc']");
-                if (div != null)
-                    LatestStableRelease = new Version(div.InnerText.Trim());
+                string contents  =
+                    await client.DownloadStringTaskAsync(
+                        "https://tig.github.io/mcec/install_version.txt");
+
+                string[] parts = contents.Split('.');
+                int build;
+                if (int.TryParse(parts[3], out build))
+                {
+                    // increment the build number
+                    parts[3] = (build + 1).ToString();
+                }
+
+                string version = string.Join(".", parts);
+
+                if (version!= null)
+                    LatestStableRelease = new Version(version);
                 else 
                     ErrorMessage = "Could not parse version data.";
             }

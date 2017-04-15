@@ -77,7 +77,7 @@ namespace MCEControl {
             this._linkLabelMceController.Size = new System.Drawing.Size(321, 16);
             this._linkLabelMceController.TabIndex = 3;
             this._linkLabelMceController.TabStop = true;
-            this._linkLabelMceController.Tag = "http://mcec.codeplex.com/license";
+            this._linkLabelMceController.Tag = "https://github.com/tig/mcec/blob/master/license.md";
             this._linkLabelMceController.Text = "License Agreement";
             this._linkLabelMceController.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabelMceControllerLinkClicked);
             // 
@@ -121,7 +121,7 @@ namespace MCEControl {
             this._linkLabelHomePage.Size = new System.Drawing.Size(321, 16);
             this._linkLabelHomePage.TabIndex = 4;
             this._linkLabelHomePage.TabStop = true;
-            this._linkLabelHomePage.Tag = "http://mcec.codeplex.com";
+            this._linkLabelHomePage.Tag = "https://tig.github.io/mcec";
             this._linkLabelHomePage.Text = "MCE Controller website";
             this._linkLabelHomePage.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabelHomePage_LinkClicked);
             // 

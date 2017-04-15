@@ -14,7 +14,7 @@ Copyright 2017 Kindel Sytems, LLC.
  in the same directory as the MCEControl.exe file.
 ===================================================================
 
-See the documentation at http://mcec.codeplex.com/documentation for
+See the documentation at https://github.com/tig/mcec/wiki for
 full details on the commands supported by MCE Controller.
 
 The following types of commands can be defined in this

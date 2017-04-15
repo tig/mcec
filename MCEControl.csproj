@@ -288,6 +288,15 @@
     <Compile Include="WindowsInput\Native\XButton.cs" />
     <Compile Include="WindowsInput\WindowsInputDeviceStateAdaptor.cs" />
     <Compile Include="WindowsInput\WindowsInputMessageDispatcher.cs" />
+    <Content Include="Installer.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Installer.nsi</LastGenOutput>
+    </Content>
+    <None Include="Installer.nsi">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Installer.tt</DependentUpon>
+    </None>
     <None Include="packages.config" />
     <EmbeddedResource Include="AboutBox.resx">
       <DependentUpon>AboutBox.cs</DependentUpon>
@@ -358,7 +367,15 @@
   <PropertyGroup>
     <PreBuildEvent>set textTemplatingPath="%25CommonProgramFiles(x86)%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
 if %25textTemplatingPath%25=="\Microsoft Shared\TextTemplating\14.0\texttransform.exe" set textTemplatingPath="%25CommonProgramFiles%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
-     %25textTemplatingPath%25 "$(SolutionDir)AssemblyFileVersion.tt"</PreBuildEvent>
-    <PostBuildEvent>if "$(ConfigurationName)"=="Release" copy "$(SolutionDir)\install_version.txt" "$(SolutionDir)\docs"</PostBuildEvent>
+%25textTemplatingPath%25 "$(SolutionDir)AssemblyFileVersion.tt"</PreBuildEvent>
+    <PostBuildEvent>if "$(ConfigurationName)"=="Debug" goto SKIP
+
+copy "$(SolutionDir)\install_version.txt" "$(SolutionDir)\docs"
+set textTemplatingPath="%25CommonProgramFiles(x86)%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
+if %25textTemplatingPath%25=="\Microsoft Shared\TextTemplating\14.0\texttransform.exe" set textTemplatingPath="%25CommonProgramFiles%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
+%25textTemplatingPath%25 "$(SolutionDir)Installer.tt"
+copy "$(SolutionDir)Installer.nsi" "$(SolutionDir)Installer" 
+
+:SKIP</PostBuildEvent>
   </PropertyGroup>
 </Project>
