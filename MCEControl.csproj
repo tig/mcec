@@ -90,9 +90,6 @@
     <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="HtmlAgilityPack">
-      <HintPath>packages\HtmlAgilityPack.1.4.6\lib\Net45\HtmlAgilityPack.dll</HintPath>
-    </Reference>
     <Reference Include="log4net">
       <HintPath>packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
     </Reference>
@@ -375,6 +372,8 @@ set textTemplatingPath="%25CommonProgramFiles(x86)%25\Microsoft Shared\TextTempl
 if %25textTemplatingPath%25=="\Microsoft Shared\TextTemplating\14.0\texttransform.exe" set textTemplatingPath="%25CommonProgramFiles%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
 %25textTemplatingPath%25 "$(SolutionDir)Installer.tt"
 copy "$(SolutionDir)Installer.nsi" "$(SolutionDir)Installer" 
+copy "$(SolutionDir)bin\Release\MCEControl.exe" "$(SolutionDir)Installer" 
+copy "$(SolutionDir)bin\Release\log4net.dll" "$(SolutionDir)Installer"
 
 :SKIP</PostBuildEvent>
   </PropertyGroup>

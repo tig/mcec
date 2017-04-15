@@ -2,7 +2,6 @@
 using System.IO;
 using System.Net;
 using System.Windows.Forms;
-using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 
 namespace MCEControl
 {

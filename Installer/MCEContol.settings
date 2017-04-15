@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppSettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <AutoStart>false</AutoStart>
+  <HideOnStartup>false</HideOnStartup>
+  <ActAsClient>false</ActAsClient>
+  <ActAsServer>true</ActAsServer>
+  <ClientDelayTime>30000</ClientDelayTime>
+  <ClientPort>0</ClientPort>
+  <Opacity>100</Opacity>
+  <ServerPort>5150</ServerPort>
+  <WakeupEnabled>false</WakeupEnabled>
+  <WakeupPort>0</WakeupPort>
+  <ActAsSerialServer>false</ActAsSerialServer>
+  <SerialServerPortName>COM1</SerialServerPortName>
+  <SerialServerBaudRate>9600</SerialServerBaudRate>
+  <SerialServerParity>None</SerialServerParity>
+  <SerialServerDataBits>8</SerialServerDataBits>
+  <SerialServerStopBits>One</SerialServerStopBits>
+  <SerialServerHandshake>None</SerialServerHandshake>
+  <WindowLocation>
+    <X>120</X>
+    <Y>50</Y>
+  </WindowLocation>
+  <WindowSize>
+    <Width>640</Width>
+    <Height>400</Height>
+  </WindowSize>
+  <ShowCommandWindow>false</ShowCommandWindow>
+</AppSettings>

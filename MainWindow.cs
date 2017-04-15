@@ -67,7 +67,6 @@ namespace MCEControl {
         private MenuItem _menuSeparator4;
         private MenuItem _notifyMenuViewStatus;
         private MenuItem _menuItemHelp;
-        private MenuItem _menuItemSupport;
         private MenuItem _menuItemEditCommands;
         private MenuItem menuItem2;
         private MenuItem menuItem1;
@@ -181,7 +180,6 @@ namespace MCEControl {
             this._menuSettings = new System.Windows.Forms.MenuItem();
             this._menuItemHelpMenu = new System.Windows.Forms.MenuItem();
             this._menuItemHelp = new System.Windows.Forms.MenuItem();
-            this._menuItemSupport = new System.Windows.Forms.MenuItem();
             this.menuItem2 = new System.Windows.Forms.MenuItem();
             this._menuItemCheckVersion = new System.Windows.Forms.MenuItem();
             this.menuItem1 = new System.Windows.Forms.MenuItem();
@@ -254,7 +252,6 @@ namespace MCEControl {
             this._menuItemHelpMenu.Index = 2;
             this._menuItemHelpMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
             this._menuItemHelp,
-            this._menuItemSupport,
             this.menuItem2,
             this._menuItemCheckVersion,
             this.menuItem1,
@@ -265,35 +262,29 @@ namespace MCEControl {
             // 
             this._menuItemHelp.Index = 0;
             this._menuItemHelp.Shortcut = System.Windows.Forms.Shortcut.F1;
-            this._menuItemHelp.Text = "&Documentation...";
+            this._menuItemHelp.Text = "&Wiki";
             this._menuItemHelp.Click += new System.EventHandler(this.MenuItemHelpClick);
-            // 
-            // _menuItemSupport
-            // 
-            this._menuItemSupport.Index = 1;
-            this._menuItemSupport.Text = "&Get Support...";
-            this._menuItemSupport.Click += new System.EventHandler(this.MenuItemSupportClick);
             // 
             // menuItem2
             // 
-            this.menuItem2.Index = 2;
+            this.menuItem2.Index = 1;
             this.menuItem2.Text = "-";
             // 
             // _menuItemCheckVersion
             // 
-            this._menuItemCheckVersion.Index = 3;
-            this._menuItemCheckVersion.Text = "&Check for a newer version";
+            this._menuItemCheckVersion.Index = 2;
+            this._menuItemCheckVersion.Text = "&Check for updates...";
             this._menuItemCheckVersion.Click += new System.EventHandler(this.menuItemCheckVersion_Click);
             // 
             // menuItem1
             // 
-            this.menuItem1.Index = 4;
+            this.menuItem1.Index = 3;
             this.menuItem1.Text = "-";
             // 
             // _menuItemAbout
             // 
-            this._menuItemAbout.Index = 5;
-            this._menuItemAbout.Text = "&About MCE Controller";
+            this._menuItemAbout.Index = 4;
+            this._menuItemAbout.Text = "&About...";
             this._menuItemAbout.Click += new System.EventHandler(this.MenuItemAboutClick);
             // 
             // _statusBar
