@@ -357,8 +357,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>set textTemplatingPath="%25CommonProgramFiles(x86)%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
-if %25textTemplatingPath%25=="\Microsoft Shared\TextTemplating\14.0\texttransform.exe" set textTemplatingPath="%25CommonProgramFiles%25\Microsoft Shared\TextTemplating\$(VisualStudioVersion)\texttransform.exe"
-     %25textTemplatingPath%25 "$(SolutionDir)AssemblyFileVersion.tt" </PreBuildEvent>
+if %25textTemplatingPath%25=="\Microsoft Shared\TextTemplating\14.0\texttransform.exe" set textTemplatingPath="%25CommonProgramFiles%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
+     %25textTemplatingPath%25 "$(SolutionDir)AssemblyFileVersion.tt"</PreBuildEvent>
     <PostBuildEvent>
     </PostBuildEvent>
   </PropertyGroup>
