@@ -4,7 +4,7 @@ By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) - Copy
 
 ## Download
 
-[Download the MCE Controller for Windows installer](http://mcec.codeplex.com/releases)
+[Download the MCE Controller for Windows installer](https://tig.github.io/mcec/MCE%20Contoller%20Setup.exe)
 
 ## Overview
 
@@ -17,5 +17,4 @@ MCE Controller lets you control a Windows HTPC (or any PC) over the network. It 
 
 ## Support 
 
-* For help and support, visit the [MCE Controller forums](http://mcec.codeplex.com/discussions).
 * [Charlie's Blog Posts on MCE Controller](http://ceklog.kindel.com/category/passions/homeautomation/mce-controller/)

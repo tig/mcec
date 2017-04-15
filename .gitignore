@@ -14,6 +14,9 @@
 !/packages/*/lib/*/*.dll
 # Include dlls if they're in the CommonReferences directory
 !*CommonReferences/*.dll
+
+# Include latest Release exe
+!/docs/*.exe
 ####################
 # VS Upgrade stuff #
 ####################

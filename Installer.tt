@@ -69,7 +69,7 @@ var ICONS_GROUP
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "MCEController ${PRODUCT_VERSION} Setup.exe"
+OutFile "MCEController Setup.exe"
 InstallDir "$PROGRAMFILES\Kindel Systems\MCE Controller"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
