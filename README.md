@@ -4,7 +4,7 @@ By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) - Copy
 
 ## Download
 
-[Download the MCE Controller for Windows installer](https://tig.github.io/mcec/MCEContoller%20Setup.exe)
+[Download the MCE Controller for Windows installer](https://tig.github.io/mcec/MCEController%20Setup.exe)
 
 ## Overview
 
