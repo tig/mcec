@@ -2,6 +2,8 @@
 
 By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) - Copyright © 2017 [Kindel Systems](http://www.kindel.com), LLC.
 
+![icon](https://tig.github.io/mcec/Home_mcecontroller_2.png "MCE Controller Icon")
+
 ## Download
 
 [Download the MCE Controller for Windows installer](https://tig.github.io/mcec/MCEController%20Setup.exe)
