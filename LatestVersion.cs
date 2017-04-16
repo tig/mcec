@@ -23,12 +23,6 @@ namespace MCEControl
                         "https://tig.github.io/mcec/install_version.txt");
 
                 string[] parts = contents.Split('.');
-                int build;
-                if (int.TryParse(parts[3], out build))
-                {
-                    // increment the build number
-                    parts[3] = (build + 1).ToString();
-                }
 
                 string version = string.Join(".", parts);
 
