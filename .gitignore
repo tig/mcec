@@ -34,6 +34,8 @@ bin/
 obj/
 TestResults/
 build/
+.vs/
+
 ###################
 # Web publish log #
 ###################
