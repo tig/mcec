@@ -362,13 +362,13 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>set textTemplatingPath="%25CommonProgramFiles(x86)%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
+    <PreBuildEvent>set textTemplatingPath="\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\texttransform.exe"
 if %25textTemplatingPath%25=="\Microsoft Shared\TextTemplating\14.0\texttransform.exe" set textTemplatingPath="%25CommonProgramFiles%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
 %25textTemplatingPath%25 "$(SolutionDir)AssemblyFileVersion.tt"</PreBuildEvent>
     <PostBuildEvent>if "$(ConfigurationName)"=="Debug" goto SKIP
 
 copy "$(SolutionDir)\install_version.txt" "$(SolutionDir)\docs"
-set textTemplatingPath="%25CommonProgramFiles(x86)%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
+set textTemplatingPath="\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\texttransform.exe"
 if %25textTemplatingPath%25=="\Microsoft Shared\TextTemplating\14.0\texttransform.exe" set textTemplatingPath="%25CommonProgramFiles%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
 %25textTemplatingPath%25 "$(SolutionDir)Installer.tt"
 copy "$(SolutionDir)Installer.nsi" "$(SolutionDir)Installer" 
