@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------
-// Copyright © 2017 Kindel Systems, LLC
+// Copyright ï¿½ 2018 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 // 
@@ -97,7 +97,7 @@ namespace MCEControl {
             this._linkLabelKindelSystems.TabIndex = 1;
             this._linkLabelKindelSystems.TabStop = true;
             this._linkLabelKindelSystems.Tag = "http://www.kindel.com";
-            this._linkLabelKindelSystems.Text = "© 2017 Kindel Systems, LLC.";
+            this._linkLabelKindelSystems.Text = "ï¿½ 2017 Kindel Systems, LLC.";
             this._linkLabelKindelSystems.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabelCharlieLinkClicked);
             // 
             // _labelSummary
