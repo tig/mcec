@@ -1,3 +1,4 @@
+# MCE Controller .gitignore
 ###################
 # compiled source #
 ###################
@@ -17,6 +18,7 @@
 
 # Include latest Release exe
 !/docs/*.exe
+
 ####################
 # VS Upgrade stuff #
 ####################
@@ -35,6 +37,8 @@ bin/
 obj/
 TestResults/
 build/
+.vs/
+
 ###################
 # Web publish log #
 ###################
