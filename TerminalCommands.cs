@@ -40,12 +40,12 @@ namespace MCEControl
                 // Cause MCE Controller to exit
                 case "exit":
                     reply.WriteLine("exiting");
-                    MainWindow.MainWnd.BeginInvoke((Action)(() => MainWindow.MainWnd.ShutDown()));
+                    MainWindow.Instance.BeginInvoke((Action)(() => MainWindow.Instance.ShutDown()));
                     return;
 
                 // Return a list of supported commands (really just for testing)
                 case "cmds":
-                    foreach (Command cmd in MainWindow.MainWnd.CmdTable.List) {
+                    foreach (Command cmd in MainWindow.Instance.CmdTable.List) {
                         Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                         replyBuilder.AppendFormat("{0}={1}{2}", cmd.Key, match.Groups[1].Value, Environment.NewLine);
                     }

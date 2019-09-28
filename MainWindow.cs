@@ -27,8 +27,6 @@ namespace MCEControl {
     /// Summary description for MainWindow.
     /// </summary>
     public class MainWindow : Form {
-        // Used to enabled access to AddLogEntry
-        public static MainWindow MainWnd;
         public CommandTable CmdTable;
         private log4net.ILog _log4;
 
@@ -72,10 +70,13 @@ namespace MCEControl {
         private MenuItem menuItem1;
         private MenuItem _menuItemCheckVersion;
 
-
         public SocketClient Client {
             get { return _client; }
         }
+
+        // MainWindow is a singleton
+        private static readonly Lazy<MainWindow> lazy = new Lazy<MainWindow>(() => new MainWindow());
+        public static MainWindow Instance { get { return lazy.Value; } }
 
         /// <summary>
         /// The main entry point for the application.
@@ -95,9 +96,10 @@ namespace MCEControl {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            // Load AppSettings
+            Instance.Settings = AppSettings.Deserialize(AppSettings.GetSettingsPath());
 
-            MainWnd = new MainWindow();
-            Application.Run(MainWnd);
+            Application.Run(Instance);
         }
     
         [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -114,9 +116,6 @@ namespace MCEControl {
             //
             InitializeComponent();
             _notifyIcon.Icon = Icon;
-
-            // Load AppSettings
-            Settings = AppSettings.Deserialize(AppSettings.GetSettingsPath());
 
             ShowInTaskbar = true;
 
@@ -478,6 +477,8 @@ namespace MCEControl {
 
             if (Settings.ActAsClient)
                 StartClient();
+
+            UserActivityMonitor.Instance.Start();
         }
 
         public void ShutDown() {
@@ -488,9 +489,6 @@ namespace MCEControl {
             StopServer();
             StopClient();
             StopSerialServer();
-
-            // Prevent access to the static MainWnd
-            MainWnd = null;
 
             // Save the window size/location
             Settings.WindowLocation = Location;
@@ -829,20 +827,20 @@ namespace MCEControl {
 
         public static void AddLogEntry(String text)
         {   
-            if (MainWnd == null) return;
+            if (Instance == null) return;
 
-            if (MainWnd._log4 == null) {
+            if (Instance._log4 == null) {
                 string logFile = Environment.CurrentDirectory + @"\MCEControl.log"; 
                 if (Environment.CurrentDirectory.Contains("Program Files (x86)"))
                     logFile = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Kindel Systems\MCE Controller\MCEControl.log";
-                Logger.Setup(logFile); 
-                MainWnd._log4 = log4net.LogManager.GetLogger("MCEControl");
+                Logger.Setup(logFile);
+                Instance._log4 = log4net.LogManager.GetLogger("MCEControl");
                 AddLogEntry("MCEC: Log file being written to " + logFile);
             }
-            MainWnd._log4.Info(text);
+            Instance._log4.Info(text);
             // Can only update the log in the main window when on the UI thread
-            if (MainWnd.InvokeRequired || MainWnd._log.InvokeRequired)
-                MainWnd.BeginInvoke((AddLogEntryUiThreadCallback)AddLogEntryUiThread, new object[] { text });
+            if (Instance.InvokeRequired || Instance._log.InvokeRequired)
+                Instance.BeginInvoke((AddLogEntryUiThreadCallback)AddLogEntryUiThread, new object[] { text });
             else {
                 AddLogEntryUiThread(text);
             }
@@ -850,7 +848,7 @@ namespace MCEControl {
 
         private delegate void AddLogEntryUiThreadCallback(string text);
         private static void AddLogEntryUiThread(String text) {
-            MainWnd._log.AppendText("[" + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss") + "] " + text +
+            Instance._log.AppendText("[" + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss") + "] " + text +
                                         Environment.NewLine);
         }
 

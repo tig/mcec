@@ -21,8 +21,8 @@ namespace MCEControl
 
 
         private void CommandWindow_Load(object sender, EventArgs e) {
-            Icon = MainWindow.MainWnd.Icon;
-            foreach (Command cmd in MainWindow.MainWnd.CmdTable.List) {
+            Icon = MainWindow.Instance.Icon;
+            foreach (Command cmd in MainWindow.Instance.CmdTable.List) {
                 var item = new ListViewItem(cmd.Key);
                 Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                 item.SubItems.Add(match.Groups[1].Value);
@@ -46,7 +46,7 @@ namespace MCEControl
         {
             if (e.CloseReason == CloseReason.UserClosing) {
                 this.Hide();
-                MainWindow.MainWnd.Settings.ShowCommandWindow = false;
+                MainWindow.Instance.Settings.ShowCommandWindow = false;
                 e.Cancel = true;
             }
         }
@@ -71,7 +71,7 @@ namespace MCEControl
         {
             Debug.WriteLine("Send");
             MainWindow.AddLogEntry("Client: Sending Command: " + textBoxSendCommand.Text);
-            MainWindow.MainWnd.Client.Send(textBoxSendCommand.Text + "\n");
+            MainWindow.Instance.Client.Send(textBoxSendCommand.Text + "\n");
         }
 
         private void listCmds_DoubleClick(object sender, EventArgs e)

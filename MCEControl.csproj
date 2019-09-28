@@ -130,8 +130,17 @@
     <Compile Include="CommandWindow.Designer.cs">
       <DependentUpon>CommandWindow.cs</DependentUpon>
     </Compile>
+    <Compile Include="UserActivityMonitor.cs" />
+    <Compile Include="UserActivityMonitor\GlobalEventProvider.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="UserActivityMonitor\HookManager.Callbacks.cs" />
+    <Compile Include="UserActivityMonitor\HookManager.cs" />
+    <Compile Include="UserActivityMonitor\HookManager.Structures.cs" />
+    <Compile Include="UserActivityMonitor\HookManager.Windows.cs" />
     <Compile Include="LatestVersion.cs" />
+    <Compile Include="UserActivityMonitor\MouseEventExtArgs.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>

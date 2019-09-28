@@ -55,7 +55,7 @@ namespace MCEControl {
         }
 
         public void Execute(Reply reply, String cmd) {
-            if (!MainWindow.MainWnd.Settings.DisableInternalCommands) {
+            if (!MainWindow.Instance.Settings.DisableInternalCommands) {
                 if (cmd.StartsWith(McecCommand.CmdPrefix)) {
                     var command = new McecCommand(cmd);
                     command.Execute(reply);
