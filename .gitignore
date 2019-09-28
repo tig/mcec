@@ -27,6 +27,7 @@ _UpgradeReport_Files/
 ######################
 *.user
 *.suo
+.vs/
 ###############
 # Directories #
 ###############
