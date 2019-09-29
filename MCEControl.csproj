@@ -302,6 +302,7 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Installer.nsi</LastGenOutput>
     </Content>
+    <None Include=".editorconfig" />
     <None Include="Installer.nsi">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

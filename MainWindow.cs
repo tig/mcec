@@ -1,5 +1,5 @@
-//-------------------------------------------------------------------
-// Copyright © 2017 Kindel Systems, LLC
+﻿//-------------------------------------------------------------------
+// Copyright © 2019 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 // 
@@ -28,10 +28,10 @@ namespace MCEControl {
     /// </summary>
     public class MainWindow : Form {
         public CommandTable CmdTable;
-        private log4net.ILog _log4;
+        private log4net.ILog log4;
 
         // Persisted application settings
-        public AppSettings Settings;
+        private AppSettings settings;
 
         // Protocol objects
         private SocketServer _server;
@@ -78,6 +78,8 @@ namespace MCEControl {
         private static readonly Lazy<MainWindow> lazy = new Lazy<MainWindow>(() => new MainWindow());
         public static MainWindow Instance { get { return lazy.Value; } }
 
+        public AppSettings Settings { get => settings; set => settings = value; }
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -101,7 +103,7 @@ namespace MCEControl {
 
             Application.Run(Instance);
         }
-    
+
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool SetProcessDPIAware();
 
@@ -339,8 +341,8 @@ namespace MCEControl {
             // 
             // _log
             // 
-            this._log.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this._log.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this._log.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this._log.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -384,7 +386,7 @@ namespace MCEControl {
             {
                 // Allow shut down (m.Result may already be non-zero, but I set it
                 // just in case)
-                m.Result = (IntPtr) 1;
+                m.Result = (IntPtr)1;
 
                 // Indicate to MainWindow_Closing() that we are shutting down;
                 // otherwise it will just minimize to the tray
@@ -406,12 +408,12 @@ namespace MCEControl {
                 Opacity = 100;
             }
             else {
-                AddLogEntry("MCEC: " + CmdTable.NumCommands + " commands available.");
-                Opacity = (double) Settings.Opacity/100;
+                AddLogEntry($"MCEC: {CmdTable.NumCommands} commands available.");
+                Opacity = (double)Settings.Opacity / 100;
 
                 if (Settings.HideOnStartup) {
                     Opacity = 0;
-                    Win32.PostMessage(Handle, (UInt32) WM.SYSCOMMAND, (UInt32) SC.CLOSE, 0);
+                    Win32.PostMessage(Handle, (UInt32)WM.SYSCOMMAND, (UInt32)SC.CLOSE, 0);
                 }
             }
 
@@ -442,25 +444,20 @@ namespace MCEControl {
         }
 
         private void CheckVersion() {
-            AddLogEntry(String.Format("MCEC: Version: {0}", Application.ProductVersion));
+            AddLogEntry($"MCEC: Version: {Application.ProductVersion}");
             var lv = new LatestVersion();
             lv.GetLatestStableVersionAsync((o, version) => {
                 if (version == null && !String.IsNullOrWhiteSpace(lv.ErrorMessage)) {
                     AddLogEntry(
-                        String.Format(
-                            "MCEC: Could not access tig.github.io/mcec to see if a newer version is available. {0}",
-                            lv.ErrorMessage));
+                        $"MCEC: Could not access tig.github.io/mcec to see if a newer version is available. {lv.ErrorMessage}");
                 }
                 else if (lv.CompareVersions() < 0) {
                     AddLogEntry(
-                        String.Format(
-                            "MCEC: A newer version of MCE Controller ({0}) is available at tig.github.io/mcec.", version));
+                        $"MCEC: A newer version of MCE Controller ({version}) is available at tig.github.io/mcec.");
                 }
                 else if (lv.CompareVersions() > 0) {
                     AddLogEntry(
-                        String.Format(
-                            "MCEC: You are are running a MORE recent version than can be found at tig.github.io/mcec ({0}).",
-                            version));
+                        $"MCEC: You are are running a MORE recent version than can be found at tig.github.io/mcec ({version}).");
                 }
                 else {
                     AddLogEntry("MCEC: You are running the most recent version of MCE Controller.");
@@ -564,7 +561,7 @@ namespace MCEControl {
         private void RestartClient() {
             if (_cmdWindow != null) {
                 if (this.InvokeRequired)
-                    this.BeginInvoke((RestartClientCallback) RestartClient);
+                    this.BeginInvoke((RestartClientCallback)RestartClient);
                 else {
                     StopClient();
                     if (!_shuttingDown && Settings.ActAsClient) {
@@ -579,7 +576,7 @@ namespace MCEControl {
 
         private void ShowCommandWindow() {
             if (this.InvokeRequired)
-                this.BeginInvoke((ShowCommandWindowCallback) ShowCommandWindow);
+                this.BeginInvoke((ShowCommandWindowCallback)ShowCommandWindow);
             else {
                 _cmdWindow.Visible = Settings.ShowCommandWindow;
             }
@@ -589,7 +586,7 @@ namespace MCEControl {
 
         private void HideCommandWindow() {
             if (this.InvokeRequired)
-                this.BeginInvoke((HideCommandWindowCallback) HideCommandWindow);
+                this.BeginInvoke((HideCommandWindowCallback)HideCommandWindow);
             else {
                 _cmdWindow.Visible = false;
             }
@@ -600,7 +597,7 @@ namespace MCEControl {
                 CmdTable.Execute(reply, cmd);
             }
             catch (Exception e) {
-                AddLogEntry(String.Format("Command: ({0}) error: {1}", cmd, e));
+                AddLogEntry($"Command: ({cmd}) error: {e}");
             }
         }
 
@@ -608,7 +605,7 @@ namespace MCEControl {
 
         private void SetStatusBar(string text) {
             if (_statusBar.InvokeRequired) {
-                _statusBar.BeginInvoke((SetStatusBarCallback) SetStatusBar, new object[] {text});
+                _statusBar.BeginInvoke((SetStatusBarCallback)SetStatusBar, new object[] { text });
             }
             else {
                 _statusBar.Text = text;
@@ -622,72 +619,59 @@ namespace MCEControl {
         public void HandleSocketServerCallbacks(ServiceNotification notification, ServiceStatus status, Reply reply, String msg) {
             if (notification == ServiceNotification.StatusChange)
                 HandleSocketServerStatusChange(status);
-            else 
+            else
                 HandleSocketServerNotification(notification, status, (SocketServer.ServerReplyContext)reply, msg);
         }
 
         private void HandleSocketServerNotification(ServiceNotification notification, ServiceStatus status,
-            SocketServer.ServerReplyContext serverReplyContext, String msg)
-        {
+            SocketServer.ServerReplyContext serverReplyContext, String msg) {
             String s = "";
 
-            switch (notification)
-            {
+            switch (notification) {
                 case ServiceNotification.ReceivedData:
                     Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                    s = String.Format("Server: Received from Client #{0} at {1}: {2}",
-                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint, msg);
+                    s = $"Server: Received from Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint}: {msg}";
                     AddLogEntry(s);
                     ReceivedData(serverReplyContext, msg);
                     return;
 
                 case ServiceNotification.Write:
                     Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                    s = String.Format("Wrote to Client #{0} at {1}: {2}",
-                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint, msg);
+                    s = $"Wrote to Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint}: {msg}";
                     break;
 
                 case ServiceNotification.WriteFailed:
                     Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                    s = String.Format("Write failed to Client #{0} at {1}: {2}",
-                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint, msg);
+                    s = $"Write failed to Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint}: {msg}";
                     break;
 
                 case ServiceNotification.ClientConnected:
                     Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                    s = String.Format("Client #{0} at {1} connected.",
-                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint);
+                    s = $"Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint} connected.";
                     break;
 
                 case ServiceNotification.ClientDisconnected:
                     Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                    s = String.Format("Client #{0} at {1} has disconnected.",
-                        serverReplyContext.ClientNumber, serverReplyContext.Socket.RemoteEndPoint);
+                    s = $"Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint} has disconnected.";
                     break;
 
                 case ServiceNotification.Wakeup:
-                    s = "Wakeup: " + (string)msg;
+                    s = $"Wakeup: {(string)msg}";
                     break;
 
                 case ServiceNotification.Error:
-                    switch (status)
-                    {
+                    switch (status) {
                         case ServiceStatus.Waiting:
                         case ServiceStatus.Stopped:
                         case ServiceStatus.Sleeping:
-                            s = String.Format("{0}: {1}", status, msg);
+                            s = $"{status}: {msg}";
                             break;
 
                         case ServiceStatus.Connected:
                             if (serverReplyContext != null) {
                                 Debug.Assert(serverReplyContext.Socket != null);
                                 Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null);
-                                s = String.Format("(Client #{0} at {1}): {2}",
-                                    serverReplyContext.ClientNumber,
-                                    serverReplyContext.Socket == null
-                                        ? "n/a"
-                                        : serverReplyContext.Socket.RemoteEndPoint.ToString(),
-                                    msg);
+                                s = $"(Client #{serverReplyContext.ClientNumber} at {(serverReplyContext.Socket == null ? "n/a" : serverReplyContext.Socket.RemoteEndPoint.ToString())}): {msg}";
                             }
                             else
                                 s = msg;
@@ -700,15 +684,14 @@ namespace MCEControl {
                     s = "Unknown notification: " + notification;
                     break;
             }
-            AddLogEntry("Server: " + s);
+            AddLogEntry($"Server: {s}");
         }
 
         private void HandleSocketServerStatusChange(ServiceStatus status) {
             String s = "";
-            switch (status)
-            {
+            switch (status) {
                 case ServiceStatus.Started:
-                    s = "Starting TCP/IP Server on port " + Settings.ServerPort;
+                    s = $"Starting TCP/IP Server on port {Settings.ServerPort}";
                     SetStatusBar(s);
                     if (Settings.WakeupEnabled)
                         _server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
@@ -731,24 +714,23 @@ namespace MCEControl {
                             Settings.WakeupPort);
                     break;
             }
-            AddLogEntry("Server: " + s);
+            AddLogEntry($"Server: {s}");
         }
 
         //
         // Notify callback for the TCP/IP Client
         //
-        public void HandleClientNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg)
-        {
+        public void HandleClientNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg) {
             String s = null;
             switch (notify) {
                 case ServiceNotification.StatusChange:
                     if (status == ServiceStatus.Started) {
-                        s = "Connecting to " + Settings.ClientHost + ":" + Settings.ClientPort;
+                        s = $"Connecting to {Settings.ClientHost}:{Settings.ClientPort}";
                         SetStatusBar(s);
                         HideCommandWindow();
                     }
                     else if (status == ServiceStatus.Connected) {
-                        s = "Connected to " + Settings.ClientHost + ":" + Settings.ClientPort;
+                        s = $"Connected to {Settings.ClientHost}:{Settings.ClientPort}";
                         SetStatusBar(s);
                         ShowCommandWindow();
                     }
@@ -758,20 +740,19 @@ namespace MCEControl {
                         HideCommandWindow();
                     }
                     else if (status == ServiceStatus.Sleeping) {
-                        s = "Waiting " + (Settings.ClientDelayTime/1000) +
-                            " seconds to connect.";
+                        s = $"Waiting {(Settings.ClientDelayTime / 1000)} seconds to connect.";
                         SetStatusBar(s);
                         HideCommandWindow();
                     }
                     break;
 
                 case ServiceNotification.ReceivedData:
-                    AddLogEntry(String.Format("Client: Received; {0}", msg));
-                    ReceivedData(reply, (string) msg);
+                    AddLogEntry($"Client: Received; {msg}");
+                    ReceivedData(reply, (string)msg);
                     return;
 
                 case ServiceNotification.Error:
-                    AddLogEntry("Client: Error; " + (string)msg);
+                    AddLogEntry($"Client: Error; {(string)msg}");
                     RestartClient();
                     return;
 
@@ -779,26 +760,23 @@ namespace MCEControl {
                     s = "Unknown notification";
                     break;
             }
-            AddLogEntry("Client: " + s);
+            AddLogEntry($"Client: {s}");
         }
 
         //
         // Notify callback for the Serial Server
         //
-        public void HandleSerialServerNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg)
-        {
+        public void HandleSerialServerNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg) {
             String s = null;
-            switch (notify)
-            {
+            switch (notify) {
                 case ServiceNotification.StatusChange:
-                    switch (status)
-                    {
+                    switch (status) {
                         case ServiceStatus.Started:
-                            s = String.Format("SerialServer: Opening port: {0}", msg);
+                            s = $"SerialServer: Opening port: {msg}";
                             break;
 
                         case ServiceStatus.Waiting:
-                            s = String.Format("SerialServer: Waiting for commands on {0}...", msg);
+                            s = $"SerialServer: Waiting for commands on {msg}...";
                             SetStatusBar("Waiting for Serial commands...");
                             break;
 
@@ -810,12 +788,12 @@ namespace MCEControl {
                     break;
 
                 case ServiceNotification.ReceivedData:
-                    AddLogEntry(String.Format("SerialServer: Received: {0}", msg));
+                    AddLogEntry($"SerialServer: Received: {msg}");
                     ReceivedData(reply, (string)msg);
                     return;
 
                 case ServiceNotification.Error:
-                    s = String.Format("SerialServer: Error: {0}", msg);
+                    s = $"SerialServer: Error: {msg}";
                     break;
 
                 default:
@@ -825,19 +803,18 @@ namespace MCEControl {
             AddLogEntry(s);
         }
 
-        public static void AddLogEntry(String text)
-        {   
+        public static void AddLogEntry(String text) {
             if (Instance == null) return;
 
-            if (Instance._log4 == null) {
-                string logFile = Environment.CurrentDirectory + @"\MCEControl.log"; 
+            if (Instance.log4 == null) {
+                string logFile = Environment.CurrentDirectory + @"\MCEControl.log";
                 if (Environment.CurrentDirectory.Contains("Program Files (x86)"))
-                    logFile = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Kindel Systems\MCE Controller\MCEControl.log";
+                    logFile = $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Kindel Systems\MCE Controller\MCEControl.log";
                 Logger.Setup(logFile);
-                Instance._log4 = log4net.LogManager.GetLogger("MCEControl");
-                AddLogEntry("MCEC: Log file being written to " + logFile);
+                Instance.log4 = log4net.LogManager.GetLogger("MCEControl");
+                AddLogEntry($"MCEC: Log file being written to {logFile}");
             }
-            Instance._log4.Info(text);
+            Instance.log4.Info(text);
             // Can only update the log in the main window when on the UI thread
             if (Instance.InvokeRequired || Instance._log.InvokeRequired)
                 Instance.BeginInvoke((AddLogEntryUiThreadCallback)AddLogEntryUiThread, new object[] { text });
@@ -848,8 +825,11 @@ namespace MCEControl {
 
         private delegate void AddLogEntryUiThreadCallback(string text);
         private static void AddLogEntryUiThread(String text) {
-            Instance._log.AppendText("[" + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss") + "] " + text +
-                                        Environment.NewLine);
+            Instance._log.AppendText("["
+                                     + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss")
+                                     + "] "
+                                     + text
+                                     + Environment.NewLine);
         }
 
         private void MenuItemExitClick(object sender, EventArgs e) {
@@ -867,7 +847,7 @@ namespace MCEControl {
             _notifyIcon.Visible = false;
             Activate();
             Show();
-            Opacity = (double) Settings.Opacity/100;
+            Opacity = (double)Settings.Opacity / 100;
         }
 
         private void MenuItemAboutClick(object sender, EventArgs e) {
@@ -880,7 +860,7 @@ namespace MCEControl {
             if (d.ShowDialog(this) == DialogResult.OK) {
                 Settings = d.Settings;
 
-                Opacity = (double) Settings.Opacity/100;
+                Opacity = (double)Settings.Opacity / 100;
 
                 RestartClient();
                 StopServer();
@@ -907,7 +887,7 @@ namespace MCEControl {
         private void LogTextChanged(object sender, EventArgs e) {
             // We don't want to overrun the size a textbox can handle
             // limit to 16k
-            if (_log.TextLength > (16*1024)) {
+            if (_log.TextLength > (16 * 1024)) {
                 _log.Text = _log.Text.Remove(0, _log.Text.IndexOf("\r\n", StringComparison.Ordinal) + 2);
                 _log.Select(_log.TextLength, 0);
             }
@@ -930,8 +910,7 @@ namespace MCEControl {
             Process.Start(Application.StartupPath);
         }
 
-        private void MainWindow_HelpButtonClicked(object sender, CancelEventArgs e)
-        {
+        private void MainWindow_HelpButtonClicked(object sender, CancelEventArgs e) {
             Process.Start("https://github.com/tig/mcec/wiki");
         }
 
@@ -940,10 +919,8 @@ namespace MCEControl {
         }
     }
 
-    public class Logger
-    {
-        public static void Setup(string logFile)
-        {
+    public class Logger {
+        public static void Setup(string logFile) {
             Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
 
             PatternLayout patternLayout = new PatternLayout();
@@ -951,7 +928,10 @@ namespace MCEControl {
             patternLayout.ActivateOptions();
 
             RollingFileAppender roller = new RollingFileAppender {
-                AppendToFile = true, Layout = patternLayout, MaxSizeRollBackups = 5, MaximumFileSize = "100KB",
+                AppendToFile = true,
+                Layout = patternLayout,
+                MaxSizeRollBackups = 5,
+                MaximumFileSize = "100KB",
                 RollingStyle = RollingFileAppender.RollingMode.Size,
                 StaticLogFileName = true,
                 File = logFile
@@ -964,7 +944,7 @@ namespace MCEControl {
             //memory.ActivateOptions();
             //hierarchy.Root.AddAppender(memory);
 
-            var debugAppender = new ConsoleAppender {Layout = patternLayout};
+            var debugAppender = new ConsoleAppender { Layout = patternLayout };
             debugAppender.ActivateOptions();
             hierarchy.Root.AddAppender(debugAppender);
 
