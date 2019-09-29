@@ -63,7 +63,7 @@ namespace MCEControl {
             this._labelTitle.Name = "_labelTitle";
             this._labelTitle.Size = new System.Drawing.Size(321, 23);
             this._labelTitle.TabIndex = 0;
-            this._labelTitle.Text = "MCE Controller";
+            _labelTitle.Text = "MCE Controller";
             // 
             // _linkLabelMceController
             // 
