@@ -63,7 +63,7 @@ namespace MCEControl {
             this._labelTitle.Name = "_labelTitle";
             this._labelTitle.Size = new System.Drawing.Size(321, 23);
             this._labelTitle.TabIndex = 0;
-            _labelTitle.Text = "MCE Controller";
+            this._labelTitle.Text = "MCE Controller";
             // 
             // _linkLabelMceController
             // 
@@ -97,7 +97,7 @@ namespace MCEControl {
             this._linkLabelKindelSystems.TabIndex = 1;
             this._linkLabelKindelSystems.TabStop = true;
             this._linkLabelKindelSystems.Tag = "http://www.kindel.com";
-            this._linkLabelKindelSystems.Text = "� 2017 Kindel Systems, LLC.";
+            this._linkLabelKindelSystems.Text = "© 2019 Kindel Systems, LLC.";
             this._linkLabelKindelSystems.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabelCharlieLinkClicked);
             // 
             // _labelSummary

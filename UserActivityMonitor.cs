@@ -1,7 +1,10 @@
-﻿using System;
+﻿// Uses a global Windows hook to detect keyboard or mouse activity
+// Based on this post: https://www.codeproject.com/Articles/7294/Processing-Global-Mouse-and-Keyboard-Hooks-in-C
+using System;
 using System.Windows.Forms;
 
 namespace MCEControl {
+
     public sealed class UserActivityMonitor {
         private bool logActivity = false;    // log mouse/keyboard events to MCEC window
         private int debounceTime = 10;       // Only send activity notification at most every DebounceTime seconds
@@ -9,6 +12,10 @@ namespace MCEControl {
         private System.DateTime LastTime;
 
         private static readonly Lazy<UserActivityMonitor> lazy = new Lazy<UserActivityMonitor>(() => new UserActivityMonitor());
+        private UserActivityMonitor() {
+        }
+
+        private static Gma.UserActivityMonitor.GlobalEventProvider userActivityMonitor = null;
 
         public static UserActivityMonitor Instance => lazy.Value; public bool LogActivity { get => logActivity; set => logActivity = value; }
         public int DebounceTime {
@@ -16,13 +23,7 @@ namespace MCEControl {
                 debounceTime = value;
             }
         }
-
-        private UserActivityMonitor() {
-        }
-
-        // Global Mouse/Keyboard Activity Monitor
-        private static Gma.UserActivityMonitor.GlobalEventProvider userActivityMonitor = null;
-
+        
         public void Start() {
             if (userActivityMonitor != null)
                 userActivityMonitor = null;
@@ -47,7 +48,6 @@ namespace MCEControl {
         private void Activity() {
             if (LastTime.AddSeconds(DebounceTime) <= DateTime.Now) {
                 MainWindow.AddLogEntry("MCEC: User Activity Dectected");
-                MainWindow.AddLogEntry("Client: Sending Command: activity");
                 if (MainWindow.Instance.Client != null) {
                     MainWindow.AddLogEntry("Client: Sending " + "event1");
                     MainWindow.Instance.Client.Send("event1\n");
@@ -59,56 +59,56 @@ namespace MCEControl {
         private void HookManager_KeyDown(object sender, KeyEventArgs e) {
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry(string.Format("MCEC: KeyDown - {0}", e.KeyCode));
+                MainWindow.AddLogEntry($"MCEC: KeyDown - {e.KeyCode}");
         }
 
         private void HookManager_KeyUp(object sender, KeyEventArgs e) {
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry(string.Format("MCEC: KeyUp - {0}", e.KeyCode));
+                MainWindow.AddLogEntry($"MCEC: KeyUp - {e.KeyCode}");
         }
 
 
         private void HookManager_KeyPress(object sender, KeyPressEventArgs e) {
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry(string.Format("MCEC: KeyPress - {0}", e.KeyChar));
+                MainWindow.AddLogEntry($"MCEC: KeyPress - {e.KeyChar}");
         }
 
         private void HookManager_MouseMove(object sender, MouseEventArgs e) {
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry(string.Format("MCEC: KeyPress - x={0:0000}; y={1:0000}", e.X, e.Y));
+                MainWindow.AddLogEntry($"MCEC: KeyPress - x={e.X:0000}; y={e.Y:0000}");
         }
 
         private void HookManager_MouseClick(object sender, MouseEventArgs e) {
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry(string.Format("MCEC: MouseClick - {0}", e.Button));
+                MainWindow.AddLogEntry($"MCEC: MouseClick - {e.Button}");
         }
 
         private void HookManager_MouseUp(object sender, MouseEventArgs e) {
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry(string.Format("MCEC: MouseUp - {0}", e.Button));
+                MainWindow.AddLogEntry($"MCEC: MouseUp - {e.Button}");
         }
 
         private void HookManager_MouseDown(object sender, MouseEventArgs e) {
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry(string.Format("MCEC: MouseDown - {0}", e.Button));
+                MainWindow.AddLogEntry($"MCEC: MouseDown - {e.Button}");
         }
 
         private void HookManager_MouseDoubleClick(object sender, MouseEventArgs e) {
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry(string.Format("MCEC: MouseDoubleClick - {0}", e.Button));
+                MainWindow.AddLogEntry($"MCEC: MouseDoubleClick - {e.Button}");
         }
 
         private void HookManager_MouseWheel(object sender, MouseEventArgs e) {
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry(string.Format("MCEC: Wheel={0:000}", e.Delta));
+                MainWindow.AddLogEntry($"MCEC: Wheel={e.Delta:000}");
         }
     }
 }
