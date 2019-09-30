@@ -7,7 +7,7 @@ namespace MCEControl {
 
     public sealed class UserActivityMonitor {
         private bool logActivity = false;    // log mouse/keyboard events to MCEC window
-        private int debounceTime = 10;       // Only send activity notification at most every DebounceTime seconds
+        private int debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
 
         private System.DateTime LastTime;
 
@@ -41,7 +41,7 @@ namespace MCEControl {
             userActivityMonitor.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDoubleClick);
         }
 
-        public static void Stop() {
+        public void Stop() {
             userActivityMonitor = null;
         }
 
@@ -49,20 +49,22 @@ namespace MCEControl {
             if (LastTime.AddSeconds(DebounceTime) <= DateTime.Now) {
                 MainWindow.AddLogEntry("MCEC: User Activity Dectected");
                 if (MainWindow.Instance.Client != null) {
-                    MainWindow.AddLogEntry("Client: Sending " + "event1");
-                    MainWindow.Instance.Client.Send("event1\n");
+                    MainWindow.AddLogEntry("Client: Sending " + "activity");
+                    MainWindow.Instance.Client.Send("activity\n");
                 }
                 LastTime = DateTime.Now;
             }
         }
 
         private void HookManager_KeyDown(object sender, KeyEventArgs e) {
+            if (userActivityMonitor == null) return;
             Activity();
             if (LogActivity)
                 MainWindow.AddLogEntry($"MCEC: KeyDown - {e.KeyCode}");
         }
 
         private void HookManager_KeyUp(object sender, KeyEventArgs e) {
+            if (userActivityMonitor == null) return;
             Activity();
             if (LogActivity)
                 MainWindow.AddLogEntry($"MCEC: KeyUp - {e.KeyCode}");
@@ -70,42 +72,49 @@ namespace MCEControl {
 
 
         private void HookManager_KeyPress(object sender, KeyPressEventArgs e) {
+            if (userActivityMonitor == null) return;
             Activity();
             if (LogActivity)
                 MainWindow.AddLogEntry($"MCEC: KeyPress - {e.KeyChar}");
         }
 
         private void HookManager_MouseMove(object sender, MouseEventArgs e) {
+            if (userActivityMonitor == null) return;
             Activity();
             if (LogActivity)
-                MainWindow.AddLogEntry($"MCEC: KeyPress - x={e.X:0000}; y={e.Y:0000}");
+                MainWindow.AddLogEntry($"MCEC: MouseMove - x={e.X:0000}; y={e.Y:0000}");
         }
 
         private void HookManager_MouseClick(object sender, MouseEventArgs e) {
+            if (userActivityMonitor == null) return;
             Activity();
             if (LogActivity)
                 MainWindow.AddLogEntry($"MCEC: MouseClick - {e.Button}");
         }
 
         private void HookManager_MouseUp(object sender, MouseEventArgs e) {
+            if (userActivityMonitor == null) return;
             Activity();
             if (LogActivity)
                 MainWindow.AddLogEntry($"MCEC: MouseUp - {e.Button}");
         }
 
         private void HookManager_MouseDown(object sender, MouseEventArgs e) {
+            if (userActivityMonitor == null) return;
             Activity();
             if (LogActivity)
                 MainWindow.AddLogEntry($"MCEC: MouseDown - {e.Button}");
         }
 
         private void HookManager_MouseDoubleClick(object sender, MouseEventArgs e) {
+            if (userActivityMonitor == null) return;
             Activity();
             if (LogActivity)
                 MainWindow.AddLogEntry($"MCEC: MouseDoubleClick - {e.Button}");
         }
 
         private void HookManager_MouseWheel(object sender, MouseEventArgs e) {
+            if (userActivityMonitor == null) return;
             Activity();
             if (LogActivity)
                 MainWindow.AddLogEntry($"MCEC: Wheel={e.Delta:000}");
