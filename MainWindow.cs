@@ -483,6 +483,8 @@ namespace MCEControl {
             _shuttingDown = true;
             // hide icon from the systray
             _notifyIcon.Visible = false;
+
+            UserActivityMonitor.Instance.Stop();
             StopServer();
             StopClient();
             StopSerialServer();
