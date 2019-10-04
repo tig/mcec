@@ -88,6 +88,7 @@ namespace MCEControl {
         private Label labelActivityDebounceTime;
         private TextBox textBoxDebounceTime;
         private CheckBox _checkBoxClientCmdUi;
+        private EventLog eventLog1;
         private TabPage tabServer;
 
         #region Windows Form Designer generated code
@@ -153,6 +154,7 @@ namespace MCEControl {
             this.labelActivityCommand = new System.Windows.Forms.Label();
             this.toolTipClient = new System.Windows.Forms.ToolTip(this.components);
             this._toolTipServer = new System.Windows.Forms.ToolTip(this.components);
+            this.eventLog1 = new System.Diagnostics.EventLog();
             this.tabcontrol.SuspendLayout();
             this.tabGeneral.SuspendLayout();
             this.tabClient.SuspendLayout();
@@ -164,6 +166,7 @@ namespace MCEControl {
             this._serialServerGroup.SuspendLayout();
             this._tabPageActivityMonitor.SuspendLayout();
             this.groupBoxActivityMonitor.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.eventLog1)).BeginInit();
             this.SuspendLayout();
             // 
             // _buttonCancel
@@ -203,7 +206,7 @@ namespace MCEControl {
             this.tabcontrol.Margin = new System.Windows.Forms.Padding(1);
             this.tabcontrol.Name = "tabcontrol";
             this.tabcontrol.SelectedIndex = 0;
-            this.tabcontrol.Size = new System.Drawing.Size(446, 277);
+            this.tabcontrol.Size = new System.Drawing.Size(446, 270);
             this.tabcontrol.TabIndex = 0;
             // 
             // tabGeneral
@@ -215,7 +218,7 @@ namespace MCEControl {
             this.tabGeneral.Location = new System.Drawing.Point(4, 22);
             this.tabGeneral.Margin = new System.Windows.Forms.Padding(1);
             this.tabGeneral.Name = "tabGeneral";
-            this.tabGeneral.Size = new System.Drawing.Size(438, 251);
+            this.tabGeneral.Size = new System.Drawing.Size(438, 244);
             this.tabGeneral.TabIndex = 0;
             this.tabGeneral.Text = "General";
             // 
@@ -260,7 +263,7 @@ namespace MCEControl {
             this.tabClient.Location = new System.Drawing.Point(4, 22);
             this.tabClient.Margin = new System.Windows.Forms.Padding(1);
             this.tabClient.Name = "tabClient";
-            this.tabClient.Size = new System.Drawing.Size(438, 251);
+            this.tabClient.Size = new System.Drawing.Size(438, 244);
             this.tabClient.TabIndex = 1;
             this.tabClient.Text = "Client";
             // 
@@ -289,7 +292,7 @@ namespace MCEControl {
             this._clientGroup.Margin = new System.Windows.Forms.Padding(1);
             this._clientGroup.Name = "_clientGroup";
             this._clientGroup.Padding = new System.Windows.Forms.Padding(1);
-            this._clientGroup.Size = new System.Drawing.Size(412, 230);
+            this._clientGroup.Size = new System.Drawing.Size(412, 221);
             this._clientGroup.TabIndex = 8;
             this._clientGroup.TabStop = false;
             // 
@@ -337,7 +340,7 @@ namespace MCEControl {
             this._label7.Name = "_label7";
             this._label7.Size = new System.Drawing.Size(144, 16);
             this._label7.TabIndex = 2;
-            this._label7.Text = "&Reconnect Wait Time:";
+            this._label7.Text = "&Reconnect Wait Time (ms):";
             // 
             // _editClientDelayTime
             // 
@@ -356,7 +359,7 @@ namespace MCEControl {
             this.tabServer.Location = new System.Drawing.Point(4, 22);
             this.tabServer.Margin = new System.Windows.Forms.Padding(1);
             this.tabServer.Name = "tabServer";
-            this.tabServer.Size = new System.Drawing.Size(438, 251);
+            this.tabServer.Size = new System.Drawing.Size(438, 244);
             this.tabServer.TabIndex = 2;
             this.tabServer.Text = "Server";
             // 
@@ -382,7 +385,7 @@ namespace MCEControl {
             this._serverGroup.Margin = new System.Windows.Forms.Padding(1);
             this._serverGroup.Name = "_serverGroup";
             this._serverGroup.Padding = new System.Windows.Forms.Padding(1);
-            this._serverGroup.Size = new System.Drawing.Size(412, 230);
+            this._serverGroup.Size = new System.Drawing.Size(412, 221);
             this._serverGroup.TabIndex = 6;
             this._serverGroup.TabStop = false;
             // 
@@ -428,7 +431,7 @@ namespace MCEControl {
             this._wakeupGroup.Margin = new System.Windows.Forms.Padding(1);
             this._wakeupGroup.Name = "_wakeupGroup";
             this._wakeupGroup.Padding = new System.Windows.Forms.Padding(1);
-            this._wakeupGroup.Size = new System.Drawing.Size(384, 163);
+            this._wakeupGroup.Size = new System.Drawing.Size(384, 155);
             this._wakeupGroup.TabIndex = 7;
             this._wakeupGroup.TabStop = false;
             // 
@@ -517,7 +520,7 @@ namespace MCEControl {
             this.tabSerial.Margin = new System.Windows.Forms.Padding(1);
             this.tabSerial.Name = "tabSerial";
             this.tabSerial.Padding = new System.Windows.Forms.Padding(1);
-            this.tabSerial.Size = new System.Drawing.Size(438, 251);
+            this.tabSerial.Size = new System.Drawing.Size(438, 244);
             this.tabSerial.TabIndex = 3;
             this.tabSerial.Text = "Serial Server";
             // 
@@ -551,7 +554,7 @@ namespace MCEControl {
             this._serialServerGroup.Margin = new System.Windows.Forms.Padding(1);
             this._serialServerGroup.Name = "_serialServerGroup";
             this._serialServerGroup.Padding = new System.Windows.Forms.Padding(1);
-            this._serialServerGroup.Size = new System.Drawing.Size(412, 229);
+            this._serialServerGroup.Size = new System.Drawing.Size(412, 221);
             this._serialServerGroup.TabIndex = 0;
             this._serialServerGroup.TabStop = false;
             // 
@@ -727,7 +730,7 @@ namespace MCEControl {
             this._tabPageActivityMonitor.Location = new System.Drawing.Point(4, 22);
             this._tabPageActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
             this._tabPageActivityMonitor.Name = "_tabPageActivityMonitor";
-            this._tabPageActivityMonitor.Size = new System.Drawing.Size(438, 251);
+            this._tabPageActivityMonitor.Size = new System.Drawing.Size(438, 244);
             this._tabPageActivityMonitor.TabIndex = 4;
             this._tabPageActivityMonitor.Text = "Activity Monitor";
             this._tabPageActivityMonitor.UseVisualStyleBackColor = true;
@@ -754,14 +757,14 @@ namespace MCEControl {
             this.groupBoxActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
             this.groupBoxActivityMonitor.Name = "groupBoxActivityMonitor";
             this.groupBoxActivityMonitor.Padding = new System.Windows.Forms.Padding(1);
-            this.groupBoxActivityMonitor.Size = new System.Drawing.Size(412, 229);
+            this.groupBoxActivityMonitor.Size = new System.Drawing.Size(412, 221);
             this.groupBoxActivityMonitor.TabIndex = 0;
             this.groupBoxActivityMonitor.TabStop = false;
             // 
             // labelActivityDebounceTime
             // 
             this.labelActivityDebounceTime.AutoSize = true;
-            this.labelActivityDebounceTime.Location = new System.Drawing.Point(16, 64);
+            this.labelActivityDebounceTime.Location = new System.Drawing.Point(16, 80);
             this.labelActivityDebounceTime.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this.labelActivityDebounceTime.Name = "labelActivityDebounceTime";
             this.labelActivityDebounceTime.Size = new System.Drawing.Size(131, 13);
@@ -770,7 +773,7 @@ namespace MCEControl {
             // 
             // textBoxDebounceTime
             // 
-            this.textBoxDebounceTime.Location = new System.Drawing.Point(158, 61);
+            this.textBoxDebounceTime.Location = new System.Drawing.Point(16, 96);
             this.textBoxDebounceTime.Margin = new System.Windows.Forms.Padding(1);
             this.textBoxDebounceTime.Name = "textBoxDebounceTime";
             this.textBoxDebounceTime.Size = new System.Drawing.Size(45, 20);
@@ -779,7 +782,7 @@ namespace MCEControl {
             // 
             // textBoxActivityCommand
             // 
-            this.textBoxActivityCommand.Location = new System.Drawing.Point(119, 30);
+            this.textBoxActivityCommand.Location = new System.Drawing.Point(16, 48);
             this.textBoxActivityCommand.Margin = new System.Windows.Forms.Padding(1);
             this.textBoxActivityCommand.Name = "textBoxActivityCommand";
             this.textBoxActivityCommand.Size = new System.Drawing.Size(149, 20);
@@ -803,6 +806,10 @@ namespace MCEControl {
             // _toolTipServer
             // 
             this._toolTipServer.ToolTipTitle = "Server";
+            // 
+            // eventLog1
+            // 
+            this.eventLog1.SynchronizingObject = this;
             // 
             // SettingsDialog
             // 
@@ -844,6 +851,7 @@ namespace MCEControl {
             this._tabPageActivityMonitor.PerformLayout();
             this.groupBoxActivityMonitor.ResumeLayout(false);
             this.groupBoxActivityMonitor.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.eventLog1)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -1130,6 +1138,7 @@ namespace MCEControl {
 
             }
         }
+
     }
 
     public class AppSettings : ICloneable {

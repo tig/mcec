@@ -1070,36 +1070,6 @@ namespace MCEControl {
             ShowSettings("General");
         }
 
-        private void ShowSettings(string defaultTabName) {
-            var d = new SettingsDialog(Settings);
-            d.DefaultTab = defaultTabName;
-
-            if (d.ShowDialog(this) == DialogResult.OK) {
-                Settings = d.Settings;
-
-                Opacity = (double)Settings.Opacity / 100;
-
-                Stop();
-                Start();
-            }
-        }
-
-        // Prevent input into the edit box
-        private void LogKeyPress(object sender, KeyPressEventArgs e) {
-            e.Handled = true;
-        }
-
-        // Keep the end of the log visible and prevent it from overflowing
-        private void LogTextChanged(object sender, EventArgs e) {
-            // We don't want to overrun the size a textbox can handle
-            // limit to 16k
-            if (_log.TextLength > (16 * 1024)) {
-                _log.Text = _log.Text.Remove(0, _log.Text.IndexOf("\r\n", StringComparison.Ordinal) + 2);
-                _log.Select(_log.TextLength, 0);
-            }
-            _log.ScrollToCaret();
-        }
-
         private void MenuItemSendAwakeClick(object sender, EventArgs e) {
             _server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
         }
@@ -1134,7 +1104,7 @@ namespace MCEControl {
         private void statusStripServer_Click(object sender, EventArgs e) {
             if (Settings.ActAsServer)
                 ToggleServer();
-            else 
+            else
                 ShowSettings("Server");
         }
 
@@ -1145,6 +1115,36 @@ namespace MCEControl {
         private void statusStripStatus_Click(object sender, EventArgs e) {
             ShowSettings("General");
         }
+        private void ShowSettings(string defaultTabName) {
+            var d = new SettingsDialog(Settings);
+            d.DefaultTab = defaultTabName;
+
+            if (d.ShowDialog(this) == DialogResult.OK) {
+                Settings = d.Settings;
+
+                Opacity = (double)Settings.Opacity / 100;
+
+                Stop();
+                Start();
+            }
+        }
+
+        // Prevent input into the edit box
+        private void LogKeyPress(object sender, KeyPressEventArgs e) {
+            e.Handled = true;
+        }
+
+        // Keep the end of the log visible and prevent it from overflowing
+        private void LogTextChanged(object sender, EventArgs e) {
+            // We don't want to overrun the size a textbox can handle
+            // limit to 16k
+            if (_log.TextLength > (16 * 1024)) {
+                _log.Text = _log.Text.Remove(0, _log.Text.IndexOf("\r\n", StringComparison.Ordinal) + 2);
+                _log.Select(_log.TextLength, 0);
+            }
+            _log.ScrollToCaret();
+        }
+
     }
 
     public class Logger {
