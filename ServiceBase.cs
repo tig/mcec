@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 
 namespace MCEControl {
+    
     public enum ServiceNotification {
         Initialized = 1,
         StatusChange,
@@ -41,10 +42,16 @@ namespace MCEControl {
     }
 
     public abstract class ServiceBase {
+        protected log4net.ILog log4;
+
+        public ServiceBase() {
+            log4 = log4net.LogManager.GetLogger("MCEControl");
+        }
+
         public delegate
             void NotificationCallback(ServiceNotification notify, ServiceStatus status, Reply reply, String msg = "");
         public event NotificationCallback Notifications;
-
+        
         public ServiceStatus CurrentStatus { get; set; }
         public abstract void Send(string text, Reply replyContext = null);
 
@@ -64,7 +71,7 @@ namespace MCEControl {
 
         // Send an error notification
         protected void Error(String msg) {
-            System.Diagnostics.Debug.WriteLine(msg);
+            log4.Debug(msg);
             if (Notifications != null)
                 Notifications(ServiceNotification.Error, CurrentStatus, null, msg);
         }

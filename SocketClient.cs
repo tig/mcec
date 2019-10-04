@@ -16,6 +16,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using log4net;
 using MCEControl.Properties;
 
 namespace MCEControl {
@@ -27,7 +28,6 @@ namespace MCEControl {
     /// 
     /// </summary>
     sealed public class SocketClient : ServiceBase, IDisposable {
-
         private readonly string _host = "";
         private readonly int _port;
         private readonly int _clientDelayTime;
@@ -123,9 +123,9 @@ namespace MCEControl {
                     if (_tcpClient == null)
                         return;
                     try {
-                        Debug.WriteLine($"Client BeginConnect: { _host}:{ _port}");
+                        log4.Debug($"Client BeginConnect: { _host}:{ _port}");
                         _tcpClient.EndConnect(ar);
-                        Debug.WriteLine($"Client Back from EndConnect: { _host}:{ _port}");
+                        log4.Debug($"Client Back from EndConnect: { _host}:{ _port}");
                         SetStatus(ServiceStatus.Connected, $"{_host}:{_port}");
                         StringBuilder sb = new StringBuilder();
                         while (_bw != null &&
@@ -156,12 +156,12 @@ namespace MCEControl {
                         }
                     }
                     catch (SocketException e) {
-                        Debug.WriteLine($"SocketClient SocketException: {e.GetType().Name}: {e.Message}");
+                        log4.Debug($"SocketClient SocketException: {e.GetType().Name}: {e.Message}");
                         CatchSocketException(e);
                     }
                     catch (IOException e) {
                         var sockExcept = e.InnerException as SocketException;
-                        Debug.WriteLine($"SocketClient IOException: {e.GetType().Name}: {e.Message}");
+                        log4.Debug($"SocketClient IOException: {e.GetType().Name}: {e.Message}");
                         if (sockExcept != null) {
                             CatchSocketException(sockExcept);
                         }
@@ -172,29 +172,29 @@ namespace MCEControl {
                     catch (Exception e) {
                         // Got this when endPoint = new IPEndPoint(Dns.GetHostEntry(_host).AddressList[0], _port) 
                         // resolved to an ipv6 address
-                        Debug.WriteLine($"SocketClient Generic Exception: {e.GetType().Name}: {e.Message}");
+                        log4.Debug($"SocketClient Generic Exception: {e.GetType().Name}: {e.Message}");
                         Error($"SocketClient Generic Exception: {e.GetType().Name} {e.Message}");
                     }
                     finally {
-                        //Debug.WriteLine("finally - Stopping");
+                        //log4.Debug("finally - Stopping");
                         //Stop();
                     }
                 }, null);
             }
             catch (SocketException e) {
-                Debug.WriteLine($"SocketClient.Client SocketException: {e.GetType().Name}: {e.Message}");
+                log4.Debug($"SocketClient.Client SocketException: {e.GetType().Name}: {e.Message}");
                 CatchSocketException(e);
                 if (_tcpClient != null) _tcpClient.Close();
                 return;
             }
             catch (Exception e) {
-                Debug.WriteLine($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
+                log4.Debug($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
                 Error($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
                 if (_tcpClient != null) _tcpClient.Close();
                 return;
             }
 
-            Debug.WriteLine("BeginConnect returned");
+            log4.Debug("BeginConnect returned");
         }
 
         private void CatchSocketException(SocketException e) {

@@ -599,7 +599,7 @@ namespace MCEControl {
 
         private void StopServer() {
             if (_server != null) {
-                AddLogEntry("Server: Stopping..");
+                AddLogEntry("Server: Stopping...");
                 // remove our notification handler
                 _server.Stop();
                 _server = null;
@@ -616,7 +616,7 @@ namespace MCEControl {
 
         private void StartSerialServer() {
             if (_serialServer == null) {
-                AddLogEntry("Serial: Starting..");
+                AddLogEntry("Serial: Starting...");
                 _serialServer = new SerialServer();
                 _serialServer.Notifications += HandleSerialServerNotifications;
                 _serialServer.Start(Settings.SerialServerPortName,
@@ -632,7 +632,7 @@ namespace MCEControl {
 
         private void StopSerialServer() {
             if (_serialServer != null) {
-                AddLogEntry("Serial: Stopping..");
+                AddLogEntry("Serial: Stopping...");
                 // remove our notification handler
                 _serialServer.Stop();
                 _serialServer = null;
@@ -641,7 +641,7 @@ namespace MCEControl {
 
         private void StartClient(bool delay = false) {
             if (_client == null) {
-                AddLogEntry("Client: Starting..");
+                AddLogEntry("Client: Starting...");
                 _client = new SocketClient(Settings);
                 _client.Notifications += ClientSocketNotificationHandler;
                 _client.Start(delay);
@@ -651,7 +651,7 @@ namespace MCEControl {
         private void StopClient() {
             if (_client != null) {
                 _cmdWindow.Visible = false;
-                AddLogEntry("Client: Stopping..");
+                AddLogEntry("Client: Stopping...");
                 _client.Stop();
                 _client = null;
             }
@@ -672,7 +672,7 @@ namespace MCEControl {
                 else {
                     StopClient();
                     if (!_shuttingDown && Settings.ActAsClient && Settings.ClientDelayTime > 0) {
-                        AddLogEntry("Client: Reconnecting..");
+                        AddLogEntry("Client: Reconnecting...");
                         StartClient(true);
                     }
                 }
@@ -930,25 +930,25 @@ namespace MCEControl {
             switch (notify) {
                 case ServiceNotification.StatusChange:
                     if (status == ServiceStatus.Started) {
-                        Debug.WriteLine("ClientSocketNotificationHandler - ServiceStatus.Started");
+                        log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Started");
                         s = $"Connecting to {Settings.ClientHost}:{Settings.ClientPort}";
                         //SetStatus(s);
                         HideCommandWindow();
                     }
                     else if (status == ServiceStatus.Connected) {
-                        Debug.WriteLine("ClientSocketNotificationHandler - ServiceStatus.Connected");
+                        log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Connected");
                         s = $"Connected to {Settings.ClientHost}:{Settings.ClientPort}";
                         //SetStatus(s);
                         ShowCommandWindow();
                     }
                     else if (status == ServiceStatus.Stopped) {
-                        Debug.WriteLine("ClientSocketNotificationHandler - ServiceStatus.Stopped");
+                        log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Stopped");
                         s = "Stopped.";
                         //SetStatus("Client/Sever Not Active");
                         HideCommandWindow();
                     }
                     else if (status == ServiceStatus.Sleeping) {
-                        Debug.WriteLine("ClientSocketNotificationHandler - ServiceStatus.Sleeping");
+                        log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Sleeping");
                         s = $"Waiting {(Settings.ClientDelayTime / 1000)} seconds to connect.";
                         //SetStatus(s);
                         HideCommandWindow();
@@ -961,7 +961,7 @@ namespace MCEControl {
                     return;
 
                 case ServiceNotification.Error:
-                    Debug.WriteLine($"ClientSocketNotificationHandler - ServiceStatus.Error: {(string)msg}");
+                    log4.Debug($"ClientSocketNotificationHandler - ServiceStatus.Error: {(string)msg}");
                     AddLogEntry($"Client: Error; {(string)msg}");
                     RestartClient();
                     return;
@@ -1125,13 +1125,17 @@ namespace MCEControl {
         }
 
         private void statusStripClient_Click(object sender, EventArgs e) {
-            //ShowSettings("Client");
-            ToggleClient();
+            if (Settings.ActAsClient)
+                ToggleClient();
+            else
+                ShowSettings("Client");
         }
 
         private void statusStripServer_Click(object sender, EventArgs e) {
-            //ShowSettings("Server");
-            ToggleServer();
+            if (Settings.ActAsServer)
+                ToggleServer();
+            else 
+                ShowSettings("Server");
         }
 
         private void statusStripSerial_Click(object sender, EventArgs e) {

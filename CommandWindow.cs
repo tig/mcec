@@ -13,7 +13,10 @@ using WindowsInput.Native;
 
 namespace MCEControl {
     public partial class CommandWindow : Form {
+        private log4net.ILog log4;
+
         public CommandWindow() {
+            log4 = log4net.LogManager.GetLogger("MCEControl");
             InitializeComponent();
         }
 
@@ -58,7 +61,7 @@ namespace MCEControl {
         }
 
         private void buttonSend_Click(object sender, EventArgs e) {
-            Debug.WriteLine("buttonSend_Click");
+            log4.Debug("buttonSend_Click");
             Send();
         }
 
@@ -68,7 +71,7 @@ namespace MCEControl {
         }
 
         private void listCmds_DoubleClick(object sender, EventArgs e) {
-            Debug.WriteLine("listCmds_DoubleClick");
+            log4.Debug("listCmds_DoubleClick");
             textBoxSendCommand.Text = listCmds.SelectedItems[0].Text;
             Send();
         }

@@ -32,8 +32,6 @@ namespace MCEControl {
         // in a thread safe manner
         private int _clientCount;
 
-        private ILog _log4;
-
         #region IDisposable Members
         public void Dispose() {
             Dispose(true);
@@ -45,13 +43,13 @@ namespace MCEControl {
         private Socket _mainSocket;
 
         private void Dispose(bool disposing) {
-            _log4.Debug("SocketServer disposing...");
+            log4.Debug("SocketServer disposing...");
             if (!disposing) return;
             foreach (var i in _socketList.Keys) {
                 Socket socket;
                 _socketList.TryRemove(i, out socket);
                 if (socket != null) {
-                    _log4.Debug("Closing Socket #" + i);
+                    log4.Debug("Closing Socket #" + i);
                     socket.Close();
                 }
             }
@@ -65,17 +63,17 @@ namespace MCEControl {
         // Control functions (Start, Stop, etc...)
         //-----------------------------------------------------------
         public void Start(int port) {
-            _log4 = log4net.LogManager.GetLogger("MCEControl");
+
             try {
-                _log4.Debug("SocketServer Start");
+                log4.Debug("SocketServer Start");
                 // Create the listening socket...
                 _mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 var ipLocal = new IPEndPoint(IPAddress.Any, port);
                 // Bind to local IP Address...
-                _log4.Debug("Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
+                log4.Debug("Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
                 _mainSocket.Bind(ipLocal);
                 // Start listening...
-                _log4.Debug("_mainSocket.Listen");
+                log4.Debug("_mainSocket.Listen");
                 _mainSocket.Listen(4);
                 // Create the call back for any client connections...
                 SetStatus(ServiceStatus.Started);
@@ -89,7 +87,7 @@ namespace MCEControl {
         }
 
         public void Stop() {
-            _log4.Debug("SocketServer Stop");
+            log4.Debug("SocketServer Stop");
             Dispose(true);
             SetStatus(ServiceStatus.Stopped);
         }
@@ -98,7 +96,7 @@ namespace MCEControl {
         // Async handlers
         //-----------------------------------------------------------
         private void OnClientConnect(IAsyncResult async) {
-            _log4.Debug("SocketServer OnClientConnect");
+            log4.Debug("SocketServer OnClientConnect");
 
             if (_mainSocket == null) return;
             ServerReplyContext serverReplyContext = null;
@@ -117,7 +115,7 @@ namespace MCEControl {
 
                 serverReplyContext = new ServerReplyContext(this, workerSocket, _clientCount);
 
-                _log4.Debug("Opened Socket #" + _clientCount);
+                log4.Debug("Opened Socket #" + _clientCount);
 
                 SetStatus(ServiceStatus.Connected);
                 SendNotification(ServiceNotification.ClientConnected, CurrentStatus, serverReplyContext);
@@ -152,7 +150,7 @@ namespace MCEControl {
 
         // Start waiting for data from the client
         private void BeginReceive(ServerReplyContext serverReplyContext) {
-            _log4.Debug("SocketServer BeginReceive");
+            log4.Debug("SocketServer BeginReceive");
             try {
                 serverReplyContext.Socket.BeginReceive(serverReplyContext.DataBuffer, 0,
                                     serverReplyContext.DataBuffer.Length,
@@ -167,7 +165,7 @@ namespace MCEControl {
         }
 
         private void CloseSocket(ServerReplyContext serverReplyContext) {
-            _log4.Debug("SocketServer CloseSocket");
+            log4.Debug("SocketServer CloseSocket");
             if (serverReplyContext == null) return;
 
             // Remove the reference to the worker socket of the closed client
@@ -175,7 +173,7 @@ namespace MCEControl {
             Socket socket;
             _socketList.TryRemove(serverReplyContext.ClientNumber, out socket);
             if (socket != null) {
-                _log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
+                log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
                 Interlocked.Decrement(ref _clientCount);
                 SendNotification(ServiceNotification.ClientDisconnected, CurrentStatus, serverReplyContext);
                 socket.Close();
@@ -284,7 +282,7 @@ namespace MCEControl {
         }
 
         public void SendAwakeCommand(String cmd, String host, int port) {
-            _log4.Debug("SocketServer SendAwakeCommand");
+            log4.Debug("SocketServer SendAwakeCommand");
             if (String.IsNullOrEmpty(host)) {
                 SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "No wakeup host specified.");
                 return;

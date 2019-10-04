@@ -67,7 +67,7 @@ namespace MCEControl {
 
             try {
                 // Set the read/write timeouts
-                Debug.WriteLine("Opening serial port: " + GetSettingsDisplayString());
+                log4.Debug("Opening serial port: " + GetSettingsDisplayString());
                 SetStatus(ServiceStatus.Started, GetSettingsDisplayString());
                 _serialPort.Open();
 
@@ -90,7 +90,7 @@ namespace MCEControl {
         }
 
         public void Stop() {
-            Debug.WriteLine("Serial Server Stop");
+            log4.Debug("Serial Server Stop");
             Dispose(true);
             SetStatus(ServiceStatus.Stopped);
         }
@@ -153,14 +153,14 @@ namespace MCEControl {
 
         private void Read()
         {
-            Debug.WriteLine(String.Format("Serial Read thread starting: {0}", GetSettingsDisplayString()));
+            log4.Debug(String.Format("Serial Read thread starting: {0}", GetSettingsDisplayString()));
             StringBuilder sb = new StringBuilder();
             while (true)
             {
                 try
                 {
                     if (_serialPort == null) {
-                        Debug.WriteLine("_serialPort is null in Read()");
+                        log4.Debug("_serialPort is null in Read()");
                         break;
                     }
                     char c = (char)_serialPort.ReadChar();
@@ -178,16 +178,16 @@ namespace MCEControl {
 
                 }
                 catch (TimeoutException) {
-                    Debug.WriteLine("SerialServer: TimeoutException");
+                    log4.Debug("SerialServer: TimeoutException");
                 }
                 catch (IOException ioe) {
-                    Debug.WriteLine("SerialServer: IOException: "+ ioe.Message);
+                    log4.Debug("SerialServer: IOException: "+ ioe.Message);
                 }
                 catch (Exception e) {
-                    Debug.WriteLine("SerialServer: Exception: " + e.Message);
+                    log4.Debug("SerialServer: Exception: " + e.Message);
                 }
             }
-            Debug.WriteLine("SerialServer: Exiting Read()");
+            log4.Debug("SerialServer: Exiting Read()");
         }
 
         // Send text on serial port. 
