@@ -1,10 +1,18 @@
-﻿// Uses a global Windows hook to detect keyboard or mouse activity
-// Based on this post: https://www.codeproject.com/Articles/7294/Processing-Global-Mouse-and-Keyboard-Hooks-in-C
+﻿//-------------------------------------------------------------------
+// Copyright © 2019 Kindel Systems, LLC
+// http://www.kindel.com
+// charlie@kindel.com
+// 
+// Published under the MIT License.
+// Source on GitHub: https://github.com/tig/mcec  
+//-------------------------------------------------------------------
 using System;
 using System.Windows.Forms;
 
 namespace MCEControl {
 
+    // Uses a global Windows hook to detect keyboard or mouse activity
+    // Based on this post: https://www.codeproject.com/Articles/7294/Processing-Global-Mouse-and-Keyboard-Hooks-in-C
     public sealed class UserActivityMonitor {
         private bool logActivity = false;    // log mouse/keyboard events to MCEC window
         private uint debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds

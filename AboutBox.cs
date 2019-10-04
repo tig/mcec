@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------
+﻿//-------------------------------------------------------------------
 // Copyright � 2018 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
@@ -24,6 +24,7 @@ namespace MCEControl {
         private LinkLabel _linkLabelKindelSystems;
         private Label _labelSummary;
         private PictureBox _pictureBox1;
+        private Label labelVersion;
         private Label _label1;
 
         /// <summary>
@@ -33,9 +34,12 @@ namespace MCEControl {
             //
             // Required for Windows Form Designer support
             //
+            // https://www.sgrottel.de/?p=1581&lang=en
+            Font = System.Drawing.SystemFonts.DefaultFont;
+
             InitializeComponent();
 
-            _labelTitle.Text = Resources.MCE_Controller_Version_label + LatestVersion.CurrentVersion;
+            labelVersion.Text = Resources.MCE_Controller_Version_label + Application.ProductVersion;
         }
 
         #region Windows Form Designer generated code
@@ -53,24 +57,24 @@ namespace MCEControl {
             this._labelSummary = new System.Windows.Forms.Label();
             this._pictureBox1 = new System.Windows.Forms.PictureBox();
             this._label1 = new System.Windows.Forms.Label();
+            this.labelVersion = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this._pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // _labelTitle
             // 
-            this._labelTitle.Font = new System.Drawing.Font("Lucida Sans", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this._labelTitle.Location = new System.Drawing.Point(130, 12);
+            this._labelTitle.Font = new System.Drawing.Font("Microsoft Sans Serif", 34F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this._labelTitle.Location = new System.Drawing.Point(216, 16);
             this._labelTitle.Name = "_labelTitle";
-            this._labelTitle.Size = new System.Drawing.Size(321, 23);
+            this._labelTitle.Size = new System.Drawing.Size(280, 41);
             this._labelTitle.TabIndex = 0;
             this._labelTitle.Text = "MCE Controller";
             // 
             // _linkLabelMceController
             // 
-            this._linkLabelMceController.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._linkLabelMceController.Location = new System.Drawing.Point(130, 95);
+            this._linkLabelMceController.Location = new System.Drawing.Point(216, 144);
             this._linkLabelMceController.Name = "_linkLabelMceController";
-            this._linkLabelMceController.Size = new System.Drawing.Size(321, 13);
+            this._linkLabelMceController.Size = new System.Drawing.Size(280, 16);
             this._linkLabelMceController.TabIndex = 3;
             this._linkLabelMceController.TabStop = true;
             this._linkLabelMceController.Tag = "https://github.com/tig/mcec/blob/master/license.md";
@@ -80,20 +84,19 @@ namespace MCEControl {
             // _buttonOk
             // 
             this._buttonOk.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this._buttonOk.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._buttonOk.Location = new System.Drawing.Point(376, 137);
+            this._buttonOk.Location = new System.Drawing.Point(416, 184);
             this._buttonOk.Name = "_buttonOk";
-            this._buttonOk.Size = new System.Drawing.Size(75, 23);
+            this._buttonOk.Size = new System.Drawing.Size(80, 32);
             this._buttonOk.TabIndex = 0;
             this._buttonOk.Text = "OK";
             this._buttonOk.Click += new System.EventHandler(this.ButtonOkClick);
             // 
             // _linkLabelKindelSystems
             // 
-            this._linkLabelKindelSystems.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this._linkLabelKindelSystems.Location = new System.Drawing.Point(130, 35);
+            this._linkLabelKindelSystems.AutoSize = true;
+            this._linkLabelKindelSystems.Location = new System.Drawing.Point(216, 88);
             this._linkLabelKindelSystems.Name = "_linkLabelKindelSystems";
-            this._linkLabelKindelSystems.Size = new System.Drawing.Size(321, 13);
+            this._linkLabelKindelSystems.Size = new System.Drawing.Size(145, 13);
             this._linkLabelKindelSystems.TabIndex = 1;
             this._linkLabelKindelSystems.TabStop = true;
             this._linkLabelKindelSystems.Tag = "http://www.kindel.com";
@@ -102,9 +105,9 @@ namespace MCEControl {
             // 
             // _labelSummary
             // 
-            this._labelSummary.Location = new System.Drawing.Point(130, 58);
+            this._labelSummary.Location = new System.Drawing.Point(216, 112);
             this._labelSummary.Name = "_labelSummary";
-            this._labelSummary.Size = new System.Drawing.Size(274, 37);
+            this._labelSummary.Size = new System.Drawing.Size(272, 32);
             this._labelSummary.TabIndex = 2;
             this._labelSummary.Text = "MCE Controller is distributed as freeware and published as open source under the " +
     "MIT License.";
@@ -113,9 +116,9 @@ namespace MCEControl {
             // 
             this._pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("_pictureBox1.Image")));
             this._pictureBox1.InitialImage = null;
-            this._pictureBox1.Location = new System.Drawing.Point(12, 12);
+            this._pictureBox1.Location = new System.Drawing.Point(8, 16);
             this._pictureBox1.Name = "_pictureBox1";
-            this._pictureBox1.Size = new System.Drawing.Size(96, 96);
+            this._pictureBox1.Size = new System.Drawing.Size(192, 160);
             this._pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this._pictureBox1.TabIndex = 5;
             this._pictureBox1.TabStop = false;
@@ -123,11 +126,21 @@ namespace MCEControl {
             // _label1
             // 
             this._label1.AutoSize = true;
-            this._label1.Location = new System.Drawing.Point(130, 122);
+            this._label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this._label1.Location = new System.Drawing.Point(56, 176);
             this._label1.Name = "_label1";
-            this._label1.Size = new System.Drawing.Size(113, 13);
+            this._label1.Size = new System.Drawing.Size(96, 12);
             this._label1.TabIndex = 7;
             this._label1.Text = "Icon by Guillen Design";
+            // 
+            // labelVersion
+            // 
+            this.labelVersion.AutoSize = true;
+            this.labelVersion.Location = new System.Drawing.Point(216, 64);
+            this.labelVersion.Name = "labelVersion";
+            this.labelVersion.Size = new System.Drawing.Size(78, 13);
+            this.labelVersion.TabIndex = 7;
+            this.labelVersion.Text = "Version a.b.c.d";
             // 
             // AboutBox
             // 
@@ -135,8 +148,9 @@ namespace MCEControl {
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
             this.BackColor = System.Drawing.SystemColors.Window;
             this.CancelButton = this._buttonOk;
-            this.ClientSize = new System.Drawing.Size(464, 168);
+            this.ClientSize = new System.Drawing.Size(507, 228);
             this.ControlBox = false;
+            this.Controls.Add(this.labelVersion);
             this.Controls.Add(this._label1);
             this.Controls.Add(this._pictureBox1);
             this.Controls.Add(this._labelSummary);
@@ -144,13 +158,13 @@ namespace MCEControl {
             this.Controls.Add(this._buttonOk);
             this.Controls.Add(this._linkLabelMceController);
             this.Controls.Add(this._labelTitle);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "AboutBox";
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "About";
             ((System.ComponentModel.ISupportInitialize)(this._pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

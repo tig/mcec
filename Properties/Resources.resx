@@ -121,7 +121,7 @@
     <value>Restart MCE Controller for change to take effect.</value>
   </data>
   <data name="MCE_Controller_Version_label" xml:space="preserve">
-    <value>MCE Controller Version </value>
+    <value>Version</value>
   </data>
   <data name="MCEController_commands_read_error" xml:space="preserve">
     <value>No commands loaded. Something is wrong with the MCEController.commands file. See the log for details, fix, and restart.</value>

@@ -4,8 +4,7 @@
 // charlie@kindel.com
 // 
 // Published under the MIT License.
-// Source control on SourceForge 
-//    http://sourceforge.net/projects/mcecontroller/
+// Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
 
 using System;
@@ -222,8 +221,8 @@ namespace MCEControl {
         private void LogTextChanged(object sender, EventArgs e) {
             Debug.Assert(LogTextBox != null);
             // We don't want to overrun the size a textbox can handle 
-            // limit to 64k
-            if (LogTextBox.TextLength > (64 * 1024)) {
+            // limit to 24k
+            if (LogTextBox.TextLength > (24 * 1024)) {
                 LogTextBox.Text = LogTextBox.Text.Remove(0, LogTextBox.Text.IndexOf("\r\n", StringComparison.Ordinal) + 2);
                 LogTextBox.Select(LogTextBox.TextLength, 0);
             }

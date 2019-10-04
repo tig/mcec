@@ -4,8 +4,7 @@
 // charlie@kindel.com
 // 
 // Published under the MIT License.
-// Source control on SourceForge 
-//    http://sourceforge.net/projects/mcecontroller/
+// Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
 
 using System;
@@ -352,10 +351,11 @@ namespace MCEControl {
             | System.Windows.Forms.AnchorStyles.Right)));
             this._log.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this._log.Font = new System.Drawing.Font("Lucida Console", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
-            this._log.Location = new System.Drawing.Point(0, 0);
+            this._log.Location = new System.Drawing.Point(8, 0);
             this._log.Multiline = true;
             this._log.Name = "_log";
-            this._log.Size = new System.Drawing.Size(645, 344);
+            this._log.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this._log.Size = new System.Drawing.Size(640, 344);
             this._log.TabIndex = 1;
             this._log.WordWrap = false;
             // 
@@ -376,6 +376,7 @@ namespace MCEControl {
             // 
             // statusStripStatus
             // 
+            this.statusStripStatus.BackColor = System.Drawing.SystemColors.Control;
             this.statusStripStatus.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.statusStripStatus.DoubleClickEnabled = true;
             this.statusStripStatus.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -387,6 +388,7 @@ namespace MCEControl {
             // 
             // statusStripClient
             // 
+            this.statusStripClient.BackColor = System.Drawing.SystemColors.Control;
             this.statusStripClient.DoubleClickEnabled = true;
             this.statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
             this.statusStripClient.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -400,6 +402,7 @@ namespace MCEControl {
             // 
             // statusStripServer
             // 
+            this.statusStripServer.BackColor = System.Drawing.SystemColors.Control;
             this.statusStripServer.DoubleClickEnabled = true;
             this.statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
             this.statusStripServer.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -413,6 +416,7 @@ namespace MCEControl {
             // 
             // statusStripSerial
             // 
+            this.statusStripSerial.BackColor = System.Drawing.SystemColors.Control;
             this.statusStripSerial.DoubleClickEnabled = true;
             this.statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
             this.statusStripSerial.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -427,7 +431,7 @@ namespace MCEControl {
             // MainWindow
             // 
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 15);
-            this.BackColor = System.Drawing.SystemColors.Control;
+            this.BackColor = System.Drawing.SystemColors.Window;
             this.ClientSize = new System.Drawing.Size(645, 367);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this._log);
@@ -501,7 +505,7 @@ namespace MCEControl {
             //t.Elapsed += (sender, args) => Start();
             //Logger.Instance.Log4.Info("Starting services...");
             //t.Start();
-            SetStatus($"MCE Controller version: {Application.ProductVersion}");
+            SetStatus($"Version: {Application.ProductVersion}");
             Start();
         }
 
@@ -725,11 +729,12 @@ namespace MCEControl {
                 _serialServer.Send(v + "\n");
         }
 
-        private delegate void SetStatusCallback(string text);
-
         private void SetStatus(string text) {
             if (statusStrip.InvokeRequired) {
-                statusStrip.BeginInvoke((SetStatusCallback)SetStatus, new object[] { text });
+                statusStrip.BeginInvoke((Action)(() => {
+                    statusStripStatus.Text = text;
+                    _notifyIcon.Text = text;
+                }));
             }
             else {
                 statusStripStatus.Text = text;
@@ -1016,7 +1021,7 @@ namespace MCEControl {
             }
             Logger.Instance.Log4.Info(s);
         }
-                
+
         private void MenuItemExitClick(object sender, EventArgs e) {
             ShutDown();
         }
@@ -1104,6 +1109,5 @@ namespace MCEControl {
                 Start();
             }
         }
-
     }
 }

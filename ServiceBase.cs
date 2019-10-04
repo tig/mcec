@@ -1,4 +1,12 @@
-﻿using System;
+﻿//-------------------------------------------------------------------
+// Copyright © 2019 Kindel Systems, LLC
+// http://www.kindel.com
+// charlie@kindel.com
+// 
+// Published under the MIT License.
+// Source on GitHub: https://github.com/tig/mcec  
+//-------------------------------------------------------------------
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

@@ -1,13 +1,11 @@
 ﻿//-------------------------------------------------------------------
-// By Charlie Kindel
+// Copyright © 2019 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 // 
 // Published under the MIT License.
-// Source control on SourceForge 
-//    http://sourceforge.net/projects/mcecontroller/
+// Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
-
 using System;
 using System.ComponentModel;
 using System.Diagnostics;

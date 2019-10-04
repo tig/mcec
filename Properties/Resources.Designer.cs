@@ -70,7 +70,7 @@ namespace MCEControl.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MCE Controller Version .
+        ///   Looks up a localized string similar to Version.
         /// </summary>
         internal static string MCE_Controller_Version_label {
             get {

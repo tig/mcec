@@ -1,11 +1,10 @@
 ﻿//-------------------------------------------------------------------
-// Copyright © 2017 Kindel Systems, LLC
+// Copyright © 2019 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 // 
 // Published under the MIT License.
-// Source control on SourceForge 
-//    http://sourceforge.net/projects/mcecontroller/
+// Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
 
 using System;
@@ -178,11 +177,13 @@ namespace MCEControl {
             // 
             // _buttonCancel
             // 
+            this._buttonCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this._buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this._buttonCancel.Location = new System.Drawing.Point(376, 288);
+            this._buttonCancel.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this._buttonCancel.Location = new System.Drawing.Point(384, 288);
             this._buttonCancel.Margin = new System.Windows.Forms.Padding(1);
             this._buttonCancel.Name = "_buttonCancel";
-            this._buttonCancel.Size = new System.Drawing.Size(75, 22);
+            this._buttonCancel.Size = new System.Drawing.Size(75, 24);
             this._buttonCancel.TabIndex = 2;
             this._buttonCancel.Text = "Cancel";
             this._buttonCancel.UseVisualStyleBackColor = true;
@@ -190,10 +191,12 @@ namespace MCEControl {
             // 
             // _buttonOk
             // 
-            this._buttonOk.Location = new System.Drawing.Point(288, 288);
+            this._buttonOk.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this._buttonOk.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this._buttonOk.Location = new System.Drawing.Point(296, 288);
             this._buttonOk.Margin = new System.Windows.Forms.Padding(1);
             this._buttonOk.Name = "_buttonOk";
-            this._buttonOk.Size = new System.Drawing.Size(75, 22);
+            this._buttonOk.Size = new System.Drawing.Size(75, 24);
             this._buttonOk.TabIndex = 1;
             this._buttonOk.Text = "OK";
             this._buttonOk.UseVisualStyleBackColor = true;
@@ -209,11 +212,12 @@ namespace MCEControl {
             this.tabcontrol.Controls.Add(this.tabServer);
             this.tabcontrol.Controls.Add(this.tabSerial);
             this.tabcontrol.Controls.Add(this._tabPageActivityMonitor);
-            this.tabcontrol.Location = new System.Drawing.Point(10, 10);
+            this.tabcontrol.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.tabcontrol.Location = new System.Drawing.Point(16, 16);
             this.tabcontrol.Margin = new System.Windows.Forms.Padding(1);
             this.tabcontrol.Name = "tabcontrol";
             this.tabcontrol.SelectedIndex = 0;
-            this.tabcontrol.Size = new System.Drawing.Size(446, 270);
+            this.tabcontrol.Size = new System.Drawing.Size(448, 264);
             this.tabcontrol.TabIndex = 0;
             // 
             // tabGeneral
@@ -227,7 +231,7 @@ namespace MCEControl {
             this.tabGeneral.Location = new System.Drawing.Point(4, 22);
             this.tabGeneral.Margin = new System.Windows.Forms.Padding(1);
             this.tabGeneral.Name = "tabGeneral";
-            this.tabGeneral.Size = new System.Drawing.Size(438, 244);
+            this.tabGeneral.Size = new System.Drawing.Size(440, 238);
             this.tabGeneral.TabIndex = 0;
             this.tabGeneral.Text = "General";
             // 
@@ -274,7 +278,7 @@ namespace MCEControl {
             // 
             // _checkBoxAutoStart
             // 
-            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 120);
+            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 104);
             this._checkBoxAutoStart.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxAutoStart.Name = "_checkBoxAutoStart";
             this._checkBoxAutoStart.Size = new System.Drawing.Size(160, 16);
@@ -291,16 +295,17 @@ namespace MCEControl {
             this.tabClient.Location = new System.Drawing.Point(4, 22);
             this.tabClient.Margin = new System.Windows.Forms.Padding(1);
             this.tabClient.Name = "tabClient";
-            this.tabClient.Size = new System.Drawing.Size(438, 244);
+            this.tabClient.Size = new System.Drawing.Size(440, 238);
             this.tabClient.TabIndex = 1;
             this.tabClient.Text = "Client";
             // 
             // _checkBoxEnableClient
             // 
+            this._checkBoxEnableClient.AutoSize = true;
             this._checkBoxEnableClient.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableClient.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableClient.Name = "_checkBoxEnableClient";
-            this._checkBoxEnableClient.Size = new System.Drawing.Size(104, 16);
+            this._checkBoxEnableClient.Size = new System.Drawing.Size(88, 17);
             this._checkBoxEnableClient.TabIndex = 0;
             this._checkBoxEnableClient.Text = "Enable &Client";
             this.toolTipClient.SetToolTip(this._checkBoxEnableClient, "Starts a TCP/IP client connection to the specified address:port. Commands will be" +
@@ -387,16 +392,17 @@ namespace MCEControl {
             this.tabServer.Location = new System.Drawing.Point(4, 22);
             this.tabServer.Margin = new System.Windows.Forms.Padding(1);
             this.tabServer.Name = "tabServer";
-            this.tabServer.Size = new System.Drawing.Size(438, 244);
+            this.tabServer.Size = new System.Drawing.Size(440, 238);
             this.tabServer.TabIndex = 2;
             this.tabServer.Text = "Server";
             // 
             // _checkBoxEnableServer
             // 
+            this._checkBoxEnableServer.AutoSize = true;
             this._checkBoxEnableServer.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableServer.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableServer.Name = "_checkBoxEnableServer";
-            this._checkBoxEnableServer.Size = new System.Drawing.Size(104, 16);
+            this._checkBoxEnableServer.Size = new System.Drawing.Size(93, 17);
             this._checkBoxEnableServer.TabIndex = 0;
             this._checkBoxEnableServer.Text = "Enable &Server";
             this._toolTipServer.SetToolTip(this._checkBoxEnableServer, "Enables the TCP/IP server. It will listen on the specified port for commands.");
@@ -548,16 +554,17 @@ namespace MCEControl {
             this.tabSerial.Margin = new System.Windows.Forms.Padding(1);
             this.tabSerial.Name = "tabSerial";
             this.tabSerial.Padding = new System.Windows.Forms.Padding(1);
-            this.tabSerial.Size = new System.Drawing.Size(438, 244);
+            this.tabSerial.Size = new System.Drawing.Size(440, 238);
             this.tabSerial.TabIndex = 3;
             this.tabSerial.Text = "Serial Server";
             // 
             // _checkBoxEnableSerialServer
             // 
+            this._checkBoxEnableSerialServer.AutoSize = true;
             this._checkBoxEnableSerialServer.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableSerialServer.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableSerialServer.Name = "_checkBoxEnableSerialServer";
-            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(145, 16);
+            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(122, 17);
             this._checkBoxEnableSerialServer.TabIndex = 0;
             this._checkBoxEnableSerialServer.Text = "Enable Serial Server";
             this._checkBoxEnableSerialServer.UseVisualStyleBackColor = true;
@@ -758,7 +765,7 @@ namespace MCEControl {
             this._tabPageActivityMonitor.Location = new System.Drawing.Point(4, 22);
             this._tabPageActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
             this._tabPageActivityMonitor.Name = "_tabPageActivityMonitor";
-            this._tabPageActivityMonitor.Size = new System.Drawing.Size(438, 244);
+            this._tabPageActivityMonitor.Size = new System.Drawing.Size(440, 238);
             this._tabPageActivityMonitor.TabIndex = 4;
             this._tabPageActivityMonitor.Text = "Activity Monitor";
             this._tabPageActivityMonitor.UseVisualStyleBackColor = true;
@@ -769,9 +776,9 @@ namespace MCEControl {
             this.checkBoxEnableActivityMonitor.Location = new System.Drawing.Point(20, 10);
             this.checkBoxEnableActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
             this.checkBoxEnableActivityMonitor.Name = "checkBoxEnableActivityMonitor";
-            this.checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(134, 17);
+            this.checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(159, 17);
             this.checkBoxEnableActivityMonitor.TabIndex = 0;
-            this.checkBoxEnableActivityMonitor.Text = "Enable &Activity Monitor";
+            this.checkBoxEnableActivityMonitor.Text = "Enable &User Activity Monitor";
             this.checkBoxEnableActivityMonitor.UseVisualStyleBackColor = true;
             this.checkBoxEnableActivityMonitor.CheckedChanged += new System.EventHandler(this.checkBoxEnableActivityMonitor_CheckedChanged);
             // 
@@ -844,19 +851,18 @@ namespace MCEControl {
             this.AcceptButton = this._buttonOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.SystemColors.Window;
+            this.BackColor = System.Drawing.SystemColors.Control;
             this.CancelButton = this._buttonCancel;
-            this.ClientSize = new System.Drawing.Size(463, 316);
-            this.ControlBox = false;
+            this.ClientSize = new System.Drawing.Size(475, 321);
             this.Controls.Add(this.tabcontrol);
             this.Controls.Add(this._buttonCancel);
             this.Controls.Add(this._buttonOk);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.Margin = new System.Windows.Forms.Padding(1);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "SettingsDialog";
+            this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Settings";
@@ -865,14 +871,17 @@ namespace MCEControl {
             this.tabGeneral.ResumeLayout(false);
             this.tabGeneral.PerformLayout();
             this.tabClient.ResumeLayout(false);
+            this.tabClient.PerformLayout();
             this._clientGroup.ResumeLayout(false);
             this._clientGroup.PerformLayout();
             this.tabServer.ResumeLayout(false);
+            this.tabServer.PerformLayout();
             this._serverGroup.ResumeLayout(false);
             this._serverGroup.PerformLayout();
             this._wakeupGroup.ResumeLayout(false);
             this._wakeupGroup.PerformLayout();
             this.tabSerial.ResumeLayout(false);
+            this.tabSerial.PerformLayout();
             this._serialServerGroup.ResumeLayout(false);
             this._serialServerGroup.PerformLayout();
             this._tabPageActivityMonitor.ResumeLayout(false);
@@ -890,12 +899,11 @@ namespace MCEControl {
             //
             // Required for Windows Form Designer support
             //
-            InitializeComponent();
-
             // https://www.sgrottel.de/?p=1581&lang=en
             Font = SystemFonts.DefaultFont;
+            InitializeComponent();
 
-                        // Clone the settings object
+            // Clone the settings object
             Settings = (AppSettings) settings.Clone();
 
             // Handle General tab setup
