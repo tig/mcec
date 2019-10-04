@@ -17,6 +17,9 @@ using System.IO.Ports;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
+using log4net;
+using log4net.Core;
+using log4net.Repository.Hierarchy;
 using MCEControl.Properties;
 using Microsoft.Win32;
 
@@ -89,6 +92,8 @@ namespace MCEControl {
         private TextBox textBoxDebounceTime;
         private CheckBox _checkBoxClientCmdUi;
         private EventLog eventLog1;
+        private ComboBox comboBoxLogThresholds;
+        private Label labelLogLevel;
         private TabPage tabServer;
 
         #region Windows Form Designer generated code
@@ -103,6 +108,8 @@ namespace MCEControl {
             this._buttonOk = new System.Windows.Forms.Button();
             this.tabcontrol = new System.Windows.Forms.TabControl();
             this.tabGeneral = new System.Windows.Forms.TabPage();
+            this.comboBoxLogThresholds = new System.Windows.Forms.ComboBox();
+            this.labelLogLevel = new System.Windows.Forms.Label();
             this._checkBoxHideOnStartup = new System.Windows.Forms.CheckBox();
             this._checkBoxClientCmdUi = new System.Windows.Forms.CheckBox();
             this._checkBoxAutoStart = new System.Windows.Forms.CheckBox();
@@ -212,6 +219,8 @@ namespace MCEControl {
             // tabGeneral
             // 
             this.tabGeneral.BackColor = System.Drawing.SystemColors.Window;
+            this.tabGeneral.Controls.Add(this.comboBoxLogThresholds);
+            this.tabGeneral.Controls.Add(this.labelLogLevel);
             this.tabGeneral.Controls.Add(this._checkBoxHideOnStartup);
             this.tabGeneral.Controls.Add(this._checkBoxClientCmdUi);
             this.tabGeneral.Controls.Add(this._checkBoxAutoStart);
@@ -221,6 +230,25 @@ namespace MCEControl {
             this.tabGeneral.Size = new System.Drawing.Size(438, 244);
             this.tabGeneral.TabIndex = 0;
             this.tabGeneral.Text = "General";
+            // 
+            // comboBoxLogThresholds
+            // 
+            this.comboBoxLogThresholds.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxLogThresholds.FormattingEnabled = true;
+            this.comboBoxLogThresholds.Location = new System.Drawing.Point(16, 72);
+            this.comboBoxLogThresholds.Name = "comboBoxLogThresholds";
+            this.comboBoxLogThresholds.Size = new System.Drawing.Size(121, 21);
+            this.comboBoxLogThresholds.TabIndex = 6;
+            this.comboBoxLogThresholds.SelectedIndexChanged += new System.EventHandler(this.comboBoxLogThresholds_SelectedIndexChanged);
+            // 
+            // labelLogLevel
+            // 
+            this.labelLogLevel.AutoSize = true;
+            this.labelLogLevel.Location = new System.Drawing.Point(16, 56);
+            this.labelLogLevel.Name = "labelLogLevel";
+            this.labelLogLevel.Size = new System.Drawing.Size(78, 13);
+            this.labelLogLevel.TabIndex = 5;
+            this.labelLogLevel.Text = "Log Threshold:";
             // 
             // _checkBoxHideOnStartup
             // 
@@ -246,7 +274,7 @@ namespace MCEControl {
             // 
             // _checkBoxAutoStart
             // 
-            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 56);
+            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 120);
             this._checkBoxAutoStart.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxAutoStart.Name = "_checkBoxAutoStart";
             this._checkBoxAutoStart.Size = new System.Drawing.Size(160, 16);
@@ -911,6 +939,26 @@ namespace MCEControl {
             textBoxActivityCommand.Text = Settings.ActivityMonitorCommand;
             textBoxDebounceTime.Text = Settings.ActivityMonitorDebounceTime.ToString();
 
+            comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"]);
+            comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["INFO"]);
+            comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["DEBUG"]);
+
+            switch (Settings.TextBoxLogThreshold) {
+                case "ALL":
+                    comboBoxLogThresholds.SelectedIndex = 0;
+                    break;
+
+                case "INFO":
+                    comboBoxLogThresholds.SelectedIndex = 1;
+                    break;
+
+                case "DEBUG":
+                    comboBoxLogThresholds.SelectedIndex = 2;
+                    break;
+            }
+
+            //comboBoxLogThresholds.SelectedIndex = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"].Value;
+
             _buttonOk.Enabled = false;
         }
 
@@ -1139,6 +1187,10 @@ namespace MCEControl {
             }
         }
 
+        private void comboBoxLogThresholds_SelectedIndexChanged(object sender, EventArgs e) {
+            Settings.TextBoxLogThreshold = comboBoxLogThresholds.SelectedItem.ToString();
+            SettingsChanged();
+        }
     }
 
     public class AppSettings : ICloneable {
@@ -1151,6 +1203,7 @@ namespace MCEControl {
         // General
         public bool AutoStart;
         public bool HideOnStartup;
+        public string TextBoxLogThreshold = "INFO";
 
         // Global
         [XmlIgnore] public bool DisableInternalCommands;
@@ -1224,17 +1277,18 @@ namespace MCEControl {
 
         public void Serialize() {
             var settingsPath = GetSettingsPath();
+            var filePath = settingsPath + "\\" + SettingsFileName;
             try {
-                var filePath = settingsPath + "\\" + SettingsFileName;
                 var ser = new XmlSerializer(typeof (AppSettings));
                 var sw = new StreamWriter(filePath);
                 ser.Serialize(sw, this);
                 sw.Close();
 
-                MainWindow.AddLogEntry("MCEC: Wrote settings to " + filePath);
+                Logger.Instance.Log4.Info("Settings: Wrote settings to " + filePath);
             }
             catch (Exception e) {
-                MessageBox.Show(String.Format("Settings file could not be written. {0}", e.Message));
+                Logger.Instance.Log4.Info($"Settings: Settings file could not be written. {filePath} {e.Message}");
+                MessageBox.Show($"Settings file could not be written. {filePath} {e.Message}");
             }
         }
 
@@ -1255,11 +1309,11 @@ namespace MCEControl {
 
                 fs.Close();
 
-                MainWindow.AddLogEntry("MCEC: Read settings from " + filePath);
+                Logger.Instance.Log4.Info("Settings: Loaded settings from " + filePath);
             }
             catch (FileNotFoundException) {
                 // First time through, so create file with defaults
-                MainWindow.AddLogEntry("MCEC: Creating default settings file.");
+                Logger.Instance.Log4.Info("Setttings: Creating default settings file.");
                 settings = new AppSettings();
                 settings.Serialize();
 
@@ -1269,7 +1323,8 @@ namespace MCEControl {
                                     "DisableInternalCommands", false));
             }
             catch (UnauthorizedAccessException e) {
-                MessageBox.Show(String.Format("Settings file could not be loaded. {0}", e.Message));
+                Logger.Instance.Log4.Info($"Settings: Settings file could not be loaded. {e.Message}");
+                MessageBox.Show($"Settings file could not be loaded. {e.Message}");
             }
 
             return settings;

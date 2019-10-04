@@ -66,7 +66,7 @@ namespace MCEControl {
         }
 
         private void Send() {
-            MainWindow.AddLogEntry("Sending Command: " + textBoxSendCommand.Text);
+            Logger.Instance.Log4.Info("Sending Command: " + textBoxSendCommand.Text);
             MainWindow.Instance.SendLine(textBoxSendCommand.Text);
         }
 

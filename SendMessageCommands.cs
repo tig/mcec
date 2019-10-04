@@ -52,22 +52,22 @@ namespace MCEControl {
                     if (procs.Length > 0) {
                         var h = procs[0].MainWindowHandle;
 
-                        MainWindow.AddLogEntry(String.Format("Cmd: SendMessage ({0}): {1} {2} {3}", ClassName, Msg, WParam,
+                        Logger.Instance.Log4.Info(String.Format("Cmd: SendMessage ({0}): {1} {2} {3}", ClassName, Msg, WParam,
                                                              LParam));
                         Win32.SendMessage(h, (DWORD) Msg, (DWORD) WParam, (DWORD) LParam);
                     }
                     else {
-                        MainWindow.AddLogEntry("Cmd: GetProcessByName for " + ClassName + " failed");
+                        Logger.Instance.Log4.Info("Cmd: GetProcessByName for " + ClassName + " failed");
                     }
                 }
                 else {
                     var h = Win32.GetForegroundWindow();
-                    MainWindow.AddLogEntry(String.Format("Cmd: SendMessage (forground window): {0} {1} {2}", Msg, WParam, LParam));
+                    Logger.Instance.Log4.Info(String.Format("Cmd: SendMessage (forground window): {0} {1} {2}", Msg, WParam, LParam));
                     Win32.SendMessage(h, (DWORD) Msg, (DWORD) WParam, (DWORD) LParam);
                 }
             }
             catch (Exception e) {
-                MainWindow.AddLogEntry("Cmd: SendMessageCommand.Execute failed for " + ClassName + " with error: " +
+                Logger.Instance.Log4.Info("Cmd: SendMessageCommand.Execute failed for " + ClassName + " with error: " +
                                        e.Message);
             }
         }

@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------
+﻿//-------------------------------------------------------------------
 // Copyright © 2017 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
@@ -65,7 +65,7 @@ namespace MCEControl {
                 if (cmd.StartsWith("chars:")) {
                     // "chars:<chars>
                     String chars = Regex.Unescape(cmd.Substring(6, cmd.Length - 6));
-                    MainWindow.AddLogEntry(String.Format("Cmd: Sending {0} chars: {1}", chars.Length, chars));
+                    Logger.Instance.Log4.Info(String.Format("Cmd: Sending {0} chars: {1}", chars.Length, chars));
                     var sim = new InputSimulator();
                     sim.Keyboard.TextEntry(chars);
                     return;
@@ -104,7 +104,7 @@ namespace MCEControl {
 
                     var sim = new InputSimulator();
 
-                    MainWindow.AddLogEntry("Cmd: Sending keydown for: " + cmd);
+                    Logger.Instance.Log4.Info("Cmd: Sending keydown for: " + cmd);
                     sim.Keyboard.KeyPress((VirtualKeyCode) c);
                     return;
                 }
@@ -116,7 +116,7 @@ namespace MCEControl {
                 command.Execute(reply);
             }
             else {
-                MainWindow.AddLogEntry("Cmd: Unknown Cmd: " + cmd);
+                Logger.Instance.Log4.Info("Cmd: Unknown Cmd: " + cmd);
             }
         }
 
@@ -147,11 +147,8 @@ namespace MCEControl {
                     }
                 }
                 catch (Exception ex) {
-                    MessageBox.Show(String.Format("No commands loaded. Error parsing built-in commands. {0}",
-                        ex.Message));
-                    MainWindow.AddLogEntry(
-                        String.Format("MCEC: No commands loaded. Error parsing built-in commands. {0}",
-                            ex.Message));
+                    MessageBox.Show($"No commands loaded. Error parsing built-in commands. {ex.Message}");
+                    Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing built-in commands. {ex.Message}");
                     Util.DumpException(ex);
                     return null;
                 }
@@ -185,23 +182,19 @@ namespace MCEControl {
                     }
                     cmds._hashTable.Add(cmd.Key.ToUpper(), cmd);
                 }
-                MainWindow.AddLogEntry(String.Format("MCEC: User defined commands loaded."));
+                Logger.Instance.Log4.Info($"Commands: User defined commands loaded.");
             }
             catch (FileNotFoundException ex) {
-                MainWindow.AddLogEntry("MCEC: No user defined commands loaded; MCEControl.commands was not found.");
+                Logger.Instance.Log4.Info("Commands: No user defined commands loaded; MCEControl.commands was not found.");
                 Util.DumpException(ex);
             }
             catch (InvalidOperationException ex) {
-                MainWindow.AddLogEntry(
-                    String.Format("MCEC: No commands loaded. Error parsing MCEControl.commands file. {0} {1}", ex.Message,
-                                  ex.InnerException.Message));
+                Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing MCEControl.commands file. {ex.Message} {ex.InnerException.Message}");
                 Util.DumpException(ex);
             }
             catch (Exception ex) {
-                MessageBox.Show(String.Format("No commands loaded. Error parsing MCEControl.commands file. {0}",
-                                              ex.Message));
-                MainWindow.AddLogEntry(String.Format("MCEC: No commands loaded. Error parsing MCEControl.commands file. {0}",
-                                                     ex.Message));
+                MessageBox.Show($"No commands loaded. Error parsing MCEControl.commands file. {ex.Message}");
+                Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing MCEControl.commands file. {ex.Message}");
                 Util.DumpException(ex);
             }
             finally {

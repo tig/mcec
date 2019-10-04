@@ -30,7 +30,7 @@ namespace MCEControl {
         }
 
         public override void Execute(Reply reply) {
-            MainWindow.AddLogEntry("Cmd: Starting process: " + File + " " + Arguments);
+            Logger.Instance.Log4.Info("Cmd: Starting process: " + File + " " + Arguments);
             if (File != null) {
                 var p = new Process {StartInfo = {FileName = File, Arguments = Arguments}};
                 p.Start();

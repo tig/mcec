@@ -40,16 +40,16 @@ namespace MCEControl {
                     if (procs.Length > 0) {
                         var h = procs[0].MainWindowHandle;
 
-                        MainWindow.AddLogEntry("Cmd: SetForegroundWindow(\"" + ClassName + "\")");
+                        Logger.Instance.Log4.Info("Cmd: SetForegroundWindow(\"" + ClassName + "\")");
                         Win32.SetForegroundWindow(h);
                     }
                     else {
-                        MainWindow.AddLogEntry("Cmd: GetProcessByName for " + ClassName + " failed");
+                        Logger.Instance.Log4.Info("Cmd: GetProcessByName for " + ClassName + " failed");
                     }
                 }
             }
             catch (Exception e) {
-                MainWindow.AddLogEntry("Cmd: SetForegroundWindowCommand.Execute failed for " + ClassName + " with error: " +
+                Logger.Instance.Log4.Info("Cmd: SetForegroundWindowCommand.Execute failed for " + ClassName + " with error: " +
                                        e.Message);
             }
         }

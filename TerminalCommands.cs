@@ -84,7 +84,7 @@ namespace MCEControl
         }
 
         private void Reply(Reply reply, String msg) {
-            MainWindow.AddLogEntry("Cmd: Sending reply: " + msg);
+            Logger.Instance.Log4.Info("Cmd: Sending reply: " + msg);
             reply.WriteLine(msg);
         }
     }

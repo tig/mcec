@@ -47,12 +47,12 @@ namespace MCEControl {
             if (userActivityMonitor == null) return;
 
             if (LogActivity)
-                MainWindow.AddLogEntry($"ActivityMonitor: {logInfo}");
+                Logger.Instance.Log4.Info($"ActivityMonitor: {logInfo}");
 
             if (LastTime.AddSeconds(debounceTime) <= DateTime.Now) {
-                MainWindow.AddLogEntry("ActivityMonitor: User Activity Dectected");
+                Logger.Instance.Log4.Info("ActivityMonitor: User Activity Dectected");
                 if (MainWindow.Instance.Client != null) {
-                    MainWindow.AddLogEntry("ActivityMonitor: Sending " + activityCmd);
+                    Logger.Instance.Log4.Info("ActivityMonitor: Sending " + activityCmd);
                     MainWindow.Instance.SendLine(activityCmd);
                 }
                 LastTime = DateTime.Now;

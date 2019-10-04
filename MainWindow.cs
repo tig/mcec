@@ -89,6 +89,7 @@ namespace MCEControl {
         /// </summary>
         [STAThread]
         public static void Main(string[] args) {
+            Logger.Instance.Log4.Debug("Main");
             if (!IsNet45OrNewer()) {
                 MessageBox.Show(
                     "MCE Controller requires .NET Framework 4.5 or newer.\r\n\r\nDownload and install from http://www.microsoft.com/net/");
@@ -104,6 +105,7 @@ namespace MCEControl {
 
             // Load AppSettings
             Instance.Settings = AppSettings.Deserialize(AppSettings.GetSettingsPath());
+            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Instance.Settings.TextBoxLogThreshold];
 
             Application.Run(Instance);
         }
@@ -117,10 +119,12 @@ namespace MCEControl {
         }
 
         public MainWindow() {
-            //
-            // Required for Windows Form Designer support
-            //
+            log4 = Logger.Instance.Log4;
+
             InitializeComponent();
+            Logger.Instance.LogTextBox = _log;
+            CheckVersion();
+
             _notifyIcon.Icon = Icon;
 
             ShowInTaskbar = true;
@@ -354,8 +358,6 @@ namespace MCEControl {
             this._log.Size = new System.Drawing.Size(645, 344);
             this._log.TabIndex = 1;
             this._log.WordWrap = false;
-            this._log.TextChanged += new System.EventHandler(this.LogTextChanged);
-            this._log.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.LogKeyPress);
             // 
             // statusStrip
             // 
@@ -466,7 +468,8 @@ namespace MCEControl {
         }
 
         private void MainWindowLoad(object sender, EventArgs e) {
-            CheckVersion();
+            Logger.Instance.Log4.Debug("MainWindowLoad");
+
             // Location can not be changed in constructor, has to be done here
             Location = Settings.WindowLocation;
             Size = Settings.WindowSize;
@@ -478,7 +481,7 @@ namespace MCEControl {
                 Opacity = 100;
             }
             else {
-                AddLogEntry($"MCEC: {CmdTable.NumCommands} commands available.");
+                Logger.Instance.Log4.Info($"{CmdTable.NumCommands} commands available.");
                 Opacity = (double)Settings.Opacity / 100;
 
                 if (Settings.HideOnStartup) {
@@ -496,7 +499,7 @@ namespace MCEControl {
             //    Interval = 2000
             //};
             //t.Elapsed += (sender, args) => Start();
-            //AddLogEntry("Starting services...");
+            //Logger.Instance.Log4.Info("Starting services...");
             //t.Start();
             SetStatus($"MCE Controller version: {Application.ProductVersion}");
             Start();
@@ -515,23 +518,23 @@ namespace MCEControl {
         }
 
         private void CheckVersion() {
-            AddLogEntry($"MCEC: Version: {Application.ProductVersion}");
+            Logger.Instance.Log4.Info($"MCE Controller Version: {Application.ProductVersion}");
             var lv = new LatestVersion();
             lv.GetLatestStableVersionAsync((o, version) => {
                 if (version == null && !String.IsNullOrWhiteSpace(lv.ErrorMessage)) {
-                    AddLogEntry(
-                        $"MCEC: Could not access tig.github.io/mcec to see if a newer version is available. {lv.ErrorMessage}");
+                    Logger.Instance.Log4.Info(
+                        $"Could not access tig.github.io/mcec to see if a newer version is available. {lv.ErrorMessage}");
                 }
                 else if (lv.CompareVersions() < 0) {
-                    AddLogEntry(
-                        $"MCEC: A newer version of MCE Controller ({version}) is available at tig.github.io/mcec.");
+                    Logger.Instance.Log4.Info(
+                        $"A newer version of MCE Controller ({version}) is available at tig.github.io/mcec.");
                 }
                 else if (lv.CompareVersions() > 0) {
-                    AddLogEntry(
-                        $"MCEC: You are are running a MORE recent version than can be found at tig.github.io/mcec ({version}).");
+                    Logger.Instance.Log4.Info(
+                        $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version}).");
                 }
                 else {
-                    AddLogEntry("MCEC: You are running the most recent version of MCE Controller.");
+                    Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller.");
                 }
             });
         }
@@ -568,7 +571,7 @@ namespace MCEControl {
         }
 
         public void ShutDown() {
-            AddLogEntry("ShutDown");
+            Logger.Instance.Log4.Info("ShutDown");
             _shuttingDown = true;
 
             Stop();
@@ -587,19 +590,19 @@ namespace MCEControl {
 
         private void StartServer() {
             if (_server == null) {
-                AddLogEntry("Server: Starting...");
+                Logger.Instance.Log4.Info("Server: Starting...");
                 _server = new SocketServer();
                 _server.Notifications += ServerSocketCallbackHandler;
                 _server.Start(Settings.ServerPort);
                 _menuItemSendAwake.Enabled = Settings.WakeupEnabled;
             }
             else
-                AddLogEntry("MCEC: Attempt to StartServer() while an instance already exists!");
+                Logger.Instance.Log4.Debug("Attempt to StartServer() while an instance already exists!");
         }
 
         private void StopServer() {
             if (_server != null) {
-                AddLogEntry("Server: Stopping...");
+                Logger.Instance.Log4.Info("Server: Stopping...");
                 // remove our notification handler
                 _server.Stop();
                 _server = null;
@@ -616,7 +619,7 @@ namespace MCEControl {
 
         private void StartSerialServer() {
             if (_serialServer == null) {
-                AddLogEntry("Serial: Starting...");
+                Logger.Instance.Log4.Info("Serial: Starting...");
                 _serialServer = new SerialServer();
                 _serialServer.Notifications += HandleSerialServerNotifications;
                 _serialServer.Start(Settings.SerialServerPortName,
@@ -627,12 +630,12 @@ namespace MCEControl {
                     Settings.SerialServerHandshake);
             }
             else
-                AddLogEntry("Serial: Attempt to StartSerialServer() while an instance already exists!");
+                Logger.Instance.Log4.Info("Serial: Attempt to StartSerialServer() while an instance already exists!");
         }
 
         private void StopSerialServer() {
             if (_serialServer != null) {
-                AddLogEntry("Serial: Stopping...");
+                Logger.Instance.Log4.Info("Serial: Stopping...");
                 // remove our notification handler
                 _serialServer.Stop();
                 _serialServer = null;
@@ -641,7 +644,7 @@ namespace MCEControl {
 
         private void StartClient(bool delay = false) {
             if (_client == null) {
-                AddLogEntry("Client: Starting...");
+                Logger.Instance.Log4.Info("Client: Starting...");
                 _client = new SocketClient(Settings);
                 _client.Notifications += ClientSocketNotificationHandler;
                 _client.Start(delay);
@@ -651,7 +654,7 @@ namespace MCEControl {
         private void StopClient() {
             if (_client != null) {
                 _cmdWindow.Visible = false;
-                AddLogEntry("Client: Stopping...");
+                Logger.Instance.Log4.Info("Client: Stopping...");
                 _client.Stop();
                 _client = null;
             }
@@ -672,7 +675,7 @@ namespace MCEControl {
                 else {
                     StopClient();
                     if (!_shuttingDown && Settings.ActAsClient && Settings.ClientDelayTime > 0) {
-                        AddLogEntry("Client: Reconnecting...");
+                        Logger.Instance.Log4.Info("Client: Reconnecting...");
                         StartClient(true);
                     }
                 }
@@ -705,13 +708,13 @@ namespace MCEControl {
                 CmdTable.Execute(reply, cmd);
             }
             catch (Exception e) {
-                AddLogEntry($"Command: ({cmd}) error: {e}");
+                Logger.Instance.Log4.Info($"Command: ({cmd}) error: {e}");
             }
         }
 
         // Sends a line of text (adds a "\n" to end) to connected client and server
         internal void SendLine(string v) {
-            //AddLogEntry($"Send: {v}");
+            //Logger.Instance.Log4.Info($"Send: {v}");
             if (_client != null)
                 _client.Send(v + "\n");
 
@@ -834,7 +837,7 @@ namespace MCEControl {
                 case ServiceNotification.ReceivedData:
                     Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
                     s = $"Server: Received from Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint}: {msg}";
-                    AddLogEntry(s);
+                    Logger.Instance.Log4.Info(s);
                     ReceivedData(serverReplyContext, msg);
                     return;
 
@@ -887,7 +890,7 @@ namespace MCEControl {
                     s = "Unknown notification: " + notification;
                     break;
             }
-            AddLogEntry($"Server: {s}");
+            Logger.Instance.Log4.Info($"Server: {s}");
         }
 
         private void HandleSocketServerStatusChange(ServiceStatus status) {
@@ -918,7 +921,7 @@ namespace MCEControl {
                             Settings.WakeupPort);
                     break;
             }
-            AddLogEntry($"Server: {s}");
+            Logger.Instance.Log4.Info($"Server: {s}");
         }
 
         //
@@ -956,13 +959,13 @@ namespace MCEControl {
                     break;
 
                 case ServiceNotification.ReceivedData:
-                    AddLogEntry($"Client: Received; {msg}");
+                    Logger.Instance.Log4.Info($"Client: Received; {msg}");
                     ReceivedData(reply, (string)msg);
                     return;
 
                 case ServiceNotification.Error:
                     log4.Debug($"ClientSocketNotificationHandler - ServiceStatus.Error: {(string)msg}");
-                    AddLogEntry($"Client: Error; {(string)msg}");
+                    Logger.Instance.Log4.Info($"Client: Error; {(string)msg}");
                     RestartClient();
                     return;
 
@@ -970,7 +973,7 @@ namespace MCEControl {
                     s = "Unknown notification";
                     break;
             }
-            AddLogEntry($"Client: {s}");
+            Logger.Instance.Log4.Info($"Client: {s}");
         }
 
         //
@@ -999,7 +1002,7 @@ namespace MCEControl {
                     break;
 
                 case ServiceNotification.ReceivedData:
-                    AddLogEntry($"SerialServer: Received: {msg}");
+                    Logger.Instance.Log4.Info($"SerialServer: Received: {msg}");
                     ReceivedData(reply, (string)msg);
                     return;
 
@@ -1011,38 +1014,9 @@ namespace MCEControl {
                     s = "SerialServer: Unknown notification";
                     break;
             }
-            AddLogEntry(s);
+            Logger.Instance.Log4.Info(s);
         }
-
-        public static void AddLogEntry(String text) {
-            if (Instance == null) return;
-
-            if (Instance.log4 == null) {
-                string logFile = Environment.CurrentDirectory + @"\MCEControl.log";
-                if (Environment.CurrentDirectory.Contains("Program Files (x86)"))
-                    logFile = $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Kindel Systems\MCE Controller\MCEControl.log";
-                Logger.Setup(logFile);
-                Instance.log4 = log4net.LogManager.GetLogger("MCEControl");
-                AddLogEntry($"MCEC: Log file being written to {logFile}");
-            }
-            Instance.log4.Info(text);
-            // Can only update the log in the main window when on the UI thread
-            if (Instance.InvokeRequired || Instance._log.InvokeRequired)
-                Instance.BeginInvoke((AddLogEntryUiThreadCallback)AddLogEntryUiThread, new object[] { text });
-            else {
-                AddLogEntryUiThread(text);
-            }
-        }
-
-        private delegate void AddLogEntryUiThreadCallback(string text);
-        private static void AddLogEntryUiThread(String text) {
-            Instance._log.AppendText("["
-                                     + DateTime.Now.ToString("yy'-'MM'-'dd' 'HH':'mm':'ss")
-                                     + "] "
-                                     + text
-                                     + Environment.NewLine);
-        }
-
+                
         private void MenuItemExitClick(object sender, EventArgs e) {
             ShutDown();
         }
@@ -1124,60 +1098,12 @@ namespace MCEControl {
 
                 Opacity = (double)Settings.Opacity / 100;
 
+                Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Settings.TextBoxLogThreshold];
+
                 Stop();
                 Start();
             }
         }
 
-        // Prevent input into the edit box
-        private void LogKeyPress(object sender, KeyPressEventArgs e) {
-            e.Handled = true;
-        }
-
-        // Keep the end of the log visible and prevent it from overflowing
-        private void LogTextChanged(object sender, EventArgs e) {
-            // We don't want to overrun the size a textbox can handle
-            // limit to 16k
-            if (_log.TextLength > (16 * 1024)) {
-                _log.Text = _log.Text.Remove(0, _log.Text.IndexOf("\r\n", StringComparison.Ordinal) + 2);
-                _log.Select(_log.TextLength, 0);
-            }
-            _log.ScrollToCaret();
-        }
-
-    }
-
-    public class Logger {
-        public static void Setup(string logFile) {
-            Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-
-            PatternLayout patternLayout = new PatternLayout();
-            patternLayout.ConversionPattern = "%date %-5level - %message%newline";
-            patternLayout.ActivateOptions();
-
-            RollingFileAppender roller = new RollingFileAppender {
-                AppendToFile = true,
-                Layout = patternLayout,
-                MaxSizeRollBackups = 5,
-                MaximumFileSize = "100KB",
-                RollingStyle = RollingFileAppender.RollingMode.Size,
-                StaticLogFileName = true,
-                File = logFile
-            };
-
-            roller.ActivateOptions();
-            hierarchy.Root.AddAppender(roller);
-
-            //MemoryAppender memory = new MemoryAppender();
-            //memory.ActivateOptions();
-            //hierarchy.Root.AddAppender(memory);
-
-            var debugAppender = new ConsoleAppender { Layout = patternLayout };
-            debugAppender.ActivateOptions();
-            hierarchy.Root.AddAppender(debugAppender);
-
-            hierarchy.Root.Level = Level.All;
-            hierarchy.Configured = true;
-        }
     }
 }
