@@ -105,5 +105,44 @@ namespace MCEControl.Properties {
                 return ResourceManager.GetString("SettingsDialog_CheckDisableInternalCommands_Settings", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Trafficlight_gray_icon {
+            get {
+                object obj = ResourceManager.GetObject("Trafficlight-gray-icon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Trafficlight_green_icon {
+            get {
+                object obj = ResourceManager.GetObject("Trafficlight-green-icon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap Trafficlight_red_icon {
+            get {
+                object obj = ResourceManager.GetObject("Trafficlight-red-icon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No connection could be made because the target computer actively refused it. This usually results from trying to connect to a service that is inactive on the foreign host—that is, one with no server application running..
+        /// </summary>
+        internal static string WSA_10061 {
+            get {
+                return ResourceManager.GetString("WSA_10061", resourceCulture);
+            }
+        }
     }
 }

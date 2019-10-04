@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------
+﻿//-------------------------------------------------------------------
 // By Charlie Kindel
 // http://www.kindel.com
 // charlie@kindel.com
@@ -16,6 +16,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using MCEControl.Properties;
 
 namespace MCEControl {
     /// <summary>
@@ -53,7 +54,7 @@ namespace MCEControl {
         private TcpClient _tcpClient;
         private BackgroundWorker _bw;
 
-        private void Dispose(bool disposing)  {
+        private void Dispose(bool disposing) {
             if (disposing) {
                 if (_bw != null) {
                     _bw.CancelAsync();
@@ -62,7 +63,7 @@ namespace MCEControl {
                 }
                 if (_tcpClient != null) {
                     _tcpClient.Close();
-                    _tcpClient= null;
+                    _tcpClient = null;
                 }
             }
         }
@@ -74,8 +75,7 @@ namespace MCEControl {
             _bw.WorkerReportsProgress = false;
             _bw.WorkerSupportsCancellation = true;
             _bw.DoWork += (sender, args) => {
-                if (delay && _clientDelayTime > 0)
-                {
+                if (delay && _clientDelayTime > 0) {
                     SetStatus(ServiceStatus.Sleeping);
                     Thread.Sleep(_clientDelayTime);
                 }
@@ -88,45 +88,56 @@ namespace MCEControl {
 
         public void Stop() {
             Dispose(true);
-            if (CurrentStatus != ServiceStatus.Stopped)
-                SetStatus(ServiceStatus.Stopped);
+            SetStatus(ServiceStatus.Stopped);
         }
 
         // Send text to remote connection
-        public void Send(String newText) {
-            if (!_tcpClient.Connected || _bw.CancellationPending) return;
+        public override void Send(string text, Reply replyContext = null) {
+            if (_tcpClient == null || !_tcpClient.Connected || _bw.CancellationPending) return;
             try {
-                byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(newText.Replace("\0xFF", "\0xFF\0xFF"));
+                byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
                 _tcpClient.GetStream().Write(buf, 0, buf.Length);
             }
             catch (IOException ioe) {
                 Error(ioe.Message);
             }
+
+            // TODO: Implement notifications
         }
 
         private void Connect() {
-            SetStatus(ServiceStatus.Started, String.Format("{0}:{1}", _host, _port));
+            SetStatus(ServiceStatus.Started, $"{_host}:{_port}");
 
             IPEndPoint endPoint;
             try {
-                endPoint = new IPEndPoint(Dns.GetHostEntry(_host).AddressList[0], _port);
+                // GetHostEntry returns a list. We need to pick the IPv4 entry.
+                // TODO: Support ipv6
+                IPAddress[] ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
+
+                if (ipv4Addresses.Length == 0)
+                    throw new Exception($"{_host}:{_port} didn't resolve to a valid address.");
+
+                endPoint = new IPEndPoint(ipv4Addresses[0], _port);
+                
                 _tcpClient.BeginConnect(endPoint.Address, _port, ar => {
                     if (_tcpClient == null)
                         return;
                     try {
+                        Debug.WriteLine($"Client BeginConnect: { _host}:{ _port}");
                         _tcpClient.EndConnect(ar);
-                        SetStatus(ServiceStatus.Connected);
+                        Debug.WriteLine($"Client Back from EndConnect: { _host}:{ _port}");
+                        SetStatus(ServiceStatus.Connected, $"{_host}:{_port}");
                         StringBuilder sb = new StringBuilder();
-                        while (_bw != null && 
-                            !_bw.CancellationPending && 
-                            CurrentStatus == ServiceStatus.Connected && 
+                        while (_bw != null &&
+                            !_bw.CancellationPending &&
+                            CurrentStatus == ServiceStatus.Connected &&
                             _tcpClient != null &&
                             _tcpClient.Connected) {
                             int input = _tcpClient.GetStream().ReadByte();
                             switch (input) {
-                                case (byte) '\r':
-                                case (byte) '\n':
-                                case (byte) '\0':
+                                case (byte)'\r':
+                                case (byte)'\n':
+                                case (byte)'\0':
                                     if (sb.Length > 0) {
                                         SendNotification(ServiceNotification.ReceivedData, ServiceStatus.Connected, new ClientReplyContext(_tcpClient), sb.ToString());
                                         sb.Clear();
@@ -139,66 +150,70 @@ namespace MCEControl {
                                     return;
 
                                 default:
-                                    sb.Append((char) input);
+                                    sb.Append((char)input);
                                     break;
                             }
                         }
                     }
                     catch (SocketException e) {
-                        switch (e.ErrorCode) {
-                            case 10061:
-                                Error("Connection refused.");
-                                break;
-
-                            case 10060:
-                                Error("Connection timed out.");
-                                break;
-
-                            default:
-                                Error(String.Format("SocketException. ErrorCode: {0}{1}{2}", e.ErrorCode,
-                                                            Environment.NewLine, e.Message));
-                                break;
-                        }
+                        Debug.WriteLine($"SocketClient SocketException: {e.GetType().Name}: {e.Message}");
+                        CatchSocketException(e);
                     }
                     catch (IOException e) {
                         var sockExcept = e.InnerException as SocketException;
-
+                        Debug.WriteLine($"SocketClient IOException: {e.GetType().Name}: {e.Message}");
                         if (sockExcept != null) {
-                            switch (sockExcept.ErrorCode) {
-                                case 10054:
-                                    Error("Remote connection has closed.");
-                                    break;
-
-                                case 10053:
-                                    SetStatus(ServiceStatus.Stopped);
-                                    break;
-
-                                case 10060:
-                                    Error("Connection timed out.");
-                                    break;
-
-                                default:
-                                    Error(String.Format("SocketException (RecieveData). ErrorCode: {0}{1}{2}",
-                                                                sockExcept.ErrorCode, Environment.NewLine, e.Message));
-                                    break;
-                            }
+                            CatchSocketException(sockExcept);
                         }
                         else {
-                            Error(String.Format("IOException. {0}", e.Message));
+                            Error($"SocketClient IOException: {e.GetType().Name}: {e.Message}");
                         }
+                    }
+                    catch (Exception e) {
+                        // Got this when endPoint = new IPEndPoint(Dns.GetHostEntry(_host).AddressList[0], _port) 
+                        // resolved to an ipv6 address
+                        Debug.WriteLine($"SocketClient Generic Exception: {e.GetType().Name}: {e.Message}");
+                        Error($"SocketClient Generic Exception: {e.GetType().Name} {e.Message}");
+                    }
+                    finally {
+                        //Debug.WriteLine("finally - Stopping");
+                        //Stop();
                     }
                 }, null);
             }
-            catch (SocketException e)
-            {
-                Error(String.Format("SocketException. ErrorCode: {0}{1}{2}", e.ErrorCode,
-                                                        Environment.NewLine, e.Message));
-                _tcpClient.Close();
+            catch (SocketException e) {
+                Debug.WriteLine($"SocketClient.Client SocketException: {e.GetType().Name}: {e.Message}");
+                CatchSocketException(e);
+                if (_tcpClient != null) _tcpClient.Close();
+                return;
+            }
+            catch (Exception e) {
+                Debug.WriteLine($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
+                Error($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
+                if (_tcpClient != null) _tcpClient.Close();
                 return;
             }
 
             Debug.WriteLine("BeginConnect returned");
         }
+
+        private void CatchSocketException(SocketException e) {
+            switch (e.ErrorCode) {
+                case 10004: // WSAEINTR - Interrupted function call
+                    // Not an error - this means the client has shut down
+                    break;
+
+                default:
+                    string s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}");
+                    if (s == null)
+                        Error($"{e.Message} ({e.ErrorCode})");
+                    else {
+                        Error($"{e.Message}. {s} ({e.ErrorCode})");
+                    }
+                    break;
+            }
+        }
+
         #region Nested type: ClientReplyContext
 
         public class ClientReplyContext : Reply {

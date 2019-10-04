@@ -50,7 +50,6 @@ namespace MCEControl {
         private MenuItem _menuItemExit;
         private MenuItem _menuItemHelpMenu;
         private MenuItem _menuItemAbout;
-        private StatusBar _statusBar;
         private NotifyIcon _notifyIcon;
         private TextBox _log;
         private ContextMenu _notifyMenu;
@@ -69,6 +68,11 @@ namespace MCEControl {
         private MenuItem menuItem2;
         private MenuItem menuItem1;
         private MenuItem _menuItemCheckVersion;
+        private StatusStrip statusStrip;
+        private ToolStripStatusLabel statusStripStatus;
+        private ToolStripStatusLabel statusStripClient;
+        private ToolStripStatusLabel statusStripServer;
+        private ToolStripStatusLabel statusStripSerial;
 
         public SocketClient Client {
             get { return _client; }
@@ -121,7 +125,7 @@ namespace MCEControl {
 
             ShowInTaskbar = true;
 
-            SetStatusBar("");
+            SetStatus("");
             _menuItemSendAwake.Enabled = false;
         }
 
@@ -145,12 +149,12 @@ namespace MCEControl {
 
                 if (_server != null) {
                     // remove our notification handler
-                    _server.Notifications -= HandleSocketServerCallbacks;
+                    _server.Notifications -= ServerSocketCallbackHandler;
                     _server.Dispose();
                 }
                 if (_client != null) {
                     // remove our notification handler
-                    _client.Notifications -= HandleClientNotifications;
+                    _client.Notifications -= ClientSocketNotificationHandler;
                     _client.Dispose();
                 }
 
@@ -185,7 +189,6 @@ namespace MCEControl {
             this._menuItemCheckVersion = new System.Windows.Forms.MenuItem();
             this.menuItem1 = new System.Windows.Forms.MenuItem();
             this._menuItemAbout = new System.Windows.Forms.MenuItem();
-            this._statusBar = new System.Windows.Forms.StatusBar();
             this._notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this._notifyMenu = new System.Windows.Forms.ContextMenu();
             this._notifyMenuViewStatus = new System.Windows.Forms.MenuItem();
@@ -194,6 +197,12 @@ namespace MCEControl {
             this._menuSeparator5 = new System.Windows.Forms.MenuItem();
             this._notifyMenuItemExit = new System.Windows.Forms.MenuItem();
             this._log = new System.Windows.Forms.TextBox();
+            this.statusStrip = new System.Windows.Forms.StatusStrip();
+            this.statusStripStatus = new System.Windows.Forms.ToolStripStatusLabel();
+            this.statusStripClient = new System.Windows.Forms.ToolStripStatusLabel();
+            this.statusStripServer = new System.Windows.Forms.ToolStripStatusLabel();
+            this.statusStripSerial = new System.Windows.Forms.ToolStripStatusLabel();
+            this.statusStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // _mainMenu
@@ -288,13 +297,6 @@ namespace MCEControl {
             this._menuItemAbout.Text = "&About...";
             this._menuItemAbout.Click += new System.EventHandler(this.MenuItemAboutClick);
             // 
-            // _statusBar
-            // 
-            this._statusBar.Location = new System.Drawing.Point(0, 184);
-            this._statusBar.Name = "_statusBar";
-            this._statusBar.Size = new System.Drawing.Size(368, 20);
-            this._statusBar.TabIndex = 0;
-            // 
             // _notifyIcon
             // 
             this._notifyIcon.ContextMenu = this._notifyMenu;
@@ -341,27 +343,93 @@ namespace MCEControl {
             // 
             // _log
             // 
-            this._log.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-            | System.Windows.Forms.AnchorStyles.Left)
+            this._log.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._log.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this._log.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this._log.Font = new System.Drawing.Font("Lucida Console", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this._log.Location = new System.Drawing.Point(0, 0);
             this._log.Multiline = true;
             this._log.Name = "_log";
-            this._log.Size = new System.Drawing.Size(368, 187);
+            this._log.Size = new System.Drawing.Size(645, 344);
             this._log.TabIndex = 1;
             this._log.WordWrap = false;
             this._log.TextChanged += new System.EventHandler(this.LogTextChanged);
             this._log.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.LogKeyPress);
             // 
+            // statusStrip
+            // 
+            this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.statusStripStatus,
+            this.statusStripClient,
+            this.statusStripServer,
+            this.statusStripSerial});
+            this.statusStrip.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
+            this.statusStrip.Location = new System.Drawing.Point(0, 345);
+            this.statusStrip.Name = "statusStrip";
+            this.statusStrip.ShowItemToolTips = true;
+            this.statusStrip.Size = new System.Drawing.Size(645, 22);
+            this.statusStrip.TabIndex = 2;
+            this.statusStrip.Text = "MCE Controller";
+            // 
+            // statusStripStatus
+            // 
+            this.statusStripStatus.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.statusStripStatus.DoubleClickEnabled = true;
+            this.statusStripStatus.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.statusStripStatus.Name = "statusStripStatus";
+            this.statusStripStatus.Size = new System.Drawing.Size(123, 17);
+            this.statusStripStatus.Text = "MCE Controller Status";
+            this.statusStripStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.statusStripStatus.Click += new System.EventHandler(this.statusStripStatus_Click);
+            // 
+            // statusStripClient
+            // 
+            this.statusStripClient.DoubleClickEnabled = true;
+            this.statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
+            this.statusStripClient.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.statusStripClient.Margin = new System.Windows.Forms.Padding(10, 3, 0, 2);
+            this.statusStripClient.Name = "statusStripClient";
+            this.statusStripClient.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.statusStripClient.Size = new System.Drawing.Size(54, 17);
+            this.statusStripClient.Text = "Client";
+            this.statusStripClient.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.statusStripClient.DoubleClick += new System.EventHandler(this.statusStripClient_Click);
+            // 
+            // statusStripServer
+            // 
+            this.statusStripServer.DoubleClickEnabled = true;
+            this.statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
+            this.statusStripServer.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.statusStripServer.Margin = new System.Windows.Forms.Padding(10, 3, 0, 2);
+            this.statusStripServer.Name = "statusStripServer";
+            this.statusStripServer.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.statusStripServer.Size = new System.Drawing.Size(55, 17);
+            this.statusStripServer.Text = "Server";
+            this.statusStripServer.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.statusStripServer.DoubleClick += new System.EventHandler(this.statusStripServer_Click);
+            // 
+            // statusStripSerial
+            // 
+            this.statusStripSerial.DoubleClickEnabled = true;
+            this.statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
+            this.statusStripSerial.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.statusStripSerial.Margin = new System.Windows.Forms.Padding(10, 3, 0, 2);
+            this.statusStripSerial.Name = "statusStripSerial";
+            this.statusStripSerial.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.statusStripSerial.Size = new System.Drawing.Size(51, 17);
+            this.statusStripSerial.Text = "Serial";
+            this.statusStripSerial.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.statusStripSerial.DoubleClick += new System.EventHandler(this.statusStripSerial_Click);
+            // 
             // MainWindow
             // 
-            this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
+            this.AutoScaleBaseSize = new System.Drawing.Size(5, 15);
             this.BackColor = System.Drawing.SystemColors.Control;
-            this.ClientSize = new System.Drawing.Size(368, 204);
+            this.ClientSize = new System.Drawing.Size(645, 367);
+            this.Controls.Add(this.statusStrip);
             this.Controls.Add(this._log);
-            this.Controls.Add(this._statusBar);
+            this.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this.HelpButton = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
@@ -372,6 +440,8 @@ namespace MCEControl {
             this.HelpButtonClicked += new System.ComponentModel.CancelEventHandler(this.MainWindow_HelpButtonClicked);
             this.Closing += new System.ComponentModel.CancelEventHandler(this.MainWindowClosing);
             this.Load += new System.EventHandler(this.MainWindowLoad);
+            this.statusStrip.ResumeLayout(false);
+            this.statusStrip.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -428,6 +498,7 @@ namespace MCEControl {
             //t.Elapsed += (sender, args) => Start();
             //AddLogEntry("Starting services...");
             //t.Start();
+            SetStatus($"MCE Controller version: {Application.ProductVersion}");
             Start();
         }
 
@@ -466,28 +537,44 @@ namespace MCEControl {
         }
 
         private void Start() {
+            SetServerStatus(ServiceStatus.Stopped);
             if (Settings.ActAsServer)
                 StartServer();
 
+            SetSerialStatus(ServiceStatus.Stopped);
             if (Settings.ActAsSerialServer)
                 StartSerialServer();
 
+            SetClientStatus(ServiceStatus.Stopped);
             if (Settings.ActAsClient)
                 StartClient();
 
-            UserActivityMonitor.Instance.Start();
+            if (Settings.ActivityMonitorEnabled)
+                UserActivityMonitor.Instance.Start(Settings.ActivityMonitorCommand, Settings.ActivityMonitorDebounceTime);
+        }
+
+        private delegate void StopCallback();
+        private void Stop() {
+            if (_cmdWindow != null) {
+                if (this.InvokeRequired)
+                    this.BeginInvoke((StopCallback)Stop);
+                else {
+                    UserActivityMonitor.Instance.Stop();
+                    StopClient();
+                    StopServer();
+                    StopSerialServer();
+                }
+            }
         }
 
         public void ShutDown() {
             AddLogEntry("ShutDown");
             _shuttingDown = true;
+
+            Stop();
+
             // hide icon from the systray
             _notifyIcon.Visible = false;
-
-            UserActivityMonitor.Instance.Stop();
-            StopServer();
-            StopClient();
-            StopSerialServer();
 
             // Save the window size/location
             Settings.WindowLocation = Location;
@@ -500,8 +587,9 @@ namespace MCEControl {
 
         private void StartServer() {
             if (_server == null) {
+                AddLogEntry("Server: Starting...");
                 _server = new SocketServer();
-                _server.Notifications += HandleSocketServerCallbacks;
+                _server.Notifications += ServerSocketCallbackHandler;
                 _server.Start(Settings.ServerPort);
                 _menuItemSendAwake.Enabled = Settings.WakeupEnabled;
             }
@@ -511,6 +599,7 @@ namespace MCEControl {
 
         private void StopServer() {
             if (_server != null) {
+                AddLogEntry("Server: Stopping..");
                 // remove our notification handler
                 _server.Stop();
                 _server = null;
@@ -518,8 +607,16 @@ namespace MCEControl {
             }
         }
 
+        private void ToggleServer() {
+            if (_server == null)
+                StartServer();
+            else
+                StopServer();
+        }
+
         private void StartSerialServer() {
             if (_serialServer == null) {
+                AddLogEntry("Serial: Starting..");
                 _serialServer = new SerialServer();
                 _serialServer.Notifications += HandleSerialServerNotifications;
                 _serialServer.Start(Settings.SerialServerPortName,
@@ -530,11 +627,12 @@ namespace MCEControl {
                     Settings.SerialServerHandshake);
             }
             else
-                AddLogEntry("MCEC: Attempt to StartSerialServer() while an instance already exists!");
+                AddLogEntry("Serial: Attempt to StartSerialServer() while an instance already exists!");
         }
 
         private void StopSerialServer() {
             if (_serialServer != null) {
+                AddLogEntry("Serial: Stopping..");
                 // remove our notification handler
                 _serialServer.Stop();
                 _serialServer = null;
@@ -543,8 +641,9 @@ namespace MCEControl {
 
         private void StartClient(bool delay = false) {
             if (_client == null) {
+                AddLogEntry("Client: Starting..");
                 _client = new SocketClient(Settings);
-                _client.Notifications += HandleClientNotifications;
+                _client.Notifications += ClientSocketNotificationHandler;
                 _client.Start(delay);
             }
         }
@@ -552,12 +651,18 @@ namespace MCEControl {
         private void StopClient() {
             if (_client != null) {
                 _cmdWindow.Visible = false;
-                AddLogEntry("Client: Stopping...");
+                AddLogEntry("Client: Stopping..");
                 _client.Stop();
                 _client = null;
             }
         }
 
+        private void ToggleClient() {
+            if (_client == null)
+                StartClient();
+            else
+                StopClient();
+        }
         private delegate void RestartClientCallback();
 
         private void RestartClient() {
@@ -566,8 +671,8 @@ namespace MCEControl {
                     this.BeginInvoke((RestartClientCallback)RestartClient);
                 else {
                     StopClient();
-                    if (!_shuttingDown && Settings.ActAsClient) {
-                        AddLogEntry("Client: Reconnecting...");
+                    if (!_shuttingDown && Settings.ActAsClient && Settings.ClientDelayTime > 0) {
+                        AddLogEntry("Client: Reconnecting..");
                         StartClient(true);
                     }
                 }
@@ -577,6 +682,7 @@ namespace MCEControl {
         private delegate void ShowCommandWindowCallback();
 
         private void ShowCommandWindow() {
+            if (!settings.ShowCommandWindow) return;
             if (this.InvokeRequired)
                 this.BeginInvoke((ShowCommandWindowCallback)ShowCommandWindow);
             else {
@@ -603,22 +709,117 @@ namespace MCEControl {
             }
         }
 
-        private delegate void SetStatusBarCallback(string text);
+        // Sends a line of text (adds a "\n" to end) to connected client and server
+        internal void SendLine(string v) {
+            //AddLogEntry($"Send: {v}");
+            if (_client != null)
+                _client.Send(v + "\n");
 
-        private void SetStatusBar(string text) {
-            if (_statusBar.InvokeRequired) {
-                _statusBar.BeginInvoke((SetStatusBarCallback)SetStatusBar, new object[] { text });
+            if (_server != null)
+                _server.Send(v + "\n");
+
+            if (_serialServer != null)
+                _serialServer.Send(v + "\n");
+        }
+
+        private delegate void SetStatusCallback(string text);
+
+        private void SetStatus(string text) {
+            if (statusStrip.InvokeRequired) {
+                statusStrip.BeginInvoke((SetStatusCallback)SetStatus, new object[] { text });
             }
             else {
-                _statusBar.Text = text;
+                statusStripStatus.Text = text;
                 _notifyIcon.Text = text;
+            }
+        }
+
+        private delegate void SetServerStatusCallback(ServiceStatus status);
+        private void SetServerStatus(ServiceStatus status) {
+            if (statusStrip.InvokeRequired) {
+                statusStrip.BeginInvoke((SetServerStatusCallback)SetServerStatus, new object[] { status });
+            }
+            else {
+                statusStripServer.Text = $"Server on port {settings.ServerPort}";
+                switch (status) {
+                    case ServiceStatus.Started:
+                        statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
+                        break;
+
+                    case ServiceStatus.Waiting:
+                        statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
+                        break;
+
+                    case ServiceStatus.Connected:
+                        statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
+                        return;
+
+                    case ServiceStatus.Stopped:
+                        statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_gray_icon;
+                        break;
+                }
+            }
+        }
+
+        private delegate void SetClientStatusCallback(ServiceStatus status);
+        private void SetClientStatus(ServiceStatus status) {
+            if (statusStrip.InvokeRequired) {
+                statusStrip.BeginInvoke((SetClientStatusCallback)SetClientStatus, new object[] { status });
+            }
+            else {
+                statusStripClient.Text = $"Client {settings.ClientHost}:{Settings.ClientPort}";
+                switch (status) {
+                    case ServiceStatus.Started:
+                        statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
+                        break;
+
+                    case ServiceStatus.Waiting:
+                        statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
+                        break;
+
+                    case ServiceStatus.Connected:
+                        statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
+                        return;
+
+                    case ServiceStatus.Stopped:
+                        statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_gray_icon;
+                        break;
+                }
+            }
+        }
+
+        private delegate void SetSerialStatusCallback(ServiceStatus status);
+        private void SetSerialStatus(ServiceStatus status) {
+            if (statusStrip.InvokeRequired) {
+                statusStrip.BeginInvoke((SetSerialStatusCallback)SetSerialStatus, new object[] { status });
+            }
+            else {
+                // https://en.wikipedia.org/wiki/8-N-1
+                statusStripSerial.Text = $"Serial {settings.SerialServerBaudRate}/{settings.SerialServerPortName} {settings.SerialServerDataBits}-{settings.SerialServerParity}-{settings.SerialServerStopBits}-{settings.SerialServerHandshake}";
+                switch (status) {
+                    case ServiceStatus.Started:
+                        statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
+                        break;
+
+                    case ServiceStatus.Waiting:
+                        statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
+                        break;
+
+                    case ServiceStatus.Connected:
+                        statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
+                        return;
+
+                    case ServiceStatus.Stopped:
+                        statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_gray_icon;
+                        break;
+                }
             }
         }
 
         //
         // Notify callback for the TCP/IP Server
         //
-        public void HandleSocketServerCallbacks(ServiceNotification notification, ServiceStatus status, Reply reply, String msg) {
+        public void ServerSocketCallbackHandler(ServiceNotification notification, ServiceStatus status, Reply reply, String msg) {
             if (notification == ServiceNotification.StatusChange)
                 HandleSocketServerStatusChange(status);
             else
@@ -690,11 +891,12 @@ namespace MCEControl {
         }
 
         private void HandleSocketServerStatusChange(ServiceStatus status) {
+            SetServerStatus(status);
             String s = "";
             switch (status) {
                 case ServiceStatus.Started:
-                    s = $"Starting TCP/IP Server on port {Settings.ServerPort}";
-                    SetStatusBar(s);
+                    s = $"TCP/IP server started on port {Settings.ServerPort}";
+                    //SetStatus(s);
                     if (Settings.WakeupEnabled)
                         _server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
                             Settings.WakeupPort);
@@ -705,12 +907,12 @@ namespace MCEControl {
                     break;
 
                 case ServiceStatus.Connected:
-                    SetStatusBar("Clients connected, waiting for commands...");
+                    //SetStatus("Clients connected, waiting for commands...");
                     return;
 
                 case ServiceStatus.Stopped:
                     s = "Stopped.";
-                    SetStatusBar("Client/Sever Not Active");
+                    //SetStatus("Client/Sever Not Active");
                     if (Settings.WakeupEnabled)
                         _server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost,
                             Settings.WakeupPort);
@@ -722,28 +924,33 @@ namespace MCEControl {
         //
         // Notify callback for the TCP/IP Client
         //
-        public void HandleClientNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg) {
+        public void ClientSocketNotificationHandler(ServiceNotification notify, ServiceStatus status, Reply reply, String msg) {
+            SetClientStatus(status);
             String s = null;
             switch (notify) {
                 case ServiceNotification.StatusChange:
                     if (status == ServiceStatus.Started) {
+                        Debug.WriteLine("ClientSocketNotificationHandler - ServiceStatus.Started");
                         s = $"Connecting to {Settings.ClientHost}:{Settings.ClientPort}";
-                        SetStatusBar(s);
+                        //SetStatus(s);
                         HideCommandWindow();
                     }
                     else if (status == ServiceStatus.Connected) {
+                        Debug.WriteLine("ClientSocketNotificationHandler - ServiceStatus.Connected");
                         s = $"Connected to {Settings.ClientHost}:{Settings.ClientPort}";
-                        SetStatusBar(s);
+                        //SetStatus(s);
                         ShowCommandWindow();
                     }
                     else if (status == ServiceStatus.Stopped) {
+                        Debug.WriteLine("ClientSocketNotificationHandler - ServiceStatus.Stopped");
                         s = "Stopped.";
-                        SetStatusBar("Client/Sever Not Active");
+                        //SetStatus("Client/Sever Not Active");
                         HideCommandWindow();
                     }
                     else if (status == ServiceStatus.Sleeping) {
+                        Debug.WriteLine("ClientSocketNotificationHandler - ServiceStatus.Sleeping");
                         s = $"Waiting {(Settings.ClientDelayTime / 1000)} seconds to connect.";
-                        SetStatusBar(s);
+                        //SetStatus(s);
                         HideCommandWindow();
                     }
                     break;
@@ -754,6 +961,7 @@ namespace MCEControl {
                     return;
 
                 case ServiceNotification.Error:
+                    Debug.WriteLine($"ClientSocketNotificationHandler - ServiceStatus.Error: {(string)msg}");
                     AddLogEntry($"Client: Error; {(string)msg}");
                     RestartClient();
                     return;
@@ -769,6 +977,7 @@ namespace MCEControl {
         // Notify callback for the Serial Server
         //
         public void HandleSerialServerNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg) {
+            SetSerialStatus(status);
             String s = null;
             switch (notify) {
                 case ServiceNotification.StatusChange:
@@ -779,12 +988,12 @@ namespace MCEControl {
 
                         case ServiceStatus.Waiting:
                             s = $"SerialServer: Waiting for commands on {msg}...";
-                            SetStatusBar("Waiting for Serial commands...");
+                            //SetStatus("Waiting for Serial commands...");
                             break;
 
                         case ServiceStatus.Stopped:
                             s = "SerialServer: Stopped.";
-                            SetStatusBar("Serial Server Not Active");
+                            //SetStatus("Serial Server Not Active");
                             break;
                     }
                     break;
@@ -858,25 +1067,20 @@ namespace MCEControl {
         }
 
         private void MenuSettingsClick(object sender, EventArgs e) {
+            ShowSettings("General");
+        }
+
+        private void ShowSettings(string defaultTabName) {
             var d = new SettingsDialog(Settings);
+            d.DefaultTab = defaultTabName;
+
             if (d.ShowDialog(this) == DialogResult.OK) {
                 Settings = d.Settings;
 
                 Opacity = (double)Settings.Opacity / 100;
 
-                RestartClient();
-                StopServer();
-                StopSerialServer();
-
-                if (Settings.ActAsServer)
-                    StartServer();
-
-                if (Settings.ActAsSerialServer)
-                    StartSerialServer();
-
-                if (Settings.ActAsClient) {
-                    StartClient();
-                }
+                Stop();
+                Start();
             }
         }
 
@@ -918,6 +1122,24 @@ namespace MCEControl {
 
         private void menuItemCheckVersion_Click(object sender, EventArgs e) {
             CheckVersion();
+        }
+
+        private void statusStripClient_Click(object sender, EventArgs e) {
+            //ShowSettings("Client");
+            ToggleClient();
+        }
+
+        private void statusStripServer_Click(object sender, EventArgs e) {
+            //ShowSettings("Server");
+            ToggleServer();
+        }
+
+        private void statusStripSerial_Click(object sender, EventArgs e) {
+            ShowSettings("Serial");
+        }
+
+        private void statusStripStatus_Click(object sender, EventArgs e) {
+            ShowSettings("General");
         }
     }
 

@@ -31,7 +31,6 @@ namespace MCEControl {
         // can access this variable, modifying this variable should be done
         // in a thread safe manner
         private int _clientCount;
-        public int Port { get; set; }
 
         private ILog _log4;
 
@@ -48,18 +47,15 @@ namespace MCEControl {
         private void Dispose(bool disposing) {
             _log4.Debug("SocketServer disposing...");
             if (!disposing) return;
-            foreach (var i in _socketList.Keys)
-            {
+            foreach (var i in _socketList.Keys) {
                 Socket socket;
                 _socketList.TryRemove(i, out socket);
-                if (socket != null)
-                {
+                if (socket != null) {
                     _log4.Debug("Closing Socket #" + i);
                     socket.Close();
                 }
             }
-            if (_mainSocket != null)
-            {
+            if (_mainSocket != null) {
                 _mainSocket.Close();
                 _mainSocket = null;
             }
@@ -87,7 +83,7 @@ namespace MCEControl {
                 _mainSocket.BeginAccept(OnClientConnect, null);
             }
             catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, null, String.Format("Start: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
+                SendNotification(ServiceNotification.Error, CurrentStatus, null, $"Start: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
                 SetStatus(ServiceStatus.Stopped);
             }
         }
@@ -136,23 +132,21 @@ namespace MCEControl {
                 BeginReceive(serverReplyContext);
             }
             catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, String.Format("OnClientConnect: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
+                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
                 // See http://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
                 //if (se.SocketErrorCode == SocketError.ConnectionReset) // WSAECONNRESET (10054)
                 {
                     // Forcibly closed
                     CloseSocket(serverReplyContext);
-                } 
+                }
             }
-            catch (Exception e)
-            {
-                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, String.Format("OnClientConnect: {0}", e.Message));
+            catch (Exception e) {
+                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {e.Message}");
                 CloseSocket(serverReplyContext);
             }
 
             // Since the main Socket is now free, it can go back and wait for
             // other clients who are attempting to connect
-            SetStatus(ServiceStatus.Waiting);
             _mainSocket.BeginAccept(OnClientConnect, null);
         }
 
@@ -167,13 +161,13 @@ namespace MCEControl {
                                     serverReplyContext);
             }
             catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, String.Format("BeginReceive: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
+                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"BeginReceive: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
                 CloseSocket(serverReplyContext);
             }
         }
 
         private void CloseSocket(ServerReplyContext serverReplyContext) {
-            _log4.Debug("SocketServer CloseSocket"); 
+            _log4.Debug("SocketServer CloseSocket");
             if (serverReplyContext == null) return;
 
             // Remove the reference to the worker socket of the closed client
@@ -188,8 +182,7 @@ namespace MCEControl {
             }
         }
 
-        enum TelnetVerbs
-        {
+        enum TelnetVerbs {
             WILL = 251,
             WONT = 252,
             DO = 253,
@@ -197,8 +190,7 @@ namespace MCEControl {
             IAC = 255
         }
 
-        enum TelnetOptions
-        {
+        enum TelnetOptions {
             SGA = 3
         }
 
@@ -224,15 +216,13 @@ namespace MCEControl {
                 //int n = 0;
                 for (int i = 0; i < iRx; i++) {
                     byte b = clientContext.DataBuffer[i];
-                    switch (b)
-                    {
+                    switch (b) {
                         case (byte)TelnetVerbs.IAC:
                             // interpret as a command
                             i++;
                             if (i < iRx) {
                                 byte verb = clientContext.DataBuffer[i];
-                                switch (verb)
-                                {
+                                switch (verb) {
                                     case (int)TelnetVerbs.IAC:
                                         //literal IAC = 255 escaped, so append char 255 to string
                                         clientContext.CmdBuilder.Append(verb);
@@ -245,8 +235,8 @@ namespace MCEControl {
                                         i++;
                                         byte inputoption = clientContext.DataBuffer[i];
                                         if (i < iRx) {
-                                            clientContext.Socket.Send(new[]{(byte)TelnetVerbs.IAC});
-                                            if (inputoption == (int) TelnetOptions.SGA)
+                                            clientContext.Socket.Send(new[] { (byte)TelnetVerbs.IAC });
+                                            if (inputoption == (int)TelnetOptions.SGA)
                                                 clientContext.Socket.Send(new[]{verb == (int) TelnetVerbs.DO
                                                                         ? (byte) TelnetVerbs.WILL
                                                                         : (byte) TelnetVerbs.DO});
@@ -254,7 +244,7 @@ namespace MCEControl {
                                                 clientContext.Socket.Send(new[]{verb == (int) TelnetVerbs.DO
                                                                         ? (byte) TelnetVerbs.WONT
                                                                         : (byte) TelnetVerbs.DONT});
-                                            clientContext.Socket.Send(new[]{inputoption});
+                                            clientContext.Socket.Send(new[] { inputoption });
                                         }
                                         break;
                                 }
@@ -265,8 +255,7 @@ namespace MCEControl {
                         case (byte)'\n':
                         case (byte)'\0':
                             // Skip any delimiter chars that might have been left from earlier input
-                            if (clientContext.CmdBuilder.Length > 0)
-                            {
+                            if (clientContext.CmdBuilder.Length > 0) {
                                 SendNotification(ServiceNotification.ReceivedData, CurrentStatus, clientContext, clientContext.CmdBuilder.ToString());
                                 // Reset n to start new command
                                 clientContext.CmdBuilder.Clear();
@@ -285,11 +274,11 @@ namespace MCEControl {
             catch (SocketException se) {
                 if (se.SocketErrorCode == SocketError.ConnectionReset) // Error code for Connection reset by peer 
                 {
-                    SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, String.Format("OnDataReceived: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
+                    SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
                     CloseSocket(clientContext);
                 }
                 else {
-                    SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, String.Format("OnDataReceived: {0}, {1:X} ({2})", se.Message, se.HResult, se.SocketErrorCode));
+                    SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
                 }
             }
         }
@@ -313,7 +302,7 @@ namespace MCEControl {
                     // Create the endpoint that describes the destination
                     var destination = new IPEndPoint(resolvedHost.AddressList[0], port);
 
-                    SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, 
+                    SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
                                      String.Format("Attempting connection to: {0}", destination));
                     clientSocket.Connect(destination);
                 }
@@ -352,12 +341,27 @@ namespace MCEControl {
             }
         }
 
+        public override void Send(string text, Reply replyContext = null) {
+            if (CurrentStatus != ServiceStatus.Connected ||
+                _mainSocket == null ||
+                !_mainSocket.Connected)
+                return;
+
+            if (_mainSocket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
+                SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());
+            }
+            else {
+                SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext, text);
+            }
+
+        }
+
         #region Nested type: ServerReplyContext
 
         public class ServerReplyContext : Reply {
-            public StringBuilder CmdBuilder { get; set; }
-            public Socket Socket { get; set; }
-            public int ClientNumber { get; set; }
+            internal StringBuilder CmdBuilder { get; set; }
+            internal Socket Socket { get; set; }
+            internal int ClientNumber { get; set; }
             // Buffer to store the data sent by the client
             public byte[] DataBuffer = new byte[1024];
 
@@ -373,23 +377,11 @@ namespace MCEControl {
 
             protected string Command {
                 get { return CmdBuilder.ToString(); }
-                set { } 
+                set { }
             }
 
-            public override void Write(String text)
-            {
-                if (_server == null 
-                    || _server.CurrentStatus != ServiceStatus.Connected 
-                    || Socket == null 
-                    || !Socket.Connected)
-                    return;
-                
-                if (Socket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
-                    _server.SendNotification(ServiceNotification.Write, _server.CurrentStatus, this, text.Trim());
-                }
-                else {
-                    _server.SendNotification(ServiceNotification.WriteFailed, _server.CurrentStatus, this, text);                    
-                }
+            public override void Write(String text) {
+                _server.Send(text, this);
             }
         }
 

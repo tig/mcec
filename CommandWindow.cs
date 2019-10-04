@@ -11,11 +11,9 @@ using System.Windows.Forms;
 using Microsoft.Win32.Security;
 using WindowsInput.Native;
 
-namespace MCEControl
-{
+namespace MCEControl {
     public partial class CommandWindow : Form {
-        public CommandWindow()
-        {
+        public CommandWindow() {
             InitializeComponent();
         }
 
@@ -35,15 +33,14 @@ namespace MCEControl
                 if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
                     s = vk.ToString();  // already have VK_
                 else
-                    s = "VK_" + vk.ToString(); 
+                    s = "VK_" + vk.ToString();
                 var item = new ListViewItem(s);
                 item.SubItems.Add("SendInputCommand (pre-defined)");
                 listCmds.Items.Add(item);
             }
         }
 
-        private void CommandWindow_FormClosing(object sender, FormClosingEventArgs e)
-        {
+        private void CommandWindow_FormClosing(object sender, FormClosingEventArgs e) {
             if (e.CloseReason == CloseReason.UserClosing) {
                 this.Hide();
                 MainWindow.Instance.Settings.ShowCommandWindow = false;
@@ -51,8 +48,7 @@ namespace MCEControl
             }
         }
 
-        private void listCmds_ItemActivate(object sender, EventArgs e)
-        {
+        private void listCmds_ItemActivate(object sender, EventArgs e) {
 
         }
 
@@ -61,21 +57,17 @@ namespace MCEControl
             Send();
         }
 
-        private void buttonSend_Click(object sender, EventArgs e)
-        {
+        private void buttonSend_Click(object sender, EventArgs e) {
             Debug.WriteLine("buttonSend_Click");
             Send();
         }
 
-        private void Send()
-        {
-            Debug.WriteLine("Send");
-            MainWindow.AddLogEntry("Client: Sending Command: " + textBoxSendCommand.Text);
-            MainWindow.Instance.Client.Send(textBoxSendCommand.Text + "\n");
+        private void Send() {
+            MainWindow.AddLogEntry("Sending Command: " + textBoxSendCommand.Text);
+            MainWindow.Instance.SendLine(textBoxSendCommand.Text);
         }
 
-        private void listCmds_DoubleClick(object sender, EventArgs e)
-        {
+        private void listCmds_DoubleClick(object sender, EventArgs e) {
             Debug.WriteLine("listCmds_DoubleClick");
             textBoxSendCommand.Text = listCmds.SelectedItems[0].Text;
             Send();

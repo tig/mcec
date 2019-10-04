@@ -7,7 +7,8 @@ namespace MCEControl {
 
     public sealed class UserActivityMonitor {
         private bool logActivity = false;    // log mouse/keyboard events to MCEC window
-        private int debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
+        private uint debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
+        private string activityCmd = "activity";
 
         private System.DateTime LastTime;
 
@@ -16,15 +17,10 @@ namespace MCEControl {
         }
 
         private static Gma.UserActivityMonitor.GlobalEventProvider userActivityMonitor = null;
-
-        public static UserActivityMonitor Instance => lazy.Value; public bool LogActivity { get => logActivity; set => logActivity = value; }
-        public int DebounceTime {
-            get => debounceTime; set {
-                debounceTime = value;
-            }
-        }
         
-        public void Start() {
+        public static UserActivityMonitor Instance => lazy.Value; public bool LogActivity { get => logActivity; set => logActivity = value; }
+           
+        public void Start(string cmd, uint DebounceTime) {
             if (userActivityMonitor != null)
                 userActivityMonitor = null;
 
@@ -39,6 +35,8 @@ namespace MCEControl {
             userActivityMonitor.MouseUp += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseUp);
             userActivityMonitor.KeyUp += new System.Windows.Forms.KeyEventHandler(this.HookManager_KeyUp);
             userActivityMonitor.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDoubleClick);
+
+            debounceTime = DebounceTime;
         }
 
         public void Stop() {
@@ -51,11 +49,11 @@ namespace MCEControl {
             if (LogActivity)
                 MainWindow.AddLogEntry($"ActivityMonitor: {logInfo}");
 
-            if (LastTime.AddSeconds(DebounceTime) <= DateTime.Now) {
+            if (LastTime.AddSeconds(debounceTime) <= DateTime.Now) {
                 MainWindow.AddLogEntry("ActivityMonitor: User Activity Dectected");
                 if (MainWindow.Instance.Client != null) {
-                    MainWindow.AddLogEntry("Client: Sending " + "activity");
-                    MainWindow.Instance.Client.Send("activity\n");
+                    MainWindow.AddLogEntry("ActivityMonitor: Sending " + activityCmd);
+                    MainWindow.Instance.SendLine(activityCmd);
                 }
                 LastTime = DateTime.Now;
             }

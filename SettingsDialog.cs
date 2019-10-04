@@ -31,7 +31,7 @@ namespace MCEControl {
 
         private GroupBox _clientGroup;
 
-        private TabPage _general;
+        private TabPage tabGeneral;
         private GroupBox _serverGroup;
 
         public AppSettings Settings;
@@ -60,9 +60,9 @@ namespace MCEControl {
         private Label _label6;
         private Label _label7;
         private Label _label8;
-        private TabPage _tabClient;
-        private TabControl _tabControl;
-        private TabPage _tabSerialServer;
+        private TabPage tabClient;
+        private TabControl tabcontrol;
+        private TabPage tabSerial;
         private GroupBox _serialServerGroup;
         private CheckBox _checkBoxEnableSerialServer;
         private ComboBox _comboBoxHandshake;
@@ -80,7 +80,6 @@ namespace MCEControl {
         private ToolTip toolTipClient;
         private System.ComponentModel.IContainer components;
         private ToolTip _toolTipServer;
-        private CheckBox _checkBoxClientCmdUi;
         private TabPage _tabPageActivityMonitor;
         private GroupBox groupBoxActivityMonitor;
         private CheckBox checkBoxEnableActivityMonitor;
@@ -88,7 +87,8 @@ namespace MCEControl {
         private Label labelActivityCommand;
         private Label labelActivityDebounceTime;
         private TextBox textBoxDebounceTime;
-        private TabPage _tabServer;
+        private CheckBox _checkBoxClientCmdUi;
+        private TabPage tabServer;
 
         #region Windows Form Designer generated code
 
@@ -100,23 +100,23 @@ namespace MCEControl {
             this.components = new System.ComponentModel.Container();
             this._buttonCancel = new System.Windows.Forms.Button();
             this._buttonOk = new System.Windows.Forms.Button();
-            this._tabControl = new System.Windows.Forms.TabControl();
-            this._general = new System.Windows.Forms.TabPage();
+            this.tabcontrol = new System.Windows.Forms.TabControl();
+            this.tabGeneral = new System.Windows.Forms.TabPage();
             this._checkBoxHideOnStartup = new System.Windows.Forms.CheckBox();
-            this._checkBoxAutoStart = new System.Windows.Forms.CheckBox();
-            this._tabClient = new System.Windows.Forms.TabPage();
-            this._clientGroup = new System.Windows.Forms.GroupBox();
-            this._checkBoxEnableClient = new System.Windows.Forms.CheckBox();
             this._checkBoxClientCmdUi = new System.Windows.Forms.CheckBox();
+            this._checkBoxAutoStart = new System.Windows.Forms.CheckBox();
+            this.tabClient = new System.Windows.Forms.TabPage();
+            this._checkBoxEnableClient = new System.Windows.Forms.CheckBox();
+            this._clientGroup = new System.Windows.Forms.GroupBox();
             this._editClientPort = new System.Windows.Forms.TextBox();
             this._label6 = new System.Windows.Forms.Label();
             this._label8 = new System.Windows.Forms.Label();
             this._editClientHost = new System.Windows.Forms.TextBox();
             this._label7 = new System.Windows.Forms.Label();
             this._editClientDelayTime = new System.Windows.Forms.TextBox();
-            this._tabServer = new System.Windows.Forms.TabPage();
-            this._serverGroup = new System.Windows.Forms.GroupBox();
+            this.tabServer = new System.Windows.Forms.TabPage();
             this._checkBoxEnableServer = new System.Windows.Forms.CheckBox();
+            this._serverGroup = new System.Windows.Forms.GroupBox();
             this._editServerPort = new System.Windows.Forms.TextBox();
             this._label1 = new System.Windows.Forms.Label();
             this._checkBoxEnableWakeup = new System.Windows.Forms.CheckBox();
@@ -129,9 +129,9 @@ namespace MCEControl {
             this._label2 = new System.Windows.Forms.Label();
             this._label4 = new System.Windows.Forms.Label();
             this._label3 = new System.Windows.Forms.Label();
-            this._tabSerialServer = new System.Windows.Forms.TabPage();
-            this._serialServerGroup = new System.Windows.Forms.GroupBox();
+            this.tabSerial = new System.Windows.Forms.TabPage();
             this._checkBoxEnableSerialServer = new System.Windows.Forms.CheckBox();
+            this._serialServerGroup = new System.Windows.Forms.GroupBox();
             this._comboBoxHandshake = new System.Windows.Forms.ComboBox();
             this._labelHandshake = new System.Windows.Forms.Label();
             this._comboBoxStopBits = new System.Windows.Forms.ComboBox();
@@ -145,22 +145,22 @@ namespace MCEControl {
             this._comboBoxSerialPort = new System.Windows.Forms.ComboBox();
             this._labelSerialPort = new System.Windows.Forms.Label();
             this._tabPageActivityMonitor = new System.Windows.Forms.TabPage();
+            this.checkBoxEnableActivityMonitor = new System.Windows.Forms.CheckBox();
             this.groupBoxActivityMonitor = new System.Windows.Forms.GroupBox();
             this.labelActivityDebounceTime = new System.Windows.Forms.Label();
             this.textBoxDebounceTime = new System.Windows.Forms.TextBox();
             this.textBoxActivityCommand = new System.Windows.Forms.TextBox();
             this.labelActivityCommand = new System.Windows.Forms.Label();
-            this.checkBoxEnableActivityMonitor = new System.Windows.Forms.CheckBox();
             this.toolTipClient = new System.Windows.Forms.ToolTip(this.components);
             this._toolTipServer = new System.Windows.Forms.ToolTip(this.components);
-            this._tabControl.SuspendLayout();
-            this._general.SuspendLayout();
-            this._tabClient.SuspendLayout();
+            this.tabcontrol.SuspendLayout();
+            this.tabGeneral.SuspendLayout();
+            this.tabClient.SuspendLayout();
             this._clientGroup.SuspendLayout();
-            this._tabServer.SuspendLayout();
+            this.tabServer.SuspendLayout();
             this._serverGroup.SuspendLayout();
             this._wakeupGroup.SuspendLayout();
-            this._tabSerialServer.SuspendLayout();
+            this.tabSerial.SuspendLayout();
             this._serialServerGroup.SuspendLayout();
             this._tabPageActivityMonitor.SuspendLayout();
             this.groupBoxActivityMonitor.SuspendLayout();
@@ -189,38 +189,39 @@ namespace MCEControl {
             this._buttonOk.UseVisualStyleBackColor = true;
             this._buttonOk.Click += new System.EventHandler(this.ButtonOkClick);
             // 
-            // _tabControl
+            // tabcontrol
             // 
-            this._tabControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.tabcontrol.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this._tabControl.Controls.Add(this._general);
-            this._tabControl.Controls.Add(this._tabClient);
-            this._tabControl.Controls.Add(this._tabServer);
-            this._tabControl.Controls.Add(this._tabSerialServer);
-            this._tabControl.Controls.Add(this._tabPageActivityMonitor);
-            this._tabControl.Location = new System.Drawing.Point(10, 10);
-            this._tabControl.Margin = new System.Windows.Forms.Padding(1);
-            this._tabControl.Name = "_tabControl";
-            this._tabControl.SelectedIndex = 0;
-            this._tabControl.Size = new System.Drawing.Size(446, 277);
-            this._tabControl.TabIndex = 0;
+            this.tabcontrol.Controls.Add(this.tabGeneral);
+            this.tabcontrol.Controls.Add(this.tabClient);
+            this.tabcontrol.Controls.Add(this.tabServer);
+            this.tabcontrol.Controls.Add(this.tabSerial);
+            this.tabcontrol.Controls.Add(this._tabPageActivityMonitor);
+            this.tabcontrol.Location = new System.Drawing.Point(10, 10);
+            this.tabcontrol.Margin = new System.Windows.Forms.Padding(1);
+            this.tabcontrol.Name = "tabcontrol";
+            this.tabcontrol.SelectedIndex = 0;
+            this.tabcontrol.Size = new System.Drawing.Size(446, 277);
+            this.tabcontrol.TabIndex = 0;
             // 
-            // _general
+            // tabGeneral
             // 
-            this._general.BackColor = System.Drawing.SystemColors.Window;
-            this._general.Controls.Add(this._checkBoxHideOnStartup);
-            this._general.Controls.Add(this._checkBoxAutoStart);
-            this._general.Location = new System.Drawing.Point(4, 22);
-            this._general.Margin = new System.Windows.Forms.Padding(1);
-            this._general.Name = "_general";
-            this._general.Size = new System.Drawing.Size(438, 251);
-            this._general.TabIndex = 0;
-            this._general.Text = "General";
+            this.tabGeneral.BackColor = System.Drawing.SystemColors.Window;
+            this.tabGeneral.Controls.Add(this._checkBoxHideOnStartup);
+            this.tabGeneral.Controls.Add(this._checkBoxClientCmdUi);
+            this.tabGeneral.Controls.Add(this._checkBoxAutoStart);
+            this.tabGeneral.Location = new System.Drawing.Point(4, 22);
+            this.tabGeneral.Margin = new System.Windows.Forms.Padding(1);
+            this.tabGeneral.Name = "tabGeneral";
+            this.tabGeneral.Size = new System.Drawing.Size(438, 251);
+            this.tabGeneral.TabIndex = 0;
+            this.tabGeneral.Text = "General";
             // 
             // _checkBoxHideOnStartup
             // 
-            this._checkBoxHideOnStartup.Location = new System.Drawing.Point(15, 11);
+            this._checkBoxHideOnStartup.Location = new System.Drawing.Point(16, 8);
             this._checkBoxHideOnStartup.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxHideOnStartup.Name = "_checkBoxHideOnStartup";
             this._checkBoxHideOnStartup.Size = new System.Drawing.Size(160, 15);
@@ -228,9 +229,21 @@ namespace MCEControl {
             this._checkBoxHideOnStartup.Text = "&Hide window on startup";
             this._checkBoxHideOnStartup.CheckedChanged += new System.EventHandler(this.CheckBoxHideOnStartupCheckedChanged);
             // 
+            // _checkBoxClientCmdUi
+            // 
+            this._checkBoxClientCmdUi.AutoSize = true;
+            this._checkBoxClientCmdUi.Location = new System.Drawing.Point(16, 32);
+            this._checkBoxClientCmdUi.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxClientCmdUi.Name = "_checkBoxClientCmdUi";
+            this._checkBoxClientCmdUi.Size = new System.Drawing.Size(177, 17);
+            this._checkBoxClientCmdUi.TabIndex = 4;
+            this._checkBoxClientCmdUi.Text = "&Show \"send command\" window";
+            this._checkBoxClientCmdUi.UseVisualStyleBackColor = true;
+            this._checkBoxClientCmdUi.CheckedChanged += new System.EventHandler(this.CheckBoxClientCmdUiCheckedChanged);
+            // 
             // _checkBoxAutoStart
             // 
-            this._checkBoxAutoStart.Location = new System.Drawing.Point(15, 28);
+            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 56);
             this._checkBoxAutoStart.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxAutoStart.Name = "_checkBoxAutoStart";
             this._checkBoxAutoStart.Size = new System.Drawing.Size(160, 16);
@@ -239,35 +252,17 @@ namespace MCEControl {
             this._checkBoxAutoStart.Visible = false;
             this._checkBoxAutoStart.CheckedChanged += new System.EventHandler(this.CheckBoxAutoStartCheckedChanged);
             // 
-            // _tabClient
+            // tabClient
             // 
-            this._tabClient.BackColor = System.Drawing.SystemColors.Window;
-            this._tabClient.Controls.Add(this._checkBoxEnableClient);
-            this._tabClient.Controls.Add(this._clientGroup);
-            this._tabClient.Location = new System.Drawing.Point(4, 22);
-            this._tabClient.Margin = new System.Windows.Forms.Padding(1);
-            this._tabClient.Name = "_tabClient";
-            this._tabClient.Size = new System.Drawing.Size(438, 251);
-            this._tabClient.TabIndex = 1;
-            this._tabClient.Text = "Client";
-            // 
-            // _clientGroup
-            // 
-            this._clientGroup.BackColor = System.Drawing.SystemColors.Window;
-            this._clientGroup.Controls.Add(this._checkBoxClientCmdUi);
-            this._clientGroup.Controls.Add(this._editClientPort);
-            this._clientGroup.Controls.Add(this._label6);
-            this._clientGroup.Controls.Add(this._label8);
-            this._clientGroup.Controls.Add(this._editClientHost);
-            this._clientGroup.Controls.Add(this._label7);
-            this._clientGroup.Controls.Add(this._editClientDelayTime);
-            this._clientGroup.Location = new System.Drawing.Point(12, 11);
-            this._clientGroup.Margin = new System.Windows.Forms.Padding(1);
-            this._clientGroup.Name = "_clientGroup";
-            this._clientGroup.Padding = new System.Windows.Forms.Padding(1);
-            this._clientGroup.Size = new System.Drawing.Size(412, 230);
-            this._clientGroup.TabIndex = 8;
-            this._clientGroup.TabStop = false;
+            this.tabClient.BackColor = System.Drawing.SystemColors.Window;
+            this.tabClient.Controls.Add(this._checkBoxEnableClient);
+            this.tabClient.Controls.Add(this._clientGroup);
+            this.tabClient.Location = new System.Drawing.Point(4, 22);
+            this.tabClient.Margin = new System.Windows.Forms.Padding(1);
+            this.tabClient.Name = "tabClient";
+            this.tabClient.Size = new System.Drawing.Size(438, 251);
+            this.tabClient.TabIndex = 1;
+            this.tabClient.Text = "Client";
             // 
             // _checkBoxEnableClient
             // 
@@ -281,17 +276,22 @@ namespace MCEControl {
         " recieved as replies.");
             this._checkBoxEnableClient.CheckedChanged += new System.EventHandler(this.CheckEnableClientCheckedChanged);
             // 
-            // _checkBoxClientCmdUi
+            // _clientGroup
             // 
-            this._checkBoxClientCmdUi.AutoSize = true;
-            this._checkBoxClientCmdUi.Location = new System.Drawing.Point(16, 193);
-            this._checkBoxClientCmdUi.Margin = new System.Windows.Forms.Padding(1);
-            this._checkBoxClientCmdUi.Name = "_checkBoxClientCmdUi";
-            this._checkBoxClientCmdUi.Size = new System.Drawing.Size(177, 17);
-            this._checkBoxClientCmdUi.TabIndex = 4;
-            this._checkBoxClientCmdUi.Text = "&Show \"send command\" window";
-            this._checkBoxClientCmdUi.UseVisualStyleBackColor = true;
-            this._checkBoxClientCmdUi.CheckedChanged += new System.EventHandler(this.CheckBoxClientCmdUiCheckedChanged);
+            this._clientGroup.BackColor = System.Drawing.SystemColors.Window;
+            this._clientGroup.Controls.Add(this._editClientPort);
+            this._clientGroup.Controls.Add(this._label6);
+            this._clientGroup.Controls.Add(this._label8);
+            this._clientGroup.Controls.Add(this._editClientHost);
+            this._clientGroup.Controls.Add(this._label7);
+            this._clientGroup.Controls.Add(this._editClientDelayTime);
+            this._clientGroup.Location = new System.Drawing.Point(12, 11);
+            this._clientGroup.Margin = new System.Windows.Forms.Padding(1);
+            this._clientGroup.Name = "_clientGroup";
+            this._clientGroup.Padding = new System.Windows.Forms.Padding(1);
+            this._clientGroup.Size = new System.Drawing.Size(412, 230);
+            this._clientGroup.TabIndex = 8;
+            this._clientGroup.TabStop = false;
             // 
             // _editClientPort
             // 
@@ -348,17 +348,28 @@ namespace MCEControl {
             this._editClientDelayTime.TabIndex = 3;
             this._editClientDelayTime.TextChanged += new System.EventHandler(this.EditClientDelayTimeTextChanged);
             // 
-            // _tabServer
+            // tabServer
             // 
-            this._tabServer.BackColor = System.Drawing.SystemColors.Window;
-            this._tabServer.Controls.Add(this._checkBoxEnableServer);
-            this._tabServer.Controls.Add(this._serverGroup);
-            this._tabServer.Location = new System.Drawing.Point(4, 22);
-            this._tabServer.Margin = new System.Windows.Forms.Padding(1);
-            this._tabServer.Name = "_tabServer";
-            this._tabServer.Size = new System.Drawing.Size(438, 251);
-            this._tabServer.TabIndex = 2;
-            this._tabServer.Text = "Server";
+            this.tabServer.BackColor = System.Drawing.SystemColors.Window;
+            this.tabServer.Controls.Add(this._checkBoxEnableServer);
+            this.tabServer.Controls.Add(this._serverGroup);
+            this.tabServer.Location = new System.Drawing.Point(4, 22);
+            this.tabServer.Margin = new System.Windows.Forms.Padding(1);
+            this.tabServer.Name = "tabServer";
+            this.tabServer.Size = new System.Drawing.Size(438, 251);
+            this.tabServer.TabIndex = 2;
+            this.tabServer.Text = "Server";
+            // 
+            // _checkBoxEnableServer
+            // 
+            this._checkBoxEnableServer.Location = new System.Drawing.Point(20, 10);
+            this._checkBoxEnableServer.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxEnableServer.Name = "_checkBoxEnableServer";
+            this._checkBoxEnableServer.Size = new System.Drawing.Size(104, 16);
+            this._checkBoxEnableServer.TabIndex = 0;
+            this._checkBoxEnableServer.Text = "Enable &Server";
+            this._toolTipServer.SetToolTip(this._checkBoxEnableServer, "Enables the TCP/IP server. It will listen on the specified port for commands.");
+            this._checkBoxEnableServer.CheckedChanged += new System.EventHandler(this.CheckBoxEnableServerCheckedChanged);
             // 
             // _serverGroup
             // 
@@ -374,17 +385,6 @@ namespace MCEControl {
             this._serverGroup.Size = new System.Drawing.Size(412, 230);
             this._serverGroup.TabIndex = 6;
             this._serverGroup.TabStop = false;
-            // 
-            // _checkBoxEnableServer
-            // 
-            this._checkBoxEnableServer.Location = new System.Drawing.Point(20, 10);
-            this._checkBoxEnableServer.Margin = new System.Windows.Forms.Padding(1);
-            this._checkBoxEnableServer.Name = "_checkBoxEnableServer";
-            this._checkBoxEnableServer.Size = new System.Drawing.Size(104, 16);
-            this._checkBoxEnableServer.TabIndex = 0;
-            this._checkBoxEnableServer.Text = "Enable &Server";
-            this._toolTipServer.SetToolTip(this._checkBoxEnableServer, "Enables the TCP/IP server. It will listen on the specified port for commands.");
-            this._checkBoxEnableServer.CheckedChanged += new System.EventHandler(this.CheckBoxEnableServerCheckedChanged);
             // 
             // _editServerPort
             // 
@@ -508,18 +508,29 @@ namespace MCEControl {
             this._label3.TabIndex = 2;
             this._label3.Text = "P&ort:";
             // 
-            // _tabSerialServer
+            // tabSerial
             // 
-            this._tabSerialServer.BackColor = System.Drawing.SystemColors.Window;
-            this._tabSerialServer.Controls.Add(this._checkBoxEnableSerialServer);
-            this._tabSerialServer.Controls.Add(this._serialServerGroup);
-            this._tabSerialServer.Location = new System.Drawing.Point(4, 22);
-            this._tabSerialServer.Margin = new System.Windows.Forms.Padding(1);
-            this._tabSerialServer.Name = "_tabSerialServer";
-            this._tabSerialServer.Padding = new System.Windows.Forms.Padding(1);
-            this._tabSerialServer.Size = new System.Drawing.Size(438, 251);
-            this._tabSerialServer.TabIndex = 3;
-            this._tabSerialServer.Text = "Serial Server";
+            this.tabSerial.BackColor = System.Drawing.SystemColors.Window;
+            this.tabSerial.Controls.Add(this._checkBoxEnableSerialServer);
+            this.tabSerial.Controls.Add(this._serialServerGroup);
+            this.tabSerial.Location = new System.Drawing.Point(4, 22);
+            this.tabSerial.Margin = new System.Windows.Forms.Padding(1);
+            this.tabSerial.Name = "tabSerial";
+            this.tabSerial.Padding = new System.Windows.Forms.Padding(1);
+            this.tabSerial.Size = new System.Drawing.Size(438, 251);
+            this.tabSerial.TabIndex = 3;
+            this.tabSerial.Text = "Serial Server";
+            // 
+            // _checkBoxEnableSerialServer
+            // 
+            this._checkBoxEnableSerialServer.Location = new System.Drawing.Point(20, 10);
+            this._checkBoxEnableSerialServer.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxEnableSerialServer.Name = "_checkBoxEnableSerialServer";
+            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(145, 16);
+            this._checkBoxEnableSerialServer.TabIndex = 0;
+            this._checkBoxEnableSerialServer.Text = "Enable Serial Server";
+            this._checkBoxEnableSerialServer.UseVisualStyleBackColor = true;
+            this._checkBoxEnableSerialServer.CheckedChanged += new System.EventHandler(this.CheckBoxEnableSerialServerCheckedChanged);
             // 
             // _serialServerGroup
             // 
@@ -543,17 +554,6 @@ namespace MCEControl {
             this._serialServerGroup.Size = new System.Drawing.Size(412, 229);
             this._serialServerGroup.TabIndex = 0;
             this._serialServerGroup.TabStop = false;
-            // 
-            // _checkBoxEnableSerialServer
-            // 
-            this._checkBoxEnableSerialServer.Location = new System.Drawing.Point(20, 10);
-            this._checkBoxEnableSerialServer.Margin = new System.Windows.Forms.Padding(1);
-            this._checkBoxEnableSerialServer.Name = "_checkBoxEnableSerialServer";
-            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(145, 16);
-            this._checkBoxEnableSerialServer.TabIndex = 0;
-            this._checkBoxEnableSerialServer.Text = "Enable Serial Server";
-            this._checkBoxEnableSerialServer.UseVisualStyleBackColor = true;
-            this._checkBoxEnableSerialServer.CheckedChanged += new System.EventHandler(this.CheckBoxEnableSerialServerCheckedChanged);
             // 
             // _comboBoxHandshake
             // 
@@ -732,6 +732,18 @@ namespace MCEControl {
             this._tabPageActivityMonitor.Text = "Activity Monitor";
             this._tabPageActivityMonitor.UseVisualStyleBackColor = true;
             // 
+            // checkBoxEnableActivityMonitor
+            // 
+            this.checkBoxEnableActivityMonitor.AutoSize = true;
+            this.checkBoxEnableActivityMonitor.Location = new System.Drawing.Point(20, 10);
+            this.checkBoxEnableActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
+            this.checkBoxEnableActivityMonitor.Name = "checkBoxEnableActivityMonitor";
+            this.checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(134, 17);
+            this.checkBoxEnableActivityMonitor.TabIndex = 0;
+            this.checkBoxEnableActivityMonitor.Text = "Enable &Activity Monitor";
+            this.checkBoxEnableActivityMonitor.UseVisualStyleBackColor = true;
+            this.checkBoxEnableActivityMonitor.CheckedChanged += new System.EventHandler(this.checkBoxEnableActivityMonitor_CheckedChanged);
+            // 
             // groupBoxActivityMonitor
             // 
             this.groupBoxActivityMonitor.Controls.Add(this.labelActivityDebounceTime);
@@ -784,18 +796,6 @@ namespace MCEControl {
             this.labelActivityCommand.TabIndex = 1;
             this.labelActivityCommand.Text = "Command to send:";
             // 
-            // checkBoxEnableActivityMonitor
-            // 
-            this.checkBoxEnableActivityMonitor.AutoSize = true;
-            this.checkBoxEnableActivityMonitor.Location = new System.Drawing.Point(20, 10);
-            this.checkBoxEnableActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
-            this.checkBoxEnableActivityMonitor.Name = "checkBoxEnableActivityMonitor";
-            this.checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(134, 17);
-            this.checkBoxEnableActivityMonitor.TabIndex = 0;
-            this.checkBoxEnableActivityMonitor.Text = "Enable &Activity Monitor";
-            this.checkBoxEnableActivityMonitor.UseVisualStyleBackColor = true;
-            this.checkBoxEnableActivityMonitor.CheckedChanged += new System.EventHandler(this.checkBoxEnableActivityMonitor_CheckedChanged);
-            // 
             // toolTipClient
             // 
             this.toolTipClient.ToolTipTitle = "Client";
@@ -813,7 +813,7 @@ namespace MCEControl {
             this.CancelButton = this._buttonCancel;
             this.ClientSize = new System.Drawing.Size(463, 316);
             this.ControlBox = false;
-            this.Controls.Add(this._tabControl);
+            this.Controls.Add(this.tabcontrol);
             this.Controls.Add(this._buttonCancel);
             this.Controls.Add(this._buttonOk);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
@@ -825,17 +825,19 @@ namespace MCEControl {
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Settings";
-            this._tabControl.ResumeLayout(false);
-            this._general.ResumeLayout(false);
-            this._tabClient.ResumeLayout(false);
+            this.Load += new System.EventHandler(this.SettingsDialog_Load);
+            this.tabcontrol.ResumeLayout(false);
+            this.tabGeneral.ResumeLayout(false);
+            this.tabGeneral.PerformLayout();
+            this.tabClient.ResumeLayout(false);
             this._clientGroup.ResumeLayout(false);
             this._clientGroup.PerformLayout();
-            this._tabServer.ResumeLayout(false);
+            this.tabServer.ResumeLayout(false);
             this._serverGroup.ResumeLayout(false);
             this._serverGroup.PerformLayout();
             this._wakeupGroup.ResumeLayout(false);
             this._wakeupGroup.PerformLayout();
-            this._tabSerialServer.ResumeLayout(false);
+            this.tabSerial.ResumeLayout(false);
             this._serialServerGroup.ResumeLayout(false);
             this._serialServerGroup.PerformLayout();
             this._tabPageActivityMonitor.ResumeLayout(false);
@@ -863,13 +865,13 @@ namespace MCEControl {
             // Handle General tab setup
             _checkBoxHideOnStartup.Checked = Settings.HideOnStartup;
             _checkBoxAutoStart.Checked = Settings.AutoStart;
+            _checkBoxClientCmdUi.Checked = Settings.ShowCommandWindow;
 
             // Client tab setup
             _checkBoxEnableClient.Checked = Settings.ActAsClient;
             _editClientPort.Text = Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
             _editClientHost.Text = Settings.ClientHost;
             _editClientDelayTime.Text = Settings.ClientDelayTime.ToString(CultureInfo.InvariantCulture);
-            _checkBoxClientCmdUi.Checked = Settings.ShowCommandWindow;
 
             // Server tab setup
             _checkBoxEnableServer.Checked = Settings.ActAsServer;
@@ -903,6 +905,9 @@ namespace MCEControl {
 
             _buttonOk.Enabled = false;
         }
+
+        private string defaultTab;
+        public string DefaultTab { get => defaultTab; set => defaultTab = value; }
 
         private void SettingsChanged() {
             if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked) {
@@ -1104,6 +1109,26 @@ namespace MCEControl {
             if (UInt32.TryParse(textBoxDebounceTime.Text.ToString(), out t))
                 Settings.ActivityMonitorDebounceTime = t;
             SettingsChanged();
+        }
+        private void SettingsDialog_Load(object sender, EventArgs e) {
+            switch (defaultTab) {
+                case "General":
+                    tabcontrol.SelectedTab = tabGeneral;
+                    break;
+
+                case "Client":
+                    tabcontrol.SelectedTab = tabClient;
+                    break;
+
+                case "Server":
+                    tabcontrol.SelectedTab = tabServer;
+                    break;
+
+                case "Serial":
+                    tabcontrol.SelectedTab = tabSerial;
+                    break;
+
+            }
         }
     }
 

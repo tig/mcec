@@ -190,6 +190,21 @@ namespace MCEControl {
             Debug.WriteLine("SerialServer: Exiting Read()");
         }
 
+        // Send text on serial port. 
+        // BUGBUG: This function has never been tested.
+        public override void Send(string text, Reply replyContext = null) {
+            if (_serialPort != null && _serialPort.IsOpen)
+                _serialPort.Write(text);
+            
+            // TODO: Implement notifications
+            //if (_mainSocket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
+            //    SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());
+            //}
+            //else {
+            //    SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext, text);
+            //}
+
+        }
         #region Nested type: SerialReplyContext
         public class SerialReplyContext : Reply {
             private SerialPort _rs232;

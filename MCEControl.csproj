@@ -302,6 +302,9 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Installer.nsi</LastGenOutput>
     </Content>
+    <None Include="Resources\Trafficlight-gray-icon.bmp" />
+    <None Include="Resources\Trafficlight-gray-icon.png" />
+    <None Include="Resources\Trafficlight-green-icon.png" />
     <None Include=".editorconfig" />
     <None Include="Installer.nsi">
       <AutoGen>True</AutoGen>
@@ -341,6 +344,7 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="Resources\Trafficlight-red-icon.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config">
