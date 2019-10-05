@@ -338,7 +338,7 @@
     </Content>
     <Content Include="Guillen.Icon.ico" />
     <Content Include="Resources\Guillen.Icon.ico" />
-    <EmbeddedResource Include="Resources\MCEControl.commands">
+    <EmbeddedResource Include="Resources\Builtin.commands">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <None Include="Properties\Settings.settings">

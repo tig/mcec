@@ -137,7 +137,7 @@ namespace MCEControl {
                     XmlReader reader =
                         new XmlTextReader(
                             Assembly.GetExecutingAssembly()
-                                .GetManifestResourceStream("MCEControl.Resources.MCEControl.commands"));
+                                .GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
                     cmds = (CommandTable) serializer.Deserialize(reader);
                     foreach (var cmd in cmds.List) {
                         if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())) {
