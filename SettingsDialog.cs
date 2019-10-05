@@ -1222,8 +1222,8 @@ namespace MCEControl {
         // Server
         public bool ActAsServer = true;
         public int ClientDelayTime = 30000;
-        public String ClientHost;
-        public int ClientPort;
+        public String ClientHost = "localhost";
+        public int ClientPort = 5150;
         public String ClosingCommand;
         public int Opacity = 100;
         public int ServerPort = 5150;
@@ -1321,7 +1321,7 @@ namespace MCEControl {
             }
             catch (FileNotFoundException) {
                 // First time through, so create file with defaults
-                Logger.Instance.Log4.Info("Setttings: Creating default settings file.");
+                Logger.Instance.Log4.Info("Settings: Creating default settings file.");
                 settings = new AppSettings();
                 settings.Serialize();
 

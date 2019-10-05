@@ -32,8 +32,8 @@ MCE Controller was originally written in 2004 to enable integration of a Windows
 
 ## Documentation
 
-* [MCE Controler Wiki](https://github.com/tig/mcec/wiki)
-* [MCE Controller documentation](https://github.com/tig/mcec/wiki/Documentation)
+* [MCE Controler Overview](https://github.com/tig/mcec/wiki)
+* [Full MCE Controller Documentation](https://github.com/tig/mcec/wiki/Documentation)
 
 ## Support 
 

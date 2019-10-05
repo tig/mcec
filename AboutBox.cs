@@ -39,7 +39,7 @@ namespace MCEControl {
 
             InitializeComponent();
 
-            labelVersion.Text = Resources.MCE_Controller_Version_label + Application.ProductVersion;
+            labelVersion.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
         }
 
         #region Windows Form Designer generated code

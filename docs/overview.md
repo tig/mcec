@@ -2,7 +2,7 @@
 
 By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) -- Copyright © 2019 [Kindel Systems](http://www.kindel.com), LLC.  
 
-![MCE Controller](https://tig.github.io/mcec/Documentation_MCE%20Controller_2.png)
+![MCE Controller](https://github.com/tig/mcec/blob/develop/docs/mainwindow.png?raw=true)
 
 ## Download
 
