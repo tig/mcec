@@ -34,11 +34,14 @@ namespace MCEControl {
             //
             // Required for Windows Form Designer support
             //
-            // https://www.sgrottel.de/?p=1581&lang=en
-            Font = System.Drawing.SystemFonts.DefaultFont;
-
             InitializeComponent();
-
+            // https://www.sgrottel.de/?p=1581&lang=en
+            //Font = System.Drawing.SystemFonts.DialogFont;
+            //_label1.Font =
+            //_labelSummary.Font = _labelTitle.Font = Font;
+            //_linkLabelKindelSystems.Font = Font;
+            //_linkLabelMceController.Font = System.Drawing.SystemFonts.;
+            
             labelVersion.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
         }
 
@@ -63,7 +66,7 @@ namespace MCEControl {
             // 
             // _labelTitle
             // 
-            this._labelTitle.Font = new System.Drawing.Font("Microsoft Sans Serif", 34F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this._labelTitle.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this._labelTitle.Location = new System.Drawing.Point(216, 16);
             this._labelTitle.Name = "_labelTitle";
             this._labelTitle.Size = new System.Drawing.Size(280, 41);
@@ -126,7 +129,7 @@ namespace MCEControl {
             // _label1
             // 
             this._label1.AutoSize = true;
-            this._label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            //this._label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this._label1.Location = new System.Drawing.Point(56, 176);
             this._label1.Name = "_label1";
             this._label1.Size = new System.Drawing.Size(96, 12);
@@ -158,7 +161,7 @@ namespace MCEControl {
             this.Controls.Add(this._buttonOk);
             this.Controls.Add(this._linkLabelMceController);
             this.Controls.Add(this._labelTitle);
-            this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            //this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.MinimizeBox = false;

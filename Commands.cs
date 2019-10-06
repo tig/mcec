@@ -1,5 +1,5 @@
 ﻿//-------------------------------------------------------------------
-// Copyright © 2017 Kindel Systems, LLC
+// Copyright © 2019 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 // 
@@ -30,29 +30,29 @@ namespace MCEControl {
         }
     }
 
-    // Note, do not change the namespace or your will break existing installations
+    // Note, do not change the namespace or you will break existing installations
     [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "MCEController")]
     public class CommandTable {
         [XmlIgnore] private readonly Hashtable _hashTable = new Hashtable();
 
-        [XmlArray("Commands")] 
-        [XmlArrayItem("StartProcess", typeof (StartProcessCommand))] 
-        [XmlArrayItem("SendInput", typeof (SendInputCommand))] 
-        [XmlArrayItem("SendMessage", typeof (SendMessageCommand))] 
-        [XmlArrayItem("SetForegroundWindow", typeof (SetForegroundWindowCommand))] 
-        [XmlArrayItem("Shutdown", typeof (ShutdownCommand))] 
-        [XmlArrayItem(typeof (Command))] 
+        [XmlArray("Commands")]
+        [XmlArrayItem("StartProcess", typeof(StartProcessCommand))]
+        [XmlArrayItem("SendInput", typeof(SendInputCommand))]
+        [XmlArrayItem("SendMessage", typeof(SendMessageCommand))]
+        [XmlArrayItem("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
+        [XmlArrayItem("Shutdown", typeof(ShutdownCommand))]
+        [XmlArrayItem(typeof(Command))]
         public Command[] List;
 
         public CommandTable() {
-            if (_hashTable == null) 
+            if (_hashTable == null)
                 _hashTable = new Hashtable();
-
         }
 
         public int NumCommands {
             get { return _hashTable.Count; }
         }
+
 
         public void Execute(Reply reply, String cmd) {
             if (!MainWindow.Instance.Settings.DisableInternalCommands) {
@@ -105,7 +105,7 @@ namespace MCEControl {
                     var sim = new InputSimulator();
 
                     Logger.Instance.Log4.Info("Cmd: Sending keydown for: " + cmd);
-                    sim.Keyboard.KeyPress((VirtualKeyCode) c);
+                    sim.Keyboard.KeyPress((VirtualKeyCode)c);
                     return;
                 }
             }
@@ -122,23 +122,23 @@ namespace MCEControl {
 
         private Command FindKey(String key) {
             if (_hashTable.ContainsKey(key))
-                return (Command) _hashTable[key];
+                return (Command)_hashTable[key];
             return null;
         }
 
-        public static CommandTable Deserialize(bool DisableInternalCommands) {
+        public static CommandTable Deserialize(string CommandsFile, bool DisableInternalCommands) {
             CommandTable cmds = null;
             CommandTable userCmds = null;
 
             if (!DisableInternalCommands) {
                 // Load the built-in commands from an assembly resource
                 try {
-                    var serializer = new XmlSerializer(typeof (CommandTable));
+                    var serializer = new XmlSerializer(typeof(CommandTable));
                     XmlReader reader =
                         new XmlTextReader(
                             Assembly.GetExecutingAssembly()
                                 .GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
-                    cmds = (CommandTable) serializer.Deserialize(reader);
+                    cmds = (CommandTable)serializer.Deserialize(reader);
                     foreach (var cmd in cmds.List) {
                         if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())) {
                             cmds._hashTable.Remove(cmd.Key.ToUpper());
@@ -147,14 +147,14 @@ namespace MCEControl {
                     }
                 }
                 catch (Exception ex) {
-                    MessageBox.Show($"No commands loaded. Error parsing built-in commands. {ex.Message}");
-                    Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing built-in commands. {ex.Message}");
+                    MessageBox.Show($"No built-in commands loaded. Error parsing built-in commands. {ex.Message}");
+                    Logger.Instance.Log4.Info($"Commands: No built-in commands loaded. Error parsing built-in commands. {ex.Message}");
                     Util.DumpException(ex);
                     return null;
                 }
+
                 // Populate default VK_ codes
-                foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode)))
-                {
+                foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
                     string s;
                     if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
                         s = vk.ToString();  // already have VK_
@@ -168,33 +168,35 @@ namespace MCEControl {
             else {
                 cmds = new CommandTable();
             }
+            Logger.Instance.Log4.Info($"Commands: {cmds.NumCommands} built-in commands enabled.");
+
             // Load any over-rides from a text file
             FileStream fs = null;
             try {
-                var serializer = new XmlSerializer(typeof (CommandTable));
+                var serializer = new XmlSerializer(typeof(CommandTable));
                 // A FileStream is needed to read the XML document.
-                fs = new FileStream("MCEControl.commands", FileMode.Open, FileAccess.Read);
+                fs = new FileStream(CommandsFile, FileMode.Open, FileAccess.Read);
                 XmlReader reader = new XmlTextReader(fs);
                 userCmds = (CommandTable)serializer.Deserialize(reader);
-                foreach (var cmd in userCmds.List){
-                    if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())){
+                foreach (var cmd in userCmds.List) {
+                    if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())) {
                         cmds._hashTable.Remove(cmd.Key.ToUpper());
                     }
                     cmds._hashTable.Add(cmd.Key.ToUpper(), cmd);
                 }
-                Logger.Instance.Log4.Info($"Commands: User defined commands loaded.");
+                Logger.Instance.Log4.Info($"Commands: {cmds.NumCommands} user defined commands loaded from {CommandsFile}.");
             }
             catch (FileNotFoundException ex) {
-                Logger.Instance.Log4.Info("Commands: No user defined commands loaded; MCEControl.commands was not found.");
+                Logger.Instance.Log4.Info($"Commands: No user defined commands loaded; {CommandsFile} was not found.");
                 Util.DumpException(ex);
             }
             catch (InvalidOperationException ex) {
-                Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing MCEControl.commands file. {ex.Message} {ex.InnerException.Message}");
+                Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing {CommandsFile}. {ex.Message} {ex.InnerException.Message}");
                 Util.DumpException(ex);
             }
             catch (Exception ex) {
-                MessageBox.Show($"No commands loaded. Error parsing MCEControl.commands file. {ex.Message}");
-                Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing MCEControl.commands file. {ex.Message}");
+                MessageBox.Show($"No commands loaded. Error parsing {CommandsFile}. {ex.Message}");
+                Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing {CommandsFile}. {ex.Message}");
                 Util.DumpException(ex);
             }
             finally {
@@ -204,5 +206,7 @@ namespace MCEControl {
 
             return cmds;
         }
+
+
     }
 }

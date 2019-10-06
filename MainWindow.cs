@@ -20,6 +20,7 @@ using log4net.Repository.Hierarchy;
 using log4net.Core;
 using log4net.Appender;
 using log4net.Layout;
+using System.Drawing;
 
 namespace MCEControl {
     /// <summary>
@@ -82,29 +83,29 @@ namespace MCEControl {
         public static MainWindow Instance { get { return lazy.Value; } }
 
         public AppSettings Settings { get => settings; set => settings = value; }
-
+        
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
         public static void Main(string[] args) {
-            Logger.Instance.Log4.Debug("Main");
-            if (!IsNet45OrNewer()) {
-                MessageBox.Show(
-                    "MCE Controller requires .NET Framework 4.5 or newer.\r\n\r\nDownload and install from http://www.microsoft.com/net/");
-                return;
-            }
-
-            // AutoScaleMode for highdpi displays
-            if (Environment.OSVersion.Version.Major >= 6)
-                SetProcessDPIAware();
-
+            // https://docs.microsoft.com/en-us/dotnet/framework/winforms/high-dpi-support-in-windows-forms
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            // Start logging
+            Logger.Instance.LogFile = $@"{ConfigPath}MCEControl.log";
+            Logger.Instance.Log4.Debug("Main");
+
+            // TODO: Update to check for 4.7 or newer
+            if (!IsNet45OrNewer()) {
+                MessageBox.Show(
+                    "MCE Controller requires .NET Framework 4.7 or newer.\r\n\r\nDownload and install from http://www.microsoft.com/net/");
+                return;
+            }
+
             // Load AppSettings
-            Instance.Settings = AppSettings.Deserialize(AppSettings.GetSettingsPath());
-            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Instance.Settings.TextBoxLogThreshold];
+            Instance.Settings = AppSettings.Deserialize($@"{ConfigPath}{AppSettings.SettingsFileName}");
 
             Application.Run(Instance);
         }
@@ -117,11 +118,39 @@ namespace MCEControl {
             return Type.GetType("System.Reflection.ReflectionContext", false) != null;
         }
 
+        // If running from default install location (in Program Files) find the
+        // .commands, .settings, and .log files in %appdata%. Otherwise find them in the 
+        // directory MCEControl.exe was run from.
+        private static string ConfigPath {
+            get {
+                // Get dir of mcecontrol.exe
+                string path = AppDomain.CurrentDomain.BaseDirectory;
+                string programfiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+                // is this in Program Files?
+                if (path.Contains(programfiles)) {
+                    // We're running from the default install location. Use %appdata%.
+                    // strip % programfiles %
+                    path = $@"{appdata}\{path.Substring(programfiles.Length + 1)}";
+                }
+                return path;
+            }
+        }
+
         public MainWindow() {
             log4 = Logger.Instance.Log4;
-
+            
             InitializeComponent();
+            
+            //Font = SystemFonts.DefaultFont;
+            //= SystemFonts.MenuFont;
+            //statusStrip.Font = SystemFonts.StatusFont;
+            //_log.Font = SystemFonts.DefaultFont;
+            //_log.Font = new System.Drawing.Font("Lucida Console", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+
             Logger.Instance.LogTextBox = _log;
+
             CheckVersion();
 
             _notifyIcon.Icon = Icon;
@@ -350,27 +379,28 @@ namespace MCEControl {
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._log.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this._log.Font = new System.Drawing.Font("Lucida Console", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
-            this._log.Location = new System.Drawing.Point(8, 0);
+            this._log.Font = new System.Drawing.Font("Lucida Console", 8F);
+            this._log.Location = new System.Drawing.Point(16, 6);
             this._log.Multiline = true;
             this._log.Name = "_log";
             this._log.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this._log.Size = new System.Drawing.Size(640, 344);
+            this._log.Size = new System.Drawing.Size(635, 331);
             this._log.TabIndex = 1;
             this._log.WordWrap = false;
             // 
             // statusStrip
             // 
+            this.statusStrip.ImageScalingSize = new System.Drawing.Size(32, 32);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusStripStatus,
             this.statusStripClient,
             this.statusStripServer,
             this.statusStripSerial});
             this.statusStrip.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
-            this.statusStrip.Location = new System.Drawing.Point(0, 345);
+            this.statusStrip.Location = new System.Drawing.Point(0, 325);
             this.statusStrip.Name = "statusStrip";
             this.statusStrip.ShowItemToolTips = true;
-            this.statusStrip.Size = new System.Drawing.Size(645, 22);
+            this.statusStrip.Size = new System.Drawing.Size(645, 42);
             this.statusStrip.TabIndex = 2;
             this.statusStrip.Text = "MCE Controller";
             // 
@@ -381,7 +411,7 @@ namespace MCEControl {
             this.statusStripStatus.DoubleClickEnabled = true;
             this.statusStripStatus.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.statusStripStatus.Name = "statusStripStatus";
-            this.statusStripStatus.Size = new System.Drawing.Size(123, 17);
+            this.statusStripStatus.Size = new System.Drawing.Size(248, 32);
             this.statusStripStatus.Text = "MCE Controller Status";
             this.statusStripStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.statusStripStatus.Click += new System.EventHandler(this.statusStripStatus_Click);
@@ -395,7 +425,7 @@ namespace MCEControl {
             this.statusStripClient.Margin = new System.Windows.Forms.Padding(10, 3, 0, 2);
             this.statusStripClient.Name = "statusStripClient";
             this.statusStripClient.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.statusStripClient.Size = new System.Drawing.Size(54, 17);
+            this.statusStripClient.Size = new System.Drawing.Size(109, 37);
             this.statusStripClient.Text = "Client";
             this.statusStripClient.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.statusStripClient.DoubleClick += new System.EventHandler(this.statusStripClient_Click);
@@ -409,7 +439,7 @@ namespace MCEControl {
             this.statusStripServer.Margin = new System.Windows.Forms.Padding(10, 3, 0, 2);
             this.statusStripServer.Name = "statusStripServer";
             this.statusStripServer.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.statusStripServer.Size = new System.Drawing.Size(55, 17);
+            this.statusStripServer.Size = new System.Drawing.Size(114, 37);
             this.statusStripServer.Text = "Server";
             this.statusStripServer.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.statusStripServer.DoubleClick += new System.EventHandler(this.statusStripServer_Click);
@@ -423,19 +453,18 @@ namespace MCEControl {
             this.statusStripSerial.Margin = new System.Windows.Forms.Padding(10, 3, 0, 2);
             this.statusStripSerial.Name = "statusStripSerial";
             this.statusStripSerial.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.statusStripSerial.Size = new System.Drawing.Size(51, 17);
+            this.statusStripSerial.Size = new System.Drawing.Size(105, 37);
             this.statusStripSerial.Text = "Serial";
             this.statusStripSerial.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.statusStripSerial.DoubleClick += new System.EventHandler(this.statusStripSerial_Click);
             // 
             // MainWindow
             // 
-            this.AutoScaleBaseSize = new System.Drawing.Size(5, 15);
+            this.AutoScaleBaseSize = new System.Drawing.Size(10, 24);
             this.BackColor = System.Drawing.SystemColors.Window;
             this.ClientSize = new System.Drawing.Size(645, 367);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this._log);
-            this.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this.HelpButton = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
@@ -472,13 +501,14 @@ namespace MCEControl {
         }
 
         private void MainWindowLoad(object sender, EventArgs e) {
-            Logger.Instance.Log4.Debug("MainWindowLoad");
+            log4.Info($"Logger: Logging to {Logger.Instance.LogFile}");
+            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Instance.Settings.TextBoxLogThreshold];
 
             // Location can not be changed in constructor, has to be done here
             Location = Settings.WindowLocation;
             Size = Settings.WindowSize;
 
-            CmdTable = CommandTable.Deserialize(Settings.DisableInternalCommands);
+            CmdTable = CommandTable.Deserialize($@"{ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
             if (CmdTable == null) {
                 MessageBox.Show(this, Resources.MCEController_commands_read_error, Resources.App_FullName);
                 _notifyIcon.Visible = false;

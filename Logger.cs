@@ -89,7 +89,7 @@ namespace MCEControl {
                     RollingFileAppender a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
                     return a.File;
                 }
-                else return null;
+                else return "MCEController.log"; // default
             }
             set {
                 if (log4 != null) {
@@ -111,10 +111,6 @@ namespace MCEControl {
             Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
 
             // Log to file
-            // set default logfile location
-            string logFile = Environment.CurrentDirectory + @"\MCEControl.log";
-            if (Environment.CurrentDirectory.Contains("Program Files (x86)"))
-                logFile = $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\Kindel Systems\MCE Controller\MCEControl.log";
             RollingFileAppender roller = new RollingFileAppender {
                 Name = "File",
                 AppendToFile = true,
@@ -123,7 +119,7 @@ namespace MCEControl {
                 MaximumFileSize = "100KB",
                 RollingStyle = RollingFileAppender.RollingMode.Size,
                 StaticLogFileName = true,
-                File = logFile
+                File = LogFile
             };
             roller.ActivateOptions();
             hierarchy.Root.AddAppender(roller);
@@ -149,8 +145,6 @@ namespace MCEControl {
             hierarchy.Root.Level = Level.All;
             hierarchy.Configured = true;
             Log4 = log4net.LogManager.GetLogger("MCEControl");
-            Log4.Info($"Logger: Logging to {logFile}");
-
         }
     }
 

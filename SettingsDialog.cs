@@ -179,7 +179,7 @@ namespace MCEControl {
             // 
             this._buttonCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this._buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this._buttonCancel.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            //this._buttonCancel.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this._buttonCancel.Location = new System.Drawing.Point(384, 288);
             this._buttonCancel.Margin = new System.Windows.Forms.Padding(1);
             this._buttonCancel.Name = "_buttonCancel";
@@ -192,7 +192,7 @@ namespace MCEControl {
             // _buttonOk
             // 
             this._buttonOk.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this._buttonOk.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            //this._buttonOk.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this._buttonOk.Location = new System.Drawing.Point(296, 288);
             this._buttonOk.Margin = new System.Windows.Forms.Padding(1);
             this._buttonOk.Name = "_buttonOk";
@@ -212,7 +212,7 @@ namespace MCEControl {
             this.tabcontrol.Controls.Add(this.tabServer);
             this.tabcontrol.Controls.Add(this.tabSerial);
             this.tabcontrol.Controls.Add(this._tabPageActivityMonitor);
-            this.tabcontrol.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            //this.tabcontrol.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this.tabcontrol.Location = new System.Drawing.Point(16, 16);
             this.tabcontrol.Margin = new System.Windows.Forms.Padding(1);
             this.tabcontrol.Name = "tabcontrol";
@@ -857,7 +857,7 @@ namespace MCEControl {
             this.Controls.Add(this.tabcontrol);
             this.Controls.Add(this._buttonCancel);
             this.Controls.Add(this._buttonOk);
-            this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            //this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -1202,7 +1202,7 @@ namespace MCEControl {
     }
 
     public class AppSettings : ICloneable {
-        private const string SettingsFileName = "MCEContol.settings";
+        public const string SettingsFileName = "MCEContol.settings";
 
         // TODO: If I were a good programmer these public members would all
         // be properties and I'd keep track of whether something changed
@@ -1300,14 +1300,13 @@ namespace MCEControl {
             }
         }
 
-        public static AppSettings Deserialize(String settingsPath) {
+        public static AppSettings Deserialize(String settingsFile) {
             AppSettings settings = null;
 
             var serializer = new XmlSerializer(typeof (AppSettings));
             // A FileStream is needed to read the XML document.
             try {
-                var filePath = settingsPath + "\\" + SettingsFileName;
-                var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                var fs = new FileStream(settingsFile, FileMode.Open, FileAccess.Read);
                 XmlReader reader = new XmlTextReader(fs);
                 settings = (AppSettings) serializer.Deserialize(reader);
 
@@ -1317,7 +1316,7 @@ namespace MCEControl {
 
                 fs.Close();
 
-                Logger.Instance.Log4.Info("Settings: Loaded settings from " + filePath);
+                Logger.Instance.Log4.Info("Settings: Loaded settings from " + settingsFile);
             }
             catch (FileNotFoundException) {
                 // First time through, so create file with defaults
