@@ -1,1 +1,4 @@
+name: MCE Controller
+description: MCE Controller documentation
 theme: jekyll-theme-hacker
+markdown: CommonMark 
