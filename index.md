@@ -2,7 +2,7 @@
 
 By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) -- Copyright © 2019 [Kindel Systems](http://www.kindel.com), LLC.  
 
-![MCE Controller](https://github.com/tig/mcec/blob/develop/docs/mainwindow.png?raw=true)
+![MCE Controller](mainwindow.png)
 
 ## Download
 
@@ -10,7 +10,7 @@ By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) -- Cop
 
 ## Documentation
 
-[Read full documentation here.](https://github.com/tig/mcec/wiki/Documentation)
+[Read full documentation here.](documentation.md)
 
 ## Overview
 
@@ -21,7 +21,7 @@ For example:
 *   The command `mcestart` will cause the Windows Media Center application to start. This is equivalent to pressing the green button on the Windows remote control.
 *   The command `maximize` will cause the current window to be maximized on the display. This is equivalent to choosing the "Maximize" button on the window's window menu.
 *   The command `chars:Hello World!` will cause the text "Hello World" to be typed, as though it were typed on the keyboard.
-*   The command `VK_MEDIA___NEXT_TRACK` will cause the currently running media player app (Spotify, Windows Media Player, etc...) to jump to the next media track, just as if the user had pressed the "next track" key on the keyboard.
+*   The command `VK_MEDIA_NEXT_TRACK` will cause the currently running media player app (Spotify, Windows Media Player, etc...) to jump to the next media track, just as if the user had pressed the "next track" key on the keyboard.
 *   The commands that MCE Controller support is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
 
 **MCE Controller** was initially developed (in 2004) to enable integration of a Windows based home theater PC (HTPC) into a Crestron whole-house audio/video system. However, it is general enough that others have used it within other control system that support sending text strings to a TCP/IP port. 
