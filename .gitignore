@@ -1,0 +1,113 @@
+Skip to content
+Search or jump to…
+
+Pull requests
+Issues
+Marketplace
+Explore
+ 
+@tig 
+4
+121tig/mcec
+ Code Issues 0 Pull requests 0 Projects 0 Security Insights Settings
+mcec/.gitignore
+@tig tig fixed merge
+4c0a34f 9 days ago
+85 lines (79 sloc)  1.22 KB
+  
+# MCE Controller .gitignore
+###################
+# compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.pdb
+*.dll.config
+*.cache
+*.suo
+# Include dlls if they�re in the NuGet packages directory
+!/packages/*/lib/*.dll
+!/packages/*/lib/*/*.dll
+# Include dlls if they're in the CommonReferences directory
+!*CommonReferences/*.dll
+
+# Include latest Release exe
+!/docs/*.exe
+
+####################
+# VS Upgrade stuff #
+####################
+UpgradeLog.XML
+_UpgradeReport_Files/
+######################
+# VS Stuff
+######################
+*.user
+*.suo
+.vs/
+###############
+# Directories #
+###############
+bin/
+obj/
+TestResults/
+build/
+.vs/
+
+###################
+# Web publish log #
+###################
+*.Publish.xml
+#############
+# Resharper #
+#############
+/_ReSharper.*
+*.ReSharper.*
+############
+# Packages #
+############
+# it�s better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+######################
+# Logs and databases #
+######################
+App_Data/
+*.log
+*.sqlite
+# OS generated files #
+######################
+.DS_Store?
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# Other stuff
+.cvsignore
+CVS/
+
+#Generated
+*.nsi
+AssemblyFileVersion.cs
+*.settings
+© 2019 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Help
+Contact GitHub
+Pricing
+API
+Training
+Blog
+About
