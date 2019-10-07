@@ -6,8 +6,9 @@ Copyright 2019 Kindel Sytems, LLC.
 ===================================================================
  This file defines the built-in MCE Controller commands. 
  
- See Example.MCEControl.commands for user-defined commands. That file 
- will add to these (or over-ride if the Cmd name is the same).
+ When MCE Controller is installed, a default user-defined commands
+ file will be created in the %appdata% folder named MCEControl.commands. 
+ That file will add to these (or over-ride if the Cmd name is the same).
 ===================================================================
 -->
 

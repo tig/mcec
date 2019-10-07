@@ -1,5 +1,5 @@
-//-------------------------------------------------------------------
-// Copyright © 2017 Kindel Systems, LLC
+﻿//-------------------------------------------------------------------
+// Copyright © 2019 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 // 
@@ -29,12 +29,12 @@ namespace MCEControl {
         }
 
         public static void WriteExceptionInfo(Exception ex) {
-            Console.WriteLine("--------- Exception Data ---------");
-            Console.WriteLine("Message: {0}", ex.Message);
-            Console.WriteLine("Exception Type: {0}", ex.GetType().FullName);
-            Console.WriteLine("Source: {0}", ex.Source);
-            Console.WriteLine("StrackTrace: {0}", ex.StackTrace);
-            Console.WriteLine("TargetSite: {0}", ex.TargetSite);
+            Logger.Instance.Log4.Debug($"--------- Exception Data ---------");
+            Logger.Instance.Log4.Debug($"Message: {ex.Message}");
+            Logger.Instance.Log4.Debug($"Exception Type: {ex.GetType().FullName}");
+            Logger.Instance.Log4.Debug($"Source: {ex.Source}");
+            Logger.Instance.Log4.Debug($"StrackTrace: {ex.StackTrace}");
+            Logger.Instance.Log4.Debug($"TargetSite: {ex.TargetSite}");
         }
     }
 }

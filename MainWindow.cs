@@ -508,7 +508,7 @@ namespace MCEControl {
             Location = Settings.WindowLocation;
             Size = Settings.WindowSize;
 
-            CmdTable = CommandTable.Deserialize($@"{ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
+            CmdTable = CommandTable.Create($@"{ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
             if (CmdTable == null) {
                 MessageBox.Show(this, Resources.MCEController_commands_read_error, Resources.App_FullName);
                 _notifyIcon.Visible = false;
@@ -526,15 +526,7 @@ namespace MCEControl {
 
             if (_cmdWindow == null)
                 _cmdWindow = new CommandWindow();
-            //_cmdWindow.Visible = Settings.ShowCommandWindow;
-
-            //var t = new System.Timers.Timer() {
-            //    AutoReset = false,
-            //    Interval = 2000
-            //};
-            //t.Elapsed += (sender, args) => Start();
-            //Logger.Instance.Log4.Info("Starting services...");
-            //t.Start();
+ 
             SetStatus($"Version: {Application.ProductVersion}");
             Start();
         }

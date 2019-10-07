@@ -39,16 +39,16 @@ namespace MCEControl {
             }
 
             // Now add VK_ commands
-            foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
-                string s;
-                if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
-                    s = vk.ToString();  // already have VK_
-                else
-                    s = "VK_" + vk.ToString();
-                var item = new ListViewItem(s);
-                item.SubItems.Add("SendInputCommand (pre-defined)");
-                listCmds.Items.Add(item);
-            }
+            //foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
+            //    string s;
+            //    if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
+            //        s = vk.ToString();  // already have VK_
+            //    else
+            //        s = "VK_" + vk.ToString();
+            //    var item = new ListViewItem(s);
+            //    item.SubItems.Add("SendInputCommand (pre-defined)");
+            //    listCmds.Items.Add(item);
+            //}
         }
 
         private void CommandWindow_FormClosing(object sender, FormClosingEventArgs e) {
