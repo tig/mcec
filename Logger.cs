@@ -75,8 +75,10 @@ namespace MCEControl {
                 if (log4 != null) {
                     Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
                     TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
-                    a.Threshold = value;
-                    a.ActivateOptions();
+                    if (a != null) {
+                        a.Threshold = value;
+                        a.ActivateOptions();
+                    }
                 }
             }
         }
@@ -160,7 +162,7 @@ namespace MCEControl {
                 value.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.LogKeyPress);
                 var frm = value.FindForm();
                 if (frm != null)
-                    frm.FormClosing += delegate { Close(); };
+                    frm.FormClosed += delegate { Close(); };
             }
         }
 
@@ -192,11 +194,9 @@ namespace MCEControl {
                     // Can only update the log in the main window when on the UI thread
                     if (LogTextBox.InvokeRequired)  // (Instance.InvokeRequired || logTextBox.InvokeRequired)
                         LogTextBox.BeginInvoke((Action)(() => {
-                            Debug.Assert(LogTextBox != null);
                             LogTextBox.AppendText(RenderLoggingEvent(loggingEvent));
                         }));
                     else {
-                        Debug.Assert(LogTextBox != null);
                         LogTextBox.AppendText(RenderLoggingEvent(loggingEvent));
                     }
                 }
@@ -215,7 +215,7 @@ namespace MCEControl {
         private void LogTextChanged(object sender, EventArgs e) {
             Debug.Assert(LogTextBox != null);
             // We don't want to overrun the size a textbox can handle 
-            // limit to 24k
+            // limit to 64k
             if (LogTextBox.TextLength > (64 * 1024)) {
                 LogTextBox.Text = LogTextBox.Text.Remove(0, LogTextBox.Text.IndexOf("\r\n", StringComparison.Ordinal) + 2);
                 LogTextBox.Select(LogTextBox.TextLength, 0);
