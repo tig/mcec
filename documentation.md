@@ -1,11 +1,11 @@
 
 # **MCE Controller V2 Documentation**
 
-Copyright © 2019 [Kindel Systems](http://www.kindel.com), LLC. Licensed under the [MIT License](http://mcec.codeplex.com/license).
+Copyright © 2019 [Kindel Systems](http://www.kindel.com), LLC. Licensed under the [MIT License](https://github.com/tig/mcec/blob/master/license.md).
 
 By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
-![MCE Controller](https://github.com/tig/mcec/blob/develop/docs/mainwindow.png?raw=true)
+![MCE Controller](mainwindow.png)
 
 # Overview
 
@@ -13,11 +13,11 @@ By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
 For example:
 
-*   The command `mcestart` will cause the Windows Media Center application to start. This is equivalent to pressing the green button on the Windows remote control.
-*   The command `maximize` will cause the current window to be maximized on the display. This is equivalent to choosing the "Maximize" button on the window's window menu.
-*   The command `chars:Hello World!` will cause the text "Hello World" to be typed, as though it were typed on the keyboard.
-*   The command `VK_MEDIA_NEXT_TRACK` will cause the currently running media player app (Spotify, Windows Media Player, etc...) to jump to the next media track, just as if the user had pressed th "next track" key on the keyboard.
-*   The commands that **MCE Controller** support is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
+* The command `mcestart` will cause the Windows Media Center application to start. This is equivalent to pressing the green button on the Windows remote control.
+* The command `maximize` will cause the current window to be maximized on the display. This is equivalent to choosing the "Maximize" button on the window's window menu.
+* The command `chars:Hello World!` will cause the text "Hello World" to be typed, as though it were typed on the keyboard.
+* The command `VK_MEDIA_NEXT_TRACK` will cause the currently running media player app (Spotify, Windows Media Player, etc...) to jump to the next media track, just as if the user had pressed th "next track" key on the keyboard.
+* The commands that **MCE Controller** support is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
 
 **MCE Controller** was initially developed to enable integration of a Windows Media Center based home theater PC (HTPC) into a Crestron whole-house audio/video system. However, it is general enough that others have used it within other control system that support sending text strings to a TCP/IP port. Most control systems, such as Crestron or AMX, support IR emitting.
 
@@ -81,7 +81,7 @@ Use the `File.Exit` menu to shut down MCE Controller.
 
 # Settings
 
-[![Settings](https://tig.github.io/mcec/settings_general.png "Settings")]
+[![Settings](settings_general.png "Settings")]
 
 Configuration settings are stored in a file that will be created in the `%APPDATA%\Roaming\Kindel Systems\MCE Controller` directory when MCE Controller is first run. The configuration settings file is named `MCEControl.settings`.
 
@@ -94,12 +94,12 @@ You can access all settings from the `File.Settings...` menu. The `General` tab 
 
 The Client tab in the Settings dialog controls **MCE Controller’s** TCP/IP client functionality. When acting as a client, **MCE Controller** will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. **MCE Controller** sends nothing to the host by default.
 
-[![Client](https://tig.github.io/mcec/settings_client.png "Client")]
+[![Client](settings_client.png "Client")]
 
-*   `Enable Client`. This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
-*   `Host`. This is the IP address or host name of the server **MCE Controller** is to connect to.
-*   `Port`. This is the port that **MCE Controller** will connect to.
-*   `Reconnect Wait Time (ms)`. This is the number of milliseconds (default is 30 seconds or 30000 ms) **MCE Controller** will wait before trying to reconnect to the host once a connection has been dropped.
+* `Enable Client`. This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
+* `Host`. This is the IP address or host name of the server **MCE Controller** is to connect to.
+* `Port`. This is the port that **MCE Controller** will connect to.
+* `Reconnect Wait Time (ms)`. This is the number of milliseconds (default is 30 seconds or 30000 ms) **MCE Controller** will wait before trying to reconnect to the host once a connection has been dropped.
 
 ## The Server Tab
 
@@ -109,7 +109,7 @@ The Server tab in the Settings dialog controls **MCE Controller’s** TCP/IP ser
 
 In server mode, **MCE Controller** supports any number of multiple-simultaneous connections.
 
-[![Server](https://tig.github.io/mcec/settings_server.png "Server")]
+[![Server](settings_server.png "Server")]
 
 *  `Enable Server` - This checkbox enables or disables the TCP/IP server functionality. If enabled, the followings settings apply:
 * `Port`- This is the port that **MCE Controller** will listen on.
@@ -119,7 +119,7 @@ In server mode, **MCE Controller** supports any number of multiple-simultaneous 
 
 The Serial Server tab in the Settings dialog controls **MCE Controller’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCE Controller** will open the specified COM port (e.g. COM1) and wait commands to be sent.
 
-[![Serial](https://tig.github.io/mcec/settings_serialserver.png "Serial")]
+[![Serial](settings_serialserver.png "Serial")]
 
 * `Enable Serial Server` - This checkbox enables or disables the Serial Server functionality. It is disabled by default. If enabled, the followings settings apply:
 * `Port` - This is the serial port that **MCE Controller** will listen on (e.g. COM1).
@@ -130,7 +130,7 @@ The Serial Server tab in the Settings dialog controls **MCE Controller’s** ser
 
 MCE Controller's `User Activity Monitor` sends a command to the home automation system when a user is using the PC. It knows the user is using the PC monitoring keyboard and mouse movement. If the mouse is moving or keys are being pressed, the PC is in use. This is useful for adding additional context to a room occupancy sensor in a home automation system. 
 
-[![Activity Monitor](https://tig.github.io/mcec/settings_serialserver.png "Activity Monitor")]
+[![Activity Monitor](settings_serialserver.png "Activity Monitor")]
 
 * `Enable User Activity Monitor` - This checkbox enables or disables the Activity Montitor. It is disabled by default. If enabled, the followings settings apply:
 * `Command to send` - The string that will be sent when user activity is detected. 
@@ -153,7 +153,7 @@ Because the default settings have the Client connecting to port `5150` on `local
 
 The `Commands Window` shows a list of all Commands MCE Controller is configured to 'listen for'. It is useful to see the full list and to be able to test them.
 
-[![Commands](https://tig.github.io/mcec/commands.png "Commands")]
+[![Commands](commands.png "Commands")]
 
 If you've followed the instructions above to connect an instance of MCE Controller to itself, use `Commands.Show Commands...` to open the `Commands Window`. 
 
@@ -188,13 +188,13 @@ MCE Controller works with **Commands**. Commands are text strings like `greenbut
 ## Types
 The following command types are supported by **MCE Controller**:
 
-*   **StartProcess** - Starts the specified process. Can specify the path to an executable, shortcut, or a URI. Supports embedded `nextCommand` elements allowing other form of MCE Controller commands to be invoke after the process starts.
-*   **SetForgroundWindow** - Causes the specified window to be brought to the foreground.
-*   **Shutdown** - Allows the host computer to be shutdown, restarted, put in standby, or hibernate mode.
-*   **SendMessage** - Enables the sending of window messages to windows. E.g. the 'mcemaximize' command causes the Media Center window to go full screen.
-*   **SendInput** - Sends keyboard input as though it were typed on a keyboard.
-*   **Mouse** - Sends mouse movement and button actions.
-*   **Built-In** - Single characters, `VK_` codes, `chars:`, `shiftdown:`, `shiftup:,` and `mcec:.`
+* **StartProcess** - Starts the specified process. Can specify the path to an executable, shortcut, or a URI. Supports embedded `nextCommand` elements allowing other form of MCE Controller commands to be invoke after the process starts.
+* **SetForgroundWindow** - Causes the specified window to be brought to the foreground.
+* **Shutdown** - Allows the host computer to be shutdown, restarted, put in standby, or hibernate mode.
+* **SendMessage** - Enables the sending of window messages to windows. E.g. the 'mcemaximize' command causes the Media Center window to go full screen.
+* **SendInput** - Sends keyboard input as though it were typed on a keyboard.
+* **Mouse** - Sends mouse movement and button actions.
+* **Built-In** - Single characters, `VK_` codes, `chars:`, `shiftdown:`, `shiftup:,` and `mcec:.`
 
 ## Built-in Commands
 
@@ -397,26 +397,26 @@ Also, you may find that `greenbutton` is a better function than `mcestart` becau
 
 # Version History
 
-*   Version 1.0.1 (February 22, 2004) – First publicly released version.
-*   Version 1.0.2 (March 24, 2004) - New features: Added support for system shutdown, restart, standby, and hibernate (the Shutdown command type). Renamed a few commands ("mce_start" is now "mcestart" for example) to be more consistent.
-*   Version 1.0.3 (March 26, 2004) - Added installer.
-*   Version 1.0.4 (February 26, 2005) - Fixed bug that caused MCE Controller to prevent logoffs and shutdowns.
-*   Version 1.0.5 (April, 2005) – Added support for arbitrary # of characters for the “key:” command.
-*   Version 1.1.0 (May 11, 2005) – No functional changes. Changed the source license to the BSD license and posted on Sourceforge.
-*   Version 1.3.0 (January 3, 2012) – Added support for "chars:". Removed support for "keys:". Added "enter" command. Now builds with VS2010.
-*   Version 1.3.1 (January 4, 2012) – Fixed bug parsing -1 in the lParam of SendMessageCommands. Commented MCEController.commands. Minor code cleanup.
-*   Version 1.3.2 (January 4, 2012) – Fixed bug in how .commands and .settings are stored (Win7 broke permissions).
-*   Version 1.3.3 (January 9, 2012) – Added capability to send individual key presses with shift/ctrl/alt/win modifiers (what keys: originally was supposed to do).
-*   Version 1.4.0 (February 11, 2012) - Server now supports any number of client connections. Expanded MCEController.commands to include commands used by iRule (http://iruleathome.com). Updated About Box & Help menu to reflect move to GitHub. Added menu item to open directory containing MCEController.commands.
-*   Version 1.5.0 (March 27, 2012) - 'chars:' command now supports escaped characters. This allows the sending of Unicode characters such as € (e.g. 'chars:\u20AC' will cause the € character to be input on the server machine).
-*   Version 1.5.1 (April 2, 2012) - Removed readme file from distribution and updated online docs.
-*   Version 1.5.2 (October, 4, 2012) - Fixed .settings file bug where it would sometimes read from Program Files and write to AppData. Now always writes to AppData unless started outside of Program Files. Fixed Setting dialog to be more resilient to bad data. Fixed Send Awake so that it does not fault on bad data, but logs errors. General code clean up. Built with VS2012.
-*   Version 1.6.0 (October 10, 2012) - Added mouse simulation support.
-*   Version 1.6.1 (November 6, 2012) - Fixed bug with some Telnet clients that don't buffer each line before sending.
-*   Version 1.7.0 (December 19, 2012) - Added Serial Server support.
-*   Version 1.8.0 (December 30, 2012) - Added VK_ command support. Added 'command window'. New icon. Updated documentation.
-*   Version 1.8.1 (January 1, 2013) - Updated links for CodePlex. Fixed crashing bug on exit.
-*   Version 1.8.4 (March, 2014) - New icon by [http://guillendesign.deviantart.com/](http://guillendesign.deviantart.com/), Minor menu tweaks, MCEControl.commands is now an optional file. The previously defined set of commands from older builds are now built into the program. If a MCEControl.commands file is present it will add to and override these pre-defined commands. Upgrades and un-installs will no longer overwrite or delete the MCEControl.commands file.
-*   Version 1.8.6 (May, 2014) – Internal commands can be disabled via a registry key. Fixed bug when client forcibly closed socket. Added logging.
-*   Version 1.9.0 (April 15, 2017) - Moved from Codeplex to GitHub.
-*   Version 2.0.0 (October 8, 2019) - Major update.
+* Version 1.0.1 (February 22, 2004) – First publicly released version.
+* Version 1.0.2 (March 24, 2004) - New features: Added support for system shutdown, restart, standby, and hibernate (the Shutdown command type). Renamed a few commands ("mce_start" is now "mcestart" for example) to be more consistent.
+* Version 1.0.3 (March 26, 2004) - Added installer.
+* Version 1.0.4 (February 26, 2005) - Fixed bug that caused MCE Controller to prevent logoffs and shutdowns.
+* Version 1.0.5 (April, 2005) – Added support for arbitrary # of characters for the “key:” command.
+* Version 1.1.0 (May 11, 2005) – No functional changes. Changed the source license to the BSD license and posted on Sourceforge.
+* Version 1.3.0 (January 3, 2012) – Added support for "chars:". Removed support for "keys:". Added "enter" command. Now builds with VS2010.
+* Version 1.3.1 (January 4, 2012) – Fixed bug parsing -1 in the lParam of SendMessageCommands. Commented MCEController.commands. Minor code cleanup.
+* Version 1.3.2 (January 4, 2012) – Fixed bug in how .commands and .settings are stored (Win7 broke permissions).
+* Version 1.3.3 (January 9, 2012) – Added capability to send individual key presses with shift/ctrl/alt/win modifiers (what keys: originally was supposed to do).
+* Version 1.4.0 (February 11, 2012) - Server now supports any number of client connections. Expanded MCEController.commands to include commands used by iRule (http://iruleathome.com). Updated About Box & Help menu to reflect move to GitHub. Added menu item to open directory containing MCEController.commands.
+* Version 1.5.0 (March 27, 2012) - 'chars:' command now supports escaped characters. This allows the sending of Unicode characters such as € (e.g. 'chars:\u20AC' will cause the € character to be input on the server machine).
+* Version 1.5.1 (April 2, 2012) - Removed readme file from distribution and updated online docs.
+* Version 1.5.2 (October, 4, 2012) - Fixed .settings file bug where it would sometimes read from Program Files and write to AppData. Now always writes to AppData unless started outside of Program Files. Fixed Setting dialog to be more resilient to bad data. Fixed Send Awake so that it does not fault on bad data, but logs errors. General code clean up. Built with VS2012.
+* Version 1.6.0 (October 10, 2012) - Added mouse simulation support.
+* Version 1.6.1 (November 6, 2012) - Fixed bug with some Telnet clients that don't buffer each line before sending.
+* Version 1.7.0 (December 19, 2012) - Added Serial Server support.
+* Version 1.8.0 (December 30, 2012) - Added VK_ command support. Added 'command window'. New icon. Updated documentation.
+* Version 1.8.1 (January 1, 2013) - Updated links for CodePlex. Fixed crashing bug on exit.
+* Version 1.8.4 (March, 2014) - New icon by [http://guillendesign.deviantart.com/](http://guillendesign.deviantart.com/), Minor menu tweaks, MCEControl.commands is now an optional file. The previously defined set of commands from older builds are now built into the program. If a MCEControl.commands file is present it will add to and override these pre-defined commands. Upgrades and un-installs will no longer overwrite or delete the MCEControl.commands file.
+* Version 1.8.6 (May, 2014) – Internal commands can be disabled via a registry key. Fixed bug when client forcibly closed socket. Added logging.
+* Version 1.9.0 (April 15, 2017) - Moved from Codeplex to GitHub.
+* Version 2.0.0 (October 8, 2019) - Major update.
