@@ -74,5 +74,6 @@ namespace MCEControl {
             textBoxSendCommand.Text = listCmds.SelectedItems[0].Text;
             Send();
         }
+
     }
 }

@@ -380,20 +380,13 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>if "$(VisualStudioVersion)"=="14.0" set textTemplatingPath="%25CommonProgramFiles(x86)%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
-if "$(VisualStudioVersion)"=="16.0" set textTemplatingPath="%25ProgramFiles(x86)%25\Microsoft Visual Studio\2019\Community\Common7\IDE\TextTransform.exe"
-%25textTemplatingPath%25 "$(SolutionDir)AssemblyFileVersion.tt"</PreBuildEvent>
-    <PostBuildEvent>if "$(ConfigurationName)"=="Debug" goto SKIP
+    <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" -out "$(SolutionDir)AssemblyFileVersion.cs" "$(SolutionDir)AssemblyFileVersion.tt"</PreBuildEvent>
+    <PostBuildEvent>if "$(ConfigurationName)"=="Release" copy "$(SolutionDir)\install_version.txt" "$(SolutionDir)\docs"
 
-copy "$(SolutionDir)\install_version.txt" "$(SolutionDir)\docs"
-
-if "$(VisualStudioVersion)"=="14.0" set textTemplatingPath="%25CommonProgramFiles(x86)%25\Microsoft Shared\TextTemplating\14.0\texttransform.exe"
-if "$(VisualStudioVersion)"=="16.0" set textTemplatingPath="%25ProgramFiles(x86)%25\Microsoft Visual Studio\2019\Community\Common7\IDE\TextTransform.exe"
-%25textTemplatingPath%25 "$(SolutionDir)Installer.tt"
+"$(DevEnvDir)TextTransform.exe" "$(SolutionDir)Installer.tt"
 copy "$(SolutionDir)Installer.nsi" "$(SolutionDir)Installer" 
-copy "$(SolutionDir)bin\Release\MCEControl.exe" "$(SolutionDir)Installer" 
-copy "$(SolutionDir)bin\Release\log4net.dll" "$(SolutionDir)Installer"
-
-:SKIP</PostBuildEvent>
+copy "$(SolutionDir)bin\$(ConfigurationName)\MCEControl.exe" "$(SolutionDir)Installer" 
+copy "$(SolutionDir)bin\$(ConfigurationName)\log4net.dll" "$(SolutionDir)Installer"
+</PostBuildEvent>
   </PropertyGroup>
 </Project>
