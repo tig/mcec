@@ -332,7 +332,7 @@ namespace MCEControl {
             // _label8
             // 
             this._label8.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this._label8.Location = new System.Drawing.Point(16, 32);
+            this._label8.Location = new System.Drawing.Point(16, 31);
             this._label8.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this._label8.Name = "_label8";
             this._label8.Size = new System.Drawing.Size(88, 16);

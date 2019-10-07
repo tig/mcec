@@ -1,13 +1,13 @@
 
-# MCE Controller V2 Documentation
+# **MCE Controller V2 Documentation**
 
 Copyright © 2019 [Kindel Systems](http://www.kindel.com), LLC. Licensed under the [MIT License](http://mcec.codeplex.com/license).
 
 By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
-![MCE Controller](https://github.com/tig/mcec/blob/develop/docs/aboutbox.png?raw=true)
+![MCE Controller](https://github.com/tig/mcec/blob/develop/docs/mainwindow.png?raw=true)
 
-## Overview
+# Overview
 
 **MCE Controller** lets you control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCE Controller** to control a Windows PC.
 
@@ -29,96 +29,145 @@ For many applications, emitting the Media Center IR commands will suffice. Howev
 
 **MCE Controller** can run showing only a taskbar icon. By double clicking on the taskbar a status window is displayed that shows a log of all activity. You can also right-click on the taskbar icon for a menu.
 
-## Features
+## Windows PC Control Capabilities
 
-*   Can act as a TCP/IP client or server. Supports any number of simultaneous clients.  Supports Telnet protocol.
-*   Can act as a serial server listening on RS-232 COM port.
-*   Supports simulating key presses (e.g. Alt-Tab, or Win-S) with `SendInput` commands.
-*   Supports simulating the mouse.
-*   Supports simulating Windows messages (e.g. `WM_SYSCOMMAND` / `SC_MAXIMIZE`) with `SendMessage`commands.
-*   Supports simulating start process commands (e.g. run `notepad.exe`) with the `StartProcess`command.
-*   Supports simulating changing the window focus with the `SetForegroundWindow` command.
-*   Supports sending text (e.g. simulating typing) with the `chars:` command.
-*   Includes built-in support for common Windows Media Center commands. It can easily be extended to suit your needs through a `MCEController.commands file.`
-*   Supports running multiple instances.
-*   Can start minimzed as a taskbar icon. This can be changed in Settings...
-*   Has a built-in test mode that makes it easy to test commands. 
-*   The `User Activity Monitor` feature will send a command to the home automation system when a user is using the PC (moving the mouse or typing).
-*   Automatically checks to see if newer versions are available.
-*   Logs diagnostics information to a file.
+By default MCE Controller supports over 250 built-in commands for controlling a Windows PC remotely. The list below summarizes these control capabilities. 
 
-## Installation
+* Supports simulating key presses (e.g. Alt-Tab, or Win-S) with `SendInput` commands.
+* Supports simulating the mouse with `mouse:` commands.
+* Supports simulating Windows messages (e.g. `WM_SYSCOMMAND` / `SC_MAXIMIZE`) with `SendMessage`commands.
+* Supports simulating start process commands (e.g. run `notepad.exe`) with the `StartProcess`command.
+* Supports simulating changing the window focus with the `SetForegroundWindow` command.
+* Supports sending text (e.g. simulating typing) with the `chars:` command.
+* Includes built-in support for common Windows Media Center commands. 
+* It can easily be extended to suit your needs through a `MCEController.commands file.`
 
-Important Note: **MCE Controller** requires the .NET Framework 4.5+. Go to [http://www.microsoft.com/net](http://www.microsoft.com/net) to ensure you have this installed before running **MCE Controller**.
+## Key Features
 
-To install, simply run the `MCEController Setup.exe` to install. The following files will be installed in the directory you choose and a start menu item will be added. You can un-install **MCE Controller** either via add/remove programs or by using the uninstall icon in the **MCE Controller** start menu group.
+* Can act as a TCP/IP client. Specify a `host` (as a `hostname` or `IP address`) and `port` to connect to. The host can then send commands back on the TCP/IP connection for MCE Controller to act on.
+* Can act as a TCP/IP server. Specify a 'port' for it to listen on and any TCP/IP client can connect and send commands. The Server supports any number of simultaneous clients. The Telnet protocol is supported.
+* Can act as a Serial server listening on RS-232 COM port. 
+* Supports running multiple instances.
+* Can start minimized as a taskbar icon. This can be changed in Settings...
+* Has a built-in test mode that makes it easy to test commands. 
+* The `User Activity Monitor` feature will send a command to the home automation system when a user is using the PC (moving the mouse or typing).
+* Automatically checks to see if newer versions are available.
+* Logs diagnostics information to a file.
 
-*   `MCEControl.exe`
+# Installation
 
-When **MCE Controller** runs, it defaults to showing itself as only a taskbar icon. Double clicking on the taskbar icon will show the configuration/status window.
+Important Note: **MCE Controller** requires the .NET Framework 4.7+. Go to [http://www.microsoft.com/net](http://www.microsoft.com/net) to ensure you have this installed before running **MCE Controller**.
 
-If you would like it to show it’s configuration/status window upon startup, uncheck the _Hide Window at Startup_ checkbox in the settings dialog.
+MCE Controller V2 was developed for Windows 10. It has not been tested on older versions of Windows. Submit an [Issue](https://github.com/tig/mcec/issues) if you have a specific version of Windows you'd like supported.
 
-## Settings
+To install, simply run `MCEController Setup.exe`. You can un-install **MCE Controller** via add/remove programs.
 
-[![Settings](https://tig.github.io/mcec/Documentation_Settings_2.png "Settings")](https://tig.github.io/mcec/Documentation_Settings_2.png)
+## Running
+
+When **MCE Controller** runs, it defaults to showing itself. If you close the main MCE Controller window the app will minimize to an icon in the taskbar. Double clicking on the taskbar icon will cause MCE Controller to show itself again.
+
+If you would like MCE Controller to automatically hide upon startup, check the _Hide Window at Startup_ checkbox in the `Settings` dialog.
+
+To have MCE Controller start automatically do the following:
+
+1. Create a Windows shortcut to `MCEControl.exe` (found in `C:\Program Files (x86)\Kindel Systems\MCE Controller` by default).
+2. Put the shortcut file into the Windows Startup Folder (`C:\Users\[User Name]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup`).
+
+You can run multiple instances of MCE Controller. To do so simply copy the EXE to a 2nd directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
+
+## Closing
+
+Use the `File.Exit` menu to shut down MCE Controller. 
+
+# Settings
+
+[![Settings](https://tig.github.io/mcec/settings_general.png "Settings")]
 
 Configuration settings are stored in a file that will be created in the `%APPDATA%\Roaming\Kindel Systems\MCE Controller` directory when MCE Controller is first run. The configuration settings file is named `MCEControl.settings`.
 
-You can run multiple instances of MCE Controller. To do so simply copy the EXE to a 2nd directory. Each copy will then have its own independent `MCEControl.settings` file.
+You can access all settings from the `File.Settings...` menu. The `General` tab shown above supports the following settings:
 
-MCE Controller can act as either a TCP/IP client or server (it can actually operate as both simultaneously, which can be useful for testing, but not much else). By default MCE Controller is configured to act as a TCP/IP server listening on port 5150\. You can change this behavior using the Settings dialog described below.
+* `Hide Window at Startup` - If checked the MCE Controller will start minimized to tray icon.
+* `Log Threshold` - By default only informational log events will be shown in the MCE Controller main window. This setting over-rides this enabling the display of `INFO`, `DEBUG`, or `ALL` log settings. Note that the `.log` files always include `ALL` events.
 
 ## The Client Tab
 
-The Client tab in the Settings dialog controls **MCE Controller’s** TCP/IP client functionality. When acting as a client, **MCE Controller** will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. **MCE Controller** sends nothing to the host.
+The Client tab in the Settings dialog controls **MCE Controller’s** TCP/IP client functionality. When acting as a client, **MCE Controller** will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. **MCE Controller** sends nothing to the host by default.
 
-[![Client](https://tig.github.io/mcec/Documentation_Client_2.png "Client")](https://tig.github.io/mcec/Documentation_Client_2.png)
+[![Client](https://tig.github.io/mcec/settings_client.png "Client")]
 
-*   Enable Client. This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
-*   Host. This is the IP address or host name of the server **MCE Controller** is to connect to.
-*   Port. This is the port that **MCE Controller** will connect to.
-*   Reconnect Wait Time. This is the number of milliseconds (default is 30 seconds or 30000 ms) **MCE Controller** will wait before trying to reconnect to the host once a connection has been dropped or a connect fails.
-*   Show "send command" Window. If checked, whenever the client is connected a window will appear that will allow you to send commands to another instance (or even the same instance with Server turned on) of **MCE Controller**. This is useful for testing that your server is working.
+*   `Enable Client`. This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
+*   `Host`. This is the IP address or host name of the server **MCE Controller** is to connect to.
+*   `Port`. This is the port that **MCE Controller** will connect to.
+*   `Reconnect Wait Time (ms)`. This is the number of milliseconds (default is 30 seconds or 30000 ms) **MCE Controller** will wait before trying to reconnect to the host once a connection has been dropped.
 
 ## The Server Tab
+
+MCE Controller can act as either a TCP/IP client or server (it can actually operate as both simultaneously, which can be useful for testing, but not much else). By default MCE Controller is configured to act as a TCP/IP server listening on port 5150. You can change this behavior using the Settings dialog described below.
 
 The Server tab in the Settings dialog controls **MCE Controller’s** TCP/IP server functionality. When acting as a server, **MCE Controller** will open the specified port and wait for a client to connect. When a client does connect **MCE Controller** will wait for incoming commands until the client closes the connection.
 
 In server mode, **MCE Controller** supports any number of multiple-simultaneous connections.
 
-[![Server](https://tig.github.io/mcec/Documentation_Server_2.png "Server")](https://tig.github.io/mcec/Documentation_Server_2.png)
+[![Server](https://tig.github.io/mcec/settings_server.png "Server")]
 
-*   Enable Server. This checkbox enables or disables the TCP/IP server functionality. If enabled, the followings settings apply:
-*   Port. This is the port that **MCE Controller** will listen on.
-*   Enable Wakeup. If enabled, **MCE Controller** will attempt to connect to the specified host/port, send the “Wakeup command” and disconnect when it first starts. When it shuts down it will send the “Closing command”. This functionality is useful when the remote client needs to be notified that **MCE Controller** is ready (for example after the server PC has rebooted).
+*  `Enable Server` - This checkbox enables or disables the TCP/IP server functionality. If enabled, the followings settings apply:
+* `Port`- This is the port that **MCE Controller** will listen on.
+* `Enable Wakeup` - If enabled, **MCE Controller** will attempt to connect to the specified host/port, send the “Wakeup command” and disconnect when it first starts. When it shuts down it will send the “Closing command”. This functionality is useful when the remote client needs to be notified that **MCE Controller** is ready (for example after the control system has rebooted).
 
 ## The Serial Server Tab
 
 The Serial Server tab in the Settings dialog controls **MCE Controller’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCE Controller** will open the specified COM port (e.g. COM1) and wait commands to be sent.
 
-[![Serial](https://tig.github.io/mcec/Documentation_Serial_2.png "Serial")](https://tig.github.io/mcec/Documentation_Serial_2.png)
+[![Serial](https://tig.github.io/mcec/settings_serialserver.png "Serial")]
 
-*   Enable Server. This checkbox enables or disables the Serial Server functionality. It is disabled by default. If enabled, the followings settings apply:
-*   Port. This is the serial port that **MCE Controller** will listen on (e.g. COM1).
-*   Baud Rate. Sets the speed of the serial port.
-*   Data Bits, Parity, Stop Bits, and Handshake: Set the serial port configuration.
+* `Enable Serial Server` - This checkbox enables or disables the Serial Server functionality. It is disabled by default. If enabled, the followings settings apply:
+* `Port` - This is the serial port that **MCE Controller** will listen on (e.g. COM1).
+* `Baud Rate` - Sets the speed of the serial port.
+* `Data Bits`, `Parity`, `Stop Bits`, and `Handshake`: Set the serial port configuration.
 
-## Testing MCE Controller
+## The Activity Monitor Tab
+
+MCE Controller's `User Activity Monitor` sends a command to the home automation system when a user is using the PC. It knows the user is using the PC monitoring keyboard and mouse movement. If the mouse is moving or keys are being pressed, the PC is in use. This is useful for adding additional context to a room occupancy sensor in a home automation system. 
+
+[![Activity Monitor](https://tig.github.io/mcec/settings_serialserver.png "Activity Monitor")]
+
+* `Enable User Activity Monitor` - This checkbox enables or disables the Activity Montitor. It is disabled by default. If enabled, the followings settings apply:
+* `Command to send` - The string that will be sent when user activity is detected. 
+* `Debounce time (seconds)` - The activity message will be sent no more frequently than `Debounce time` seconds.
+
+# Testing MCE Controller
 
 **MCE Controller** includes a built in TCP/IP client that can send commands to another instance of **MCE Controller** running on the same or different PC. You can even use the Client and Server within the same instance.
 
-### Using the MCE Controller Client
+By default MCE Controller is configured such that by checking two checkboxes you can easily put it into "test mode".
 
-Check the _Show "send command" window_ checkbox in the Client settings and as soon as **MCE Controller** connects to a server instance the _Send Command_ window will appear.
+1. Open the Settings dialog from the `File.Settings...` menu.
+2. Click on the Client tab and check the `Act as Client` check-box
+3. Click on the Server tab and check the `Act as Server` check-box
+4. Hit `Ok`
 
-[![Commands](https://tig.github.io/mcec/Documentation_Commands_2.png "Commands")](https://tig.github.io/mcec/Documentation_Commands_2.png)
+Because the default settings have the Client connecting to port `5150` on `localhost` and the default server port is also `5150` this will cause MCE Controller to connect to itself.
 
-### Using PUTTY
+## The Commands Window
+
+The `Commands Window` shows a list of all Commands MCE Controller is configured to 'listen for'. It is useful to see the full list and to be able to test them.
+
+[![Commands](https://tig.github.io/mcec/commands.png "Commands")]
+
+If you've followed the instructions above to connect an instance of MCE Controller to itself, use `Commands.Show Commands...` to open the `Commands Window`. 
+
+* Double click on any command to cause it to be sent from the Client to the Server (be careful, because if you double click on 'shutdown' your PC will literally shut down!).
+* Type anything into the `Send "chars:" command` edit box and press `Send` to send a `chars:` command.
+* Type a command into the `Send any command` edit box and press `Send` to send that command.
+
+Turn on the `Activity Monitor` while in test mode and you'll see events in the log for when activity is detected.
+
+## Using PUTTY
 
 PuTTY is a free terminal emulator (and Telnet and SSH client). It works well for testing MCE Controller. You can download [PuTTY here](http://www.chiark.greenend.org.uk/~sgtatham/putty/).
 
-#### Using PUTTY to test TCP/IP interactions
+### Using PUTTY to test TCP/IP interactions
 
 1.  Run PUTTY.EXE
 2.  Set _Host Name_ to _localhost_ (or the network name of the PC running MCE Controller
@@ -128,15 +177,15 @@ PuTTY is a free terminal emulator (and Telnet and SSH client). It works well for
 
 Type commands in the PuTTY Window and see how MCE Controller reacts.
 
-#### Using PUTTY to test serial connections
+### Using PUTTY to test serial connections
 
 PuTTY supports connecting via serial ports. The usage is the same as in the TCP/IP example above except you set the appropriate COM port settings in PuTTY and choose the _Serial_ destination type.
 
-## Commands
+# Commands Details
 
 MCE Controller works with **Commands**. Commands are text strings like `greenbutton`, `hibernate`, and `winkey` tha MCE Controller listens to and acts on. Each command has a **Type**. When **MCE Controller** receives a command it causes an action to happen on the PC it is running on. The action taken is dependent on the type of command and the parameters set for that command.
 
-### Types
+## Types
 The following command types are supported by **MCE Controller**:
 
 *   **StartProcess** - Starts the specified process. Can specify the path to an executable, shortcut, or a URI. Supports embedded `nextCommand` elements allowing other form of MCE Controller commands to be invoke after the process starts.
@@ -147,9 +196,9 @@ The following command types are supported by **MCE Controller**:
 *   **Mouse** - Sends mouse movement and button actions.
 *   **Built-In** - Single characters, `VK_` codes, `chars:`, `shiftdown:`, `shiftup:,` and `mcec:.`
 
-### Built-in Commands
+## Built-in Commands
 
-**MCE Controller** includes a set of pre-defined commands for controlling Windows Media Center as well as standard keyboard input. Pre-defined commands can be viewed in the built-in .commands file which is embedded into the MCE Controller executiable [here](https://github.com/tig/mcec/blob/master/Resources/MCEControl.commands). See the section titled “Defining Your Own Commands” below for instructions on how to add or change the commands **MCE Controller** supports.
+**MCE Controller** includes a set of pre-defined commands for controlling a Windows PC as well as standard keyboard input. Pre-defined commands can be viewed in `Commands.Show Commands` window. See the section titled “Defining Your Own Commands” below for instructions on how to add or change the commands **MCE Controller** supports.
 
 **MCE Controller** commands are _not_ case-sensitive. Thus `VK_UP` is equivalent to `vk_up` and `shutdown` is equivalent to `ShutDown`.
 
@@ -159,149 +208,142 @@ The following describes the Built-In commands that are supported:
 
 Any Windows virtual key code is supported by default. The form of the commands are `VK_<key name>`. For example you can send **MCE Controller** any of the following commands and the corresponding key press will be simulated.
 
-    VK_ESCAPE
-    VK_LWIN
-    VK_VOLUME_MUTE
-    VK_VOLUME_UP 
-    VK_MEDIA_PLAY_PAUSE
-    VK_F1
+```
+VK_ESCAPE
+VK_LWIN
+VK_VOLUME_MUTE
+VK_VOLUME_UP
+VK_MEDIA_PLAY_PAUSE
+VK_F1
+```
 
-If you want a keystroke that includes a shift modifier (e.g. `Win-D` or `Ctrl-G`) you should define a custom `SendInput` command as described below.
+If you want a keystroke that includes a shift modifier (e.g. `Win-D` or `Ctrl-G`) define a custom `SendInput` command as described below.
 
 You can find a list of all Window's virtual key codes on [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx)
 
-### Any Single Character Commmands
+### Character Commands
 
-This is equivalent to a single key press of a key on the keyboard. For example `a` will result in the A key being pressed. `1` will result in the `1` key being pressed. There is no difference between sending `a` and `A`. Use `shiftdown:/shiftup:` to simulate the pressing of the shift, control, alt, and windows keys.
-
-### Shift Down/Up Commands
-
-To simulate a key down event for one of the modifiers keys (shift, control, alt, and the Windows key) send a `shiftdown:` or `shiftup:` command. The syntax is:
-
-    shiftdown:[shift|ctrl|alt|lwin|rwin]
-
-and
-
-    shiftup:[shift|ctrl|alt|lwin|rwin]
-
-For example, to simulate the typing of 'Test!' send the following commands:
-
-    shiftdown:shift
-    t
-    shiftup:shift
-    e
-    s
-    t
-    shiftdown:shift
-    1
-    shiftup:shift
-
-(Although, using a `chars:` command would probably work better in most cases).
-
-This scheme can be used as an alternative way of sending ctrl-, alt-, and win- keystrokes. For example to simulate ctrl-s:
-
-    shiftdown:ctrl
-    s
-    shiftup:ctrl 
-
-### chars: Commands
+Sending a single character is equivalent to a single key press of a key on the keyboard. For example sending `a` will result in the A key being pressed. `1` will result in the `1` key being pressed. There is no difference between sending `a` and `A`. Use `shiftdown:/shiftup:` to simulate the pressing of the shift, control, alt, and windows keys.
 
 Anytime **MCE Controller** receives `chars:` plus some text, it simulates the typing of that text on the keyboard. The syntax of the command is `chars:*` where '*'' represents one or more characters. This is equivalent to typing those characters on the keyboard. E.g. `chars:3` will cause the number 3 to be typed as though the user had pressed the 3 key on the keyboard. `chars:Hello` will cause `Hello` to be typed.
 
 Unicode (and other escaped character sequences are supported). `chars:\u20AC` will cause the € character to be input into the foreground window on the machine **MCE Controller** is running on.
 
-NOTE: Older versions of MCE Controller supported a `keys:` command that purported to do the same thing. It never actually worked right and has been replaced with the new `chars:` command.
+### Keyboard Commands
+
+To simulate a key down event for one of the modifiers keys (shift, control, alt, and the Windows key) send a `shiftdown:` or `shiftup:` command. The syntax is:
+
+`shiftdown:[shift|ctrl|alt|lwin|rwin]`
+
+and
+
+`shiftup:[shift|ctrl|alt|lwin|rwin]`
+
+For example, to simulate the typing of 'Test!' send the following commands:
+
+```
+shiftdown:shift
+t
+shiftup:shift
+e
+s
+t
+shiftdown:shift
+1
+shiftup:shift
+```
+
+(Although, using a `chars:` command would probably work better in most cases).
+
+This scheme can be used as an alternative way of sending ctrl-, alt-, and win- keystrokes. For example to simulate ctrl-s:
+
+```
+shiftdown:ctrl
+s
+shiftup:ctrl
+```
 
 ### mouse: Commands
 
-**MCE Controller** can simulate mouse movement. With this it is possible to build a remote control that acts like a mouse (I have built a test app for Windows Phone 7 that enables WP7 to work like a touchpad; contact me if you are interested in it).
+**MCE Controller** can simulate mouse movement. With this it is possible to build a remote control that acts like a mouse (I built a test app for Windows Phone 7 that enables WP7 to work like a touchpad; contact me if you are interested in it).
 
 The general format of the mouse commands is:
 
-    mouse:<action>[,<param>,...,<param>]
+`mouse:<action>[,<param>,...,<param>]`
 
 The available mouse actions are:
 
-*   **lbc** - Left button click (`mouse:lbc`)
-*   **lbdc** - Left button double-click (`mouse:lbdc`)
-*   **lbd** - Left button down (`mouse:lbd`)
-*   **lbu** - Left button up (`mouse:lbu`);
-*   **rbc, rbdc, rbd, rbu** - Same same but for the right mouse button.
-*   **xbc, etc...** - x button click where x is a button number (`mouse:xbc,3` for button 3 click)
-*   **mm,x,y** - Move the mouse x, y pixels (`mouse:mm,7,-3` would move the mouse right 7 and up 3 pixels)
-*   **mt,x,y** - Move the mouse to a location. The coordinates represent the absolute X/Y-coordinates on the primary display device where 0 is the extreme left/bottom of the display device and 65535 is the extreme right/bottom hand side of the display device (`mouse:mt,0,65535` would move the mouse to the bottom left corner of the primary display).
-*   **mtv,x,y** - Move the mouse to a location on the virtual desktop. The coordinates represent the absolute X/Y-coordinates on the virtual desktop where 0 is the extreme left/top of the virtual desktop and 65535 is the extreme right/bottom (`mouse:mtv,65535,0` would move the mouse to the top right corner of the virtual desktop).
-*   **hs,n** - Simlate a horizontal scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated to the right; a negative value indicates that the wheel was rotated to the left (`mouse:hs,3`).
-*   **vs,n** - Simlate a vertical scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated forward, away from the user; a negative value indicates that the wheel was rotated backward, toward the user (`mouse:vs,3`).
+* **lbc** - Left button click (`mouse:lbc`)
+* **lbdc** - Left button double-click (`mouse:lbdc`)
+* **lbd** - Left button down (`mouse:lbd`)
+* **lbu** - Left button up (`mouse:lbu`);
+* **rbc, rbdc, rbd, rbu** - Same same but for the right mouse button.
+* **xbc, etc...** - x button click where x is a button number (`mouse:xbc,3` for button 3 click)
+* **mm,x,y** - Move the mouse x, y pixels (`mouse:mm,7,-3` would move the mouse right 7 and up 3 pixels)
+* **mt,x,y** - Move the mouse to a location. The coordinates represent the absolute X/Y-coordinates on the primary display device where 0 is the extreme left/bottom of the display device and 65535 is the extreme right/bottom hand side of the display device (`mouse:mt,0,65535` would move the mouse to the bottom left corner of the primary display).
+* **mtv,x,y** - Move the mouse to a location on the virtual desktop. The coordinates represent the absolute X/Y-coordinates on the virtual desktop where 0 is the extreme left/top of the virtual desktop and 65535 is the extreme right/bottom (`mouse:mtv,65535,0` would move the mouse to the top right corner of the virtual desktop).
+* **hs,n** - Simlate a horizontal scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated to the right; a negative value indicates that the wheel was rotated to the left (`mouse:hs,3`).
+* **vs,n** - Simlate a vertical scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated forward, away from the user; a negative value indicates that the wheel was rotated backward, toward the user (`mouse:vs,3`).
 
-Note that when sending mouse movements it is best if the **MCE Controller** window is hidden as the display log tends to chew up a lot of resources, making things jerky.
+When sending mouse movements it is best if the **MCE Controller** window is hidden as the display log tends to chew up a lot of resources, making things jerky.
 
 ### mcec: Commands
 
 The following commands control **MCE Controller** itself:
 
-*   **mcec:ver** – Gets the version number.
-*   **mcec:exit** – Causes **MCE Controller** to exit.
-*   **mcec:cmds** – Lists all commands.
+* **mcec:ver** – Gets the version number.
+* **mcec:exit** – Causes **MCE Controller** to exit.
+* **mcec:cmds** – Lists all commands.
 
-Values returned by commands in **MCE Controller** are of the format “command=value” where command is the command to the left of the command prefix (mcec:).
+Values returned by commands in **MCE Controller** are of the format `command=value` where command is the command to the left of the command prefix (`mcec:`).
 
-### Defining Your Own Commands
+## Defining Your Own Commands
 
-MCE Controller supports over 250 built-in commands. You can see how they are defined [here](https://github.com/tig/mcec/blob/master/Resources/MCEControl.commands). You can override or augment this set by creating a file named `MCEControl.commands` file and putting it in the same directory as the program executable (Use the `File.Open commands file...` menu to find the .EXE file location on your machine.
+MCE Controller supports over 250 built-in commands. You can see how they are defined [here](https://github.com/tig/mcec/blob/master/Resources/Builtin.commands). You can override or augment this set by editing the `MCEControl.commands` file and (Use the `Commands.Open commands file...` menu to find the file location on your machine.Any commands it defines will add to and over-ride matching built-in commands.
 
-A sample `MCEControl.commands` file is in the MCE Controller source code here:
+A sample `MCEControl.commands` file is installed by default with all entries commented out.
 
-https://github.com/tig/mcec/blob/master/Example.MCEControl.commands
+Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1). 
 
-If a `MCEControl.commands` file is found in the working directory when MCE Controller starts any commands it defines will add to and over-ride matching built-in commands.
+`MCEControl.commands` supports defining four types of commands: `SendInput`, `SendMessage`, `StartProcess`, `Shutdown`, and `SetForegroundWindow`.
 
-Create a new file named MCEControl.commands and put it in the same directory as the MCE Controller EXE file.
+**Note on case sensitivity**: In the `MCEControl.commands` file, all XML element and attribute names are case-sensitive. E.g. `ctrl` is NOT the same as `Ctrl`.  The commands themselves (the values of Cmd attributes) are NOT case-sensitive. E.g. ‘MonitorOff’ will be treated the same as `monitoroff`.
 
-    <?xml version="1.0" encoding="utf-8"?>
-    <MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <Commands xmlns="http://www.kindel.com/products/mcecontroller">
-    <!-- Place command definitions here -->
-    </Commands>
-    </MCEController>
-
-`MCEControl.commands` allows you to define four types of commands: `SendInput`, `SendMessage`, `StartProcess`, `Shutdown`, and `SetForegroundWindow`.
-
-**Note on case sensitivity**: In the `MCEControl.commands` file, all XML element and attribute names are case-sensitive. E.g. ‘ctrl’ is NOT the same as ‘Ctrl’.  The commands themselves (the values of Cmd attributes) are NOT case-sensitive. E.g. ‘MonitorOff’ will be treated the same as ‘monitoroff’.
-
-#### SendInput Commands
+### SendInput Commands
 
 `SendInput` commands send keystrokes. Any combination of shift, ctrl, alt, and left/right Windows keys can be used with any "virtual key code". See the `winuser.h` file in the Windows SDK or [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx) for a definition of all standard `VK_` codes. **MCE Controller** understands key codes in hex (e.g. `0x2a`) or decimal format, or as a `VK_` name. **MCE Controller** uses the Windows `SendInput()` API to send keystrokes. Keystrokes go to the foreground window.
 
-For example, the following causes a Ctrl-P to be sent to the foreground window, and if that window is Media Center, the My Pictures page appears:
+For example, the following causes a **Ctrl-P** to be sent to the foreground window, and if that window is Media Center, the My Pictures page appears:
 
-     <SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />
+`<SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />`
 
 (The VK code or 'P' is 73 decimal).
 
-This example causes a Windows-X to be simulated, which causes the Windows 8 "expert" menu to pop up:
+This example causes a Windows-X to be simulated, which causes the Windows 10 "expert" menu to pop up:
 
-     <SendInput Cmd="winx" vk="VK_X" Win="true"/>
+`<SendInput Cmd="winx" vk="VK_X" Win="true"/>`
 
-#### SendMessage Commands
+### SendMessage Commands
 
 `SendMessage` commands are just that. They cause **MCE Controller** to send a Windows message using the `SendMessage()` API to the foreground window if no class name is specified, or to a particular window if that window’s class is specified. `Msg`, `wParam`, and `lParam` must be specified in decimal (not hex!).
 
 For example, the following is equivalent to sending a `WM_SYSCOMMAND` with the `SC_MAXIMIZE` flag, causing the window with the class name of `ehshell` to be maximized (`WM_SYSCOMMAND == 247` and `SC_MAXIMIZE == 61488`):
 
-    <SendMessage Cmd="mce_maximize" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />
+`<SendMessage Cmd="mce_maximize" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />`
 
 These commands might be useful in some scenarios:
 
-    <!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
-    <SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
-    <!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
-    <SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
-    <SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
+```
+ <!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
+ <SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
+ <!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
+ <SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
+ <SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
+```
 
 See the [MSDN documentation](http://msdn.microsoft.com/en-us/library/ms646360(v=VS.85).aspx) for more `WM_SYSCOMMAND` possibilities.
 
-#### StartProcess Commands
+### StartProcess Commands
 
 `StartProcess` commands start processes. Process commands support chaining using the `nextCommand` element. The embedded command will be executed after the started application starts processing windows’ messages.
 
@@ -311,7 +353,7 @@ For example, the following launches Media Center and maximizes it:
         <nextCommand xsi:type="SendMessage" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />
     </StartProcess>
 
-#### Shutdown Commands
+### Shutdown Commands
 
 The supported shutdown commands are self-explanatory.
 
@@ -321,7 +363,7 @@ The supported shutdown commands are self-explanatory.
     <Shutdown Cmd="standby" Type="standby"/>
     <Shutdown Cmd="hibernate" Type="hibernate"/>
 
-#### SetForgroundWindow Commands
+### SetForgroundWindow Commands
 
 The `SetForegroundWindow` command sets the specified window (using the window’s class name) to the foreground.
 
@@ -333,9 +375,9 @@ Note that **MCE Controller** supports the `chars:`, `shiftup:`, and `shiftdown:`
 
 Also note that you should not make commands a single character or it will interfere with the ability to simulate individual character key presses.
 
-#### Disabling All Internal Commands
+### Disabling All Internal Commands
 
-You can force MCE Controller to only listen to and act on commands defined in the MCEControl.commands file. To do this use the Windows registry editor to create the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller` registry key and set <font face="Courier New">DisableInternalCommands</font> (a DWORD value) to anything other than 0.
+You can force MCE Controller to only listen to and act on commands defined in the MCEControl.commands file. To do this use the Windows registry editor to create the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller` registry key and set `DisableInternalCommands` (a DWORD value) to anything other than 0.
 
 This will disable ALL internal commands.
 
@@ -343,7 +385,7 @@ This is a machine wide setting and will apply to all instances of MCE Controller
 
 ## Logging
 
-All information shown in the main window is also logged to a file to ease diagnostics. If the program is started from the default location (in Program Files) the log will be written to %LocalAppData%\Kindel Systems\MCE Controller\MCEControl.log. Otherwise the log will be written to the directory the program is started from.
+Informational, debug, and diagnostic events are logged to `MCEControl.log` while MCE Controller is operating. These are also shown in the main window . If the program is started from the default location (in Program Files) the log will be written to `%LocalAppData%\Kindel Systems\MCE Controller\MCEControl.log`. Otherwise the log will be written to the directory the program is started from.
 
 ## Usage Notes
 
@@ -376,5 +418,5 @@ Also, you may find that `greenbutton` is a better function than `mcestart` becau
 *   Version 1.8.1 (January 1, 2013) - Updated links for CodePlex. Fixed crashing bug on exit.
 *   Version 1.8.4 (March, 2014) - New icon by [http://guillendesign.deviantart.com/](http://guillendesign.deviantart.com/), Minor menu tweaks, MCEControl.commands is now an optional file. The previously defined set of commands from older builds are now built into the program. If a MCEControl.commands file is present it will add to and override these pre-defined commands. Upgrades and un-installs will no longer overwrite or delete the MCEControl.commands file.
 *   Version 1.8.6 (May, 2014) – Internal commands can be disabled via a registry key. Fixed bug when client forcibly closed socket. Added logging.
-*   Version 1.9.0 (April 15, 2017) - Moved from Codeplex to GitHub. 
-
+*   Version 1.9.0 (April 15, 2017) - Moved from Codeplex to GitHub.
+*   Version 2.0.0 (October 8, 2019) - Major update.
