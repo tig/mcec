@@ -27,6 +27,9 @@ namespace MCEControl {
     public class Command {
         [XmlAttribute("Cmd")] public String Key;
 
+        public virtual string ToString() {
+            return $"Cmd=\"{Key}\"";
+        }
         public virtual void Execute(Reply reply) {
         }
     }
@@ -35,7 +38,7 @@ namespace MCEControl {
     // Note, do not change the namespace or you will break existing installations
     [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "MCEController")]
     public class CommandTable {
-        [XmlIgnore] private readonly Hashtable _hashTable = new Hashtable();
+        [XmlIgnore] private readonly Hashtable hashTable = new Hashtable();
 
         [XmlIgnore] private string userCommandsFile;
         [XmlIgnore] private bool ignoreInternalCommands = false;
@@ -45,94 +48,93 @@ namespace MCEControl {
         [XmlArrayItem("SendInput", typeof(SendInputCommand))]
         [XmlArrayItem("SendMessage", typeof(SendMessageCommand))]
         [XmlArrayItem("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
-        [XmlArrayItem("Shutdown", typeof(ShutdownCommand))]
+        [XmlArrayItem("Shutdown", typeof(ShutdownCommands))]
         [XmlArrayItem(typeof(Command))]
-        public Command[] List;
+        public Command[] Commands;
 
         public CommandTable() {
-            if (_hashTable == null)
-                _hashTable = new Hashtable();
         }
 
-        public int NumCommands {
-            get { return _hashTable.Count; }
+        [XmlIgnore] public int NumCommands {
+            get { return hashTable.Count; }
         }
 
-        public void Execute(Reply reply, String cmd) {
+        [XmlIgnore] public ICollection Keys { get => hashTable.Keys; }
+        [XmlIgnore] public ICollection Values { get => hashTable.Values; }
+        [XmlIgnore] public virtual Command this[string key] {
+            get => (Command)hashTable[key];
+        }
+
+
+        public void Execute(Reply reply, String cmdString) {
             if (!ignoreInternalCommands) {
-                if (cmd.StartsWith(McecCommand.CmdPrefix)) {
-                    var command = new McecCommand(cmd);
-                    command.Execute(reply);
+                if (cmdString.StartsWith(McecCommand.CmdPrefix)) {
+                    var cmd = new McecCommand(cmdString);
+                    cmd.Execute(reply);
                     return;
                 }
 
-                if (cmd.StartsWith("chars:")) {
+                if (cmdString.StartsWith("chars:")) {
                     // "chars:<chars>
-                    String chars = Regex.Unescape(cmd.Substring(6, cmd.Length - 6));
+                    String chars = Regex.Unescape(cmdString.Substring(6, cmdString.Length - 6));
                     Logger.Instance.Log4.Info(String.Format("Cmd: Sending {0} chars: {1}", chars.Length, chars));
                     var sim = new InputSimulator();
                     sim.Keyboard.TextEntry(chars);
                     return;
                 }
 
-                if (cmd.StartsWith("api:")) {
+                if (cmdString.StartsWith("api:")) {
                     // "api:API(params)
                     // TODO: Implement API stuff
                     return;
                 }
 
-                if (cmd.StartsWith("shiftdown:")) {
+                if (cmdString.StartsWith("shiftdown:")) {
                     // Modifyer key down
-                    SendInputCommand.ShiftKey(cmd.Substring(10, cmd.Length - 10), true);
+                    SendInputCommand.ShiftKey(cmdString.Substring(10, cmdString.Length - 10), true);
                     return;
                 }
 
-                if (cmd.StartsWith("shiftup:")) {
+                if (cmdString.StartsWith("shiftup:")) {
                     // Modifyer key up
-                    SendInputCommand.ShiftKey(cmd.Substring(8, cmd.Length - 8), false);
+                    SendInputCommand.ShiftKey(cmdString.Substring(8, cmdString.Length - 8), false);
                     return;
                 }
 
-                if (cmd.StartsWith(MouseCommand.CmdPrefix)) {
+                if (cmdString.StartsWith(MouseCommands.CmdPrefix)) {
                     // mouse:<action>[,<parameter>,<parameter>]
-                    var mouseCmd = new MouseCommand(cmd);
+                    var mouseCmd = new MouseCommands(cmdString);
                     mouseCmd.Execute(reply);
                     return;
                 }
 
-                if (cmd.Length == 1) {
+                if (cmdString.Length == 1) {
                     // It's a single character, just send it
                     // must be upper case (VirtualKeyCode codes are for upper case)
-                    cmd = cmd.ToUpper();
-                    char c = cmd.ToCharArray()[0];
+                    cmdString = cmdString.ToUpper();
+                    char c = cmdString.ToCharArray()[0];
 
                     var sim = new InputSimulator();
 
-                    Logger.Instance.Log4.Info("Cmd: Sending keydown for: " + cmd);
+                    Logger.Instance.Log4.Info("Cmd: Sending keydown for: " + cmdString);
                     sim.Keyboard.KeyPress((VirtualKeyCode)c);
                     return;
                 }
             }
 
-            // Command is in MCEControl.commands
-            if (_hashTable.ContainsKey(cmd.ToUpper())) {
-                Command command = FindKey(cmd.ToUpper());
+            // Command is in .commands
+            Command command = this[cmdString.ToUpper()];
+            if (command != null) {
                 command.Execute(reply);
             }
             else {
-                Logger.Instance.Log4.Info("Cmd: Unknown Cmd: " + cmd);
+                Logger.Instance.Log4.Info("Cmd: Unknown command: " + cmdString);
             }
-        }
-
-        private Command FindKey(String key) {
-            if (_hashTable.ContainsKey(key))
-                return (Command)_hashTable[key];
-            return null;
         }
 
         public static CommandTable Create(string userCommandsFile, bool disableInternalCommands) {
             CommandTable cmds = null;
-            
+
             if (!disableInternalCommands) {
                 // Load the built-in commands from an assembly resource
                 try {
@@ -142,11 +144,11 @@ namespace MCEControl {
                             Assembly.GetExecutingAssembly()
                                 .GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
                     cmds = (CommandTable)serializer.Deserialize(reader);
-                    foreach (var cmd in cmds.List) {
-                        if (cmds._hashTable.ContainsKey(cmd.Key.ToUpper())) {
-                            cmds._hashTable.Remove(cmd.Key.ToUpper());
+                    foreach (var cmd in cmds.Commands) {
+                        if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper())) {
+                            cmds.hashTable.Remove(cmd.Key.ToUpper());
                         }
-                        cmds._hashTable.Add(cmd.Key.ToUpper(), cmd);
+                        cmds.hashTable.Add(cmd.Key.ToUpper(), cmd);
                     }
                 }
                 catch (Exception ex) {
@@ -154,6 +156,28 @@ namespace MCEControl {
                     Logger.Instance.Log4.Info($"Commands: No built-in commands loaded. Error parsing built-in commands. {ex.Message}");
                     Util.DumpException(ex);
                     return null;
+                }
+
+                // Add the built-ins
+                foreach (Command cmd in McecCommand.Commands) {
+                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper())) {
+                        cmds.hashTable.Remove(cmd.Key.ToUpper());
+                    }
+                    cmds.hashTable.Add(cmd.Key.ToUpper(), cmd);
+                }
+
+                foreach (Command cmd in MouseCommands.Commands) {
+                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper())) {
+                        cmds.hashTable.Remove(cmd.Key.ToUpper());
+                    }
+                    cmds.hashTable.Add(cmd.Key.ToUpper(), cmd);
+                }
+
+                foreach (Command cmd in ShutdownCommands.Commands) {
+                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper())) {
+                        cmds.hashTable.Remove(cmd.Key.ToUpper());
+                    }
+                    cmds.hashTable.Add(cmd.Key.ToUpper(), cmd);
                 }
 
                 // Populate default VK_ codes
@@ -164,8 +188,8 @@ namespace MCEControl {
                     else
                         s = "VK_" + vk.ToString();
                     var cmd = new SendInputCommand(s, false, false, false, false);
-                    if (!cmds._hashTable.ContainsKey(s))
-                        cmds._hashTable.Add(s, cmd);
+                    if (!cmds.hashTable.ContainsKey(s))
+                        cmds.hashTable.Add(s, cmd);
                 }
             }
             else {
@@ -193,17 +217,34 @@ namespace MCEControl {
                 reader = new XmlTextReader(fs);
                 CommandTable userCmds = (CommandTable)serializer.Deserialize(reader);
                 Logger.Instance.Log4.Info($"Commands: Loading user commands from {userCommandsFile}.");
-                foreach (var cmd in userCmds.List) {
-                    if (_hashTable.ContainsKey(cmd.Key.ToUpper())) {
-                        _hashTable.Remove(cmd.Key.ToUpper());
+                foreach (var cmd in userCmds.Commands) {
+                    if (hashTable.ContainsKey(cmd.Key.ToUpper())) {
+                        hashTable.Remove(cmd.Key.ToUpper());
                     }
-                    _hashTable.Add(cmd.Key.ToUpper(), cmd);
+                    hashTable.Add(cmd.Key.ToUpper(), cmd);
                     Logger.Instance.Log4.Info($"Commands: User command added: {cmd.Key}");
                 }
             }
             catch (FileNotFoundException ex) {
                 Logger.Instance.Log4.Info($"Commands: No user defined commands loaded; {userCommandsFile} was not found.");
-                Util.DumpException(ex);
+
+                // If the user .commands file is not found, create it
+                Stream uc = Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.commands");
+                FileStream ucFS = null;
+                try {
+                    ucFS = new FileStream(userCommandsFile, FileMode.Create, FileAccess.ReadWrite);
+                    uc.CopyTo(ucFS);
+                    uc.Close();
+                    ucFS.Close();
+                }
+                catch (Exception e) {
+                    Logger.Instance.Log4.Info($"Commands: Could not create default user defined commands file {userCommandsFile}. {e.Message}");
+                    Util.DumpException(e);
+                }
+                finally {
+                    if (uc != null) uc.Close();
+                    if (ucFS != null) ucFS.Close();
+                }
             }
             catch (InvalidOperationException ex) {
                 Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing {userCommandsFile}. {ex.Message} {ex.InnerException.Message}");

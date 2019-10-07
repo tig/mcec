@@ -38,6 +38,7 @@
             this.label5 = new System.Windows.Forms.Label();
             this.textBoxSendCommand = new System.Windows.Forms.TextBox();
             this.buttonSend = new System.Windows.Forms.Button();
+            this.columnDetails = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.SuspendLayout();
             // 
             // label1
@@ -83,13 +84,15 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.listCmds.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnCmd,
-            this.columnType});
+            this.columnType,
+            this.columnDetails});
             this.listCmds.FullRowSelect = true;
             this.listCmds.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this.listCmds.HideSelection = false;
             this.listCmds.Location = new System.Drawing.Point(12, 52);
             this.listCmds.MultiSelect = false;
             this.listCmds.Name = "listCmds";
-            this.listCmds.Size = new System.Drawing.Size(408, 290);
+            this.listCmds.Size = new System.Drawing.Size(680, 290);
             this.listCmds.TabIndex = 6;
             this.listCmds.UseCompatibleStateImageBehavior = false;
             this.listCmds.View = System.Windows.Forms.View.Details;
@@ -110,7 +113,7 @@
             // 
             this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(10, 352);
+            this.label5.Location = new System.Drawing.Point(282, 352);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(104, 13);
             this.label5.TabIndex = 7;
@@ -119,7 +122,7 @@
             // textBoxSendCommand
             // 
             this.textBoxSendCommand.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxSendCommand.Location = new System.Drawing.Point(118, 348);
+            this.textBoxSendCommand.Location = new System.Drawing.Point(390, 348);
             this.textBoxSendCommand.Name = "textBoxSendCommand";
             this.textBoxSendCommand.Size = new System.Drawing.Size(202, 20);
             this.textBoxSendCommand.TabIndex = 8;
@@ -127,7 +130,7 @@
             // buttonSend
             // 
             this.buttonSend.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonSend.Location = new System.Drawing.Point(338, 346);
+            this.buttonSend.Location = new System.Drawing.Point(610, 346);
             this.buttonSend.MaximumSize = new System.Drawing.Size(84, 23);
             this.buttonSend.MinimumSize = new System.Drawing.Size(84, 23);
             this.buttonSend.Name = "buttonSend";
@@ -137,11 +140,15 @@
             this.buttonSend.UseVisualStyleBackColor = true;
             this.buttonSend.Click += new System.EventHandler(this.buttonSend_Click);
             // 
+            // columnDetails
+            // 
+            this.columnDetails.Text = "Details";
+            // 
             // CommandWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(432, 374);
+            this.ClientSize = new System.Drawing.Size(704, 374);
             this.Controls.Add(this.buttonSend);
             this.Controls.Add(this.textBoxSendCommand);
             this.Controls.Add(this.label5);
@@ -171,6 +178,6 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.TextBox textBoxSendCommand;
         private System.Windows.Forms.Button buttonSend;
-
+        private System.Windows.Forms.ColumnHeader columnDetails;
     }
 }

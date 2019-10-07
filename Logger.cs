@@ -216,7 +216,7 @@ namespace MCEControl {
             Debug.Assert(LogTextBox != null);
             // We don't want to overrun the size a textbox can handle 
             // limit to 24k
-            if (LogTextBox.TextLength > (24 * 1024)) {
+            if (LogTextBox.TextLength > (64 * 1024)) {
                 LogTextBox.Text = LogTextBox.Text.Remove(0, LogTextBox.Text.IndexOf("\r\n", StringComparison.Ordinal) + 2);
                 LogTextBox.Select(LogTextBox.TextLength, 0);
             }

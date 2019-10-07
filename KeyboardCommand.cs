@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------
+﻿//-------------------------------------------------------------------
 // Copyright © 2017 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
@@ -31,7 +31,7 @@ namespace MCEControl {
         }
 
         public SendInputCommand(string vk, bool shift, bool ctrl, bool alt) {
-            Vk = vk;
+            Key = Vk = vk;
             Shift = shift;
             Ctrl = ctrl;
             Alt = alt;
@@ -39,11 +39,15 @@ namespace MCEControl {
         }
 
         public SendInputCommand(string vk, bool shift, bool ctrl, bool alt, bool win) {
-            Vk = vk;
+            Key = Vk = vk;
             Shift = shift;
             Ctrl = ctrl;
             Alt = alt;
             Win = win;
+        }
+
+        public override string ToString() {
+            return $"Cmd=\"{Key}\" Vk=\"{Vk}\" Shift=\"{Shift}\" Ctrl=\"{Ctrl}\" Alt=\"{Alt}\" Win=\"{Win}\"";
         }
 
         public override void Execute(Reply reply)
@@ -62,7 +66,7 @@ namespace MCEControl {
                          !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
                                          out num)) {
                         // bad format. barf.
-                        Logger.Instance.Log4.Info(String.Format("Cmd: Invalid VK: {0}", Vk));
+                        Logger.Instance.Log4.Info($"Cmd: Invalid VK: {ToString()}");
                         return;
                     }
                     vkcode = (VirtualKeyCode) num;
@@ -78,7 +82,7 @@ namespace MCEControl {
                 if (Shift) s = "Shift-" + s;
                 if (Win) s = "Win-" + s;
 
-                Logger.Instance.Log4.Info(String.Format("Cmd: Sending VK: '{0}' (0x{1:x2})", s, (ushort)vkcode));
+                Logger.Instance.Log4.Info($"Cmd: Sending VK: '{ToString()}' (0x{(ushort)vkcode:x2})");
 
                 var sim = new KeyboardSimulator();
 
@@ -117,7 +121,7 @@ namespace MCEControl {
         }
 
         public static void ShiftKey(String key, Boolean down) {
-            Logger.Instance.Log4.Info(String.Format("Cmd: {0} {1}", key, (down ? "down" : "up")));
+            Logger.Instance.Log4.Info($"Cmd: {key} {(down ? "down" : "up")}");
 
             var sim = new InputSimulator();
             switch (key) {

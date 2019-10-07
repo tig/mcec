@@ -1,5 +1,6 @@
-// DISCLAIMER: Use this code at your own risk. 
+﻿// DISCLAIMER: Use this code at your own risk. 
 // No support is provided and this code has NOT been tested.
+// https://github.com/tig/FileSystemSafeWatcher
 
 using System;
 using System.IO;

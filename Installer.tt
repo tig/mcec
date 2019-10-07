@@ -117,7 +117,6 @@ Section Uninstall
   ReadRegStr $ICONS_GROUP ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "${PRODUCT_STARTMENU_REGVAL}"
   Delete "$INSTDIR\uninst.exe"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
-  Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\HtmlAgilityPack.dll"
   Delete "$PROGRAMFILES\Kindel Systems\MCE Controller\log4net.dll"
 
   Delete "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk"

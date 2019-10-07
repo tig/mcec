@@ -89,7 +89,6 @@ namespace MCEControl {
         private Label labelActivityCommand;
         private Label labelActivityDebounceTime;
         private TextBox textBoxDebounceTime;
-        private CheckBox _checkBoxClientCmdUi;
         private EventLog eventLog1;
         private ComboBox comboBoxLogThresholds;
         private Label labelLogLevel;
@@ -110,7 +109,6 @@ namespace MCEControl {
             this.comboBoxLogThresholds = new System.Windows.Forms.ComboBox();
             this.labelLogLevel = new System.Windows.Forms.Label();
             this._checkBoxHideOnStartup = new System.Windows.Forms.CheckBox();
-            this._checkBoxClientCmdUi = new System.Windows.Forms.CheckBox();
             this._checkBoxAutoStart = new System.Windows.Forms.CheckBox();
             this.tabClient = new System.Windows.Forms.TabPage();
             this._checkBoxEnableClient = new System.Windows.Forms.CheckBox();
@@ -179,7 +177,6 @@ namespace MCEControl {
             // 
             this._buttonCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this._buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            //this._buttonCancel.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this._buttonCancel.Location = new System.Drawing.Point(384, 288);
             this._buttonCancel.Margin = new System.Windows.Forms.Padding(1);
             this._buttonCancel.Name = "_buttonCancel";
@@ -192,7 +189,6 @@ namespace MCEControl {
             // _buttonOk
             // 
             this._buttonOk.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            //this._buttonOk.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this._buttonOk.Location = new System.Drawing.Point(296, 288);
             this._buttonOk.Margin = new System.Windows.Forms.Padding(1);
             this._buttonOk.Name = "_buttonOk";
@@ -212,7 +208,6 @@ namespace MCEControl {
             this.tabcontrol.Controls.Add(this.tabServer);
             this.tabcontrol.Controls.Add(this.tabSerial);
             this.tabcontrol.Controls.Add(this._tabPageActivityMonitor);
-            //this.tabcontrol.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this.tabcontrol.Location = new System.Drawing.Point(16, 16);
             this.tabcontrol.Margin = new System.Windows.Forms.Padding(1);
             this.tabcontrol.Name = "tabcontrol";
@@ -226,7 +221,6 @@ namespace MCEControl {
             this.tabGeneral.Controls.Add(this.comboBoxLogThresholds);
             this.tabGeneral.Controls.Add(this.labelLogLevel);
             this.tabGeneral.Controls.Add(this._checkBoxHideOnStartup);
-            this.tabGeneral.Controls.Add(this._checkBoxClientCmdUi);
             this.tabGeneral.Controls.Add(this._checkBoxAutoStart);
             this.tabGeneral.Location = new System.Drawing.Point(4, 22);
             this.tabGeneral.Margin = new System.Windows.Forms.Padding(1);
@@ -239,7 +233,7 @@ namespace MCEControl {
             // 
             this.comboBoxLogThresholds.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxLogThresholds.FormattingEnabled = true;
-            this.comboBoxLogThresholds.Location = new System.Drawing.Point(16, 72);
+            this.comboBoxLogThresholds.Location = new System.Drawing.Point(16, 51);
             this.comboBoxLogThresholds.Name = "comboBoxLogThresholds";
             this.comboBoxLogThresholds.Size = new System.Drawing.Size(121, 21);
             this.comboBoxLogThresholds.TabIndex = 6;
@@ -248,7 +242,7 @@ namespace MCEControl {
             // labelLogLevel
             // 
             this.labelLogLevel.AutoSize = true;
-            this.labelLogLevel.Location = new System.Drawing.Point(16, 56);
+            this.labelLogLevel.Location = new System.Drawing.Point(13, 35);
             this.labelLogLevel.Name = "labelLogLevel";
             this.labelLogLevel.Size = new System.Drawing.Size(78, 13);
             this.labelLogLevel.TabIndex = 5;
@@ -264,21 +258,9 @@ namespace MCEControl {
             this._checkBoxHideOnStartup.Text = "&Hide window on startup";
             this._checkBoxHideOnStartup.CheckedChanged += new System.EventHandler(this.CheckBoxHideOnStartupCheckedChanged);
             // 
-            // _checkBoxClientCmdUi
-            // 
-            this._checkBoxClientCmdUi.AutoSize = true;
-            this._checkBoxClientCmdUi.Location = new System.Drawing.Point(16, 32);
-            this._checkBoxClientCmdUi.Margin = new System.Windows.Forms.Padding(1);
-            this._checkBoxClientCmdUi.Name = "_checkBoxClientCmdUi";
-            this._checkBoxClientCmdUi.Size = new System.Drawing.Size(177, 17);
-            this._checkBoxClientCmdUi.TabIndex = 4;
-            this._checkBoxClientCmdUi.Text = "&Show \"send command\" window";
-            this._checkBoxClientCmdUi.UseVisualStyleBackColor = true;
-            this._checkBoxClientCmdUi.CheckedChanged += new System.EventHandler(this.CheckBoxClientCmdUiCheckedChanged);
-            // 
             // _checkBoxAutoStart
             // 
-            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 104);
+            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 85);
             this._checkBoxAutoStart.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxAutoStart.Name = "_checkBoxAutoStart";
             this._checkBoxAutoStart.Size = new System.Drawing.Size(160, 16);
@@ -857,7 +839,6 @@ namespace MCEControl {
             this.Controls.Add(this.tabcontrol);
             this.Controls.Add(this._buttonCancel);
             this.Controls.Add(this._buttonOk);
-            //this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -909,7 +890,6 @@ namespace MCEControl {
             // Handle General tab setup
             _checkBoxHideOnStartup.Checked = Settings.HideOnStartup;
             _checkBoxAutoStart.Checked = Settings.AutoStart;
-            _checkBoxClientCmdUi.Checked = Settings.ShowCommandWindow;
 
             // Client tab setup
             _checkBoxEnableClient.Checked = Settings.ActAsClient;
@@ -1151,11 +1131,6 @@ namespace MCEControl {
             }
         }
 
-        private void CheckBoxClientCmdUiCheckedChanged(object sender, EventArgs e) {
-            Settings.ShowCommandWindow = _checkBoxClientCmdUi.Checked;
-            SettingsChanged();
-        }
-
         private void checkBoxEnableActivityMonitor_CheckedChanged(object sender, EventArgs e) {
             Settings.ActivityMonitorEnabled = checkBoxEnableActivityMonitor.Checked;
             groupBoxActivityMonitor.Enabled = checkBoxEnableActivityMonitor.Checked;
@@ -1202,7 +1177,7 @@ namespace MCEControl {
     }
 
     public class AppSettings : ICloneable {
-        public const string SettingsFileName = "MCEContol.settings";
+        public const string SettingsFileName = "MCEControl.settings";
 
         // TODO: If I were a good programmer these public members would all
         // be properties and I'd keep track of whether something changed

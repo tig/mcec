@@ -157,7 +157,7 @@
     <Compile Include="MainWindow.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="MouseCommand.cs" />
+    <Compile Include="MouseCommands.cs" />
     <Compile Include="ProcessCommands.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -180,7 +180,7 @@
     <Compile Include="SettingsDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="ShutdownCommand.cs">
+    <Compile Include="ShutdownCommands.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SocketServer.cs" />
@@ -302,6 +302,7 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Installer.nsi</LastGenOutput>
     </Content>
+    <EmbeddedResource Include="Resources\MCEControl.commands" />
     <None Include="Resources\Trafficlight-gray-icon.bmp" />
     <None Include="Resources\Trafficlight-gray-icon.png" />
     <None Include="Resources\Trafficlight-green-icon.png" />
@@ -337,9 +338,7 @@
     </Content>
     <Content Include="Guillen.Icon.ico" />
     <Content Include="Resources\Guillen.Icon.ico" />
-    <EmbeddedResource Include="Resources\Builtin.commands">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Builtin.commands" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

@@ -1,5 +1,5 @@
 ﻿//-------------------------------------------------------------------
-// Copyright © 2017 Kindel Systems, LLC
+// Copyright © 2019 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 // 
@@ -14,28 +14,51 @@ using System.Xml.Serialization;
 using WindowsInput;
 using WindowsInput.Native;
 
-namespace MCEControl
-{
+namespace MCEControl {
     /// <summary>
     /// Simulates mouse movements.
     /// </summary>
-    class MouseCommand : Command  {
-        private String _action ;
+    class MouseCommands : Command {
+        private String _action;
         private String[] _parameters;
         public static readonly string CmdPrefix = "mouse:";
 
-        public MouseCommand(String cmd) {
+        public static MouseCommands[] Commands = new MouseCommands[] {
+            new MouseCommands{ Key = $"{CmdPrefix }lbc" },
+            new MouseCommands{ Key = $"{CmdPrefix }lbc" },
+            new MouseCommands{ Key = $"{CmdPrefix }lbdc" },
+            new MouseCommands{ Key = $"{CmdPrefix }lbd" },
+            new MouseCommands{ Key = $"{CmdPrefix }lbu" },
+            new MouseCommands{ Key = $"{CmdPrefix }rbc" },
+            new MouseCommands{ Key = $"{CmdPrefix }rbdc" },
+            new MouseCommands{ Key = $"{CmdPrefix }rbd" },
+            new MouseCommands{ Key = $"{CmdPrefix }rbu" },
+            new MouseCommands{ Key = $"{CmdPrefix }xbc" },
+            new MouseCommands{ Key = $"{CmdPrefix }xbcd" },
+            new MouseCommands{ Key = $"{CmdPrefix }xbd" },
+            new MouseCommands{ Key = $"{CmdPrefix }xbu" },
+            new MouseCommands{ Key = $"{CmdPrefix }mm" },
+            new MouseCommands{ Key = $"{CmdPrefix }mt" },
+            new MouseCommands{ Key = $"{CmdPrefix }hs" },
+            new MouseCommands{ Key = $"{CmdPrefix }vs" },
+        };
+        public MouseCommands() { }
+
+        public MouseCommands(String cmd) {
+            Key = CmdPrefix;
             _parameters = cmd.Substring(CmdPrefix.Length, cmd.Length - CmdPrefix.Length).Split(',');
             if (_parameters.Length > 0)
                 _action = _parameters[0];
         }
 
-        public override void Execute(Reply reply)
-        {
+        public override string ToString() {
+            return $"Cmd=\"{Key}\"";
+        }
+
+        public override void Execute(Reply reply) {
             var sim = new InputSimulator();
             // Format is "mouse:<action>[,<parameters>]
-            switch (_action)
-            {
+            switch (_action) {
                 case "lbc": sim.Mouse.LeftButtonClick(); break;
                 case "lbdc": sim.Mouse.LeftButtonDoubleClick(); break;
                 case "lbd": sim.Mouse.LeftButtonDown(); break;

@@ -8,22 +8,36 @@
 //    http://sourceforge.net/projects/mcecontroller/
 //-------------------------------------------------------------------
 using System;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using MCEControl.Properties;
 using WindowsInput.Native;
 
-namespace MCEControl
-{
+namespace MCEControl {
     /// <summary>
     /// Commands that control MCE Controller, or get information about it
     /// </summary>
     class McecCommand : Command {
         public static readonly string CmdPrefix = "mcec:";
 
+        public static McecCommand[] Commands = new McecCommand[] {
+            new McecCommand{ Key = $"{CmdPrefix }ver" },
+            new McecCommand{ Key = $"{CmdPrefix }exit" },
+            new McecCommand{ Key = $"{CmdPrefix }cmds" },
+            new McecCommand{ Key = $"{CmdPrefix }time" },
+        };
+
+        public McecCommand() {
+        }
+
         public McecCommand(String cmd) {
             Key = cmd.Substring(CmdPrefix.Length, cmd.Length - CmdPrefix.Length);
+        }
+
+        public override string ToString() {
+            return $"Cmd=\"{Key}\"";
         }
 
         public override void Execute(Reply reply) {
@@ -45,19 +59,13 @@ namespace MCEControl
 
                 // Return a list of supported commands (really just for testing)
                 case "cmds":
-                    foreach (Command cmd in MainWindow.Instance.CmdTable.List) {
+                    replyBuilder.Append(Environment.NewLine);
+                    var orderedKeys = MainWindow.Instance.CmdTable.Keys.Cast<string>().OrderBy(c => c);
+                    foreach (string key in orderedKeys) {
+                        Command cmd = MainWindow.Instance.CmdTable[key];
+                        var item = new ListViewItem(cmd.Key);
                         Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
-                        replyBuilder.AppendFormat("{0}={1}{2}", cmd.Key, match.Groups[1].Value, Environment.NewLine);
-                    }
-
-                    // Now add VK_ commands
-                    foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
-                        string s;
-                        if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
-                            s = vk.ToString();  // already have VK_
-                        else
-                            s = "VK_" + vk.ToString(); 
-                        replyBuilder.AppendFormat("{0}={1}{2}", s, "SendInput", Environment.NewLine);
+                        replyBuilder.AppendFormat($"<{match.Groups[1].Value} {cmd.ToString()} />{Environment.NewLine}" );
                     }
                     break;
 
@@ -66,20 +74,10 @@ namespace MCEControl
                     DateTime dt = DateTime.Now;
                     replyBuilder.AppendFormat("{0}", DateTime.Now);
                     break;
-
-                // These two are for testing. They cause a loop between two
-                // instances of MCE Controller
-                case "foo":
-                    reply.WriteLine("mcec:bar");
-                    return;
-                case "bar":
-                    reply.WriteLine("mcec:foo");
-                    return;
-
             }
 
             // Reply.  
-            replyBuilder.Insert(0, String.Format("{0}=", Key));
+            replyBuilder.Insert(0, $"{Key}=");
             Reply(reply, replyBuilder.ToString());
         }
 

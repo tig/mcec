@@ -27,28 +27,19 @@ namespace MCEControl {
             log4 = log4net.LogManager.GetLogger("MCEControl");
             InitializeComponent();
         }
-
-
+        
         private void CommandWindow_Load(object sender, EventArgs e) {
             Icon = MainWindow.Instance.Icon;
-            foreach (Command cmd in MainWindow.Instance.CmdTable.List) {
+
+            var orderedKeys = MainWindow.Instance.CmdTable.Keys.Cast<string>().OrderBy(c => c);
+            foreach (string key in orderedKeys) {
+                Command cmd = MainWindow.Instance.CmdTable[key];
                 var item = new ListViewItem(cmd.Key);
                 Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                 item.SubItems.Add(match.Groups[1].Value);
+                item.SubItems.Add(cmd.ToString());
                 listCmds.Items.Add(item);
             }
-
-            // Now add VK_ commands
-            //foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
-            //    string s;
-            //    if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
-            //        s = vk.ToString();  // already have VK_
-            //    else
-            //        s = "VK_" + vk.ToString();
-            //    var item = new ListViewItem(s);
-            //    item.SubItems.Add("SendInputCommand (pre-defined)");
-            //    listCmds.Items.Add(item);
-            //}
         }
 
         private void CommandWindow_FormClosing(object sender, FormClosingEventArgs e) {
