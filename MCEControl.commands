@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+MCE Controller Example Commands File
+Copyright 2019 Kindel Sytems, LLC.
+
+ Modify this file to extend/change the commands MCE Controller     
+ supports. 
+ 
+ This file must be named MCEControl.commands and must be placed 
+ in the "%appdata%\Kindel Systems\MCE Controller" directory or, 
+ if MCE Contoller is being run from a different directory, the 
+ same folder as the MCEControl.exe file.
+-->
+<MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Commands xmlns="http://www.kindel.com/products/mcecontroller">
+
+    <!--
+      Add user-defined commands here. For example
+      <StartProcess Cmd="notepad" File="notepad" />
+    -->
+
+    <StartProcess Cmd="code" File="code" />
+    <StartProcess Cmd="tada" File="C:\Windows\Media\tada.wav" />
+   
+  </Commands>
+</MCEController>
