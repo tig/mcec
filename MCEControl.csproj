@@ -381,7 +381,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" -out "$(SolutionDir)AssemblyFileVersion.cs" "$(SolutionDir)AssemblyFileVersion.tt"</PreBuildEvent>
-    <PostBuildEvent>if "$(ConfigurationName)"=="Release" copy "$(SolutionDir)\install_version.txt" "$(SolutionDir)\docs"
+    <PostBuildEvent>rem if "$(ConfigurationName)"=="Release" copy "$(SolutionDir)\install_version.txt" "$(SolutionDir)\docs"
 
 "$(DevEnvDir)TextTransform.exe" "$(SolutionDir)Installer.tt"
 copy "$(SolutionDir)Installer.nsi" "$(SolutionDir)Installer" 
