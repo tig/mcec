@@ -59,7 +59,9 @@ namespace MCEControl {
 
             if (LastTime.AddSeconds(debounceTime) <= DateTime.Now) {
                 Logger.Instance.Log4.Info("ActivityMonitor: User Activity Dectected");
-                if (MainWindow.Instance.Client.CurrentStatus == ServiceStatus.Connected) {
+                if ((MainWindow.Instance.Client != null && MainWindow.Instance.Client.CurrentStatus == ServiceStatus.Connected) ||
+                    (MainWindow.Instance.Server != null && MainWindow.Instance.Server.CurrentStatus == ServiceStatus.Connected) ||
+                    (MainWindow.Instance.SerialServer != null && MainWindow.Instance.SerialServer.CurrentStatus == ServiceStatus.Connected)) {
                     Logger.Instance.Log4.Info("ActivityMonitor: Sending " + activityCmd);
                     MainWindow.Instance.SendLine(activityCmd);
                 }
