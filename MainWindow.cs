@@ -35,10 +35,13 @@ namespace MCEControl {
 
         // Protocol objects
         private SocketServer server;
+        public SocketServer Server { get { return server; } }
 
         private SocketClient client;
         public SocketClient Client { get { return client; } }
         private SerialServer serialServer;
+        public SerialServer SerialServer { get { return serialServer; } }
+
 
         // Commands
         public CommandTable CmdTable;

@@ -23,7 +23,7 @@ namespace MCEControl {
     sealed public class SocketServer : ServiceBase, IDisposable {
         // An ConcurrentDictionary is used to keep track of worker sockets that are designed
         // to communicate with each connected client. For thread safety.
-        private readonly ConcurrentDictionary<int, Socket> _socketList = new ConcurrentDictionary<int, Socket>();
+        private readonly ConcurrentDictionary<int, Socket> _clientList = new ConcurrentDictionary<int, Socket>();
 
         // The following variable will keep track of the cumulative 
         // total number of clients connected at any time. Since multiple threads
@@ -44,9 +44,9 @@ namespace MCEControl {
         private void Dispose(bool disposing) {
             log4.Debug("SocketServer disposing...");
             if (!disposing) return;
-            foreach (var i in _socketList.Keys) {
+            foreach (var i in _clientList.Keys) {
                 Socket socket;
-                _socketList.TryRemove(i, out socket);
+                _clientList.TryRemove(i, out socket);
                 if (socket != null) {
                     log4.Debug("Closing Socket #" + i);
                     socket.Close();
@@ -110,7 +110,7 @@ namespace MCEControl {
                 Interlocked.Increment(ref _clientCount);
 
                 // Add the workerSocket reference to the list
-                _socketList.GetOrAdd(_clientCount, workerSocket);
+                _clientList.GetOrAdd(_clientCount, workerSocket);
 
                 serverReplyContext = new ServerReplyContext(this, workerSocket, _clientCount);
 
@@ -170,7 +170,7 @@ namespace MCEControl {
             // Remove the reference to the worker socket of the closed client
             // so that this object will get garbage collected
             Socket socket;
-            _socketList.TryRemove(serverReplyContext.ClientNumber, out socket);
+            _clientList.TryRemove(serverReplyContext.ClientNumber, out socket);
             if (socket != null) {
                 log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
                 Interlocked.Decrement(ref _clientCount);
@@ -340,17 +340,26 @@ namespace MCEControl {
 
         public override void Send(string text, Reply replyContext = null) {
             if (CurrentStatus != ServiceStatus.Connected ||
-                _mainSocket == null ||
-                !_mainSocket.Connected)
+                _mainSocket == null)
                 return;
 
-            if (_mainSocket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
-                SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());
+            if (replyContext == null) {
+                foreach (var i in _clientList.Keys) {
+                    Socket client;
+                    if (_clientList.TryGetValue(i, out client)) {
+                        Reply reply = new ServerReplyContext(this, client, i);
+                        Send(text, reply);
+                    }
+                }
             }
             else {
-                SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext, text);
+                if (((ServerReplyContext)replyContext).Socket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
+                    SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());
+                }
+                else {
+                    SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext, text);
+                }
             }
-
         }
 
         #region Nested type: ServerReplyContext
