@@ -1,6 +1,6 @@
-### MCE Controller
+# MCE Controller
 
-By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) -- Copyright © 2019 [Kindel Systems](http://www.kindel.com), LLC.  
+By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) -- Copyright © 2019 [Kindel Systems](http://www.kindel.com), LLC.
 
 ![MCE Controller](mainwindow.png)
 
