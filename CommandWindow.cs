@@ -55,7 +55,7 @@ namespace MCEControl {
         }
 
         private void buttonSendChars_Click(object sender, EventArgs e) {
-            textBoxSendCommand.Text = String.Format("chars:{0}", textBoxChars.Text);
+            textBoxSendCommand.Text = $"chars:{textBoxChars.Text}";
             Send();
         }
 

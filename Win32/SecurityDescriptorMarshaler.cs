@@ -1,14 +1,15 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
 namespace Microsoft.Win32.Security
 {
-	/// <summary>
-	///  Custom marshaler for a SecurityDescriptor. 
-	///  We only support the Managed -> Native directionality.
-	/// </summary>
-	public class SecurityDescriptorMarshaler : ICustomMarshaler
+#pragma warning disable CA1801, CA1303
+    /// <summary>
+    ///  Custom marshaler for a SecurityDescriptor. 
+    ///  We only support the Managed -> Native directionality.
+    /// </summary>
+    public class SecurityDescriptorMarshaler : ICustomMarshaler
 	{
 		/// <summary>
 		///  Required by the runtime marshaler.

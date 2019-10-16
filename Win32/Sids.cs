@@ -1,9 +1,11 @@
-using System;
+﻿using System;
 
 namespace Microsoft.Win32.Security
 {
-	public class Sids
-	{
+#pragma warning disable CA1052 // Static holder types should be Static or NotInheritable
+    public class Sids
+#pragma warning restore CA1052 // Static holder types should be Static or NotInheritable
+    {
 		public static Sid Null
 		{
 			get

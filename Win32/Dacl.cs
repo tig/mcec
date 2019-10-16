@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Runtime.InteropServices;
 
@@ -49,12 +49,13 @@ namespace Microsoft.Win32.Security
 			// aces are "equal" (e.g., both are access denied inherited object aces)
 			return 0;
 		}
-	}
+    }
 
 	/// <summary>
 	/// Summary description for Dacl.
 	/// </summary>
-	public class Dacl : Acl
+	#pragma warning disable CA1010, CA1710, CA1303
+    public class Dacl : Acl
 	{
 		internal Dacl(IntPtr pacl) : base(pacl)
 		{

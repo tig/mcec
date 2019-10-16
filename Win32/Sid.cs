@@ -1,11 +1,12 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-	using Win32Structs;
+#pragma warning disable CA1303, CA1062, CA1507, CA1820, CA1052
+    using Win32Structs;
 
-	using HANDLE = System.IntPtr;
+    using HANDLE = System.IntPtr;
 	using DWORD = System.UInt32;
 	using BOOL = System.Int32;
 	using LPVOID = System.IntPtr;

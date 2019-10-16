@@ -1,16 +1,17 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-	using Win32Structs;
-	/// <summary>
-	///  Abstract base class for AceAccessAllowed and AceAccessDenied.
-	///  This class relies on the fact that the ACCESS_ALLOWED_ACE and ACCESS_DENIED_ACE
-	///  are identical.
-	/// </summary>
-	public abstract class AceAccess : Ace
+#pragma warning disable CA1062
+    using Win32Structs;
+    /// <summary>
+    ///  Abstract base class for AceAccessAllowed and AceAccessDenied.
+    ///  This class relies on the fact that the ACCESS_ALLOWED_ACE and ACCESS_DENIED_ACE
+    ///  are identical.
+    /// </summary>
+    public abstract class AceAccess : Ace
 	{
 		private bool _allowed;
 		internal AceAccess(MemoryMarshaler m, bool allowed)

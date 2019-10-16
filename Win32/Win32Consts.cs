@@ -1,15 +1,17 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 
 namespace Microsoft.Win32.Security
 {
 	using Win32Structs;
 
-	/// <summary>
-	/// Summary description for Win32public consts.
-	/// </summary>
-	public class Win32Consts
-	{
+#pragma warning disable CA1052, CA1707, CA2211, CA1714, CA1028
+                              /// <summary>
+                              /// Summary description for Win32public consts.
+                              /// </summary>
+    public class Win32Consts
+#pragma warning restore CA1052 // Static holder types should be Static or NotInheritable
+    {
 		public const uint KEYEVENTF_KEYUP = 0x02;
 		public const uint KEYEVENTF_SCANCODE = 0x08;
 		public const uint INPUT_KEYBOARD = 0x01;

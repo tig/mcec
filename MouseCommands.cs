@@ -21,7 +21,7 @@ namespace MCEControl {
     class MouseCommands : Command {
         private String _action;
         private String[] _parameters;
-        public static readonly string CmdPrefix = "mouse:";
+        public const string CmdPrefix = "mouse:";
 
         public static MouseCommands[] Commands = new MouseCommands[] {
             new MouseCommands{ Key = $"{CmdPrefix }lbc" },
@@ -91,8 +91,10 @@ namespace MCEControl {
 
         private int GetIntOrZero(String[] s, int index) {
             int val = 0;
-            if (index >= s.Length) return val;
-            int.TryParse(s[index], out val);
+            if (index < s.Length) {
+                if (!int.TryParse(s[index], out val))
+                    return 0;
+            }
             return val;
         }
     }

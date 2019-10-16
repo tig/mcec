@@ -36,9 +36,13 @@ namespace MCEControl {
         private TabPage tabGeneral;
         private GroupBox _serverGroup;
 
-        public AppSettings Settings;
-        private GroupBox _wakeupGroup;
+        private AppSettings settings;
+        public AppSettings Settings { get => settings; set => settings = value; }
 
+        private string defaultTab;
+        public string DefaultTab { get => defaultTab; set => defaultTab = value; }
+
+        private GroupBox _wakeupGroup;
         private Button _buttonCancel;
         private Button _buttonOk;
         private CheckBox _checkBoxAutoStart;
@@ -877,6 +881,9 @@ namespace MCEControl {
         #endregion
 
         public SettingsDialog(AppSettings settings) {
+            if (settings is null) {
+                throw new ArgumentNullException(nameof(settings));
+            }
             //
             // Required for Windows Form Designer support
             //
@@ -909,8 +916,8 @@ namespace MCEControl {
             // Serial Server tab setup
             _checkBoxEnableSerialServer.Checked = Settings.ActAsSerialServer;
             _comboBoxSerialPort.SelectedItem = Settings.SerialServerPortName;
-            _comboBoxBaudRate.SelectedItem = Settings.SerialServerBaudRate.ToString();
-            _comboBoxDataBits.SelectedItem = Settings.SerialServerDataBits.ToString();
+            _comboBoxBaudRate.SelectedItem = $"{Settings.SerialServerBaudRate}";
+            _comboBoxDataBits.SelectedItem = $"{Settings.SerialServerDataBits}";
             // For the enum types, we cheat and rely on knowledge of what the enum 
             // values are. The combo boxes are pre-filled with in-order strings.
             _comboBoxParity.SelectedIndex = (int) Settings.SerialServerParity;
@@ -925,7 +932,7 @@ namespace MCEControl {
             
             groupBoxActivityMonitor.Enabled = checkBoxEnableActivityMonitor.Checked = Settings.ActivityMonitorEnabled;
             textBoxActivityCommand.Text = Settings.ActivityMonitorCommand;
-            textBoxDebounceTime.Text = Settings.ActivityMonitorDebounceTime.ToString();
+            textBoxDebounceTime.Text = $"{Settings.ActivityMonitorDebounceTime}";
 
             comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"]);
             comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["INFO"]);
@@ -950,13 +957,10 @@ namespace MCEControl {
             _buttonOk.Enabled = false;
         }
 
-        private string defaultTab;
-        public string DefaultTab { get => defaultTab; set => defaultTab = value; }
-
         private void SettingsChanged() {
             if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked) {
                 UInt32 port = 0;
-                UInt32.TryParse(_editWakeupPort.Text, out port);
+                if (!UInt32.TryParse(_editWakeupPort.Text, out port)) port = 0;
                 _buttonOk.Enabled = !(String.IsNullOrEmpty(_editWakeupServer.Text) ||
                                       String.IsNullOrEmpty(_editWakeupCommand.Text) ||
                                       String.IsNullOrEmpty(_editClosingCommand.Text) ||
@@ -966,7 +970,7 @@ namespace MCEControl {
 
             if (_checkBoxEnableClient.Checked) {
                 UInt32 port = 0;
-                UInt32.TryParse(_editClientPort.Text, out port);
+                if (!UInt32.TryParse(_editClientPort.Text, out port)) port = 0;
                 _buttonOk.Enabled = !(String.IsNullOrEmpty(_editClientHost.Text) ||
                                       (port == 0));
                 return;
@@ -974,7 +978,7 @@ namespace MCEControl {
 
             if (checkBoxEnableActivityMonitor.Checked) {
                 UInt32 t = 0;
-                UInt32.TryParse(textBoxDebounceTime.Text, out t);
+                if (!UInt32.TryParse(textBoxDebounceTime.Text, out t)) t = 0;
                 _buttonOk.Enabled = !(String.IsNullOrEmpty(textBoxActivityCommand.Text) || 
                                     String.IsNullOrEmpty(textBoxDebounceTime.Text) || 
                                     (t == 0));
@@ -1076,7 +1080,7 @@ namespace MCEControl {
 
         private void EditClientDelayTimeTextChanged(object sender, EventArgs e) {
             if (_editClientDelayTime.Text.Length > 0)
-                Settings.ClientDelayTime = Convert.ToInt32(_editClientDelayTime.Text);
+                Settings.ClientDelayTime = Convert.ToInt32(_editClientDelayTime.Text, new NumberFormatInfo());
             SettingsChanged();
         }
 
@@ -1145,7 +1149,7 @@ namespace MCEControl {
 
         private void textBoxDebounceTime_TextChanged(object sender, EventArgs e) {
             UInt32 t = 0;
-            if (UInt32.TryParse(textBoxDebounceTime.Text.ToString(), out t))
+            if (UInt32.TryParse(textBoxDebounceTime.Text, out t))
                 Settings.ActivityMonitorDebounceTime = t;
             SettingsChanged();
         }
@@ -1176,12 +1180,9 @@ namespace MCEControl {
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "This is just settings info.")]
     public class AppSettings : ICloneable {
         public const string SettingsFileName = "MCEControl.settings";
-
-        // TODO: If I were a good programmer these public members would all
-        // be properties and I'd keep track of whether something changed
-        // within this class.
 
         // General
         public bool AutoStart;
@@ -1238,6 +1239,7 @@ namespace MCEControl {
             SerialServerDataBits = defaultPort.DataBits;
             SerialServerStopBits = defaultPort.StopBits;
             SerialServerHandshake = defaultPort.Handshake;
+            defaultPort.Dispose();
         }
 
         // By default we want the settings file stored with the EXE
@@ -1280,17 +1282,19 @@ namespace MCEControl {
 
             var serializer = new XmlSerializer(typeof (AppSettings));
             // A FileStream is needed to read the XML document.
+            FileStream fs = null;
+            XmlReader reader = null;
             try {
-                var fs = new FileStream(settingsFile, FileMode.Open, FileAccess.Read);
-                XmlReader reader = new XmlTextReader(fs);
+                fs = new FileStream(settingsFile, FileMode.Open, FileAccess.Read);
+                reader = new XmlTextReader(fs);
                 settings = (AppSettings) serializer.Deserialize(reader);
 
                 settings.DisableInternalCommands = Convert.ToBoolean(
                     Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
-                                    "DisableInternalCommands", false));
+                                    "DisableInternalCommands", false), new NumberFormatInfo());
 
+                reader.Close();
                 fs.Close();
-
                 Logger.Instance.Log4.Info("Settings: Loaded settings from " + settingsFile);
             }
             catch (FileNotFoundException) {
@@ -1302,11 +1306,15 @@ namespace MCEControl {
                 // even if it's first run, read global commands
                 settings.DisableInternalCommands = Convert.ToBoolean(
                     Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
-                                    "DisableInternalCommands", false));
+                                    "DisableInternalCommands", false), new NumberFormatInfo());
             }
             catch (UnauthorizedAccessException e) {
                 Logger.Instance.Log4.Info($"Settings: Settings file could not be loaded. {e.Message}");
                 MessageBox.Show($"Settings file could not be loaded. {e.Message}");
+            }
+            finally {
+                if (reader != null) reader.Dispose();
+                if (fs != null) fs.Dispose();
             }
 
             return settings;

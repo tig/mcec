@@ -2,7 +2,7 @@
 
 namespace WindowsInput.Native
 {
-#pragma warning disable 649
+#pragma warning disable 649, CA1815, CA1051
     /// <summary>
     /// The KEYBDINPUT structure contains information about a simulated keyboard event.  (see: http://msdn.microsoft.com/en-us/library/ms646271(VS.85).aspx)
     /// Declared in Winuser.h, include Windows.h

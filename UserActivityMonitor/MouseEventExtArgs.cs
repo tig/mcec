@@ -2,6 +2,8 @@
 
 namespace Gma.UserActivityMonitor
 {
+#pragma warning disable CA1710 // Identifiers should have correct suffix
+
     /// <summary>
     /// Provides data for the MouseClickExt and MouseMoveExt events. It also provides a property Handled.
     /// Set this property to <b>true</b> to prevent further processing of the event in other applications.
@@ -39,3 +41,5 @@ namespace Gma.UserActivityMonitor
         }
     }
 }
+#pragma warning restore CA1710 // Identifiers should have correct suffix
+

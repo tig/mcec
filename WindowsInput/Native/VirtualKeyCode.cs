@@ -1,5 +1,6 @@
 ﻿namespace WindowsInput.Native
 {
+#pragma warning disable 649, CA1028, CA1714, CA1008, CA1720
     /// <summary>
     /// The list of VKs (see: http://msdn.microsoft.com/en-us/library/ms645540(VS.85).aspx)
     /// </summary>

@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-	using Win32Structs;
+#pragma warning disable CA1303, CA1062, CA1507
+    using Win32Structs;
 	using DWORD = System.UInt32;
 	using WORD = System.UInt16;
 	using BOOL = System.Int32;

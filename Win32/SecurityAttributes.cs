@@ -1,14 +1,15 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-	using Win32Structs;
+#pragma warning disable CA1303, CA1507
+    using Win32Structs;
 
-	/// <summary>
-	/// Summary description for SecurityAttributes.
-	/// </summary>
-	public class SecurityAttributes
+    /// <summary>
+    /// Summary description for SecurityAttributes.
+    /// </summary>
+    public class SecurityAttributes
 	{
 		private bool _inheritHandles = false;
 		private SecurityDescriptor _secDesc;

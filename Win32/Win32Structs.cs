@@ -1,9 +1,11 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security.Win32Structs
 {
-	using HANDLE = System.IntPtr;
+#pragma warning disable CA1052, CA1707, CA2211, CA1714, CA1028, CA1008, CA1720, CA1724, CA1052, CA1051, CA1815
+
+    using HANDLE = System.IntPtr;
 	using HWND = System.IntPtr;
 	using DWORD = System.UInt32;
 	using LONG = System.Int32;
@@ -19,7 +21,7 @@ namespace Microsoft.Win32.Security.Win32Structs
 	using PVOID = System.IntPtr;
 	using LPWSTR = System.String;
 
-	public struct KEYBDINPUT
+    public struct KEYBDINPUT
 	{
 		public WORD wVk;
 		public WORD wScan;
@@ -106,8 +108,8 @@ namespace Microsoft.Win32.Security.Win32Structs
 		public WORD		AceSize;
 	}
 	[StructLayout(LayoutKind.Sequential)]
-	public struct ACCESS_ALLOWED_ACE 
-	{
+    public struct ACCESS_ALLOWED_ACE
+    {
 		public static readonly int SizeOf = Marshal.SizeOf(typeof(ACCESS_ALLOWED_ACE));
 		public static readonly int SidOffset = Marshal.OffsetOf(typeof(ACCESS_ALLOWED_ACE), "SidStart").ToInt32();
 
@@ -116,8 +118,8 @@ namespace Microsoft.Win32.Security.Win32Structs
 		public DWORD SidStart;
 	}
 	[StructLayout(LayoutKind.Sequential)]
-	public struct ACCESS_DENIED_ACE 
-	{
+    public struct ACCESS_DENIED_ACE
+    {
 		public static readonly int SizeOf = Marshal.SizeOf(typeof(ACCESS_DENIED_ACE));
 		public static readonly int SidOffset = Marshal.OffsetOf(typeof(ACCESS_DENIED_ACE), "SidStart").ToInt32();
 

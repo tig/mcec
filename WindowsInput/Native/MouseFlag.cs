@@ -2,6 +2,7 @@
 
 namespace WindowsInput.Native
 {
+#pragma warning disable 649, CA1028, CA1815, CA1051, CA1714
     /// <summary>
     /// The set of MouseFlags for use in the Flags property of the <see cref="MOUSEINPUT"/> structure. (See: http://msdn.microsoft.com/en-us/library/ms646273(VS.85).aspx)
     /// </summary>

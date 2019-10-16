@@ -10,10 +10,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using log4net;
 
 namespace MCEControl {
     
     public enum ServiceNotification {
+        None = 0,
         Initialized = 1,
         StatusChange,
         ReceivedData,
@@ -50,10 +52,11 @@ namespace MCEControl {
     }
 
     public abstract class ServiceBase {
-        protected log4net.ILog log4;
+        private log4net.ILog log4;
+        protected ILog Log4 { get => log4; set => log4 = value; }
 
         public ServiceBase() {
-            log4 = log4net.LogManager.GetLogger("MCEControl");
+            Log4 = log4net.LogManager.GetLogger("MCEControl");
         }
 
         public delegate
@@ -61,6 +64,7 @@ namespace MCEControl {
         public event NotificationCallback Notifications;
         
         public ServiceStatus CurrentStatus { get; set; }
+
         public abstract void Send(string text, Reply replyContext = null);
 
         // Send a status notification
@@ -79,7 +83,7 @@ namespace MCEControl {
 
         // Send an error notification
         protected void Error(String msg) {
-            log4.Debug(msg);
+            Log4.Debug(msg);
             if (Notifications != null)
                 Notifications(ServiceNotification.Error, CurrentStatus, null, msg);
         }

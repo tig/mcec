@@ -20,7 +20,7 @@ namespace MCEControl {
     /// Commands that control MCE Controller, or get information about it
     /// </summary>
     class McecCommand : Command {
-        public static readonly string CmdPrefix = "mcec:";
+        public const string CmdPrefix = "mcec:";
 
         public static McecCommand[] Commands = new McecCommand[] {
             new McecCommand{ Key = $"{CmdPrefix }ver" },

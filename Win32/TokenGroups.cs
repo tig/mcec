@@ -1,14 +1,15 @@
-using System;
+﻿using System;
 using System.Collections;
 
 namespace Microsoft.Win32.Security
 {
-	using Win32Structs;
+#pragma warning disable CA1710, CA1010
+    using Win32Structs;
 
-	/// <summary>
-	/// Summary description for TokenGroups.
-	/// </summary>
-	public class TokenGroups : CollectionBase
+    /// <summary>
+    /// Summary description for TokenGroups.
+    /// </summary>
+    public class TokenGroups : CollectionBase
 	{
 		internal TokenGroups(UnmanagedHeapAlloc ptr)
 		{

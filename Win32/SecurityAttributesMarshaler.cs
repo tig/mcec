@@ -1,15 +1,16 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-	using Win32Structs;
+#pragma warning disable CA1801
+    using Win32Structs;
 
-	/// <summary>
-	/// Custom marshaler for SecurityAttributes class.
-	/// Marshals from/to the Win32 SECURITY_ATTRIBUTES struct.
-	/// </summary>
-	public class SecurityAttributesMarshaler : ICustomMarshaler
+    /// <summary>
+    /// Custom marshaler for SecurityAttributes class.
+    /// Marshals from/to the Win32 SECURITY_ATTRIBUTES struct.
+    /// </summary>
+    public class SecurityAttributesMarshaler : ICustomMarshaler
 	{
 		/// <summary>
 		///  Required by the runtime marshaler. We return a new instance

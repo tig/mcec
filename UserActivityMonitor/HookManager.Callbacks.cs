@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -61,7 +62,7 @@ namespace Gma.UserActivityMonitor
 
         // See https://stackoverflow.com/questions/17897646/setwindowshookex-fails-with-error-126
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Ansi)]
-        static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)]string lpFileName);
+        static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPWStr)]string lpFileName);
 
         /// <summary>
         /// A callback function which will be called every Time a mouse activity detected.
@@ -347,7 +348,9 @@ namespace Gma.UserActivityMonitor
                     bool isDownCapslock = (GetKeyState(VK_CAPITAL) != 0 ? true : false);
 
                     byte[] keyState = new byte[256];
+#pragma warning disable CA1806 // Do not ignore method results
                     GetKeyboardState(keyState);
+#pragma warning restore CA1806 // Do not ignore method results
                     byte[] inBuffer = new byte[2];
                     if (ToAscii(MyKeyboardHookStruct.VirtualKeyCode,
                               MyKeyboardHookStruct.ScanCode,
@@ -356,7 +359,7 @@ namespace Gma.UserActivityMonitor
                               MyKeyboardHookStruct.Flags) == 1)
                     {
                         char key = (char)inBuffer[0];
-                        if ((isDownCapslock ^ isDownShift) && Char.IsLetter(key)) key = Char.ToUpper(key);
+                        if ((isDownCapslock ^ isDownShift) && Char.IsLetter(key)) key = Char.ToUpper(key, CultureInfo.InvariantCulture);
                         KeyPressEventArgs e = new KeyPressEventArgs(key);
                         s_KeyPress.Invoke(null, e);
                         handled = handled || e.Handled;

@@ -66,7 +66,7 @@ namespace MCEControl {
 
             try {
                 // Set the read/write timeouts
-                log4.Debug("Opening serial port: " + GetSettingsDisplayString());
+                Log4.Debug("Opening serial port: " + GetSettingsDisplayString());
                 SetStatus(ServiceStatus.Started, GetSettingsDisplayString());
                 _serialPort.Open();
 
@@ -79,7 +79,7 @@ namespace MCEControl {
                 Stop();
             }
             catch (UnauthorizedAccessException uae) {
-                Error(String.Format("Port in use? {0} ({1})", uae.Message, GetSettingsDisplayString()));
+                Error($"Port in use? {uae.Message} ({GetSettingsDisplayString()})");
                 Stop();
             }
             catch (Exception e) {
@@ -89,7 +89,7 @@ namespace MCEControl {
         }
 
         public void Stop() {
-            log4.Debug("Serial Server Stop");
+            Log4.Debug("Serial Server Stop");
             Dispose(true);
             SetStatus(ServiceStatus.Stopped);
         }
@@ -147,19 +147,19 @@ namespace MCEControl {
                     break;
             }
 
-            return String.Format("{0} {1} baud {2}{3}{4} {5}", _serialPort.PortName, _serialPort.BaudRate, p, _serialPort.DataBits, sbits, hand);
+            return $"{_serialPort.PortName} {_serialPort.BaudRate} baud {p}{_serialPort.DataBits}{sbits} {hand}";
         }
 
         private void Read()
         {
-            log4.Debug(String.Format("Serial Read thread starting: {0}", GetSettingsDisplayString()));
+            Log4.Debug($"Serial Read thread starting: {GetSettingsDisplayString()}");
             StringBuilder sb = new StringBuilder();
             while (true)
             {
                 try
                 {
                     if (_serialPort == null) {
-                        log4.Debug("_serialPort is null in Read()");
+                        Log4.Debug("_serialPort is null in Read()");
                         break;
                     }
                     char c = (char)_serialPort.ReadChar();
@@ -177,16 +177,16 @@ namespace MCEControl {
 
                 }
                 catch (TimeoutException) {
-                    log4.Debug("SerialServer: TimeoutException");
+                    Log4.Debug("SerialServer: TimeoutException");
                 }
                 catch (IOException ioe) {
-                    log4.Debug("SerialServer: IOException: "+ ioe.Message);
+                    Log4.Debug("SerialServer: IOException: "+ ioe.Message);
                 }
                 catch (Exception e) {
-                    log4.Debug("SerialServer: Exception: " + e.Message);
+                    Log4.Debug("SerialServer: Exception: " + e.Message);
                 }
             }
-            log4.Debug("SerialServer: Exiting Read()");
+            Log4.Debug("SerialServer: Exiting Read()");
         }
 
         // Send text on serial port. 
@@ -205,6 +205,7 @@ namespace MCEControl {
 
         }
         #region Nested type: SerialReplyContext
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>")]
         public class SerialReplyContext : Reply {
             private SerialPort _rs232;
             public SerialReplyContext(SerialPort rs232) {

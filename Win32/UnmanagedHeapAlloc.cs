@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
@@ -30,9 +30,11 @@ namespace Microsoft.Win32.Security
 			get
 			{
 				if (_memPtr == IntPtr.Zero)
-					throw new NullReferenceException("Ptr member is not initialiazed or has already been disposed");
+#pragma warning disable CA1303 // Do not pass literals as localized parameters
+                    throw new NullReferenceException("Ptr member is not initialiazed or has already been disposed");
+#pragma warning restore CA1303 // Do not pass literals as localized parameters
 
-				return _memPtr;
+                return _memPtr;
 			}
 		}
 		public uint Size

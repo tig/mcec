@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Xml;
 using System.Xml.Serialization;
 
 namespace Microsoft.Win32.Security
 {
-	[Flags]
+#pragma warning disable CA1052, CA1707, CA2211, CA1714, CA1028, CA1008, CA1720, CA1724, CA1052
+    [Flags]
 	public enum WM : uint
 	{
 		[XmlEnum(Name = "WM_COMMAND")]

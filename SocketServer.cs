@@ -42,13 +42,13 @@ namespace MCEControl {
         private Socket _mainSocket;
 
         private void Dispose(bool disposing) {
-            log4.Debug("SocketServer disposing...");
+            Log4.Debug("SocketServer disposing...");
             if (!disposing) return;
             foreach (var i in _clientList.Keys) {
                 Socket socket;
                 _clientList.TryRemove(i, out socket);
                 if (socket != null) {
-                    log4.Debug("Closing Socket #" + i);
+                    Log4.Debug("Closing Socket #" + i);
                     socket.Close();
                 }
             }
@@ -64,15 +64,15 @@ namespace MCEControl {
         public void Start(int port) {
 
             try {
-                log4.Debug("SocketServer Start");
+                Log4.Debug("SocketServer Start");
                 // Create the listening socket...
                 _mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 var ipLocal = new IPEndPoint(IPAddress.Any, port);
                 // Bind to local IP Address...
-                log4.Debug("Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
+                Log4.Debug("Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
                 _mainSocket.Bind(ipLocal);
                 // Start listening...
-                log4.Debug("_mainSocket.Listen");
+                Log4.Debug("_mainSocket.Listen");
                 _mainSocket.Listen(4);
                 // Create the call back for any client connections...
                 SetStatus(ServiceStatus.Started);
@@ -86,7 +86,7 @@ namespace MCEControl {
         }
 
         public void Stop() {
-            log4.Debug("SocketServer Stop");
+            Log4.Debug("SocketServer Stop");
             Dispose(true);
             SetStatus(ServiceStatus.Stopped);
         }
@@ -95,7 +95,7 @@ namespace MCEControl {
         // Async handlers
         //-----------------------------------------------------------
         private void OnClientConnect(IAsyncResult async) {
-            log4.Debug("SocketServer OnClientConnect");
+            Log4.Debug("SocketServer OnClientConnect");
 
             if (_mainSocket == null) return;
             ServerReplyContext serverReplyContext = null;
@@ -114,7 +114,7 @@ namespace MCEControl {
 
                 serverReplyContext = new ServerReplyContext(this, workerSocket, _clientCount);
 
-                log4.Debug("Opened Socket #" + _clientCount);
+                Log4.Debug("Opened Socket #" + _clientCount);
 
                 SetStatus(ServiceStatus.Connected);
                 SendNotification(ServiceNotification.ClientConnected, CurrentStatus, serverReplyContext);
@@ -149,7 +149,7 @@ namespace MCEControl {
 
         // Start waiting for data from the client
         private void BeginReceive(ServerReplyContext serverReplyContext) {
-            log4.Debug("SocketServer BeginReceive");
+            Log4.Debug("SocketServer BeginReceive");
             try {
                 serverReplyContext.Socket.BeginReceive(serverReplyContext.DataBuffer, 0,
                                     serverReplyContext.DataBuffer.Length,
@@ -164,7 +164,7 @@ namespace MCEControl {
         }
 
         private void CloseSocket(ServerReplyContext serverReplyContext) {
-            log4.Debug("SocketServer CloseSocket");
+            Log4.Debug("SocketServer CloseSocket");
             if (serverReplyContext == null) return;
 
             // Remove the reference to the worker socket of the closed client
@@ -172,7 +172,7 @@ namespace MCEControl {
             Socket socket;
             _clientList.TryRemove(serverReplyContext.ClientNumber, out socket);
             if (socket != null) {
-                log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
+                Log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
                 Interlocked.Decrement(ref _clientCount);
                 SendNotification(ServiceNotification.ClientDisconnected, CurrentStatus, serverReplyContext);
                 socket.Close();
@@ -281,7 +281,7 @@ namespace MCEControl {
         }
 
         public void SendAwakeCommand(String cmd, String host, int port) {
-            log4.Debug("SocketServer SendAwakeCommand");
+            Log4.Debug("SocketServer SendAwakeCommand");
             if (String.IsNullOrEmpty(host)) {
                 SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "No wakeup host specified.");
                 return;
@@ -300,7 +300,7 @@ namespace MCEControl {
                     var destination = new IPEndPoint(resolvedHost.AddressList[0], port);
 
                     SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                     String.Format("Attempting connection to: {0}", destination));
+                                     $"Attempting connection to: {destination}");
                     clientSocket.Connect(destination);
                 }
                 catch (SocketException err) {
@@ -308,7 +308,7 @@ namespace MCEControl {
                     clientSocket.Close();
                     clientSocket = null;
                     SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                     "Error connecting.\r\n" + String.Format("   Error: {0}", err.Message));
+                                     "Error connecting.\r\n" + $"   Error: {err.Message}");
                 }
                 // Make sure we have a valid socket before trying to use it
                 if ((clientSocket != null)) {
@@ -323,9 +323,9 @@ namespace MCEControl {
                     }
                     catch (SocketException err) {
                         SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                         "Error occured while sending or receiving data.\r\n" +
-                                         String.Format("   Error: {0}", err.Message));
+                                         $"Error occured while sending or receiving data.\r\n   Error: {err.Message}");
                     }
+                    clientSocket.Dispose();
                 }
                 else {
                     SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
@@ -334,11 +334,12 @@ namespace MCEControl {
             }
             catch (SocketException err) {
                 SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                 String.Format("Socket error occured: {0}", err.Message));
+                                 $"Socket error occured: {err.Message}");
             }
         }
 
         public override void Send(string text, Reply replyContext = null) {
+            if (text is null) throw new ArgumentNullException(nameof(text));
             if (CurrentStatus != ServiceStatus.Connected ||
                 _mainSocket == null)
                 return;
@@ -363,12 +364,15 @@ namespace MCEControl {
         }
 
         #region Nested type: ServerReplyContext
-
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "none")]
         public class ServerReplyContext : Reply {
             internal StringBuilder CmdBuilder { get; set; }
             internal Socket Socket { get; set; }
             internal int ClientNumber { get; set; }
+
+
             // Buffer to store the data sent by the client
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "none")]
             public byte[] DataBuffer = new byte[1024];
 
             private readonly SocketServer _server;

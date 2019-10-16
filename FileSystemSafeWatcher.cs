@@ -50,9 +50,11 @@ namespace menelabs.core
             }
         }
 
-        public virtual bool IsDuplicate(object obj)
+        public virtual bool IsDuplicate(object o)
         {
-            DelayedEvent delayedEvent = obj as DelayedEvent;
+            if (o is null) throw new ArgumentNullException(nameof(o));
+
+            DelayedEvent delayedEvent = o as DelayedEvent;
             if (delayedEvent == null)
                 return false; // this is not null so they are different
             FileSystemEventArgs eO1 = _args;
@@ -87,8 +89,7 @@ namespace menelabs.core
     /// cause some events not be fired at all since the last event will become the first event and
     /// it won't fire a if a new similar event arrives imediately afterwards).
     /// </summary>
-    public class FileSystemSafeWatcher
-    {
+    public sealed class FileSystemSafeWatcher : IDisposable {
         private readonly FileSystemWatcher _fileSystemWatcher;
 
         /// <summary>
@@ -269,7 +270,10 @@ namespace menelabs.core
         /// </summary>
         public void Dispose()
         {
-            Uninitialize();
+            if (_fileSystemWatcher != null)
+                _fileSystemWatcher.Dispose();
+            if (_serverTimer != null)
+                _serverTimer.Dispose();
         }
         /// <summary>
         /// Ends the initialization of a System.IO.FileSystemWatcher used on a form or used by another component. The initialization occurs at run time.
@@ -364,13 +368,7 @@ namespace menelabs.core
             _serverTimer.Enabled = _fileSystemWatcher.EnableRaisingEvents;
         }
 
-        private void Uninitialize()
-        {
-            if (_fileSystemWatcher != null)
-                _fileSystemWatcher.Dispose();
-            if (_serverTimer != null)
-                _serverTimer.Dispose();
-        }
+
 
         private void FileSystemEventHandler(object sender, FileSystemEventArgs e)
         {
@@ -481,6 +479,7 @@ namespace menelabs.core
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1030:Use events where appropriate", Justification = "3rd party code")]
         protected void RaiseEvents(Queue deQueue)
         {
             if ((deQueue != null) && (deQueue.Count > 0))

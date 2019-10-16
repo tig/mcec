@@ -118,7 +118,9 @@ namespace MCEControl {
             // 
             // _pictureBox1
             // 
+#pragma warning disable CA1304 // Specify CultureInfo
             this._pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("_pictureBox1.Image")));
+#pragma warning restore CA1304 // Specify CultureInfo
             this._pictureBox1.InitialImage = null;
             this._pictureBox1.Location = new System.Drawing.Point(8, 16);
             this._pictureBox1.Name = "_pictureBox1";
@@ -176,9 +178,7 @@ namespace MCEControl {
 
         #endregion
 
-        private void ButtonOkClick(object sender, EventArgs e) {
-            Close();
-        }
+        private void ButtonOkClick(object sender, EventArgs e) => Close();
 
         private void LinkLabelMceControllerLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
             Process.Start(_linkLabelMceController.Tag.ToString());

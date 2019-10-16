@@ -145,4 +145,7 @@
   <data name="WSA_10061" xml:space="preserve">
     <value>No connection could be made because the target computer actively refused it. This usually results from trying to connect to a service that is inactive on the foreign host—that is, one with no server application running.</value>
   </data>
+  <data name="Error_RequiresDotNetVersion" xml:space="preserve">
+    <value>"MCE Controller requires .NET Framework 4.7 or newer.\r\n\r\nDownload and install from http://www.microsoft.com/net/"</value>
+  </data>
 </root>

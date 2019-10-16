@@ -21,11 +21,17 @@ namespace MCEControl {
     /// </summary>
     [Serializable]
     public class SendInputCommand : Command {
-        [XmlAttribute("Alt")] public bool Alt;
-        [XmlAttribute("Ctrl")] public bool Ctrl;
-        [XmlAttribute("Shift")] public bool Shift;
-        [XmlAttribute("Win")] public bool Win;
-        [XmlAttribute("vk")] public string Vk;
+        private bool alt;
+        private bool ctrl;
+        private bool shift;
+        private bool win;
+        private string vk;
+
+        [XmlAttribute("Alt")] public bool Alt { get => alt; set => alt = value; }
+        [XmlAttribute("Ctrl")] public bool Ctrl { get => ctrl; set => ctrl = value; }
+        [XmlAttribute("Shift")] public bool Shift { get => shift; set => shift = value; }
+        [XmlAttribute("Win")] public bool Win { get => win; set => win = value; }
+        public string Vk { get => vk; set => vk = value; }
 
         public SendInputCommand() {
         }
@@ -54,13 +60,13 @@ namespace MCEControl {
         {
             try {
                 VirtualKeyCode vkcode;
-                if (!Vk.ToUpper().StartsWith("VK_") ||
-                    (!Enum.TryParse(Vk.ToUpper(), true, out vkcode) &&
-                     !Enum.TryParse(Vk.ToUpper().Substring(3), true, out vkcode))) {
+                if (!Vk.StartsWith("VK_", StringComparison.InvariantCultureIgnoreCase) ||
+                    (!Enum.TryParse(Vk.ToUpper(CultureInfo.InvariantCulture), true, out vkcode) &&
+                     !Enum.TryParse(Vk.ToUpper(CultureInfo.InvariantCulture).Substring(3), true, out vkcode))) {
                     // Not a VK_ string
                     // Hex?
                     ushort num;
-                    if ((!Vk.ToUpper().StartsWith("0X") ||
+                    if ((!Vk.StartsWith("0X", StringComparison.InvariantCultureIgnoreCase) ||
                          !ushort.TryParse(Vk.Substring(2), NumberStyles.HexNumber,
                                           CultureInfo.InvariantCulture.NumberFormat, out num)) &&
                          !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
@@ -74,8 +80,8 @@ namespace MCEControl {
 
                 string s;
                 if (vkcode > VirtualKeyCode.HELP && vkcode < VirtualKeyCode.LWIN)
-                    s = char.ToUpper((char)vkcode).ToString();
-                else 
+                    s = $"{Char.ToUpper((char)vkcode, CultureInfo.InvariantCulture)}";
+                else
                     s = "VK_" + vkcode.ToString();
                 if (Alt) s = "Alt-" + s;
                 if (Ctrl) s = "Ctrl-" + s;

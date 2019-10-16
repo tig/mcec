@@ -31,6 +31,7 @@ namespace MCEControl {
         private readonly int _clientDelayTime;
 
         public SocketClient(AppSettings settings) {
+            if (settings is null) throw new ArgumentNullException(nameof(settings));
             _port = settings.ClientPort;
             _host = settings.ClientHost;
             _clientDelayTime = settings.ClientDelayTime;
@@ -91,6 +92,7 @@ namespace MCEControl {
 
         // Send text to remote connection
         public override void Send(string text, Reply replyContext = null) {
+            if (text is null) throw new ArgumentNullException(nameof(text));
             if (_tcpClient == null || !_tcpClient.Connected || _bw.CancellationPending) return;
             try {
                 byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
@@ -121,9 +123,9 @@ namespace MCEControl {
                     if (_tcpClient == null)
                         return;
                     try {
-                        log4.Debug($"Client BeginConnect: { _host}:{ _port}");
+                        Log4.Debug($"Client BeginConnect: { _host}:{ _port}");
                         _tcpClient.EndConnect(ar);
-                        log4.Debug($"Client Back from EndConnect: { _host}:{ _port}");
+                        Log4.Debug($"Client Back from EndConnect: { _host}:{ _port}");
                         SetStatus(ServiceStatus.Connected, $"{_host}:{_port}");
                         StringBuilder sb = new StringBuilder();
                         while (_bw != null &&
@@ -154,12 +156,12 @@ namespace MCEControl {
                         }
                     }
                     catch (SocketException e) {
-                        log4.Debug($"SocketClient SocketException: {e.GetType().Name}: {e.Message}");
+                        Log4.Debug($"SocketClient SocketException: {e.GetType().Name}: {e.Message}");
                         CatchSocketException(e);
                     }
                     catch (IOException e) {
                         var sockExcept = e.InnerException as SocketException;
-                        log4.Debug($"SocketClient IOException: {e.GetType().Name}: {e.Message}");
+                        Log4.Debug($"SocketClient IOException: {e.GetType().Name}: {e.Message}");
                         if (sockExcept != null) {
                             CatchSocketException(sockExcept);
                         }
@@ -170,7 +172,7 @@ namespace MCEControl {
                     catch (Exception e) {
                         // Got this when endPoint = new IPEndPoint(Dns.GetHostEntry(_host).AddressList[0], _port) 
                         // resolved to an ipv6 address
-                        log4.Debug($"SocketClient Generic Exception: {e.GetType().Name}: {e.Message}");
+                        Log4.Debug($"SocketClient Generic Exception: {e.GetType().Name}: {e.Message}");
                         Error($"SocketClient Generic Exception: {e.GetType().Name} {e.Message}");
                     }
                     finally {
@@ -180,19 +182,19 @@ namespace MCEControl {
                 }, null);
             }
             catch (SocketException e) {
-                log4.Debug($"SocketClient.Client SocketException: {e.GetType().Name}: {e.Message}");
+                Log4.Debug($"SocketClient.Client SocketException: {e.GetType().Name}: {e.Message}");
                 CatchSocketException(e);
                 if (_tcpClient != null) _tcpClient.Close();
                 return;
             }
             catch (Exception e) {
-                log4.Debug($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
+                Log4.Debug($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
                 Error($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
                 if (_tcpClient != null) _tcpClient.Close();
                 return;
             }
 
-            log4.Debug("BeginConnect returned");
+            Log4.Debug("BeginConnect returned");
         }
 
         private void CatchSocketException(SocketException e) {
@@ -202,7 +204,7 @@ namespace MCEControl {
                     break;
 
                 default:
-                    string s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}");
+                    string s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
                     if (s == null)
                         Error($"{e.Message} ({e.ErrorCode})");
                     else {
@@ -214,6 +216,7 @@ namespace MCEControl {
 
         #region Nested type: ClientReplyContext
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>")]
         public class ClientReplyContext : Reply {
             private readonly TcpClient _tcpClient;
             // Constructor which takes a Socket and a client number
@@ -222,6 +225,8 @@ namespace MCEControl {
             }
 
             public override void Write(String text) {
+                if (text is null) throw new ArgumentNullException(nameof(text));
+
                 if (!_tcpClient.Connected) return;
 
                 byte[] buf = System.Text.Encoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));

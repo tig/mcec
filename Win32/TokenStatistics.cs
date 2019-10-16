@@ -1,9 +1,11 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-	using Win32Structs;
+#pragma warning disable CA1051
+
+    using Win32Structs;
 
 	/// <summary>
 	/// Summary description for TokenStatistics.

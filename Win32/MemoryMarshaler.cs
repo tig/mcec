@@ -1,12 +1,13 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-	/// <summary>
-	/// Summary description for MemoryMarshaler.
-	/// </summary>
-	public class MemoryMarshaler
+#pragma warning disable CA1720
+    /// <summary>
+    /// Summary description for MemoryMarshaler.
+    /// </summary>
+    public class MemoryMarshaler
 	{
 		private IntPtr _ptr;
 		public MemoryMarshaler(IntPtr ptr)

@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-	using Win32Structs;
+#pragma warning disable CA1051, CA1301, CA1303, CA1507, CA1305
+    using Win32Structs;
 
 	/// <summary>
 	/// Abstract base class of Ace types.
@@ -48,8 +49,7 @@ namespace Microsoft.Win32.Security
 			return ace;
 		}
 
-
-		protected ACE_HEADER _header;
+        protected ACE_HEADER _header;
 		protected AccessType _accessType;
 		protected Sid _sid;
 

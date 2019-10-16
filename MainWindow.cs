@@ -27,6 +27,7 @@ namespace MCEControl {
     /// <summary>
     /// Summary description for MainWindow.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213")]
     public class MainWindow : Form {
         private log4net.ILog log4;
 
@@ -44,7 +45,9 @@ namespace MCEControl {
 
 
         // Commands
-        public CommandTable CmdTable;
+        private CommandTable cmdTable;
+        public CommandTable CmdTable { get => cmdTable; set => cmdTable = value; }
+
         private CommandWindow cmdWindow;
 
         // Window controls
@@ -113,7 +116,7 @@ namespace MCEControl {
 
         // The main entry point for the application.
         [STAThread]
-        public static void Main(string[] args) {
+        public static void Main() {
             // https://docs.microsoft.com/en-us/dotnet/framework/winforms/high-dpi-support-in-windows-forms
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -124,8 +127,7 @@ namespace MCEControl {
 
             // TODO: Update to check for 4.7 or newer
             if (!IsNet45OrNewer()) {
-                MessageBox.Show(
-                    "MCE Controller requires .NET Framework 4.7 or newer.\r\n\r\nDownload and install from http://www.microsoft.com/net/");
+                MessageBox.Show(Resources.Error_RequiresDotNetVersion);
                 return;
             }
 
@@ -286,7 +288,7 @@ namespace MCEControl {
                 StartClient();
 
             if (Settings.ActivityMonitorEnabled)
-                UserActivityMonitor.Instance.Start(Settings.ActivityMonitorCommand, Settings.ActivityMonitorDebounceTime);
+                UserActivityMonitor.Instance.Start(Settings.ActivityMonitorDebounceTime);
         }
 
         private delegate void StopCallback();
@@ -295,7 +297,7 @@ namespace MCEControl {
                 if (this.InvokeRequired)
                     this.BeginInvoke((StopCallback)Stop);
                 else {
-                    UserActivityMonitor.Instance.Stop();
+                    UserActivityMonitor.Stop();
                     StopClient();
                     StopServer();
                     StopSerialServer();
@@ -555,8 +557,10 @@ namespace MCEControl {
         public void serverSocketCallbackHandler(ServiceNotification notification, ServiceStatus status, Reply reply, String msg) {
             if (notification == ServiceNotification.StatusChange)
                 HandleSocketServerStatusChange(status);
-            else
+            else {
+                if (reply is null) throw new ArgumentNullException(nameof(reply));
                 HandleSocketServerNotification(notification, status, (SocketServer.ServerReplyContext)reply, msg);
+            }   
         }
 
         private void HandleSocketServerNotification(ServiceNotification notification, ServiceStatus status,

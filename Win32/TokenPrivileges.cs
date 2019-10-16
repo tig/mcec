@@ -1,11 +1,12 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CA1710, CA1010, CA1303, CA1707
 namespace Microsoft.Win32.Security
 {
-	using Win32Structs;
+    using Win32Structs;
 
 	/// <summary>
 	/// Summary description for TokenPrivileges.

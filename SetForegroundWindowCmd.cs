@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------
+﻿//-------------------------------------------------------------------
 // Copyright © 2017 Kindel Systems, LLC
 // http://www.kindel.com
 // charlie@kindel.com
@@ -21,8 +21,10 @@ namespace MCEControl {
     /// Summary description for SetForegroundWindowCommand.
     /// </summary>
     public class SetForegroundWindowCommand : Command {
-        [XmlAttribute("ClassName")] public String ClassName;
-        [XmlAttribute("WindowName")] public String WindowName;
+        private String className;
+        [XmlAttribute("ClassName")] public string ClassName { get => className; set => className = value; }
+        private String windowName;
+        [XmlAttribute("WindowName")] public string WindowName { get => windowName; set => windowName = value; }
 
         public SetForegroundWindowCommand() {
         }

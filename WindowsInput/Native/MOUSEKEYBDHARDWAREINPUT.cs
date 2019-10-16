@@ -2,7 +2,7 @@
 
 namespace WindowsInput.Native
 {
-#pragma warning disable 649
+#pragma warning disable 649, CA1028, CA1714, CA1815, CA1051
     /// <summary>
     /// The combined/overlayed structure that includes Mouse, Keyboard and Hardware Input message data (see: http://msdn.microsoft.com/en-us/library/ms646270(VS.85).aspx)
     /// </summary>

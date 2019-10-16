@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CA1303, CA1806
 namespace Microsoft.Win32.Security
 {
 	using Win32Structs;
@@ -23,7 +24,10 @@ namespace Microsoft.Win32.Security
 			base(msg, innerException)
 		{
 		}
-	}
+
+        public NoThreadTokenException() {
+        }
+    }
 
 	/// <summary>
 	///  Encapsulation of a Win32 token handle.

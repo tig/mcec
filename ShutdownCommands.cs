@@ -16,9 +16,12 @@ namespace MCEControl {
     /// Summary description for ShutdownCommands.
     /// </summary>
     public class ShutdownCommands : Command {
-        [XmlAttribute("Type")] public String Type;
-        [XmlAttribute("TimeOut")] public uint TimeOut = 30;
+        private String type;
+        [XmlAttribute("Type")] public string Type { get => type; set => type = value; }
+        private uint timeOut = 30;
+        [XmlAttribute("TimeOut")] public uint TimeOut { get => timeOut; set => timeOut = value; }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible", Justification = "Serialization")]
         public static ShutdownCommands[] Commands = new ShutdownCommands[] {
             new ShutdownCommands{ Key = $"shutdown" },
             new ShutdownCommands{ Key = $"restrart" },
@@ -26,6 +29,7 @@ namespace MCEControl {
             new ShutdownCommands{ Key = $"hibernate" },
             new ShutdownCommands{ Key = $"abort" },
         };
+
         public ShutdownCommands() {
             // Serialzable, must have constructor
         }
@@ -40,25 +44,25 @@ namespace MCEControl {
         public override void Execute(Reply reply) {
             Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: {ToString()}");
             using (var sc = new SystemControl()) {
-                switch (Type.ToLower()) {
-                    case "shutdown":
-                        sc.Shutdown("MCE Controller Forced Shutdown", TimeOut, true, false);
+                switch (Type.ToUpperInvariant()) {
+                    case "SHUTDOWN":
+                        SystemControl.Shutdown("MCE Controller Forced Shutdown", TimeOut, true, false);
                         break;
 
-                    case "restart":
-                        sc.Shutdown("MCE Controller Forced Restart", TimeOut, true, true);
+                    case "RESART":
+                        SystemControl.Shutdown("MCE Controller Forced Restart", TimeOut, true, true);
                         break;
 
-                    case "standby":
-                        sc.Standby();
+                    case "STANDBY":
+                        SystemControl.Standby();
                         break;
 
-                    case "hibernate":
-                        sc.Hibernate();
+                    case "HIBERNATE":
+                        SystemControl.Hibernate();
                         break;
 
-                    case "abort":
-                        sc.Abort();
+                    case "ABORT":
+                        SystemControl.Abort();
                         break;
                 }
             }

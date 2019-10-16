@@ -14,14 +14,10 @@ namespace MCEControl {
     /// <summary>
     /// Summary description for Util.
     /// </summary>
-    public class Util {
-        private Util() {
-            //
-            // TODO: Add constructor logic here
-            //
-        }
+    public static class ExceptionUtils {
 
         public static void DumpException(Exception ex) {
+            if (ex is null) throw new ArgumentNullException(nameof(ex));
             WriteExceptionInfo(ex);
             if (null != ex.InnerException) {
                 WriteExceptionInfo(ex.InnerException);
@@ -29,6 +25,7 @@ namespace MCEControl {
         }
 
         public static void WriteExceptionInfo(Exception ex) {
+            if (ex is null) throw new ArgumentNullException(nameof(ex));
             Logger.Instance.Log4.Debug($"--------- Exception Data ---------");
             Logger.Instance.Log4.Debug($"Message: {ex.Message}");
             Logger.Instance.Log4.Debug($"Exception Type: {ex.GetType().FullName}");

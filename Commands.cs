@@ -13,19 +13,22 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
+using menelabs.core;
 using WindowsInput;
 using WindowsInput.Native;
 
 namespace MCEControl {
     // Base class for all Command types
     public class Command {
-        [XmlAttribute("Cmd")] public String Key;
+        [XmlAttribute("Cmd")] private String key;
+        public string Key { get => key; set => key = value; }
 
         public virtual string ToString() {
             return $"Cmd=\"{Key}\"";
@@ -37,7 +40,7 @@ namespace MCEControl {
     // Singleton class holding all commands
     // Note, do not change the namespace or you will break existing installations
     [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "MCEController")]
-    public class CommandTable {
+    public class CommandTable : IDisposable{
         [XmlIgnore] private readonly Hashtable hashTable = new Hashtable();
 
         [XmlIgnore] private string userCommandsFile;
@@ -50,23 +53,54 @@ namespace MCEControl {
         [XmlArrayItem("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
         [XmlArrayItem("Shutdown", typeof(ShutdownCommands))]
         [XmlArrayItem(typeof(Command))]
-        public Command[] Commands;
-
-        public CommandTable() {
-        }
-
-        [XmlIgnore] public int NumCommands {
-            get { return hashTable.Count; }
-        }
-
-        [XmlIgnore] public ICollection Keys { get => hashTable.Keys; }
-        [XmlIgnore] public ICollection Values { get => hashTable.Values; }
         [XmlIgnore] public virtual Command this[string key] {
             get => (Command)hashTable[key];
         }
 
+        [XmlIgnore] public ICollection Keys { get => hashTable.Keys; }
+        [XmlIgnore] public ICollection Values { get => hashTable.Values; }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "Needed for XmlArray")]
+        public Command[] Commands { get => commands; set => commands = value; }
+        private Command[] commands;
+        
+        public CommandTable() {
+        }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+        private object fileWatcher;
+
+        protected virtual void Dispose(bool disposing) {
+            if (!disposedValue) {
+                if (disposing) {
+                    fileWatcher = null;
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+        // ~CommandTable()
+        // {
+        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+        //   Dispose(false);
+        // }
+
+        public void Dispose() {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
+        [XmlIgnore] public int NumCommands {
+            get { return hashTable.Count; }
+        }
+        
         public void Execute(Reply reply, String cmdString) {
+            if (cmdString == null) throw new ArgumentNullException(nameof(cmdString));
+
             if (!ignoreInternalCommands) {
                 if (cmdString.StartsWith(McecCommand.CmdPrefix)) {
                     var cmd = new McecCommand(cmdString);
@@ -77,7 +111,7 @@ namespace MCEControl {
                 if (cmdString.StartsWith("chars:")) {
                     // "chars:<chars>
                     String chars = Regex.Unescape(cmdString.Substring(6, cmdString.Length - 6));
-                    Logger.Instance.Log4.Info(String.Format("Cmd: Sending {0} chars: {1}", chars.Length, chars));
+                    Logger.Instance.Log4.Info($"Cmd: Sending {chars.Length} chars: {chars}");
                     var sim = new InputSimulator();
                     sim.Keyboard.TextEntry(chars);
                     return;
@@ -111,7 +145,7 @@ namespace MCEControl {
                 if (cmdString.Length == 1) {
                     // It's a single character, just send it
                     // must be upper case (VirtualKeyCode codes are for upper case)
-                    cmdString = cmdString.ToUpper();
+                    cmdString = cmdString.ToUpper(CultureInfo.InvariantCulture);
                     char c = cmdString.ToCharArray()[0];
 
                     var sim = new InputSimulator();
@@ -123,7 +157,7 @@ namespace MCEControl {
             }
 
             // Command is in .commands
-            Command command = this[cmdString.ToUpper()];
+            Command command = this[cmdString.ToUpper(CultureInfo.InvariantCulture)];
             if (command != null) {
                 command.Execute(reply);
             }
@@ -132,52 +166,57 @@ namespace MCEControl {
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "None")]
         public static CommandTable Create(string userCommandsFile, bool disableInternalCommands) {
             CommandTable cmds = null;
 
             if (!disableInternalCommands) {
                 // Load the built-in commands from an assembly resource
+                XmlReader reader = null;
                 try {
                     var serializer = new XmlSerializer(typeof(CommandTable));
-                    XmlReader reader =
+                    reader =
                         new XmlTextReader(
                             Assembly.GetExecutingAssembly()
                                 .GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
                     cmds = (CommandTable)serializer.Deserialize(reader);
                     foreach (var cmd in cmds.Commands) {
-                        if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper())) {
-                            cmds.hashTable.Remove(cmd.Key.ToUpper());
+                        if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
+                            cmds.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
                         }
-                        cmds.hashTable.Add(cmd.Key.ToUpper(), cmd);
+                        cmds.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
                     }
                 }
                 catch (Exception ex) {
                     MessageBox.Show($"No built-in commands loaded. Error parsing built-in commands. {ex.Message}");
                     Logger.Instance.Log4.Info($"Commands: No built-in commands loaded. Error parsing built-in commands. {ex.Message}");
-                    Util.DumpException(ex);
+                    ExceptionUtils.DumpException(ex);
                     return null;
+                }
+                finally {
+                    if (reader != null) reader.Dispose();
                 }
 
                 // Add the built-ins
                 foreach (Command cmd in McecCommand.Commands) {
-                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper())) {
-                        cmds.hashTable.Remove(cmd.Key.ToUpper());
+                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
+                        cmds.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
                     }
-                    cmds.hashTable.Add(cmd.Key.ToUpper(), cmd);
+                    cmds.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
                 }
 
                 foreach (Command cmd in MouseCommands.Commands) {
-                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper())) {
-                        cmds.hashTable.Remove(cmd.Key.ToUpper());
+                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
+                        cmds.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
                     }
-                    cmds.hashTable.Add(cmd.Key.ToUpper(), cmd);
+                    cmds.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
                 }
 
                 foreach (Command cmd in ShutdownCommands.Commands) {
-                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper())) {
-                        cmds.hashTable.Remove(cmd.Key.ToUpper());
+                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
+                        cmds.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
                     }
-                    cmds.hashTable.Add(cmd.Key.ToUpper(), cmd);
+                    cmds.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
                 }
 
                 // Populate default VK_ codes
@@ -196,15 +235,16 @@ namespace MCEControl {
                 cmds = new CommandTable();
             }
             cmds.userCommandsFile = userCommandsFile;
+            cmds.fileWatcher = cmds.CreateFileWatcher(userCommandsFile);
             cmds.ignoreInternalCommands = disableInternalCommands;
             Logger.Instance.Log4.Info($"Commands: {cmds.NumCommands} built-in commands enabled.");
-
-            cmds.CreateFileWatcher(userCommandsFile);
             cmds.LoadUserCommands();
             return cmds;
         }
 
+
         // Load any over-rides from a text file
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "None")]
         private void LoadUserCommands() {
             FileStream fs = null;
             XmlReader reader = null;
@@ -218,10 +258,10 @@ namespace MCEControl {
                 CommandTable userCmds = (CommandTable)serializer.Deserialize(reader);
                 Logger.Instance.Log4.Info($"Commands: Loading user commands from {userCommandsFile}.");
                 foreach (var cmd in userCmds.Commands) {
-                    if (hashTable.ContainsKey(cmd.Key.ToUpper())) {
-                        hashTable.Remove(cmd.Key.ToUpper());
+                    if (hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
+                        hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
                     }
-                    hashTable.Add(cmd.Key.ToUpper(), cmd);
+                    hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
                     Logger.Instance.Log4.Info($"Commands: User command added: {cmd.Key}");
                 }
             }
@@ -239,7 +279,7 @@ namespace MCEControl {
                 }
                 catch (Exception e) {
                     Logger.Instance.Log4.Info($"Commands: Could not create default user defined commands file {userCommandsFile}. {e.Message}");
-                    Util.DumpException(e);
+                    ExceptionUtils.DumpException(e);
                 }
                 finally {
                     if (uc != null) uc.Close();
@@ -248,12 +288,12 @@ namespace MCEControl {
             }
             catch (InvalidOperationException ex) {
                 Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing {userCommandsFile}. {ex.Message} {ex.InnerException.Message}");
-                Util.DumpException(ex);
+                ExceptionUtils.DumpException(ex);
             }
             catch (Exception ex) {
                 MessageBox.Show($"No commands loaded. Error parsing {userCommandsFile}. {ex.Message}");
                 Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing {userCommandsFile}. {ex.Message}");
-                Util.DumpException(ex);
+                ExceptionUtils.DumpException(ex);
             }
             finally {
                 if (serializer != null)
@@ -265,9 +305,9 @@ namespace MCEControl {
             }
         }
 
-        private void CreateFileWatcher(string path) {
+        private FileSystemSafeWatcher CreateFileWatcher(string path) {
             // Create a new FileSystemSafeWatcher and set its properties.
-            menelabs.core.FileSystemSafeWatcher watcher = new menelabs.core.FileSystemSafeWatcher();
+            FileSystemSafeWatcher watcher = new FileSystemSafeWatcher();
             watcher.Path = Path.GetDirectoryName(path);
             /* Watch for changes in LastAccess and LastWrite times, and 
                the renaming of files or directories. */
@@ -282,10 +322,9 @@ namespace MCEControl {
 
             // Begin watching.
             watcher.EnableRaisingEvents = true;
+            return watcher;
         }
 
-        // https://stackoverflow.com/questions/1764809/filesystemwatcher-changed-event-is-raised-twice
-        [XmlIgnore] private List<string> _changedFiles = new List<string>();
         private void OnChanged(object source, FileSystemEventArgs e) {
             Logger.Instance.Log4.Info($"Commands:{e.FullPath} changed. Reloading...");
             LoadUserCommands();
@@ -295,5 +334,7 @@ namespace MCEControl {
             // Specify what is done when a file is renamed.
             Logger.Instance.Log4.Info($"Commands:{e.OldFullPath} renamed to {e.FullPath}");
         }
+
+
     }
 }

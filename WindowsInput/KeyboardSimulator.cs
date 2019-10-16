@@ -25,8 +25,7 @@ namespace WindowsInput
         {
             if (messageDispatcher == null)
                 throw new InvalidOperationException(
-                    string.Format("The {0} cannot operate with a null {1}. Please provide a valid {1} instance to use for dispatching {2} messages.",
-                    typeof(KeyboardSimulator).Name, typeof(IInputMessageDispatcher).Name, typeof(INPUT).Name));
+                    $"The {typeof(KeyboardSimulator).Name} cannot operate with a null {typeof(IInputMessageDispatcher).Name}. Please provide a valid {typeof(IInputMessageDispatcher).Name} instance to use for dispatching {typeof(INPUT).Name} messages.");
             
             _messageDispatcher = messageDispatcher;
         }
@@ -158,7 +157,12 @@ namespace WindowsInput
         /// <param name="text">The text to be simulated.</param>
         public void TextEntry(string text)
         {
-            if (text.Length > UInt32.MaxValue / 2) throw new ArgumentException(string.Format("The text parameter is too long. It must be less than {0} characters.", UInt32.MaxValue / 2), "text");
+            if (text is null) {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            if (text.Length > UInt32.MaxValue / 2) 
+                throw new ArgumentException($"The text parameter is too long. It must be less than {UInt32.MaxValue / 2} characters.", nameof(text));
 
             //var chars = UTF8Encoding.Unicode.GetBytes(text);
 

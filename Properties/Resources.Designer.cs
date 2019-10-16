@@ -70,6 +70,15 @@ namespace MCEControl.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &quot;MCE Controller requires .NET Framework 4.7 or newer.\r\n\r\nDownload and install from http://www.microsoft.com/net/&quot;.
+        /// </summary>
+        internal static string Error_RequiresDotNetVersion {
+            get {
+                return ResourceManager.GetString("Error_RequiresDotNetVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Version.
         /// </summary>
         internal static string MCE_Controller_Version_label {

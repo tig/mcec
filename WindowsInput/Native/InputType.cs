@@ -1,5 +1,6 @@
 ﻿namespace WindowsInput.Native
 {
+#pragma warning disable 649, CA1028, CA1714
     /// <summary>
     /// Specifies the type of the input event. This member can be one of the following values. 
     /// </summary>

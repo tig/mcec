@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Gma.UserActivityMonitor
 {
     public static partial class HookManager
     {
+        #pragma warning disable CA1823
         #region Windows constants
 
         //values from Winuser.h in Microsoft SDK.
@@ -224,7 +225,7 @@ namespace Gma.UserActivityMonitor
         /// http://msdn.microsoft.com/en-us/library/ms646258(VS.85).aspx
         /// </remarks>
         [DllImport("user32")]
-        public static extern int GetDoubleClickTime();
+        private static extern int GetDoubleClickTime();
 
         /// <summary>
         /// The ToAscii function translates the specified virtual-key code and keyboard 
@@ -291,7 +292,7 @@ namespace Gma.UserActivityMonitor
 
         /// <summary>
         /// The GetKeyState function retrieves the status of the specified virtual key. The status specifies whether the key is up, down, or toggled 
-        /// (on, off�alternating each time the key is pressed). 
+        /// (on, off—alternating each time the key is pressed). 
         /// </summary>
         /// <param name="vKey">
         /// [in] Specifies a virtual key. If the desired virtual key is a letter or digit (A through Z, a through z, or 0 through 9), nVirtKey must be set to the ASCII value of that character. For other keys, it must be a virtual-key code. 

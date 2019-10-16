@@ -2,6 +2,7 @@
 
 namespace WindowsInput.Native
 {
+#pragma warning disable 649, CA1028, CA1714
     /// <summary>
     /// Specifies various aspects of a keystroke. This member can be certain combinations of the following values.
     /// </summary>
