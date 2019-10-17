@@ -16,23 +16,24 @@ namespace MCEControl
         public Version LatestStableRelease { get; private set; }
 
         public async void GetLatestStableVersionAsync(GotVersionInfo callback) {
-            var client = new WebClient();
-            try {
-                string contents  =
-                    await client.DownloadStringTaskAsync(
-                        "https://tig.github.io/mcec/install_version.txt").ConfigureAwait(true);
+            using (var client = new WebClient()) {
+                try {
+                    string contents =
+                        await client.DownloadStringTaskAsync(
+                            "https://tig.github.io/mcec/install_version.txt").ConfigureAwait(true);
 
-                string[] parts = contents.Split('.');
+                    string[] parts = contents.Split('.');
 
-                string version = string.Join(".", parts);
+                    string version = string.Join(".", parts);
 
-                if (version!= null)
-                    LatestStableRelease = new Version(version);
-                else 
-                    ErrorMessage = "Could not parse version data.";
-            }
-            catch (Exception e) {
-                ErrorMessage = e.Message;
+                    if (version != null)
+                        LatestStableRelease = new Version(version);
+                    else
+                        ErrorMessage = "Could not parse version data.";
+                }
+                catch (Exception e) {
+                    ErrorMessage = e.Message;
+                }
             }
             callback(this, LatestStableRelease);
         }

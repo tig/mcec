@@ -145,11 +145,6 @@
     <Compile Include="UserActivityMonitor\HookManager.Windows.cs" />
     <Compile Include="LatestVersion.cs" />
     <Compile Include="UserActivityMonitor\MouseEventExtArgs.cs" />
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
     <Compile Include="SerialServer.cs" />
     <Compile Include="KeyboardCommand.cs">
       <SubType>Code</SubType>
@@ -170,7 +165,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ServiceBase.cs" />
-    <Compile Include="Settings.cs" />
     <Compile Include="SocketClient.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -330,10 +324,6 @@
     <Content Include="Guillen.Icon.ico" />
     <Content Include="Resources\Guillen.Icon.ico" />
     <EmbeddedResource Include="Resources\Builtin.commands" />
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
     <None Include="Resources\Trafficlight-red-icon.png" />
   </ItemGroup>
   <ItemGroup>
