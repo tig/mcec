@@ -12,7 +12,7 @@
 	if (n > -1)
 		dir = dir.Remove(n, dir.Length - n) + "..\\..\\";
 
-	string file = Path.Combine(dir, "..\\Installer\\install_version.txt");
+	string file = Path.Combine(dir, "..\\Installer\\version.txt");
 	string contents = File.ReadAllText(file); 
 	 
 	string[] parts = contents.Split('.');
