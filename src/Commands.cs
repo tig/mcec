@@ -249,7 +249,6 @@ namespace MCEControl {
             var serializer = new XmlSerializer(typeof(CommandTable));
 
             try {
-                
                 // A FileStream is needed to read the XML document.
                 fs = new FileStream(userCommandsFile, FileMode.Open, FileAccess.Read);
                 reader = new XmlTextReader(fs);
@@ -272,8 +271,6 @@ namespace MCEControl {
                 try {
                     ucFS = new FileStream(userCommandsFile, FileMode.Create, FileAccess.ReadWrite);
                     uc.CopyTo(ucFS);
-                    uc.Close();
-                    ucFS.Close();
                 }
                 catch (Exception e) {
                     Logger.Instance.Log4.Info($"Commands: Could not create default user defined commands file {userCommandsFile}. {e.Message}");

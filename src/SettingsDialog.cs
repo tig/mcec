@@ -996,6 +996,7 @@ namespace MCEControl {
             if (components != null) {
                 components.Dispose();
             }
+            base.Dispose(disposing);
         }
 
         private void ButtonCancelClick(object sender, EventArgs e) {
@@ -1289,9 +1290,6 @@ namespace MCEControl {
                 settings.DisableInternalCommands = Convert.ToBoolean(
                     Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
                                     "DisableInternalCommands", false), new NumberFormatInfo());
-
-                reader.Close();
-                fs.Close();
                 Logger.Instance.Log4.Info("Settings: Loaded settings from " + settingsFile);
             }
             catch (FileNotFoundException) {
