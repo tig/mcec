@@ -199,3 +199,8 @@
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>", Scope = "type", Target = "~T:MCEControl.SocketServer.ServerReplyContext")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1305:Specify IFormatProvider", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.McecCommand.Execute(MCEControl.Reply)")]
 
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA3075:Insecure DTD processing in XML", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.CommandTable.Create(System.String,System.Boolean)~MCEControl.CommandTable")]
+
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA3075:Insecure DTD processing in XML", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.CommandTable.LoadUserCommands")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1024:Use properties where appropriate", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.SerialServer.GetSettingsDisplayString~System.String")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA3075:Insecure DTD processing in XML", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.AppSettings.Deserialize(System.String)~MCEControl.AppSettings")]

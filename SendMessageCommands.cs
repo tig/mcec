@@ -40,7 +40,9 @@ namespace MCEControl {
         public SendMessageCommand() {
         }
 
+#pragma warning disable CS3001 // Argument type is not CLS-compliant
         public SendMessageCommand(String className, String windowName, DWORD msg, DWORD wParam, DWORD lParam) {
+#pragma warning restore CS3001 // Argument type is not CLS-compliant
             ClassName = className;
             WindowName = windowName;
             Msg = (int)msg;

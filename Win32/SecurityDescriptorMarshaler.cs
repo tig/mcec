@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace Microsoft.Win32.Security
 {
-#pragma warning disable CA1801, CA1303
+#pragma warning disable
     /// <summary>
     ///  Custom marshaler for a SecurityDescriptor. 
     ///  We only support the Managed -> Native directionality.

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
+#pragma warning disable
 namespace Microsoft.Win32.Security
 {
-#pragma warning disable CA1052, CA1707, CA2211, CA1714, CA1028, CA1008, CA1720, CA1724, CA1052, CA1051, CA1815
     using Win32Structs;
 
     using HANDLE = System.IntPtr;

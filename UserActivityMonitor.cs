@@ -17,8 +17,8 @@ namespace MCEControl {
     public sealed class UserActivityMonitor {
     
         private bool logActivity = false;    // log mouse/keyboard events to MCEC window
-        private uint debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
-        private string activityCmd = "activity";
+        private int debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
+        private readonly string activityCmd = "activity";
 
         private System.DateTime LastTime;
 
@@ -30,7 +30,7 @@ namespace MCEControl {
         
         public static UserActivityMonitor Instance => lazy.Value; public bool LogActivity { get => logActivity; set => logActivity = value; }
            
-        public void Start(uint DebounceTime)
+        public void Start(int DebounceTime)
         {
             if (userActivityMonitor != null)
                 userActivityMonitor = null;

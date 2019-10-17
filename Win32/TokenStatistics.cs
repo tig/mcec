@@ -12,8 +12,9 @@ namespace Microsoft.Win32.Security
 	/// </summary>
 	public class TokenStatistics
 	{
-		public Luid _tokenId;
-		public Luid _authenticationId;
+#pragma warning disable CS3008, CS3003 // Identifier is not CLS-compliant
+        public Luid _tokenId;
+        public Luid _authenticationId;
 		public DateTime _expirationTime;
 		public TokenType _tokenType;
 		public SecurityImpersonationLevel _impersonationLevel;

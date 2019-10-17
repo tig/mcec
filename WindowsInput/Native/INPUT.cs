@@ -2,7 +2,7 @@
 
 namespace WindowsInput.Native
 {
-#pragma warning disable 649, CA1815, CA1051, CA1724
+#pragma warning disable 649, CA1815, CA1051, CA1724, CS3003
     /// <summary>
     /// The INPUT structure is used by SendInput to store information for synthesizing input events such as keystrokes, mouse movement, and mouse clicks. (see: http://msdn.microsoft.com/en-us/library/ms646270(VS.85).aspx)
     /// Declared in Winuser.h, include Windows.h

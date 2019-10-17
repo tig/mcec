@@ -25,7 +25,7 @@ namespace MCEControl {
     /// and must be threadsafe.
     /// 
     /// </summary>
-    sealed public class SocketClient : ServiceBase, IDisposable {
+    public sealed class SocketClient : ServiceBase, IDisposable {
         private readonly string _host = "";
         private readonly int _port;
         private readonly int _clientDelayTime;
@@ -70,9 +70,10 @@ namespace MCEControl {
         public void Start(bool delay = false) {
             var currentCmd = new StringBuilder();
             _tcpClient = new TcpClient();
-            _bw = new BackgroundWorker();
-            _bw.WorkerReportsProgress = false;
-            _bw.WorkerSupportsCancellation = true;
+            _bw = new BackgroundWorker {
+                WorkerReportsProgress = false,
+                WorkerSupportsCancellation = true
+            };
             _bw.DoWork += (sender, args) => {
                 if (delay && _clientDelayTime > 0) {
                     SetStatus(ServiceStatus.Sleeping);
@@ -112,10 +113,10 @@ namespace MCEControl {
             try {
                 // GetHostEntry returns a list. We need to pick the IPv4 entry.
                 // TODO: Support ipv6
-                IPAddress[] ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
+                var ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
 
                 if (ipv4Addresses.Length == 0)
-                    throw new Exception($"{_host}:{_port} didn't resolve to a valid address.");
+                    throw new IOException($"{_host}:{_port} didn't resolve to a valid address.");
 
                 endPoint = new IPEndPoint(ipv4Addresses[0], _port);
                 
@@ -160,9 +161,8 @@ namespace MCEControl {
                         CatchSocketException(e);
                     }
                     catch (IOException e) {
-                        var sockExcept = e.InnerException as SocketException;
                         Log4.Debug($"SocketClient IOException: {e.GetType().Name}: {e.Message}");
-                        if (sockExcept != null) {
+                        if (e.InnerException is SocketException sockExcept) {
                             CatchSocketException(sockExcept);
                         }
                         else {

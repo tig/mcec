@@ -17,6 +17,8 @@ namespace MCEControl {
     /// <summary>
     /// Summary description for Form1.
     /// </summary>
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1501", Justification = "WinForms generated", Scope = "namespace")]
     public class AboutBox : Form {
         private Label _labelTitle;
         private Button _buttonOk;

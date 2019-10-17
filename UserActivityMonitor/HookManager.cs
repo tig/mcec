@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows.Forms;
 
 namespace Gma.UserActivityMonitor {
@@ -194,7 +194,9 @@ namespace Gma.UserActivityMonitor {
                 if (s_MouseDoubleClick != null)
                 {
                     s_MouseDoubleClick -= value;
+#pragma warning disable CA1508 // Avoid dead conditional code
                     if (s_MouseDoubleClick == null)
+#pragma warning restore CA1508 // Avoid dead conditional code
                     {
                         //Stop monitoring mouse up
                         MouseUp -= OnMouseUp;

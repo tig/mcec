@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-#pragma warning disable CA1303, CA1806
+#pragma warning disable
 namespace Microsoft.Win32.Security
 {
 	using Win32Structs;

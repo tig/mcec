@@ -30,9 +30,8 @@ namespace MCEControl {
         [XmlAttribute("Cmd")] private String key;
         public string Key { get => key; set => key = value; }
 
-        public virtual string ToString() {
-            return $"Cmd=\"{Key}\"";
-        }
+        public override string ToString() => $"Cmd=\"{Key}\"";
+
         public virtual void Execute(Reply reply) {
         }
     }
@@ -69,7 +68,9 @@ namespace MCEControl {
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
-        private object fileWatcher;
+#pragma warning disable IDE0052 // Remove unread private members
+        private FileSystemSafeWatcher fileWatcher;
+#pragma warning restore IDE0052 // Remove unread private members
 
         protected virtual void Dispose(bool disposing) {
             if (!disposedValue) {
@@ -168,11 +169,10 @@ namespace MCEControl {
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "None")]
         public static CommandTable Create(string userCommandsFile, bool disableInternalCommands) {
-            CommandTable cmds = null;
-
+            CommandTable cmds;
             if (!disableInternalCommands) {
                 // Load the built-in commands from an assembly resource
-                XmlReader reader = null;
+                XmlReader reader;
                 try {
                     var serializer = new XmlSerializer(typeof(CommandTable));
                     reader =
@@ -186,6 +186,7 @@ namespace MCEControl {
                         }
                         cmds.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
                     }
+                    reader.Dispose();
                 }
                 catch (Exception ex) {
                     MessageBox.Show($"No built-in commands loaded. Error parsing built-in commands. {ex.Message}");
@@ -193,10 +194,7 @@ namespace MCEControl {
                     ExceptionUtils.DumpException(ex);
                     return null;
                 }
-                finally {
-                    if (reader != null) reader.Dispose();
-                }
-
+    
                 // Add the built-ins
                 foreach (Command cmd in McecCommand.Commands) {
                     if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
@@ -265,7 +263,7 @@ namespace MCEControl {
                     Logger.Instance.Log4.Info($"Commands: User command added: {cmd.Key}");
                 }
             }
-            catch (FileNotFoundException ex) {
+            catch (FileNotFoundException) {
                 Logger.Instance.Log4.Info($"Commands: No user defined commands loaded; {userCommandsFile} was not found.");
 
                 // If the user .commands file is not found, create it
@@ -296,8 +294,6 @@ namespace MCEControl {
                 ExceptionUtils.DumpException(ex);
             }
             finally {
-                if (serializer != null)
-                    serializer = null;
                 if (reader != null)
                     reader.Close();
                 if (fs != null) 
@@ -307,22 +303,23 @@ namespace MCEControl {
 
         private FileSystemSafeWatcher CreateFileWatcher(string path) {
             // Create a new FileSystemSafeWatcher and set its properties.
-            FileSystemSafeWatcher watcher = new FileSystemSafeWatcher();
-            watcher.Path = Path.GetDirectoryName(path);
-            /* Watch for changes in LastAccess and LastWrite times, and 
-               the renaming of files or directories. */
-            watcher.NotifyFilter = NotifyFilters.LastWrite;
-            watcher.Filter = Path.GetFileName(path);
+            using (var watcher = new FileSystemSafeWatcher()) {
+                watcher.Path = Path.GetDirectoryName(path);
+                /* Watch for changes in LastAccess and LastWrite times, and 
+                   the renaming of files or directories. */
+                watcher.NotifyFilter = NotifyFilters.LastWrite;
+                watcher.Filter = Path.GetFileName(path);
 
-            // Add event handlers.
-            watcher.Changed += new FileSystemEventHandler(OnChanged);
-            watcher.Created += new FileSystemEventHandler(OnChanged);
-            watcher.Deleted += new FileSystemEventHandler(OnChanged);
-            watcher.Renamed += new RenamedEventHandler(OnRenamed);
+                // Add event handlers.
+                watcher.Changed += new FileSystemEventHandler(OnChanged);
+                watcher.Created += new FileSystemEventHandler(OnChanged);
+                watcher.Deleted += new FileSystemEventHandler(OnChanged);
+                watcher.Renamed += new RenamedEventHandler(OnRenamed);
 
-            // Begin watching.
-            watcher.EnableRaisingEvents = true;
-            return watcher;
+                // Begin watching.
+                watcher.EnableRaisingEvents = true;
+                return watcher;
+            }
         }
 
         private void OnChanged(object source, FileSystemEventArgs e) {

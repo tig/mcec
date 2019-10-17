@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-#pragma warning disable CA1303, CA1062, CA1507, CA1820, CA1052
+#pragma warning disable
     using Win32Structs;
 
     using HANDLE = System.IntPtr;

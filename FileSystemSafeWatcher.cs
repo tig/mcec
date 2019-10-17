@@ -54,7 +54,9 @@ namespace menelabs.core
         {
             if (o is null) throw new ArgumentNullException(nameof(o));
 
+#pragma warning disable IDE0019 // Use pattern matching
             DelayedEvent delayedEvent = o as DelayedEvent;
+#pragma warning restore IDE0019 // Use pattern matching
             if (delayedEvent == null)
                 return false; // this is not null so they are different
             FileSystemEventArgs eO1 = _args;
@@ -282,61 +284,70 @@ namespace menelabs.core
         {
             _fileSystemWatcher.EndInit();
         }
+#pragma warning disable CS0628 // New protected member declared in sealed class
         /// <summary>
         /// Raises the System.IO.FileSystemWatcher.Changed event.
         /// </summary>
         /// <param name="e">A System.IO.FileSystemEventArgs that contains the event data.</param>
         protected void OnChanged(FileSystemEventArgs e)
+#pragma warning restore CS0628 // New protected member declared in sealed class
         {
-            if (Changed != null)
-                Changed(this, e);
+            Changed?.Invoke(this, e);
         }
+#pragma warning disable CS0628 // New protected member declared in sealed class
         /// <summary>
         /// Raises the System.IO.FileSystemWatcher.Created event.
         /// </summary>
         /// <param name="e">A System.IO.FileSystemEventArgs that contains the event data.</param>
         protected void OnCreated(FileSystemEventArgs e)
+#pragma warning restore CS0628 // New protected member declared in sealed class
         {
-            if (Created != null)
-                Created(this, e);
+            Created?.Invoke(this, e);
         }
+#pragma warning disable CS0628 // New protected member declared in sealed class
         /// <summary>
         /// Raises the System.IO.FileSystemWatcher.Deleted event.
         /// </summary>
         /// <param name="e">A System.IO.FileSystemEventArgs that contains the event data.</param>
         protected void OnDeleted(FileSystemEventArgs e)
+#pragma warning restore CS0628 // New protected member declared in sealed class
         {
-            if (Deleted != null)
-                Deleted(this, e);
+            Deleted?.Invoke(this, e);
         }
+#pragma warning disable CS0628 // New protected member declared in sealed class
         /// <summary>
         /// Raises the System.IO.FileSystemWatcher.Error event.
         /// </summary>
         /// <param name="e">An System.IO.ErrorEventArgs that contains the event data.</param>
         protected void OnError(ErrorEventArgs e)
+#pragma warning restore CS0628 // New protected member declared in sealed class
         {
-            if (Error != null)
-                Error(this, e);
+            Error?.Invoke(this, e);
         }
+#pragma warning disable CS0628 // New protected member declared in sealed class
         /// <summary>
         /// Raises the System.IO.FileSystemWatcher.Renamed event.
         /// </summary>
         /// <param name="e">A System.IO.RenamedEventArgs that contains the event data.</param>
         protected void OnRenamed(RenamedEventArgs e)
+#pragma warning restore CS0628 // New protected member declared in sealed class
         {
-            if (Renamed != null)
-                Renamed(this, e);
+            Renamed?.Invoke(this, e);
         }
+#pragma warning disable IDE0060 // Remove unused parameter
+
         /// <summary>
         /// A synchronous method that returns a structure that contains specific information on the change that occurred, given the type of change you want to monitor.
         /// </summary>
         /// <param name="changeType">The System.IO.WatcherChangeTypes to watch for.</param>
         /// <returns>A System.IO.WaitForChangedResult that contains specific information on the change that occurred.</returns>
         public WaitForChangedResult WaitForChanged(WatcherChangeTypes changeType)
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             //TODO
             throw new NotImplementedException();
         }
+#pragma warning disable IDE0060 // Remove unused parameter
         /// <summary>
         /// A synchronous method that returns a structure that contains specific information on the change that occurred, given the type of change you want to monitor
         /// and the time (in milliseconds) to wait before timing out.
@@ -345,6 +356,7 @@ namespace menelabs.core
         /// <param name="timeout">The time (in milliseconds) to wait before timing out.</param>
         /// <returns>A System.IO.WaitForChangedResult that contains specific information on the change that occurred.</returns>
         public WaitForChangedResult WaitForChanged(WatcherChangeTypes changeType, int timeout)
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             //TODO
             throw new NotImplementedException();
@@ -480,7 +492,9 @@ namespace menelabs.core
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1030:Use events where appropriate", Justification = "3rd party code")]
+#pragma warning disable CS0628 // New protected member declared in sealed class
         protected void RaiseEvents(Queue deQueue)
+#pragma warning restore CS0628 // New protected member declared in sealed class
         {
             if ((deQueue != null) && (deQueue.Count > 0))
             {

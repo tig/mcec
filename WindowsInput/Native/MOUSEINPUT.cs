@@ -2,7 +2,7 @@
 
 namespace WindowsInput.Native
 {
-#pragma warning disable 649, CA1028, CA1714, CA1815, CA1051
+#pragma warning disable 
     /// <summary>
     /// The MOUSEINPUT structure contains information about a simulated mouse event. (see: http://msdn.microsoft.com/en-us/library/ms646273(VS.85).aspx)
     /// Declared in Winuser.h, include Windows.h

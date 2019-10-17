@@ -36,8 +36,9 @@ namespace Microsoft.Win32.Security
 		{
 			return (byte)ParseStruct(typeof(byte));
 		}
-		public UInt16 ParseUInt16()
-		{
+#pragma warning disable CS3002 // Return type is not CLS-compliant
+        public UInt16 ParseUInt16()
+        {
 			return (UInt16)ParseStruct(typeof(UInt16));
 		}
 		public UInt32 ParseUInt32()

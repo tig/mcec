@@ -18,7 +18,7 @@ namespace MCEControl {
     /// <summary>
     /// Implements the serial port server 
     /// </summary>
-    sealed public class SerialServer : ServiceBase, IDisposable {
+    public sealed class SerialServer : ServiceBase, IDisposable {
 
         #region IDisposable Members
 
@@ -95,8 +95,7 @@ namespace MCEControl {
         }
 
         // Returns a string with serial settings, e.g. "COM1 9600 baud N81 Xon/Xoff"
-        public String GetSettingsDisplayString()
-        {
+        public string GetSettingsDisplayString() {
             if (_serialPort == null)
                 return "";
             String p = "";
@@ -207,7 +206,7 @@ namespace MCEControl {
         #region Nested type: SerialReplyContext
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>")]
         public class SerialReplyContext : Reply {
-            private SerialPort _rs232;
+            private readonly SerialPort _rs232;
             public SerialReplyContext(SerialPort rs232) {
                 _rs232 = rs232;
             }

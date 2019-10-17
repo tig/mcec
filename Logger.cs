@@ -104,7 +104,9 @@ namespace MCEControl {
             }
         }
 
+#pragma warning disable IDE0044 // Add readonly modifier
         private PatternLayout patternLayout = new PatternLayout();
+#pragma warning restore IDE0044 // Add readonly modifier
         private Logger() {
             // Pattern
             patternLayout.ConversionPattern = "%date %-5level - %message%newline";
@@ -166,7 +168,7 @@ namespace MCEControl {
             }
         }
 
-        public void Close() {
+        public new void Close() {
             try {
                 // This locking is required to avoid null reference exceptions
                 // in situations where DoAppend() is writing to the TextBox while

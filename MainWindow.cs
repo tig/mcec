@@ -6,30 +6,26 @@
 // Published under the MIT License.
 // Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
-
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
-using System.Resources;
 using System.Windows.Forms;
 using MCEControl.Properties;
 using Microsoft.Win32.Security;
 using log4net;
-using log4net.Repository.Hierarchy;
-using log4net.Core;
-using log4net.Appender;
-using log4net.Layout;
-using System.Drawing;
 using Microsoft.Win32;
 
+[assembly: System.CLSCompliant(true)]
 namespace MCEControl {
     /// <summary>
     /// Summary description for MainWindow.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1501", Justification = "WinForms generated", Scope = "namespace")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1506", Justification = "WinForms generated", Scope = "namespace")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "IDE0069")]
     public class MainWindow : Form {
-        private log4net.ILog log4;
+        private readonly log4net.ILog log4;
 
         // Persisted application settings
         private AppSettings settings;
@@ -744,8 +740,9 @@ namespace MCEControl {
         }
 
         private void ShowSettings(string defaultTabName) {
-            var d = new SettingsDialog(Settings);
-            d.DefaultTab = defaultTabName;
+            var d = new SettingsDialog(Settings) {
+                DefaultTab = defaultTabName
+            };
 
             if (d.ShowDialog(this) == DialogResult.OK) {
                 Settings = d.Settings;
@@ -757,6 +754,7 @@ namespace MCEControl {
                 Stop();
                 Start();
             }
+            d.Dispose();
         }
 
         // ----------------------------------------
@@ -782,6 +780,7 @@ namespace MCEControl {
         private void aboutMenuItem_Click(object sender, EventArgs e) {
             var a = new AboutBox();
             a.ShowDialog(this);
+            a.Dispose();
         }
 
         private void settingsMenuItem_Click(object sender, EventArgs e) {

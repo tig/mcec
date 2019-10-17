@@ -26,6 +26,10 @@ namespace MCEControl {
     /// <summary>
     /// Settings dialog box
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "IDE0069")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1501", Justification = "WinForms generated", Scope = "namespace")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1505", Justification = "WinForms generated", Scope = "namespace")]
     public class SettingsDialog : Form {
         /// <summary>
         /// Required designer variable.
@@ -959,8 +963,7 @@ namespace MCEControl {
 
         private void SettingsChanged() {
             if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked) {
-                UInt32 port = 0;
-                if (!UInt32.TryParse(_editWakeupPort.Text, out port)) port = 0;
+                if (!int.TryParse(_editWakeupPort.Text, out var port)) port = 0;
                 _buttonOk.Enabled = !(String.IsNullOrEmpty(_editWakeupServer.Text) ||
                                       String.IsNullOrEmpty(_editWakeupCommand.Text) ||
                                       String.IsNullOrEmpty(_editClosingCommand.Text) ||
@@ -969,16 +972,14 @@ namespace MCEControl {
             }
 
             if (_checkBoxEnableClient.Checked) {
-                UInt32 port = 0;
-                if (!UInt32.TryParse(_editClientPort.Text, out port)) port = 0;
+                if (!int.TryParse(_editClientPort.Text, out var port)) port = 0;
                 _buttonOk.Enabled = !(String.IsNullOrEmpty(_editClientHost.Text) ||
                                       (port == 0));
                 return;
             }
 
             if (checkBoxEnableActivityMonitor.Checked) {
-                UInt32 t = 0;
-                if (!UInt32.TryParse(textBoxDebounceTime.Text, out t)) t = 0;
+                if (!int.TryParse(textBoxDebounceTime.Text, out var t)) t = 0;
                 _buttonOk.Enabled = !(String.IsNullOrEmpty(textBoxActivityCommand.Text) || 
                                     String.IsNullOrEmpty(textBoxDebounceTime.Text) || 
                                     (t == 0));
@@ -1025,9 +1026,8 @@ namespace MCEControl {
         }
 
         private void EditServerPortTextChanged(object sender, EventArgs e) {
-            UInt32 port = 0;
-            if (UInt32.TryParse(_editServerPort.Text, out port))
-                Settings.ServerPort = (int) port;
+            if (int.TryParse(_editServerPort.Text, out var port))
+                Settings.ServerPort = port;
             SettingsChanged();
         }
 
@@ -1043,9 +1043,8 @@ namespace MCEControl {
         }
 
         private void EditWakeupPortTextChanged(object sender, EventArgs e) {
-            UInt32 port = 0;
-            if (UInt32.TryParse(_editWakeupPort.Text, out port))
-                Settings.WakeupPort = (int) port;
+            if (int.TryParse(_editWakeupPort.Text, out var port))
+                Settings.WakeupPort = port;
             SettingsChanged();
         }
 
@@ -1067,9 +1066,8 @@ namespace MCEControl {
         }
 
         private void EditClientPortTextChanged(object sender, EventArgs e) {
-            UInt32 port = 0;
-            if (UInt32.TryParse(_editClientPort.Text, out port))
-                Settings.ClientPort = (int) port;
+            if (int.TryParse(_editClientPort.Text, out var port))
+                Settings.ClientPort = port;
             SettingsChanged();
         }
 
@@ -1100,8 +1098,7 @@ namespace MCEControl {
         }
 
         private void ComboBoxBaudRateSelectedIndexChanged(object sender, EventArgs e) {
-            int baud = 0;
-            if (int.TryParse(_comboBoxBaudRate.SelectedItem.ToString(), out baud))
+            if (int.TryParse(_comboBoxBaudRate.SelectedItem.ToString(), out var baud))
                 Settings.SerialServerBaudRate = baud;
             SettingsChanged();
         }
@@ -1114,8 +1111,7 @@ namespace MCEControl {
         }
 
         private void ComboBoxDataBitsSelectedIndexChanged(object sender, EventArgs e) {
-            int bits = 0;
-            if (int.TryParse(_comboBoxDataBits.SelectedItem.ToString(), out bits))
+            if (int.TryParse(_comboBoxDataBits.SelectedItem.ToString(), out var bits))
                 Settings.SerialServerDataBits = bits;
             SettingsChanged();
         }
@@ -1148,8 +1144,7 @@ namespace MCEControl {
         }
 
         private void textBoxDebounceTime_TextChanged(object sender, EventArgs e) {
-            UInt32 t = 0;
-            if (UInt32.TryParse(textBoxDebounceTime.Text, out t))
+            if (int.TryParse(textBoxDebounceTime.Text, out var t))
                 Settings.ActivityMonitorDebounceTime = t;
             SettingsChanged();
         }
@@ -1219,7 +1214,9 @@ namespace MCEControl {
         public bool ShowCommandWindow;
         public bool ActivityMonitorEnabled = false;
         public string ActivityMonitorCommand = "activity";
-        public UInt32 ActivityMonitorDebounceTime = 10;
+        private Int32 activityMonitorDebounceTime = 10;
+
+        public int ActivityMonitorDebounceTime { get => activityMonitorDebounceTime; set => activityMonitorDebounceTime = value; }
 
         #region ICloneable Members
 

@@ -5,12 +5,11 @@ namespace Microsoft.Win32.Security
 {
 	using Win32Structs;
 
-#pragma warning disable CA1052, CA1707, CA2211, CA1714, CA1028
-                              /// <summary>
-                              /// Summary description for Win32public consts.
-                              /// </summary>
+#pragma warning disable CA1052, CA1707, CA2211, CA1714, CA1028, CS3003, IDE0017
+    /// <summary>
+    /// Summary description for Win32public consts.
+    /// </summary>
     public class Win32Consts
-#pragma warning restore CA1052 // Static holder types should be Static or NotInheritable
     {
 		public const uint KEYEVENTF_KEYUP = 0x02;
 		public const uint KEYEVENTF_SCANCODE = 0x08;
@@ -19,8 +18,8 @@ namespace Microsoft.Win32.Security
 		private static SID_IDENTIFIER_AUTHORITY CreateAuthority(byte[] auth)
 		{
 			Debug.Assert(auth.Length == 6);
-			SID_IDENTIFIER_AUTHORITY res = new SID_IDENTIFIER_AUTHORITY();
-			res.Value = auth;
+            SID_IDENTIFIER_AUTHORITY res = new SID_IDENTIFIER_AUTHORITY();
+            res.Value = auth;
 			return res;
 		}
 		// Authorities

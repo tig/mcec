@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-#pragma warning disable CA1801
+#pragma warning disable 
     using Win32Structs;
 
     /// <summary>

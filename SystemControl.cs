@@ -16,7 +16,7 @@ namespace MCEControl {
     /// <summary>
     /// Summary description for SystemControl.
     /// </summary>
-    sealed public class SystemControl : IDisposable {
+    public sealed class SystemControl : IDisposable {
         private bool _disposed;
 
         public SystemControl() {
@@ -72,8 +72,8 @@ namespace MCEControl {
             return (Win32.SetSystemPowerState(Win32.FALSE, Win32.FALSE) == Win32.TRUE);
         }
 
-        public static void Shutdown(string msg, uint timeout, bool forceAppsClosed, bool rebootAfterShutdown) {
-            var n = Win32.InitiateSystemShutdown(null, msg, timeout, forceAppsClosed ? Win32.TRUE : Win32.FALSE,
+        public static void Shutdown(string msg, int timeout, bool forceAppsClosed, bool rebootAfterShutdown) {
+            var n = Win32.InitiateSystemShutdown(null, msg, (uint)timeout, forceAppsClosed ? Win32.TRUE : Win32.FALSE,
                                                  rebootAfterShutdown ? Win32.TRUE : Win32.FALSE);
             Win32.CheckCall(n);
         }

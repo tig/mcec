@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security
 {
-#pragma warning disable CA1303, CA1062, CA1507
+#pragma warning disable 
     using Win32Structs;
 	using DWORD = System.UInt32;
 	using WORD = System.UInt16;

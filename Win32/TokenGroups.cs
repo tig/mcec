@@ -3,7 +3,7 @@ using System.Collections;
 
 namespace Microsoft.Win32.Security
 {
-#pragma warning disable CA1710, CA1010
+#pragma warning disable
     using Win32Structs;
 
     /// <summary>

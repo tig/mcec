@@ -2,9 +2,9 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CA1051, CA1301, CA1303, CA1507, CA1305, CA3008
 namespace Microsoft.Win32.Security
 {
-#pragma warning disable CA1051, CA1301, CA1303, CA1507, CA1305
     using Win32Structs;
 
 	/// <summary>
@@ -49,8 +49,9 @@ namespace Microsoft.Win32.Security
 			return ace;
 		}
 
+#pragma warning disable CS3008 // Identifier is not CLS-compliant
         protected ACE_HEADER _header;
-		protected AccessType _accessType;
+        protected AccessType _accessType;
 		protected Sid _sid;
 
 		protected void BaseInit(AceType type, int size, AceFlags flags, Sid sid, AccessType accessType)

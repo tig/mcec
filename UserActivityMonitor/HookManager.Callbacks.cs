@@ -5,10 +5,10 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
+#pragma warning disable CA1060, CA1502, CA1508
 namespace Gma.UserActivityMonitor
 {
-    public static partial class HookManager
-    {
+    public static partial class HookManager {
         /// <summary>
         /// The CallWndProc hook procedure is an application-defined or library-defined callback 
         /// function used with the SetWindowsHookEx function. The HOOKPROC type defines a pointer 
@@ -60,6 +60,7 @@ namespace Gma.UserActivityMonitor
         private static int m_OldX;
         private static int m_OldY;
 
+        #pragma warning disable CA1060
         // See https://stackoverflow.com/questions/17897646/setwindowshookex-fails-with-error-126
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Ansi)]
         static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPWStr)]string lpFileName);

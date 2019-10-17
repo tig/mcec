@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Microsoft.Win32.Security
 {
@@ -14,7 +14,8 @@ namespace Microsoft.Win32.Security
 		{
 			_luid = luid;
 		}
-		public UInt64 Value
+#pragma warning disable CS3003 // Identifier is not CLS-compliant
+        public UInt64 Value
 		{
 			get
 			{

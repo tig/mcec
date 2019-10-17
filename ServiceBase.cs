@@ -55,7 +55,7 @@ namespace MCEControl {
         private log4net.ILog log4;
         protected ILog Log4 { get => log4; set => log4 = value; }
 
-        public ServiceBase() {
+        protected ServiceBase() {
             Log4 = log4net.LogManager.GetLogger("MCEControl");
         }
 
@@ -74,18 +74,13 @@ namespace MCEControl {
         }
 
         protected void SendNotification(ServiceNotification notification, ServiceStatus status, Reply replyContext = null, String msg = "") {
-            if (Notifications != null)
-                Notifications(notification,
-                              status,
-                              replyContext,
-                              msg);
+            Notifications?.Invoke(notification, status, replyContext, msg);
         }
 
         // Send an error notification
         protected void Error(String msg) {
             Log4.Debug(msg);
-            if (Notifications != null)
-                Notifications(ServiceNotification.Error, CurrentStatus, null, msg);
+            Notifications?.Invoke(ServiceNotification.Error, CurrentStatus, null, msg);
         }
     }
 }

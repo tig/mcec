@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
+#pragma warning disable
 namespace Gma.UserActivityMonitor
 {
     public static partial class HookManager
     {
-        #pragma warning disable CA1823
         #region Windows constants
 
         //values from Winuser.h in Microsoft SDK.

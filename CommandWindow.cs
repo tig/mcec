@@ -20,8 +20,9 @@ using Microsoft.Win32.Security;
 using WindowsInput.Native;
 
 namespace MCEControl {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1501", Justification = "WinForms generated", Scope = "namespace")]
     public partial class CommandWindow : Form {
-        private log4net.ILog log4;
+        private readonly log4net.ILog log4;
 
         public CommandWindow() {
             log4 = log4net.LogManager.GetLogger("MCEControl");
