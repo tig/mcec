@@ -388,10 +388,20 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
+<<<<<<< HEAD:src/MCEControl.csproj
     <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" -out "$(SolutionDir)\AssemblyFileVersion.cs" "$(SolutionDir)\AssemblyFileVersion.tt"</PreBuildEvent>
     <PostBuildEvent>"$(DevEnvDir)TextTransform.exe" "$(SolutionDir)..\Installer\Installer.tt"
 copy "$(SolutionDir)bin\$(ConfigurationName)\MCEControl.exe" "$(SolutionDir)..\Installer" 
 copy "$(SolutionDir)bin\$(ConfigurationName)\log4net.dll" "$(SolutionDir)..\Installer"
+=======
+    <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" -out "$(SolutionDir)AssemblyFileVersion.cs" "$(SolutionDir)AssemblyFileVersion.tt"</PreBuildEvent>
+    <PostBuildEvent>rem if "$(ConfigurationName)"=="Release" copy "$(SolutionDir)\install_version.txt" "$(SolutionDir)\docs"
+
+"$(DevEnvDir)TextTransform.exe" "$(SolutionDir)Installer.tt"
+copy "$(SolutionDir)Installer.nsi" "$(SolutionDir)Installer" 
+copy "$(SolutionDir)bin\$(ConfigurationName)\MCEControl.exe" "$(SolutionDir)Installer" 
+copy "$(SolutionDir)bin\$(ConfigurationName)\log4net.dll" "$(SolutionDir)Installer"
+>>>>>>> master:MCEControl.csproj
 </PostBuildEvent>
   </PropertyGroup>
 </Project>
