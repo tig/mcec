@@ -78,7 +78,7 @@ ShowUnInstDetails show
 
 Section "MainSection" SEC01
   SetOutPath "$PROGRAMFILES\Kindel Systems\MCE Controller"
-  SetOverwrite ifnewer
+  SetOverwrite on
   File "MCEControl.exe"
   CreateDirectory "$SMPROGRAMS\$ICONS_GROUP"
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\MCE Controller.lnk" "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"

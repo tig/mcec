@@ -392,6 +392,6 @@
     <PostBuildEvent>"$(DevEnvDir)TextTransform.exe" "$(SolutionDir)..\Installer\Installer.tt"
 copy "$(SolutionDir)bin\$(ConfigurationName)\MCEControl.exe" "$(SolutionDir)..\Installer" 
 copy "$(SolutionDir)bin\$(ConfigurationName)\log4net.dll" "$(SolutionDir)..\Installer"
-    </PostBuildEvent>
+</PostBuildEvent>
   </PropertyGroup>
 </Project>
