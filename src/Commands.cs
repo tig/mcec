@@ -27,7 +27,8 @@ using WindowsInput.Native;
 namespace MCEControl {
     // Base class for all Command types
     public class Command {
-        [XmlAttribute("Cmd")] private String key;
+        private String key;
+        [XmlAttribute("Cmd")]
         public string Key { get => key; set => key = value; }
 
         public override string ToString() => $"Cmd=\"{Key}\"";
@@ -35,6 +36,8 @@ namespace MCEControl {
         public virtual void Execute(Reply reply) {
         }
     }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "Needed for XmlArray")]
 
     // Singleton class holding all commands
     // Note, do not change the namespace or you will break existing installations
@@ -52,17 +55,16 @@ namespace MCEControl {
         [XmlArrayItem("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
         [XmlArrayItem("Shutdown", typeof(ShutdownCommands))]
         [XmlArrayItem(typeof(Command))]
+        public Command[] Commands { get => commands; set => commands = value; }
+        private Command[] commands;
+
         [XmlIgnore] public virtual Command this[string key] {
             get => (Command)hashTable[key];
         }
 
         [XmlIgnore] public ICollection Keys { get => hashTable.Keys; }
         [XmlIgnore] public ICollection Values { get => hashTable.Values; }
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "Needed for XmlArray")]
-        public Command[] Commands { get => commands; set => commands = value; }
-        private Command[] commands;
-        
+                       
         public CommandTable() {
         }
 
@@ -245,15 +247,14 @@ namespace MCEControl {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "None")]
         private void LoadUserCommands() {
             FileStream fs = null;
-            XmlReader reader = null;
-            var serializer = new XmlSerializer(typeof(CommandTable));
 
             try {
+                var serializer = new XmlSerializer(typeof(CommandTable));
                 // A FileStream is needed to read the XML document.
                 fs = new FileStream(userCommandsFile, FileMode.Open, FileAccess.Read);
-                reader = new XmlTextReader(fs);
+                XmlReader reader = new XmlTextReader(fs);
                 CommandTable userCmds = (CommandTable)serializer.Deserialize(reader);
-                Logger.Instance.Log4.Info($"Commands: Loading user commands from {userCommandsFile}.");
+                Logger.Instance.Log4.Info($"Commands: Loading {userCmds.Commands.Length} user commands from {userCommandsFile}.");
                 foreach (var cmd in userCmds.Commands) {
                     if (hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
                         hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
@@ -261,6 +262,7 @@ namespace MCEControl {
                     hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
                     Logger.Instance.Log4.Info($"Commands: User command added: {cmd.Key}");
                 }
+                reader.Close();
             }
             catch (FileNotFoundException) {
                 Logger.Instance.Log4.Info($"Commands: No user defined commands loaded; {userCommandsFile} was not found.");
@@ -291,16 +293,15 @@ namespace MCEControl {
                 ExceptionUtils.DumpException(ex);
             }
             finally {
-                if (reader != null)
-                    reader.Close();
                 if (fs != null) 
                     fs.Close();
             }
         }
 
         private FileSystemSafeWatcher CreateFileWatcher(string path) {
+
             // Create a new FileSystemSafeWatcher and set its properties.
-            using (var watcher = new FileSystemSafeWatcher()) {
+            var watcher = new FileSystemSafeWatcher();
                 watcher.Path = Path.GetDirectoryName(path);
                 /* Watch for changes in LastAccess and LastWrite times, and 
                    the renaming of files or directories. */
@@ -315,8 +316,9 @@ namespace MCEControl {
 
                 // Begin watching.
                 watcher.EnableRaisingEvents = true;
+                Logger.Instance.Log4.Info($"Commands: Watching {watcher.Path}\\{watcher.Filter} for changes.");
                 return watcher;
-            }
+           
         }
 
         private void OnChanged(object source, FileSystemEventArgs e) {
