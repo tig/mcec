@@ -554,8 +554,7 @@ namespace MCEControl {
             if (notification == ServiceNotification.StatusChange)
                 HandleSocketServerStatusChange(status);
             else {
-                if (reply is null) throw new ArgumentNullException(nameof(reply));
-                HandleSocketServerNotification(notification, status, (SocketServer.ServerReplyContext)reply, msg);
+                 HandleSocketServerNotification(notification, status, (SocketServer.ServerReplyContext)reply, msg);
             }   
         }
 
