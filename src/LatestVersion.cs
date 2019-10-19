@@ -20,7 +20,7 @@ namespace MCEControl
                 try {
                     string contents =
                         await client.DownloadStringTaskAsync(
-                            "https://tig.github.io/mcec/version.txt").ConfigureAwait(true);
+                            "https://tig.github.io/mcec/install_version.txt").ConfigureAwait(true);
 
                     string[] parts = contents.Split('.');
 
