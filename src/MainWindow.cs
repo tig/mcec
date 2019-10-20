@@ -250,7 +250,8 @@ namespace MCEControl {
 
         private void CheckVersion() {
             Logger.Instance.Log4.Info($"MCE Controller Version: {Application.ProductVersion}");
-            var lv = new LatestVersion();
+            var lv = new LatestVersion() { Url = "https://tig.github.io/mcec/install_version.txt" };
+            ;
             lv.GetLatestStableVersionAsync((o, version) => {
                 if (version == null && !String.IsNullOrWhiteSpace(lv.ErrorMessage)) {
                     Logger.Instance.Log4.Info(
