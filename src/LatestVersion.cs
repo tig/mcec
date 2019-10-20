@@ -15,12 +15,13 @@ namespace MCEControl
         public String ErrorMessage { get; private set; }
         public Version LatestStableRelease { get; private set; }
 
+        public string Url { get; set; }
+
         public async void GetLatestStableVersionAsync(GotVersionInfo callback) {
             using (var client = new WebClient()) {
                 try {
                     string contents =
-                        await client.DownloadStringTaskAsync(
-                            "https://tig.github.io/mcec/install_version.txt").ConfigureAwait(true);
+                        await client.DownloadStringTaskAsync(Url).ConfigureAwait(true);
 
                     string[] parts = contents.Split('.');
 
@@ -32,7 +33,7 @@ namespace MCEControl
                         ErrorMessage = "Could not parse version data.";
                 }
                 catch (Exception e) {
-                    ErrorMessage = e.Message;
+                    ErrorMessage = $"({Url}) {e.Message}";
                 }
             }
             callback(this, LatestStableRelease);

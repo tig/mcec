@@ -41,7 +41,9 @@ namespace menelabs.core {
             }
         }
 
+#pragma warning disable CA1720 // Identifier contains type name
         public virtual bool IsDuplicate(object obj) {
+#pragma warning restore CA1720 // Identifier contains type name
             DelayedEvent delayedEvent = obj as DelayedEvent;
             if (delayedEvent == null)
                 return false; // this is not null so they are different
@@ -64,6 +66,7 @@ namespace menelabs.core {
         }
     }
 
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
     /// <summary>
     /// This class wraps a FileSystemWatcher object. The class is not derived
     /// from FileSystemWatcher because most of the FileSystemWatcher methods
@@ -78,6 +81,7 @@ namespace menelabs.core {
     /// it won't fire a if a new similar event arrives imediately afterwards).
     /// </summary>
     public class FileSystemSafeWatcher {
+#pragma warning restore CA1001 // Types that own disposable fields should be disposable
         private readonly FileSystemWatcher _fileSystemWatcher;
 
         /// <summary>
@@ -411,7 +415,9 @@ namespace menelabs.core {
             }
         }
 
+#pragma warning disable CA1030 // Use events where appropriate
         protected void RaiseEvents(Queue deQueue) {
+#pragma warning restore CA1030 // Use events where appropriate
             if ((deQueue != null) && (deQueue.Count > 0)) {
                 DelayedEvent de;
                 while (deQueue.Count > 0) {

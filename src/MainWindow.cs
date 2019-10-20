@@ -250,7 +250,8 @@ namespace MCEControl {
 
         private void CheckVersion() {
             Logger.Instance.Log4.Info($"MCE Controller Version: {Application.ProductVersion}");
-            var lv = new LatestVersion();
+            var lv = new LatestVersion() { Url = "https://tig.github.io/mcec/install_version.txt" };
+            ;
             lv.GetLatestStableVersionAsync((o, version) => {
                 if (version == null && !String.IsNullOrWhiteSpace(lv.ErrorMessage)) {
                     Logger.Instance.Log4.Info(
@@ -549,7 +550,9 @@ namespace MCEControl {
             }
         }
 
+
         // Notify callback for the TCP/IP Server
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "<Pending>")]
         public void serverSocketCallbackHandler(ServiceNotification notification, ServiceStatus status, Reply reply, String msg) {
             if (notification == ServiceNotification.StatusChange)
                 HandleSocketServerStatusChange(status);
