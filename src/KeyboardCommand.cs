@@ -31,7 +31,7 @@ namespace MCEControl {
         [XmlAttribute("Ctrl")] public bool Ctrl { get => ctrl; set => ctrl = value; }
         [XmlAttribute("Shift")] public bool Shift { get => shift; set => shift = value; }
         [XmlAttribute("Win")] public bool Win { get => win; set => win = value; }
-        public string Vk { get => vk; set => vk = value; }
+        [XmlAttribute("vk")] public string Vk { get => vk; set => vk = value; }
 
         public SendInputCommand() {
         }
