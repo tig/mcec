@@ -42,7 +42,7 @@ namespace MCEControl {
     // Singleton class holding all commands
     // Note, do not change the namespace or you will break existing installations
     [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "MCEController")]
-    public class CommandTable : IDisposable{
+    public class CommandTable : IDisposable {
         [XmlIgnore] private readonly Hashtable hashTable = new Hashtable();
 
         [XmlIgnore] private string userCommandsFile;
@@ -58,13 +58,14 @@ namespace MCEControl {
         public Command[] Commands { get => commands; set => commands = value; }
         private Command[] commands;
 
-        [XmlIgnore] public virtual Command this[string key] {
+        [XmlIgnore]
+        public virtual Command this[string key] {
             get => (Command)hashTable[key];
         }
 
         [XmlIgnore] public ICollection Keys { get => hashTable.Keys; }
         [XmlIgnore] public ICollection Values { get => hashTable.Values; }
-                       
+
         public CommandTable() {
         }
 
@@ -97,10 +98,11 @@ namespace MCEControl {
             GC.SuppressFinalize(this);
         }
         #endregion
-        [XmlIgnore] public int NumCommands {
+        [XmlIgnore]
+        public int NumCommands {
             get { return hashTable.Count; }
         }
-        
+
         public void Execute(Reply reply, String cmdString) {
             if (cmdString == null) throw new ArgumentNullException(nameof(cmdString));
 
@@ -196,7 +198,7 @@ namespace MCEControl {
                     ExceptionUtils.DumpException(ex);
                     return null;
                 }
-    
+
                 // Add the built-ins
                 foreach (Command cmd in McecCommand.Commands) {
                     if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
@@ -293,32 +295,48 @@ namespace MCEControl {
                 ExceptionUtils.DumpException(ex);
             }
             finally {
-                if (fs != null) 
+                if (fs != null)
                     fs.Close();
             }
         }
+
+        //private static void GenerateXSD() {
+        //    var schemas = new XmlSchemas();
+        //    var exporter = new XmlSchemaExporter(schemas);
+        //    var mapping = new XmlReflectionImporter().ImportTypeMapping(typeof(CommandTable));
+        //    exporter.ExportTypeMapping(mapping);
+        //    var schemaWriter = new StringWriter();
+        //    foreach (System.Xml.Schema.XmlSchema schema in schemas) {
+        //        schema.Write(schemaWriter);
+        //    }
+
+        //    using (FileStream fs = File.Create("MCEControl.xsd")) {
+        //        byte[] info = new System.Text.UTF8Encoding(true).GetBytes(schemaWriter.ToString());
+        //        fs.Write(info, 0, info.Length);
+        //    }
+        //}
 
         private FileSystemSafeWatcher CreateFileWatcher(string path) {
 
             // Create a new FileSystemSafeWatcher and set its properties.
             var watcher = new FileSystemSafeWatcher();
-                watcher.Path = Path.GetDirectoryName(path);
-                /* Watch for changes in LastAccess and LastWrite times, and 
-                   the renaming of files or directories. */
-                watcher.NotifyFilter = NotifyFilters.LastWrite;
-                watcher.Filter = Path.GetFileName(path);
+            watcher.Path = Path.GetDirectoryName(path);
+            /* Watch for changes in LastAccess and LastWrite times, and 
+               the renaming of files or directories. */
+            watcher.NotifyFilter = NotifyFilters.LastWrite;
+            watcher.Filter = Path.GetFileName(path);
 
-                // Add event handlers.
-                watcher.Changed += new FileSystemEventHandler(OnChanged);
-                watcher.Created += new FileSystemEventHandler(OnChanged);
-                watcher.Deleted += new FileSystemEventHandler(OnChanged);
-                watcher.Renamed += new RenamedEventHandler(OnRenamed);
+            // Add event handlers.
+            watcher.Changed += new FileSystemEventHandler(OnChanged);
+            watcher.Created += new FileSystemEventHandler(OnChanged);
+            watcher.Deleted += new FileSystemEventHandler(OnChanged);
+            watcher.Renamed += new RenamedEventHandler(OnRenamed);
 
-                // Begin watching.
-                watcher.EnableRaisingEvents = true;
-                Logger.Instance.Log4.Info($"Commands: Watching {watcher.Path}\\{watcher.Filter} for changes.");
-                return watcher;
-           
+            // Begin watching.
+            watcher.EnableRaisingEvents = true;
+            Logger.Instance.Log4.Info($"Commands: Watching {watcher.Path}\\{watcher.Filter} for changes.");
+            return watcher;
+
         }
 
         private void OnChanged(object source, FileSystemEventArgs e) {
