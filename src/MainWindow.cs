@@ -447,8 +447,7 @@ namespace MCEControl {
             //Logger.Instance.Log4.Info($"Send: {v}");
             if (client != null)
                 client.Send(v + "\n");
-
-            if (server != null)
+            else if (server != null)
                 server.Send(v + "\n");
 
             if (serialServer != null)

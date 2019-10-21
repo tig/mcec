@@ -23,32 +23,29 @@ namespace MCEControl {
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible", Justification = "Serialization")]
         public static ShutdownCommands[] Commands = new ShutdownCommands[] {
-            new ShutdownCommands{ Key = $"shutdown" },
-            new ShutdownCommands{ Key = $"restrart" },
-            new ShutdownCommands{ Key = $"standby" },
-            new ShutdownCommands{ Key = $"hibernate" },
-            new ShutdownCommands{ Key = $"abort" },
+            new ShutdownCommands{ Key = $"shutdown", Type = $"shutdown" },
+            new ShutdownCommands{ Key = $"restart", Type = $"restart" },
+            new ShutdownCommands{ Key = $"standby", Type = $"standby" },
+            new ShutdownCommands{ Key = $"hibernate", Type = $"hibernate"},
+            new ShutdownCommands{ Key = $"abort", Type = $"hibernate" },
         };
 
         public ShutdownCommands() {
             // Serialzable, must have constructor
         }
 
-        public ShutdownCommands(string type) {
-            Type = type;
-        }
         public override string ToString() {
             return $"Cmd=\"{Key}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
         }
 
         public override void Execute(Reply reply) {
-            Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: {ToString()}");
+            Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: Executing {ToString()}");
             switch (Type.ToUpperInvariant()) {
                 case "SHUTDOWN":
                     SystemControl.Shutdown("MCE Controller Forced Shutdown", TimeOut, true, false);
                     break;
 
-                case "RESART":
+                case "RESTART":
                     SystemControl.Shutdown("MCE Controller Forced Restart", TimeOut, true, true);
                     break;
 

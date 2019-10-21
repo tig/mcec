@@ -10,6 +10,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Windows.Forms;
 using Microsoft.Win32.Security;
 
 namespace MCEControl {
@@ -65,11 +66,11 @@ namespace MCEControl {
         }
 
         public static bool Standby() {
-            return (Win32.SetSystemPowerState(Win32.TRUE, Win32.FALSE) == Win32.TRUE);
+            return Application.SetSuspendState(PowerState.Suspend, true, false);
         }
 
         public static bool Hibernate() {
-            return (Win32.SetSystemPowerState(Win32.FALSE, Win32.FALSE) == Win32.TRUE);
+            return Application.SetSuspendState(PowerState.Hibernate, false, false);
         }
 
         public static void Shutdown(string msg, int timeout, bool forceAppsClosed, bool rebootAfterShutdown) {
