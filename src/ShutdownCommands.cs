@@ -27,7 +27,7 @@ namespace MCEControl {
             new ShutdownCommands{ Key = $"restart", Type = $"restart" },
             new ShutdownCommands{ Key = $"standby", Type = $"standby" },
             new ShutdownCommands{ Key = $"hibernate", Type = $"hibernate"},
-            new ShutdownCommands{ Key = $"abort", Type = $"hibernate" },
+            new ShutdownCommands{ Key = $"abort", Type = $"abort" },
         };
 
         public ShutdownCommands() {

@@ -273,7 +273,6 @@
     <Compile Include="Win32\Win32Structs.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Win32\WindowsController.cs" />
     <Compile Include="WindowsInput\IInputDeviceStateAdaptor.cs" />
     <Compile Include="WindowsInput\IInputMessageDispatcher.cs" />
     <Compile Include="WindowsInput\IInputSimulator.cs" />

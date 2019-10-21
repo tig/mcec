@@ -10,6 +10,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Text;
 using System.Windows.Forms;
 using Microsoft.Win32.Security;
 
@@ -45,16 +46,36 @@ namespace MCEControl {
             Dispose(false);
         }
 
-
         /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         private void Dispose(bool disposing) {
             // Check to see if Dispose has already been called.
             if (!_disposed && disposing) {
-                AdjustToken(false);
+                AdjustToken(true);
             }
             _disposed = true;
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "FormatMessageA", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int FormatMessage(int dwFlags, IntPtr lpSource, int dwMessageId, int dwLanguageId, StringBuilder lpBuffer, int nSize, int Arguments);
+        private const int FORMAT_MESSAGE_FROM_SYSTEM = 0x1000;
+        /// <summary>
+        /// Formats an error number into an error message.
+        /// </summary>
+        /// <param name="number">The error number to convert.</param>
+        /// <returns>A string representation of the specified error number.</returns>
+        protected static string FormatError(int number) {
+            try {
+                StringBuilder buffer = new StringBuilder(255);
+#pragma warning disable CA1806 // Do not ignore method results
+                FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, IntPtr.Zero, number, 0, buffer, buffer.Capacity, 0);
+#pragma warning restore CA1806 // Do not ignore method results
+                return buffer.ToString();
+            }
+            catch (Exception) {
+                return $"Unspecified error [{number}]";
+            }
         }
 
         public static void AdjustToken(bool enable) {
@@ -74,14 +95,20 @@ namespace MCEControl {
         }
 
         public static void Shutdown(string msg, int timeout, bool forceAppsClosed, bool rebootAfterShutdown) {
-            var n = Win32.InitiateSystemShutdown(null, msg, (uint)timeout, forceAppsClosed ? Win32.TRUE : Win32.FALSE,
-                                                 rebootAfterShutdown ? Win32.TRUE : Win32.FALSE);
-            Win32.CheckCall(n);
+            string force = forceAppsClosed ? "/f" : "";
+            string reboot = rebootAfterShutdown ? "/r" : "/s";
+            msg = msg is null ? "" : msg;
+            var proc = System.Diagnostics.Process.Start("ShutDown", $"{reboot} /t {timeout} {force} /c \"{msg}\"");
+            proc.WaitForExit(1000);
+            if (proc.ExitCode != 0x0)
+                throw new System.ComponentModel.Win32Exception(proc.ExitCode);
         }
 
         public static void Abort() {
-            var n = Win32.AbortSystemShutdown(null);
-            Win32.CheckCall(n);
+            var proc = System.Diagnostics.Process.Start("ShutDown", "/a");
+            proc.WaitForExit(1000);
+            if (proc.ExitCode != 0x0)
+                throw new System.ComponentModel.Win32Exception(proc.ExitCode);
         }
     }
 }
