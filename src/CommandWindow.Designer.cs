@@ -167,6 +167,7 @@
             this.Text = "Commands";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.CommandWindow_FormClosing);
             this.Load += new System.EventHandler(this.CommandWindow_Load);
+            this.VisibleChanged += new System.EventHandler(this.CommandWindow_VisibleChanged);
             this.ResumeLayout(false);
             this.PerformLayout();
 

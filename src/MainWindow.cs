@@ -228,12 +228,24 @@ namespace MCEControl {
             if (cmdWindow == null)
                 cmdWindow = new CommandWindow();
 
-            logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, MainMenuStrip.Font.SizeInPoints-1, 
+            CmdTable.ChangedEvent += (o, a) => CmdTable_ChangedEvent(o, a);
+
+
+            logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, MainMenuStrip.Font.SizeInPoints - 1,
                 System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             SystemEvents.UserPreferenceChanged += new UserPreferenceChangedEventHandler(SystemEvents_UserPreferenceChanged);
 
             SetStatus($"Version: {Application.ProductVersion}");
             Start();
+        }
+
+        private void CmdTable_ChangedEvent(object sender, EventArgs e) {
+            if (cmdWindow != null && cmdWindow.Visible) {
+                if (cmdWindow.InvokeRequired)
+                    cmdWindow.BeginInvoke((MethodInvoker)delegate () { cmdWindow.RefreshList(); });
+                else
+                    cmdWindow.RefreshList();
+            }
         }
 
         private void mainWindow_Closing(object sender, CancelEventArgs e) {
@@ -246,6 +258,8 @@ namespace MCEControl {
                 notifyIcon.Visible = true;
                 Hide();
             }
+            else
+                log4.Info("Exiting...");
         }
 
         private void CheckVersion() {
@@ -288,21 +302,25 @@ namespace MCEControl {
                 UserActivityMonitor.Instance.Start(Settings.ActivityMonitorDebounceTime);
         }
 
-        private delegate void StopCallback();
         private void Stop() {
-            if (cmdWindow != null) {
-                if (this.InvokeRequired)
-                    this.BeginInvoke((StopCallback)Stop);
-                else {
-                    UserActivityMonitor.Stop();
-                    StopClient();
-                    StopServer();
-                    StopSerialServer();
-                }
+            if (this.InvokeRequired)
+                this.BeginInvoke((MethodInvoker) delegate () { Stop(); });
+            else {
+                UserActivityMonitor.Stop();
+                StopClient();
+                StopServer();
+                StopSerialServer();
             }
         }
 
         public void ShutDown() {
+
+            if (this.InvokeRequired) {
+                Logger.Instance.Log4.Info("ShutDown InvokeRequired");
+                this.BeginInvoke((MethodInvoker)delegate () { ShutDown(); });
+                return;
+            }
+
             Logger.Instance.Log4.Info("ShutDown");
             shuttingDown = true;
 
@@ -398,12 +416,11 @@ namespace MCEControl {
             else
                 StopClient();
         }
-        private delegate void RestartClientCallback();
 
         private void RestartClient() {
             if (cmdWindow != null) {
                 if (this.InvokeRequired)
-                    this.BeginInvoke((RestartClientCallback)RestartClient);
+                    this.BeginInvoke((MethodInvoker)delegate () { RestartClient(); });
                 else {
                     StopClient();
                     if (!shuttingDown && Settings.ActAsClient && Settings.ClientDelayTime > 0) {
@@ -414,20 +431,17 @@ namespace MCEControl {
             }
         }
 
-        private delegate void ShowCommandWindowCallback();
         private void ShowCommandWindow() {
             if (this.InvokeRequired)
-                this.BeginInvoke((ShowCommandWindowCallback)ShowCommandWindow);
+                this.BeginInvoke((MethodInvoker)delegate () { ShowCommandWindow(); });
             else {
                 cmdWindow.Visible = Settings.ShowCommandWindow = true;
             }
         }
 
-        private delegate void HideCommandWindowCallback();
-
         private void HideCommandWindow() {
             if (this.InvokeRequired)
-                this.BeginInvoke((HideCommandWindowCallback)HideCommandWindow);
+                this.BeginInvoke((MethodInvoker)delegate () { HideCommandWindow(); });
             else {
                 Settings.ShowCommandWindow = cmdWindow.Visible = false;
             }
@@ -455,23 +469,17 @@ namespace MCEControl {
         }
 
         private void SetStatus(string text) {
-            if (statusStrip.InvokeRequired) {
-                statusStrip.BeginInvoke((Action)(() => {
-                    statusStripStatus.Text = text;
-                    notifyIcon.Text = text;
-                }));
-            }
+            if (statusStrip.InvokeRequired)
+                statusStrip.BeginInvoke((Action)(() => { SetStatus(text); }));
             else {
                 statusStripStatus.Text = text;
                 notifyIcon.Text = text;
             }
         }
 
-        private delegate void SetServerStatusCallback(ServiceStatus status);
         private void SetServerStatus(ServiceStatus status) {
-            if (statusStrip.InvokeRequired) {
-                statusStrip.BeginInvoke((SetServerStatusCallback)SetServerStatus, new object[] { status });
-            }
+            if (statusStrip.InvokeRequired)
+                statusStrip.BeginInvoke((Action)(() => { SetServerStatus(status); }));
             else {
                 statusStripServer.Text = $"Server on port {settings.ServerPort}";
                 switch (status) {
@@ -496,9 +504,8 @@ namespace MCEControl {
 
         private delegate void SetClientStatusCallback(ServiceStatus status);
         private void SetClientStatus(ServiceStatus status) {
-            if (statusStrip.InvokeRequired) {
-                statusStrip.BeginInvoke((SetClientStatusCallback)SetClientStatus, new object[] { status });
-            }
+            if (statusStrip.InvokeRequired)
+                statusStrip.BeginInvoke((Action)(() => { SetClientStatus(status); }));
             else {
                 statusStripClient.Text = $"Client {settings.ClientHost}:{Settings.ClientPort}";
                 switch (status) {
@@ -521,11 +528,9 @@ namespace MCEControl {
             }
         }
 
-        private delegate void SetSerialStatusCallback(ServiceStatus status);
         private void SetSerialStatus(ServiceStatus status) {
-            if (statusStrip.InvokeRequired) {
-                statusStrip.BeginInvoke((SetSerialStatusCallback)SetSerialStatus, new object[] { status });
-            }
+            if (statusStrip.InvokeRequired)
+                statusStrip.BeginInvoke((Action)(() => { SetSerialStatus(status); }));
             else {
                 // https://en.wikipedia.org/wiki/8-N-1
                 statusStripSerial.Text = $"Serial {settings.SerialServerBaudRate}/{settings.SerialServerPortName} {settings.SerialServerDataBits}-{settings.SerialServerParity}-{settings.SerialServerStopBits}-{settings.SerialServerHandshake}";
@@ -556,8 +561,8 @@ namespace MCEControl {
             if (notification == ServiceNotification.StatusChange)
                 HandleSocketServerStatusChange(status);
             else {
-                 HandleSocketServerNotification(notification, status, (SocketServer.ServerReplyContext)reply, msg);
-            }   
+                HandleSocketServerNotification(notification, status, (SocketServer.ServerReplyContext)reply, msg);
+            }
         }
 
         private void HandleSocketServerNotification(ServiceNotification notification, ServiceStatus status,
@@ -929,8 +934,8 @@ namespace MCEControl {
             // 
             // logTextBox
             // 
-            this.logTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.logTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.logTextBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.logTextBox.Font = new System.Drawing.Font("Lucida Console", 8F);
@@ -1172,9 +1177,9 @@ namespace MCEControl {
             logTextBox.Location = new System.Drawing.Point(8, menuStrip.Height);
             logTextBox.Size = new System.Drawing.Size(this.ClientSize.Width - logTextBox.Location.X, this.ClientSize.Height - menuStrip.Height - statusStrip.Height);
         }
-        
+
         private void SystemEvents_UserPreferenceChanged(object sender, EventArgs e) {
-            logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, menuStrip.Font.SizeInPoints-1, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, menuStrip.Font.SizeInPoints - 1, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
         }
     }
 }

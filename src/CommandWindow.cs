@@ -32,15 +32,7 @@ namespace MCEControl {
         private void CommandWindow_Load(object sender, EventArgs e) {
             Icon = MainWindow.Instance.Icon;
 
-            var orderedKeys = MainWindow.Instance.CmdTable.Keys.Cast<string>().OrderBy(c => c);
-            foreach (string key in orderedKeys) {
-                Command cmd = MainWindow.Instance.CmdTable[key];
-                var item = new ListViewItem(cmd.Key);
-                Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
-                item.SubItems.Add(match.Groups[1].Value);
-                item.SubItems.Add(cmd.ToString());
-                listCmds.Items.Add(item);
-            }
+
         }
 
         private void CommandWindow_FormClosing(object sender, FormClosingEventArgs e) {
@@ -76,5 +68,24 @@ namespace MCEControl {
             Send();
         }
 
+        private void CommandWindow_VisibleChanged(object sender, EventArgs e) {
+            if (!Visible) return;
+            RefreshList();
+        }
+
+        public void RefreshList() { 
+            listCmds.Items.Clear();
+            var orderedKeys = MainWindow.Instance.CmdTable.Keys.Cast<string>().OrderBy(c => c);
+            foreach (string key in orderedKeys) {
+                Command cmd = MainWindow.Instance.CmdTable[key];
+                var item = new ListViewItem(cmd.Key);
+                Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
+                item.SubItems.Add(match.Groups[1].Value);
+                item.SubItems.Add(cmd.ToString());
+                listCmds.Items.Add(item);
+            }
+            listCmds.Focus();
+            listCmds.Items[0].Selected = true;
+        }
     }
 }

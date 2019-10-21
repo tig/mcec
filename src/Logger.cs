@@ -195,9 +195,7 @@ namespace MCEControl {
                 lock (lockObj) {
                     // Can only update the log in the main window when on the UI thread
                     if (LogTextBox.InvokeRequired)  // (Instance.InvokeRequired || logTextBox.InvokeRequired)
-                        LogTextBox.BeginInvoke((Action)(() => {
-                            LogTextBox.AppendText(RenderLoggingEvent(loggingEvent));
-                        }));
+                        LogTextBox.BeginInvoke((Action)(() => { LogTextBox.AppendText(RenderLoggingEvent(loggingEvent)); }));
                     else {
                         LogTextBox.AppendText(RenderLoggingEvent(loggingEvent));
                     }

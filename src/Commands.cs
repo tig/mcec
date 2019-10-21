@@ -69,6 +69,20 @@ namespace MCEControl {
         public CommandTable() {
         }
 
+        public event EventHandler ChangedEvent;
+        protected virtual void OnRaiseCustomEvent() {
+            // Make a temporary copy of the event to avoid possibility of
+            // a race condition if the last subscriber unsubscribes
+            // immediately after the null check and before the event is raised.
+            EventHandler handler = ChangedEvent;
+
+            // Event will be null if there are no subscribers
+            if (handler != null) {
+                // Use the () operator to raise the event.
+                handler(this, null);
+            }
+        }
+
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 #pragma warning disable IDE0052 // Remove unread private members
@@ -298,6 +312,7 @@ namespace MCEControl {
                 if (fs != null)
                     fs.Close();
             }
+            OnRaiseCustomEvent();
         }
 
         //private static void GenerateXSD() {

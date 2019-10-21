@@ -51,7 +51,11 @@ namespace MCEControl {
         }
 
         public static void Stop() {
-            userActivityMonitor = null;
+            Logger.Instance.Log4.Info($"ActivityMonitor: Stopping.");
+            if (userActivityMonitor != null) {
+                userActivityMonitor.Dispose();
+                userActivityMonitor = null;
+            }
         }
 
         private void Activity(string logInfo) {

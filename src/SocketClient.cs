@@ -62,6 +62,7 @@ namespace MCEControl {
                 }
                 if (_tcpClient != null) {
                     _tcpClient.Close();
+                    _tcpClient.Dispose();
                     _tcpClient = null;
                 }
             }

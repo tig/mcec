@@ -54,7 +54,7 @@ namespace MCEControl {
                 // Cause MCE Controller to exit
                 case "exit":
                     reply.WriteLine("exiting");
-                    MainWindow.Instance.BeginInvoke((Action)(() => MainWindow.Instance.ShutDown()));
+                    MainWindow.Instance.ShutDown();
                     return;
 
                 // Return a list of supported commands (really just for testing)
