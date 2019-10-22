@@ -38,7 +38,7 @@ namespace MCEControl {
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Process is long lived")]
-        public override void Execute(Reply reply) {
+        public override void Execute(string args, Reply reply) {
             Logger.Instance.Log4.Info($"Cmd: Starting process: {ToString()}");
             if (File != null) {
                 var p = new Process {
@@ -56,7 +56,7 @@ namespace MCEControl {
             }
 
             if (NextCommand != null)
-                NextCommand.Execute(reply);
+                NextCommand.Execute(args, reply);
         }
     }
 }

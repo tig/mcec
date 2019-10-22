@@ -13,22 +13,22 @@ namespace MCEControl {
     /// <summary>
     /// Summary description for ShutdownCommands.
     /// </summary>
-    public class ShutdownCommands : Command {
+    public class ShutdownCommand : Command {
         private String type;
         [XmlAttribute("Type")] public string Type { get => type; set => type = value; }
         private int timeOut = 30;
         [XmlAttribute("TimeOut")] public int TimeOut { get => timeOut; set => timeOut = value; }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible", Justification = "Serialization")]
-        public static ShutdownCommands[] Commands = new ShutdownCommands[] {
-            new ShutdownCommands{ Key = $"shutdown", Type = $"shutdown" },
-            new ShutdownCommands{ Key = $"restart", Type = $"restart" },
-            new ShutdownCommands{ Key = $"standby", Type = $"standby" },
-            new ShutdownCommands{ Key = $"hibernate", Type = $"hibernate"},
-            new ShutdownCommands{ Key = $"abort", Type = $"abort" },
+        public static ShutdownCommand[] Commands = new ShutdownCommand[] {
+            new ShutdownCommand{ Key = $"shutdown", Type = $"shutdown" },
+            new ShutdownCommand{ Key = $"restart", Type = $"restart" },
+            new ShutdownCommand{ Key = $"standby", Type = $"standby" },
+            new ShutdownCommand{ Key = $"hibernate", Type = $"hibernate"},
+            new ShutdownCommand{ Key = $"abort", Type = $"abort" },
         };
 
-        public ShutdownCommands() {
+        public ShutdownCommand() {
             // Serialzable, must have constructor
         }
 
@@ -36,7 +36,7 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
         }
 
-        public override void Execute(Reply reply) {
+        public override void Execute(string args, Reply reply) {
             Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: Executing {ToString()}");
             switch (Type.ToUpperInvariant()) {
                 case "SHUTDOWN":

@@ -23,6 +23,7 @@ namespace MCEControl {
         public const string CmdPrefix = "mcec:";
 
         public static McecCommand[] Commands = new McecCommand[] {
+            new McecCommand{ Key = $"{CmdPrefix}" },   // The rest are for documentation
             new McecCommand{ Key = $"{CmdPrefix }ver" },
             new McecCommand{ Key = $"{CmdPrefix }exit" },
             new McecCommand{ Key = $"{CmdPrefix }cmds" },
@@ -40,25 +41,25 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\"";
         }
 
-        public override void Execute(Reply reply) {
+        public override void Execute(string args, Reply reply) {
             if (reply == null)
                 return;
 
             var replyBuilder = new StringBuilder();
-            switch (Key) {
+            switch (args.ToUpperInvariant()) {
                 // MCE Controller version
-                case "ver":
+                case "VER":
                     replyBuilder.Append(Application.ProductVersion);
                     break;
 
                 // Cause MCE Controller to exit
-                case "exit":
+                case "EXIT":
                     reply.WriteLine("exiting");
                     MainWindow.Instance.ShutDown();
                     return;
 
                 // Return a list of supported commands (really just for testing)
-                case "cmds":
+                case "CMDS":
                     replyBuilder.Append(Environment.NewLine);
                     var orderedKeys = MainWindow.Instance.CmdTable.Keys.Cast<string>().OrderBy(c => c);
                     foreach (string key in orderedKeys) {
@@ -70,14 +71,14 @@ namespace MCEControl {
                     break;
 
                 // Return the current date/time of the PC
-                case "time":
+                case "TIME":
                     DateTime dt = DateTime.Now;
                     replyBuilder.AppendFormat("{0}", DateTime.Now);
                     break;
             }
 
             // Reply.  
-            replyBuilder.Insert(0, $"{Key}=");
+            replyBuilder.Insert(0, $"{args}=");
             Reply(reply, replyBuilder.ToString());
         }
 

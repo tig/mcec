@@ -9,6 +9,7 @@
 //-------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Xml.Serialization;
 using WindowsInput;
@@ -34,8 +35,27 @@ namespace MCEControl {
         [XmlAttribute("vk")] public string Vk { get => vk; set => vk = value; }
 
         public SendInputCommand() {
+
         }
 
+        public static List<SendInputCommand> Commands = new List<SendInputCommand>();
+
+        static SendInputCommand() {
+
+            Commands.Add(new SendInputCommand { Key = $"shiftdown:" });
+            Commands.Add(new SendInputCommand { Key = $"shiftup:" });
+
+            // Populate default VK_ codes
+            foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
+                string s;
+                if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
+                    s = vk.ToString();  // already have VK_
+                else
+                    s = "VK_" + vk.ToString();
+
+                Commands.Add(new SendInputCommand(s, false, false, false, false));
+            }
+        }
         public SendInputCommand(string vk, bool shift, bool ctrl, bool alt) {
             Key = Vk = vk;
             Shift = shift;
@@ -56,13 +76,13 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\" Vk=\"{Vk}\" Shift=\"{Shift}\" Ctrl=\"{Ctrl}\" Alt=\"{Alt}\" Win=\"{Win}\"";
         }
 
-        public override void Execute(Reply reply)
-        {
+        public override void Execute(string args, Reply reply) {
+
             try {
                 VirtualKeyCode vkcode;
                 if (!Vk.StartsWith("VK_", StringComparison.InvariantCultureIgnoreCase) ||
-                    (!Enum.TryParse(Vk.ToUpper(CultureInfo.InvariantCulture), true, out vkcode) &&
-                     !Enum.TryParse(Vk.ToUpper(CultureInfo.InvariantCulture).Substring(3), true, out vkcode))) {
+                    (!Enum.TryParse(Vk.ToUpperInvariant(), true, out vkcode) &&
+                     !Enum.TryParse(Vk.ToUpperInvariant().Substring(3), true, out vkcode))) {
                     // Not a VK_ string
                     // Hex?
                     ushort num;
@@ -71,11 +91,24 @@ namespace MCEControl {
                                           CultureInfo.InvariantCulture.NumberFormat, out num)) &&
                          !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
                                          out num)) {
-                        // bad format. barf.
-                        Logger.Instance.Log4.Info($"Cmd: Invalid VK: {ToString()}");
+                        switch (Key.ToUpperInvariant()) {
+                            case "SHIFTDOWN:":
+                                // Modifyer key down
+                                SendInputCommand.ShiftKey(args, true);
+                                break;
+
+                            case "SHIFTUP:":
+                                // Modifyer key down
+                                SendInputCommand.ShiftKey(args, false);
+                                break;
+                            default:
+                                // bad format. barf.
+                                Logger.Instance.Log4.Info($"Cmd: Invalid VK: {ToString()}");
+                                break;
+                        }
                         return;
                     }
-                    vkcode = (VirtualKeyCode) num;
+                    vkcode = (VirtualKeyCode)num;
                 }
 
                 string s;

@@ -32,8 +32,12 @@ namespace MCEControl {
         public string Key { get => key; set => key = value; }
 
         public override string ToString() => $"Cmd=\"{Key}\"";
-
-        public virtual void Execute(Reply reply) {
+        /// <summary>
+        /// Called to execute the command. 
+        /// </summary>
+        /// <param name="args">Any text to the right of the command.</param>
+        /// <param name="reply">Reply context (so replies get sent to the right socket)</param>
+        public virtual void Execute(string args, Reply reply) {
         }
     }
 
@@ -49,11 +53,12 @@ namespace MCEControl {
         [XmlIgnore] private bool ignoreInternalCommands = false;
 
         [XmlArray("Commands")]
+        [XmlArrayItem("Chars", typeof(CharsCommand))]
         [XmlArrayItem("StartProcess", typeof(StartProcessCommand))]
         [XmlArrayItem("SendInput", typeof(SendInputCommand))]
         [XmlArrayItem("SendMessage", typeof(SendMessageCommand))]
         [XmlArrayItem("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
-        [XmlArrayItem("Shutdown", typeof(ShutdownCommands))]
+        [XmlArrayItem("Shutdown", typeof(ShutdownCommand))]
         [XmlArrayItem(typeof(Command))]
         public Command[] Commands { get => commands; set => commands = value; }
         private Command[] commands;
@@ -128,69 +133,52 @@ namespace MCEControl {
 
         public void Execute(Reply reply, String cmdString) {
             if (cmdString == null) throw new ArgumentNullException(nameof(cmdString));
+            string cmd;
+            string args = "";
 
-            if (!ignoreInternalCommands) {
-                if (cmdString.StartsWith(McecCommand.CmdPrefix)) {
-                    var cmd = new McecCommand(cmdString);
-                    cmd.Execute(reply);
-                    return;
-                }
-
-                if (cmdString.StartsWith("chars:")) {
-                    // "chars:<chars>
-                    String chars = Regex.Unescape(cmdString.Substring(6, cmdString.Length - 6));
-                    Logger.Instance.Log4.Info($"Cmd: Sending {chars.Length} chars: {chars}");
-                    var sim = new InputSimulator();
-                    sim.Keyboard.TextEntry(chars);
-                    return;
-                }
-
-                if (cmdString.StartsWith("api:")) {
-                    // "api:API(params)
-                    // TODO: Implement API stuff
-                    return;
-                }
-
-                if (cmdString.StartsWith("shiftdown:")) {
-                    // Modifyer key down
-                    SendInputCommand.ShiftKey(cmdString.Substring(10, cmdString.Length - 10), true);
-                    return;
-                }
-
-                if (cmdString.StartsWith("shiftup:")) {
-                    // Modifyer key up
-                    SendInputCommand.ShiftKey(cmdString.Substring(8, cmdString.Length - 8), false);
-                    return;
-                }
-
-                if (cmdString.StartsWith(MouseCommands.CmdPrefix)) {
-                    // mouse:<action>[,<parameter>,<parameter>]
-                    var mouseCmd = new MouseCommands(cmdString);
-                    mouseCmd.Execute(reply);
-                    return;
-                }
-
-                if (cmdString.Length == 1) {
-                    // It's a single character, just send it
-                    // must be upper case (VirtualKeyCode codes are for upper case)
-                    cmdString = cmdString.ToUpper(CultureInfo.InvariantCulture);
-                    char c = cmdString.ToCharArray()[0];
-
-                    var sim = new InputSimulator();
-
-                    Logger.Instance.Log4.Info("Cmd: Sending keydown for: " + cmdString);
-                    sim.Keyboard.KeyPress((VirtualKeyCode)c);
-                    return;
-                }
-            }
-
-            // Command is in .commands
-            Command command = this[cmdString.ToUpper(CultureInfo.InvariantCulture)];
-            if (command != null) {
-                command.Execute(reply);
+            // parse cmd and args (eg. char vs "shutdown" vs "mouse:<action>[,<parameter>,<parameter>]"
+            //"mouse:<action>[,<parameter>,<parameter>]"
+            Match match = Regex.Match(cmdString, @"(\w+:)(.+)");
+            if (match.Success) {
+                cmd = match.Groups[1].Value;
+                args = match.Groups[2].Value;
             }
             else {
-                Logger.Instance.Log4.Info("Cmd: Unknown command: " + cmdString);
+                cmd = cmdString;
+            }
+            cmd = cmd.ToUpperInvariant();
+
+            // TODO: Implement ignoreInternalCommands
+
+            switch (cmd.ToUpperInvariant()) {
+                case "SHIFTDOWN:":
+                    // Modifyer key down
+                    SendInputCommand.ShiftKey(args, true);
+                    break;
+
+                case "SHIFTUP:":
+                    // Modifyer key down
+                    SendInputCommand.ShiftKey(args, false);
+                    break;
+
+                default:
+                    if (cmdString.Length == 1) {
+                        // It's a single character, just send it
+                        // must be upper case (VirtualKeyCode codes are for upper case)
+                        cmdString = cmdString.ToUpperInvariant();
+                        char c = cmdString.ToCharArray()[0];
+
+                        Logger.Instance.Log4.Info("Cmd: Sending keydown for: " + cmdString);
+                        new InputSimulator().Keyboard.KeyPress((VirtualKeyCode)c);
+                    }
+                    else {
+                        // Command is in .commands
+                        if (this[cmd.ToUpperInvariant()] != null) {
+                            this[cmd.ToUpperInvariant()].Execute(args, reply);
+                        }
+                        else Logger.Instance.Log4.Info("Cmd: Unknown command: " + cmdString);
+                    }
+                    break;
             }
         }
 
@@ -218,8 +206,7 @@ namespace MCEControl {
                 var serializer = new XmlSerializer(typeof(CommandTable));
                 reader =
                     new XmlTextReader(
-                        Assembly.GetExecutingAssembly()
-                            .GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
+                        Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
                 cmds = (CommandTable)serializer.Deserialize(reader);
                 foreach (var cmd in cmds.Commands)
                     cmds.Add(cmd);
@@ -236,23 +223,18 @@ namespace MCEControl {
             foreach (Command cmd in McecCommand.Commands)
                 cmds.Add(cmd);
 
-            foreach (Command cmd in MouseCommands.Commands)
+            foreach (Command cmd in MouseCommand.Commands)
                 cmds.Add(cmd);
 
-            foreach (Command cmd in ShutdownCommands.Commands)
+            foreach (Command cmd in ShutdownCommand.Commands)
                 cmds.Add(cmd);
 
-            // Populate default VK_ codes
-            foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
-                string s;
-                if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
-                    s = vk.ToString();  // already have VK_
-                else
-                    s = "VK_" + vk.ToString();
-                var cmd = new SendInputCommand(s, false, false, false, false);
-                if (!cmds.hashTable.ContainsKey(s))
-                    cmds.hashTable.Add(s, cmd);
-            }
+            foreach (Command cmd in CharsCommand.Commands)
+                cmds.Add(cmd);
+
+            foreach (Command cmd in SendInputCommand.Commands)
+                cmds.Add(cmd);
+
             return cmds;
         }
 
@@ -268,7 +250,7 @@ namespace MCEControl {
                 XmlReader reader = new XmlTextReader(fs);
                 CommandTable userCmds = (CommandTable)serializer.Deserialize(reader);
                 Logger.Instance.Log4.Info($"Commands: Loading {userCmds.Commands.Length} user commands from {userCommandsFile}.");
-                foreach (var cmd in userCmds.Commands) 
+                foreach (var cmd in userCmds.Commands)
                     Add(cmd, true);
                 reader.Close();
             }
@@ -309,10 +291,10 @@ namespace MCEControl {
 
         private void Add(Command cmd, bool log = false) {
             if (!string.IsNullOrEmpty(cmd.Key)) {
-                if (this.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
-                    this.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
+                if (this.hashTable.ContainsKey(cmd.Key.ToUpperInvariant())) {
+                    this.hashTable.Remove(cmd.Key.ToUpperInvariant());
                 }
-                this.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
+                this.hashTable.Add(cmd.Key.ToUpperInvariant(), cmd);
                 if (log) Logger.Instance.Log4.Info($"Commands: Command added: {cmd.Key}");
             }
             else Logger.Instance.Log4.Info($"Commands: Error parsing command: {cmd.ToString()}");

@@ -137,6 +137,7 @@
     </Compile>
     <Compile Include="FileSystemSafeWatcher.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="CharsCommand.cs" />
     <Compile Include="UserActivityMonitor.cs" />
     <Compile Include="UserActivityMonitor\GlobalEventProvider.cs">
       <SubType>Component</SubType>
@@ -149,14 +150,14 @@
     <Compile Include="LatestVersion.cs" />
     <Compile Include="UserActivityMonitor\MouseEventExtArgs.cs" />
     <Compile Include="SerialServer.cs" />
-    <Compile Include="KeyboardCommand.cs">
+    <Compile Include="SendInputCommand.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="MainWindow.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="MouseCommands.cs" />
-    <Compile Include="ProcessCommands.cs">
+    <Compile Include="MouseCommand.cs" />
+    <Compile Include="StartProcessCommand.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
@@ -164,7 +165,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="SendMessageCommands.cs">
+    <Compile Include="SendMessageCommand.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ServiceBase.cs" />
@@ -177,14 +178,14 @@
     <Compile Include="SettingsDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="ShutdownCommands.cs">
+    <Compile Include="ShutdownCommand.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SocketServer.cs" />
     <Compile Include="SystemControl.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TerminalCommands.cs" />
+    <Compile Include="McecCommand.cs" />
     <Compile Include="UserActivityMonitor\NativeMethods.cs" />
     <Compile Include="Util.cs">
       <SubType>Code</SubType>

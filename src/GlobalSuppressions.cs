@@ -203,3 +203,5 @@
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA3075:Insecure DTD processing in XML", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.AppSettings.Deserialize(System.String)~MCEControl.AppSettings")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2202:Do not dispose objects multiple times", Scope = "member", Target = "MCEControl.CommandTable.#LoadUserCommands()")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2202:Do not dispose objects multiple times", Scope = "member", Target = "MCEControl.AppSettings.#Deserialize(System.String)")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1806:Do not ignore method results", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.SendMessageCommand.Execute(System.String,MCEControl.Reply)")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1305:Specify IFormatProvider", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.McecCommand.Execute(System.String,MCEControl.Reply)")]

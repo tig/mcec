@@ -53,7 +53,7 @@ namespace MCEControl {
         public override string ToString() {
             return $"Cmd=\"{Key}\" Msg=\"{Msg}\" lParam=\"{LParam}\" wParam=\"{WParam}\" ClassName=\"{ClassName}\" WindowName=\"{WindowName}\"";
         }
-        public override void Execute(Reply reply) {
+        public override void Execute(string args, Reply reply) {
             try {
                 if (ClassName != null) {
                     var procs = Process.GetProcessesByName(ClassName);

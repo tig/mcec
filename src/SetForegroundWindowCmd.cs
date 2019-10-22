@@ -32,7 +32,7 @@ namespace MCEControl {
             WindowName = windowName;
         }
 
-        public override void Execute(Reply reply)
+        public override void Execute(string args, Reply reply)
         {
             try {
                 if (ClassName != null) {
