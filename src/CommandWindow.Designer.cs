@@ -45,7 +45,7 @@
             // 
             this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 342);
+            this.label1.Location = new System.Drawing.Point(8, 408);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(126, 13);
             this.label1.TabIndex = 0;
@@ -54,7 +54,7 @@
             // textBoxChars
             // 
             this.textBoxChars.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.textBoxChars.Location = new System.Drawing.Point(141, 339);
+            this.textBoxChars.Location = new System.Drawing.Point(141, 408);
             this.textBoxChars.Name = "textBoxChars";
             this.textBoxChars.Size = new System.Drawing.Size(202, 20);
             this.textBoxChars.TabIndex = 1;
@@ -62,7 +62,7 @@
             // buttonSendChars
             // 
             this.buttonSendChars.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.buttonSendChars.Location = new System.Drawing.Point(349, 336);
+            this.buttonSendChars.Location = new System.Drawing.Point(352, 408);
             this.buttonSendChars.Name = "buttonSendChars";
             this.buttonSendChars.Size = new System.Drawing.Size(84, 23);
             this.buttonSendChars.TabIndex = 2;
@@ -96,7 +96,7 @@
             this.listCmds.Location = new System.Drawing.Point(12, 25);
             this.listCmds.MultiSelect = false;
             this.listCmds.Name = "listCmds";
-            this.listCmds.Size = new System.Drawing.Size(762, 302);
+            this.listCmds.Size = new System.Drawing.Size(765, 375);
             this.listCmds.TabIndex = 6;
             this.listCmds.UseCompatibleStateImageBehavior = false;
             this.listCmds.View = System.Windows.Forms.View.Details;
@@ -122,24 +122,26 @@
             // 
             this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(34, 368);
+            this.label5.Location = new System.Drawing.Point(24, 432);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(104, 13);
+            this.label5.Size = new System.Drawing.Size(109, 13);
             this.label5.TabIndex = 7;
-            this.label5.Text = "Send &any command:";
+            this.label5.Text = "Send &any commands:";
             // 
             // textBoxSendCommand
             // 
             this.textBoxSendCommand.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.textBoxSendCommand.Location = new System.Drawing.Point(141, 365);
+            this.textBoxSendCommand.Location = new System.Drawing.Point(141, 432);
+            this.textBoxSendCommand.Multiline = true;
             this.textBoxSendCommand.Name = "textBoxSendCommand";
-            this.textBoxSendCommand.Size = new System.Drawing.Size(202, 20);
+            this.textBoxSendCommand.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.textBoxSendCommand.Size = new System.Drawing.Size(202, 90);
             this.textBoxSendCommand.TabIndex = 8;
             // 
             // buttonSend
             // 
             this.buttonSend.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.buttonSend.Location = new System.Drawing.Point(349, 363);
+            this.buttonSend.Location = new System.Drawing.Point(349, 500);
             this.buttonSend.MaximumSize = new System.Drawing.Size(84, 23);
             this.buttonSend.MinimumSize = new System.Drawing.Size(84, 23);
             this.buttonSend.Name = "buttonSend";
@@ -153,7 +155,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(786, 390);
+            this.ClientSize = new System.Drawing.Size(789, 527);
             this.Controls.Add(this.buttonSend);
             this.Controls.Add(this.textBoxSendCommand);
             this.Controls.Add(this.label5);

@@ -48,18 +48,26 @@ namespace MCEControl {
         }
 
         private void buttonSendChars_Click(object sender, EventArgs e) {
-            textBoxSendCommand.Text = $"chars:{textBoxChars.Text}";
+            if (textBoxChars.TextLength == 1)
+                textBoxSendCommand.Text = textBoxChars.Text;
+            else {
+                textBoxSendCommand.Text = "chars:" + textBoxChars.Text;
+            }
             Send();
         }
 
         private void buttonSend_Click(object sender, EventArgs e) {
-            log4.Debug("buttonSend_Click");
-            Send();
+            foreach (string line in textBoxSendCommand.Lines)
+                Send(line);
+        }
+
+        private void Send(string line) {
+            Logger.Instance.Log4.Info("Sending Command: " + line);
+            MainWindow.Instance.SendLine(line);
         }
 
         private void Send() {
-            Logger.Instance.Log4.Info("Sending Command: " + textBoxSendCommand.Text);
-            MainWindow.Instance.SendLine(textBoxSendCommand.Text);
+            Send(textBoxSendCommand.Text);
         }
 
         private void listCmds_DoubleClick(object sender, EventArgs e) {
