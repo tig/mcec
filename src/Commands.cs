@@ -221,12 +221,8 @@ namespace MCEControl {
                         Assembly.GetExecutingAssembly()
                             .GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
                 cmds = (CommandTable)serializer.Deserialize(reader);
-                foreach (var cmd in cmds.Commands) {
-                    if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
-                        cmds.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
-                    }
-                    cmds.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
-                }
+                foreach (var cmd in cmds.Commands)
+                    cmds.Add(cmd);
                 reader.Dispose();
             }
             catch (Exception ex) {
@@ -237,26 +233,14 @@ namespace MCEControl {
             }
 
             // Add the built-ins
-            foreach (Command cmd in McecCommand.Commands) {
-                if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
-                    cmds.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
-                }
-                cmds.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
-            }
+            foreach (Command cmd in McecCommand.Commands)
+                cmds.Add(cmd);
 
-            foreach (Command cmd in MouseCommands.Commands) {
-                if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
-                    cmds.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
-                }
-                cmds.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
-            }
+            foreach (Command cmd in MouseCommands.Commands)
+                cmds.Add(cmd);
 
-            foreach (Command cmd in ShutdownCommands.Commands) {
-                if (cmds.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
-                    cmds.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
-                }
-                cmds.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
-            }
+            foreach (Command cmd in ShutdownCommands.Commands)
+                cmds.Add(cmd);
 
             // Populate default VK_ codes
             foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
@@ -284,13 +268,8 @@ namespace MCEControl {
                 XmlReader reader = new XmlTextReader(fs);
                 CommandTable userCmds = (CommandTable)serializer.Deserialize(reader);
                 Logger.Instance.Log4.Info($"Commands: Loading {userCmds.Commands.Length} user commands from {userCommandsFile}.");
-                foreach (var cmd in userCmds.Commands) {
-                    if (hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
-                        hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
-                    }
-                    hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
-                    Logger.Instance.Log4.Info($"Commands: User command added: {cmd.Key}");
-                }
+                foreach (var cmd in userCmds.Commands) 
+                    Add(cmd, true);
                 reader.Close();
             }
             catch (FileNotFoundException) {
@@ -326,6 +305,17 @@ namespace MCEControl {
                     fs.Close();
             }
             OnChangedEvent();
+        }
+
+        private void Add(Command cmd, bool log = false) {
+            if (!string.IsNullOrEmpty(cmd.Key)) {
+                if (this.hashTable.ContainsKey(cmd.Key.ToUpper(CultureInfo.InvariantCulture))) {
+                    this.hashTable.Remove(cmd.Key.ToUpper(CultureInfo.InvariantCulture));
+                }
+                this.hashTable.Add(cmd.Key.ToUpper(CultureInfo.InvariantCulture), cmd);
+                if (log) Logger.Instance.Log4.Info($"Commands: Command added: {cmd.Key}");
+            }
+            else Logger.Instance.Log4.Info($"Commands: Error parsing command: {cmd.ToString()}");
         }
 
         //private static void GenerateXSD() {
