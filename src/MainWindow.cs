@@ -209,27 +209,15 @@ namespace MCEControl {
             Location = Settings.WindowLocation;
             Size = Settings.WindowSize;
 
-            CmdTable = CommandTable.Create($@"{ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
-            if (CmdTable == null) {
-                MessageBox.Show(this, Resources.MCEController_commands_read_error, Resources.App_FullName);
-                notifyIcon.Visible = false;
-                Opacity = 100;
-            }
-            else {
-                Logger.Instance.Log4.Info($"{CmdTable.NumCommands} commands available.");
-                Opacity = (double)Settings.Opacity / 100;
-
-                if (Settings.HideOnStartup) {
-                    Opacity = 0;
-                    Win32.PostMessage(Handle, (UInt32)WM.SYSCOMMAND, (UInt32)SC.CLOSE, 0);
-                }
-            }
-
             if (cmdWindow == null)
                 cmdWindow = new CommandWindow();
 
-            CmdTable.ChangedEvent += (o, a) => CmdTable_ChangedEvent(o, a);
+            LoadCommands();
 
+            if (Settings.HideOnStartup) {
+                Opacity = 0;
+                Win32.PostMessage(Handle, (UInt32)WM.SYSCOMMAND, (UInt32)SC.CLOSE, 0);
+            }
 
             logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, MainMenuStrip.Font.SizeInPoints - 1,
                 System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
@@ -238,13 +226,27 @@ namespace MCEControl {
             SetStatus($"Version: {Application.ProductVersion}");
             Start();
         }
-
+        
         private void CmdTable_ChangedEvent(object sender, EventArgs e) {
-            if (cmdWindow != null && cmdWindow.Visible) {
-                if (cmdWindow.InvokeRequired)
-                    cmdWindow.BeginInvoke((MethodInvoker)delegate () { cmdWindow.RefreshList(); });
-                else
-                    cmdWindow.RefreshList();
+            if (cmdWindow.InvokeRequired)
+                cmdWindow.BeginInvoke((Action)(() => { CmdTable_ChangedEvent(sender, e); }));
+            else {
+                LoadCommands();
+            }
+        }
+        private void LoadCommands() {
+            if (CmdTable != null) {
+                CmdTable.ChangedEvent -= (o, a) => CmdTable_ChangedEvent(o, a);
+                CmdTable.Dispose();
+            }
+
+            CmdTable = CommandTable.Create($@"{ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
+            if (CmdTable == null) 
+                notifyIcon.Visible = false; 
+            else {
+                CmdTable.ChangedEvent += (o, a) => CmdTable_ChangedEvent(o, a);
+                cmdWindow.RefreshList();
+                Logger.Instance.Log4.Info($"{CmdTable.NumCommands} commands available.");
             }
         }
 
