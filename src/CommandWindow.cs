@@ -92,6 +92,11 @@ namespace MCEControl {
                 item.SubItems.Add(cmd.ToString());
                 listCmds.Items.Add(item);
             }
+            // Set column widths to fit longest items
+            listCmds.Columns[0].Width = -1;
+            listCmds.Columns[1].Width = -1;
+            listCmds.Columns[2].Width = -1;
+
             listCmds.Focus();
             listCmds.Items[0].Selected = true;
         }
