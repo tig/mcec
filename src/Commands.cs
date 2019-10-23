@@ -152,12 +152,10 @@ namespace MCEControl {
 
             if (cmdString.Length == 1) {
                 // It's a single character, just send it
-                // must be upper case (VirtualKeyCode codes are for upper case)
-                cmdString = cmdString.ToUpperInvariant();
-                char c = cmdString.ToCharArray()[0];
+                SendInputCommand keydownCmd = new SendInputCommand(cmdString, false, false, false, false);
 
-                Logger.Instance.Log4.Info("Cmd: Sending keydown for: " + cmdString);
-                new InputSimulator().Keyboard.KeyPress((VirtualKeyCode)c);
+                Logger.Instance.Log4.Info($"Cmd: Sending keydown for: {cmdString}");
+                keydownCmd.Execute(args, reply);
             }
             else {
                 // Command is in .commands

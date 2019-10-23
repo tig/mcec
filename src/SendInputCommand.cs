@@ -77,6 +77,11 @@ namespace MCEControl {
         }
 
         public override void Execute(string args, Reply reply) {
+            
+            // Forms:
+            // Vk = "VK_..." - Simulates keypress of VK_...
+            // Vk = "0X_..." - Simulates keypress of keycode 0X..."
+            // Vk = "<char>" - Simulates keypress of keycode for <char>
 
             try {
                 VirtualKeyCode vkcode;
@@ -91,22 +96,29 @@ namespace MCEControl {
                                           CultureInfo.InvariantCulture.NumberFormat, out num)) &&
                          !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
                                          out num)) {
+                        // Not hex
                         switch (Key.ToUpperInvariant()) {
                             case "SHIFTDOWN:":
                                 // Modifyer key down
                                 SendInputCommand.ShiftKey(args, true);
+                                return;
                                 break;
 
                             case "SHIFTUP:":
                                 // Modifyer key down
                                 SendInputCommand.ShiftKey(args, false);
+                                return;
                                 break;
+
                             default:
-                                // bad format. barf.
-                                Logger.Instance.Log4.Info($"Cmd: Invalid VK: {ToString()}");
+                                if (string.IsNullOrEmpty(Vk)) {
+                                    // bad format. barf.
+                                    Logger.Instance.Log4.Info($"Cmd: Invalid VK: {ToString()}");
+                                    return;
+                                }
+                                num = Vk.ToUpperInvariant().ToCharArray()[0];
                                 break;
                         }
-                        return;
                     }
                     vkcode = (VirtualKeyCode)num;
                 }
@@ -121,7 +133,7 @@ namespace MCEControl {
                 if (Shift) s = "Shift-" + s;
                 if (Win) s = "Win-" + s;
 
-                Logger.Instance.Log4.Info($"Cmd: Sending VK: '{ToString()}' (0x{(ushort)vkcode:x2})");
+                Logger.Instance.Log4.Info($"Cmd: Sending VK: '{ToString()}' ({s}) (0x{(ushort)vkcode:x2})");
 
                 var sim = new KeyboardSimulator();
 
