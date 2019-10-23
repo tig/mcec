@@ -42,8 +42,8 @@ namespace MCEControl {
 
         static SendInputCommand() {
 
-            Commands.Add(new SendInputCommand { Key = $"shiftdown:" });
-            Commands.Add(new SendInputCommand { Key = $"shiftup:" });
+            Commands.Add(new SendInputCommand($"shiftdown:", false, false, false, false));
+            Commands.Add(new SendInputCommand($"shiftup:", false, false, false, false));
 
             // Populate default VK_ codes
             foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {

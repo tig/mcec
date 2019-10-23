@@ -150,35 +150,21 @@ namespace MCEControl {
 
             // TODO: Implement ignoreInternalCommands
 
-            switch (cmd.ToUpperInvariant()) {
-                case "SHIFTDOWN:":
-                    // Modifyer key down
-                    SendInputCommand.ShiftKey(args, true);
-                    break;
+            if (cmdString.Length == 1) {
+                // It's a single character, just send it
+                // must be upper case (VirtualKeyCode codes are for upper case)
+                cmdString = cmdString.ToUpperInvariant();
+                char c = cmdString.ToCharArray()[0];
 
-                case "SHIFTUP:":
-                    // Modifyer key down
-                    SendInputCommand.ShiftKey(args, false);
-                    break;
-
-                default:
-                    if (cmdString.Length == 1) {
-                        // It's a single character, just send it
-                        // must be upper case (VirtualKeyCode codes are for upper case)
-                        cmdString = cmdString.ToUpperInvariant();
-                        char c = cmdString.ToCharArray()[0];
-
-                        Logger.Instance.Log4.Info("Cmd: Sending keydown for: " + cmdString);
-                        new InputSimulator().Keyboard.KeyPress((VirtualKeyCode)c);
-                    }
-                    else {
-                        // Command is in .commands
-                        if (this[cmd.ToUpperInvariant()] != null) {
-                            this[cmd.ToUpperInvariant()].Execute(args, reply);
-                        }
-                        else Logger.Instance.Log4.Info("Cmd: Unknown command: " + cmdString);
-                    }
-                    break;
+                Logger.Instance.Log4.Info("Cmd: Sending keydown for: " + cmdString);
+                new InputSimulator().Keyboard.KeyPress((VirtualKeyCode)c);
+            }
+            else {
+                // Command is in .commands
+                if (this[cmd.ToUpperInvariant()] != null) {
+                    this[cmd.ToUpperInvariant()].Execute(args, reply);
+                }
+                else Logger.Instance.Log4.Info("Cmd: Unknown command: " + cmdString);
             }
         }
 
