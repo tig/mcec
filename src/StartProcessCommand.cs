@@ -23,7 +23,7 @@ namespace MCEControl {
         private String verb;
         [XmlAttribute("Verb")] public string Verb { get => verb; set => verb = value; }
 
-        private List<Command> commands;
+        private List<Command> embeddedCommands;
         [XmlElement("Chars", typeof(CharsCommand))]
         [XmlElement("StartProcess", typeof(StartProcessCommand))]
         [XmlElement("SendInput", typeof(SendInputCommand))]
@@ -31,7 +31,8 @@ namespace MCEControl {
         [XmlElement("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
         [XmlElement("Shutdown", typeof(ShutdownCommand))]
         [XmlElement(typeof(Command))]
-        public List<Command> Commands { get => commands; set => commands = value; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
+        public List<Command> EmbeddedCommands { get => embeddedCommands; set => embeddedCommands = value; }
 
         public StartProcessCommand() {
         }
@@ -58,10 +59,10 @@ namespace MCEControl {
                 Arguments = this.Arguments,
                 Verb = this.Verb
             };
-            if (this.Commands != null) {
-                cmd.Commands = new List<Command>();
-                foreach (var next in this.Commands)
-                    cmd.Commands.Add(next.Clone(reply, args));
+            if (this.EmbeddedCommands != null) {
+                cmd.EmbeddedCommands = new List<Command>();
+                foreach (var next in this.EmbeddedCommands)
+                    cmd.EmbeddedCommands.Add(next.Clone(reply, args));
             }
             return cmd;
         }
@@ -86,7 +87,7 @@ namespace MCEControl {
 
                 // TODO: Make delay smarter
                 p.Start();
-                if (Commands != null && Commands.Count > 0)
+                if (EmbeddedCommands != null && EmbeddedCommands.Count > 0)
                     try {
                         p.WaitForInputIdle(50000); // TODO: Make this settable
                     }
@@ -95,8 +96,8 @@ namespace MCEControl {
                     }
             }
 
-            if (Commands != null) {
-                foreach (var cmd in Commands) cmd.Execute();
+            if (EmbeddedCommands != null) {
+                foreach (var cmd in EmbeddedCommands) cmd.Execute();
             }
         }
     }

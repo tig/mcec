@@ -451,6 +451,7 @@ namespace MCEControl {
 
         private void ReceivedData(Reply reply, String cmd) {
             try {
+                // TODO: Temporary until Invoker implementation
                 CmdTable.Enqueue(reply, cmd);
                 CmdTable.ExecuteNext();
             }
