@@ -126,7 +126,8 @@
     <Compile Include="AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Commands.cs">
+    <Compile Include="Command.cs" />
+    <Compile Include="CommandTable.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CommandWindow.cs">
@@ -138,6 +139,9 @@
     <Compile Include="FileSystemSafeWatcher.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="CharsCommand.cs" />
+    <Compile Include="TextBoxExt.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="UserActivityMonitor.cs" />
     <Compile Include="UserActivityMonitor\GlobalEventProvider.cs">
       <SubType>Component</SubType>

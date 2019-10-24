@@ -24,8 +24,9 @@ namespace MCEControl {
         public const string CmdPrefix = "chars:";
         private string chars;
         [XmlAttribute("Chars")] public string Chars { get => chars; set => chars = value; }
+        public static List<CharsCommand> Commands { get => commands; }
 
-        public static List<CharsCommand> Commands = new List<CharsCommand>();
+        private static List<CharsCommand> commands = new List<CharsCommand>();
         static CharsCommand() {
             Commands.Add(new CharsCommand { Key = $"{CmdPrefix}" });
         }
@@ -36,8 +37,16 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\"";
         }
 
-        public override void Execute(string args, Reply reply) {
-            String text = Regex.Unescape(args);
+        public override Command Clone(Reply reply, string args = null) => new CharsCommand() {
+            Key = this.Key,
+            Chars = this.Chars,
+            Reply = reply,
+            Args = args
+        };
+
+        // ICommand:Execute
+        public override void Execute() {
+            String text = Regex.Unescape(Args);
             // if command came in as a literal "chars:foo" command use args
             // otherwise, use the Chars property
             if (string.IsNullOrEmpty(text) && !string.IsNullOrEmpty(chars))

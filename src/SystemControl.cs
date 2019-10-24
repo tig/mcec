@@ -88,11 +88,11 @@ namespace MCEControl {
             return Application.SetSuspendState(PowerState.Suspend, true, false);
         }
 
-        public static bool Hibernate() {
-            return Application.SetSuspendState(PowerState.Hibernate, false, false);
+        public static bool Hibernate(string msg, int timeout, bool forceAppsClosed, bool rebootAfterShutdown) {
+            return false;
         }
 
-        public static void Shutdown(string msg, int timeout, bool forceAppsClosed, bool rebootAfterShutdown) {
+        public static void Shutdown(string msg, int timeout, bool forceAppsClosed, bool rebootAfterShutdown, string option = "") {
             string force = forceAppsClosed ? "/f" : "";
             string reboot = rebootAfterShutdown ? "/r" : "/s";
             msg = msg is null ? "" : msg;

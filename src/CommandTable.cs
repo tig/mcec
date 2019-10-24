@@ -12,6 +12,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -25,25 +26,11 @@ using WindowsInput;
 using WindowsInput.Native;
 
 namespace MCEControl {
-    // Base class for all Command types
-    public class Command {
-        private String key;
-        [XmlAttribute("Cmd")]
-        public string Key { get => key; set => key = value; }
-
-        public override string ToString() => $"Cmd=\"{Key}\"";
-        /// <summary>
-        /// Called to execute the command. 
-        /// </summary>
-        /// <param name="args">Any text to the right of the command.</param>
-        /// <param name="reply">Reply context (so replies get sent to the right socket)</param>
-        public virtual void Execute(string args, Reply reply) {
-        }
-    }
-
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "Needed for XmlArray")]
 
-    // Singleton class holding all commands
+    // Singleton class holding all commands that MCE Controller will respond to
+    // De-Serialzes from XML (.commands files) and auto populates with built-in commands
+    //
     // Note, do not change the namespace or you will break existing installations
     [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "MCEController")]
     public class CommandTable : IDisposable {
@@ -64,8 +51,8 @@ namespace MCEControl {
         private Command[] commands;
 
         [XmlIgnore]
-        public virtual Command this[string key] {
-            get => (Command)hashTable[key];
+        public virtual ICommand this[string key] {
+            get => (ICommand)hashTable[key];
         }
 
         [XmlIgnore] public ICollection Keys { get => hashTable.Keys; }
@@ -73,6 +60,13 @@ namespace MCEControl {
 
         public CommandTable() {
         }
+
+        // TODO: Move this out of CommandTable into either MainWindow or an Invoker class
+        // -------------------  Command Queue ---------------
+
+        private ConcurrentQueue<ICommand> executeQueue = new ConcurrentQueue<ICommand>();
+
+        // ---------------------------------------------------
 
         public event EventHandler ChangedEvent;
         /// <summary>
@@ -131,7 +125,7 @@ namespace MCEControl {
             get { return hashTable.Count; }
         }
 
-        public void Execute(Reply reply, String cmdString) {
+        public void Enqueue(Reply reply, String cmdString) {
             if (cmdString == null) throw new ArgumentNullException(nameof(cmdString));
             string cmd;
             string args = "";
@@ -153,16 +147,29 @@ namespace MCEControl {
             if (cmdString.Length == 1) {
                 // It's a single character, just send it
                 SendInputCommand keydownCmd = new SendInputCommand(cmdString, false, false, false, false);
+                keydownCmd.Args = args;
+                keydownCmd.Reply = reply;
 
                 Logger.Instance.Log4.Info($"Cmd: Sending keydown for: {cmdString}");
-                keydownCmd.Execute(args, reply);
+                executeQueue.Enqueue(keydownCmd);
             }
             else {
                 // Command is in .commands
                 if (this[cmd.ToUpperInvariant()] != null) {
-                    this[cmd.ToUpperInvariant()].Execute(args, reply);
+                    ICommand command = (ICommand)this[cmd.ToUpperInvariant()].Clone(reply, args);
+                    executeQueue.Enqueue(command);
+                    // If it has sub-commands enqueue them too
+                    
                 }
                 else Logger.Instance.Log4.Info("Cmd: Unknown command: " + cmdString);
+            }
+        }
+
+        internal void ExecuteNext() {
+            ICommand cmd;
+            if (executeQueue.TryDequeue(out cmd)) {
+                cmd.Execute();
+                cmd = null;
             }
         }
 
@@ -192,7 +199,7 @@ namespace MCEControl {
                     new XmlTextReader(
                         Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
                 cmds = (CommandTable)serializer.Deserialize(reader);
-                foreach (var cmd in cmds.Commands)
+                foreach (Command cmd in cmds.Commands)
                     cmds.Add(cmd);
                 reader.Dispose();
             }
@@ -234,7 +241,7 @@ namespace MCEControl {
                 XmlReader reader = new XmlTextReader(fs);
                 CommandTable userCmds = (CommandTable)serializer.Deserialize(reader);
                 Logger.Instance.Log4.Info($"Commands: Loading {userCmds.Commands.Length} user commands from {userCommandsFile}.");
-                foreach (var cmd in userCmds.Commands)
+                foreach (Command cmd in userCmds.Commands)
                     Add(cmd, true);
                 reader.Close();
             }
@@ -278,7 +285,7 @@ namespace MCEControl {
                 if (this.hashTable.ContainsKey(cmd.Key.ToUpperInvariant())) {
                     this.hashTable.Remove(cmd.Key.ToUpperInvariant());
                 }
-                this.hashTable.Add(cmd.Key.ToUpperInvariant(), cmd);
+                this.hashTable.Add(cmd.Key.ToUpperInvariant(), (ICommand)cmd);
                 if (log) Logger.Instance.Log4.Info($"Commands: Command added: {cmd.Key}");
             }
             else Logger.Instance.Log4.Info($"Commands: Error parsing command: {cmd.ToString()}");
@@ -332,7 +339,5 @@ namespace MCEControl {
             // Specify what is done when a file is renamed.
             Logger.Instance.Log4.Info($"Commands:{e.OldFullPath} renamed to {e.FullPath}");
         }
-
-
     }
 }

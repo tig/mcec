@@ -33,20 +33,23 @@ namespace MCEControl {
         public McecCommand() {
         }
 
-        public McecCommand(String cmd) {
-            Key = cmd.Substring(CmdPrefix.Length, cmd.Length - CmdPrefix.Length);
-        }
-
         public override string ToString() {
             return $"Cmd=\"{Key}\"";
         }
 
-        public override void Execute(string args, Reply reply) {
-            if (reply == null)
-                return;
+        public override Command Clone(Reply reply, string args = null) => new McecCommand() {
+            Key = this.Key,
+            Reply = reply,
+            Args = args
+        };
+
+        // ICommand:Execute
+        public override void Execute() {
+            if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
+            if (this.Args is null) throw new InvalidOperationException("Args property cannot be null.");
 
             var replyBuilder = new StringBuilder();
-            switch (args.ToUpperInvariant()) {
+            switch (Args.ToUpperInvariant()) {
                 // MCE Controller version
                 case "VER":
                     replyBuilder.Append(Application.ProductVersion);
@@ -54,19 +57,26 @@ namespace MCEControl {
 
                 // Cause MCE Controller to exit
                 case "EXIT":
-                    reply.WriteLine("exiting");
+                    Reply.WriteLine("exiting");
                     MainWindow.Instance.ShutDown();
                     return;
 
                 // Return a list of supported commands (really just for testing)
                 case "CMDS":
-                    replyBuilder.Append(Environment.NewLine);
-                    var orderedKeys = MainWindow.Instance.CmdTable.Keys.Cast<string>().OrderBy(c => c);
-                    foreach (string key in orderedKeys) {
-                        Command cmd = MainWindow.Instance.CmdTable[key];
-                        var item = new ListViewItem(cmd.Key);
-                        Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
-                        replyBuilder.AppendFormat($"<{match.Groups[1].Value} {cmd.ToString()} />{Environment.NewLine}" );
+                    Command cmd = this ;
+                    Match match = null;
+                    try {
+                        replyBuilder.Append(Environment.NewLine);
+                        var orderedKeys = MainWindow.Instance.CmdTable.Keys.Cast<string>().OrderBy(c => c);
+                        foreach (string key in orderedKeys) {
+                            cmd = (Command)MainWindow.Instance.CmdTable[key];
+                            var item = new ListViewItem(cmd.Key);
+                            match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
+                            replyBuilder.Append($"<{match.Groups[1].Value} {cmd.ToString()} />{Environment.NewLine}");
+                        }
+                    }
+                    catch (Exception e) {
+                        Logger.Instance.Log4.Info($"{this.GetType().Name}: ({Key}:{Args}) <{match.Groups[1].Value} {cmd.ToString()}/> - {e.Message}");
                     }
                     break;
 
@@ -78,13 +88,9 @@ namespace MCEControl {
             }
 
             // Reply.  
-            replyBuilder.Insert(0, $"{args}=");
-            Reply(reply, replyBuilder.ToString());
-        }
-
-        private void Reply(Reply reply, String msg) {
-            Logger.Instance.Log4.Info("Cmd: Sending reply: " + msg);
-            reply.WriteLine(msg);
+            replyBuilder.Insert(0, $"{Args}=");
+            Logger.Instance.Log4.Info($"Cmd: Sending reply: {replyBuilder.ToString()}");
+            Reply.WriteLine(replyBuilder.ToString());
         }
     }
 }

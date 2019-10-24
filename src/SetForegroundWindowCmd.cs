@@ -32,8 +32,10 @@ namespace MCEControl {
             WindowName = windowName;
         }
 
-        public override void Execute(string args, Reply reply)
-        {
+        public override Command Clone(Reply reply, string args = null) => new SetForegroundWindowCommand(ClassName, WindowName) { Reply = reply, Args = args };
+        // ICommand:Execute
+        public override void Execute() {
+
             try {
                 if (ClassName != null) {
                     var procs = Process.GetProcessesByName(ClassName);

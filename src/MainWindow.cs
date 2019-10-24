@@ -62,7 +62,7 @@ namespace MCEControl {
         private ToolStripMenuItem checkUpdatesMenuItem;
         private ToolStripSeparator toolStripSeparator4;
         private ToolStripMenuItem aboutMenuItem;
-        private TextBox logTextBox;
+        private TextBoxExt logTextBox;
         private MenuItem menuSeparator5;
         private MenuItem notifySettingsMenuItem;
         private MenuItem menuSeparator4;
@@ -451,7 +451,8 @@ namespace MCEControl {
 
         private void ReceivedData(Reply reply, String cmd) {
             try {
-                CmdTable.Execute(reply, cmd);
+                CmdTable.Enqueue(reply, cmd);
+                CmdTable.ExecuteNext();
             }
             catch (Exception e) {
                 Logger.Instance.Log4.Info($"Command: ({cmd}) error: {e}");
@@ -864,7 +865,7 @@ namespace MCEControl {
             this.notifySettingsMenuItem = new System.Windows.Forms.MenuItem();
             this.menuSeparator5 = new System.Windows.Forms.MenuItem();
             this.notifyExitMenuItem = new System.Windows.Forms.MenuItem();
-            this.logTextBox = new System.Windows.Forms.TextBox();
+            this.logTextBox = new TextBoxExt();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusStripStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.statusStripClient = new System.Windows.Forms.ToolStripStatusLabel();

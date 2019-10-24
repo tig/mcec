@@ -21,7 +21,7 @@ namespace MCEControl {
     /// Summary description for SendMessageCommand.
     /// </summary>
     public class SendMessageCommand : Command {
-         private int msg;
+        private int msg;
         [XmlAttribute("Msg")] public int Msg { get => msg; set => msg = value; }
 
         // This is int so that -1 can be specified in the XML
@@ -40,9 +40,7 @@ namespace MCEControl {
         public SendMessageCommand() {
         }
 
-#pragma warning disable CS3001 // Argument type is not CLS-compliant
-        public SendMessageCommand(String className, String windowName, DWORD msg, DWORD wParam, DWORD lParam) {
-#pragma warning restore CS3001 // Argument type is not CLS-compliant
+        public SendMessageCommand(String className, String windowName, int msg, int wParam, int lParam) {
             ClassName = className;
             WindowName = windowName;
             Msg = (int)msg;
@@ -53,7 +51,15 @@ namespace MCEControl {
         public override string ToString() {
             return $"Cmd=\"{Key}\" Msg=\"{Msg}\" lParam=\"{LParam}\" wParam=\"{WParam}\" ClassName=\"{ClassName}\" WindowName=\"{WindowName}\"";
         }
-        public override void Execute(string args, Reply reply) {
+
+        public override Command Clone(Reply reply, string args = null) => new SendMessageCommand(ClassName, WindowName, Msg, WParam, LParam) {
+            Reply = reply,
+            Args = args
+        };
+
+        // ICommand:Execute
+        public override void Execute() {
+
             try {
                 if (ClassName != null) {
                     var procs = Process.GetProcessesByName(ClassName);

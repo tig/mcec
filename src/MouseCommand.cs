@@ -9,6 +9,7 @@
 //-------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Xml.Serialization;
 using WindowsInput;
@@ -21,7 +22,7 @@ namespace MCEControl {
     public class MouseCommand : Command {
         public const string CmdPrefix = "mouse:";
 
-        public static MouseCommand[] Commands = new MouseCommand[] {
+        private static List<MouseCommand> commands = new List<MouseCommand>() {
             new MouseCommand{ Key = $"{CmdPrefix }" }, // the rest are just for documentation in the Commmand Window
             new MouseCommand{ Key = $"{CmdPrefix }lbc" },
             new MouseCommand{ Key = $"{CmdPrefix }lbc" },
@@ -41,17 +42,30 @@ namespace MCEControl {
             new MouseCommand{ Key = $"{CmdPrefix }hs,x" },
             new MouseCommand{ Key = $"{CmdPrefix }vs,y" },
         };
+
+        public static List<MouseCommand> Commands { get => commands;  }
+
         public MouseCommand() { }
 
         public override string ToString() {
             return $"Cmd=\"{Key}\"";
         }
 
-        public override void Execute(string args, Reply reply) {
-            if (args == null) throw new ArgumentNullException(nameof(args));
+        public override Command Clone(Reply reply, string args = null) => new MouseCommand() {
+            Key = this.Key,
+            Reply = reply,
+            Args = args
+        };
+
+        // ICommand:Execute
+        public override void Execute() {
+
+            if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
+            if (this.Args is null) throw new InvalidOperationException("Args property cannot be null.");
+
             var sim = new InputSimulator();
             // Format is "mouse:<action>[,<parameters>]
-            string[] param = args.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries) ;
+            string[] param = Args.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries) ;
             if (param.Length == 0) return;
 
             switch (param[0]) {
@@ -85,7 +99,7 @@ namespace MCEControl {
             }
         }
 
-        private int GetIntOrZero(String[] s, int index) {
+        private static int GetIntOrZero(String[] s, int index) {
             int val = 0;
             if (index < s.Length) {
                 if (!int.TryParse(s[index], out val))

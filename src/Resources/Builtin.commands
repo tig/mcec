@@ -17,9 +17,11 @@ Copyright 2019 Kindel Sytems, LLC.
 
 <Commands xmlns="http://www.kindel.com/products/mcecontroller">
   <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
-  <!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
+
+  <!--
+  
+  <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
   <SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
-  <!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
   <SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
   <SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
 
@@ -43,7 +45,6 @@ Copyright 2019 Kindel Sytems, LLC.
   <SendInput Cmd="play" vk="VK_MEDIA_PLAY_PAUSE" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="ctrl-x" vk="VK_X" Shift="false" Ctrl="true" Alt="false" />
 
-  <!-- Windows Media Center specific keyboard commands -->
   <SendInput Cmd="cc" vk="67" Shift="true" Ctrl="true" Alt="false" />
   <SendInput Cmd="ch+" vk="187" Shift="false" Ctrl="true" Alt="false" />
   <SendInput Cmd="ch-" vk="189" Shift="false" Ctrl="true" Alt="false" />
@@ -87,5 +88,6 @@ Copyright 2019 Kindel Sytems, LLC.
   <SendInput Cmd="tab" vk="9" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="snapshot" vk="44" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="zoom" vk="90" Shift="false" Ctrl="false" Alt="false" />
+  -->
 </Commands>
 </MCEController>

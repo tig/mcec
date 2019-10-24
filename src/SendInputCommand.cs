@@ -21,7 +21,7 @@ namespace MCEControl {
     /// modifiers.
     /// </summary>
     [Serializable]
-    public class SendInputCommand : Command {
+    public class SendInputCommand : Command, ICommand {
         private bool alt;
         private bool ctrl;
         private bool shift;
@@ -33,12 +33,13 @@ namespace MCEControl {
         [XmlAttribute("Shift")] public bool Shift { get => shift; set => shift = value; }
         [XmlAttribute("Win")] public bool Win { get => win; set => win = value; }
         [XmlAttribute("vk")] public string Vk { get => vk; set => vk = value; }
+        public static List<SendInputCommand> Commands { get => commands; }
 
         public SendInputCommand() {
 
         }
 
-        public static List<SendInputCommand> Commands = new List<SendInputCommand>();
+        private static List<SendInputCommand> commands = new List<SendInputCommand>();
 
         static SendInputCommand() {
 
@@ -76,8 +77,14 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\" Vk=\"{Vk}\" Shift=\"{Shift}\" Ctrl=\"{Ctrl}\" Alt=\"{Alt}\" Win=\"{Win}\"";
         }
 
-        public override void Execute(string args, Reply reply) {
-            
+        public override Command Clone(Reply reply, string args = null) => new SendInputCommand(vk, shift, ctrl, alt, win) {
+            Key = this.Key,
+            Reply = reply,
+            Args = args
+        };
+
+        // ICommand:Execute
+        public override void Execute() { 
             // Forms:
             // Vk = "VK_..." - Simulates keypress of VK_...
             // Vk = "0X_..." - Simulates keypress of keycode 0X..."
@@ -100,13 +107,13 @@ namespace MCEControl {
                         switch (Key.ToUpperInvariant()) {
                             case "SHIFTDOWN:":
                                 // Modifyer key down
-                                SendInputCommand.ShiftKey(args, true);
+                                SendInputCommand.ShiftKey(Args, true);
                                 return;
                                 break;
 
                             case "SHIFTUP:":
                                 // Modifyer key down
-                                SendInputCommand.ShiftKey(args, false);
+                                SendInputCommand.ShiftKey(Args, false);
                                 return;
                                 break;
 
