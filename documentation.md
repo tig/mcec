@@ -38,6 +38,7 @@ By default **MCE Controller** supports over 250 built-in commands for controllin
 * Supports simulating start process commands (e.g. run `notepad.exe`) with the `StartProcess`command.
 * Supports simulating changing the window focus with the `SetForegroundWindow` command.
 * Supports sending text (e.g. simulating typing) with the `chars:` command.
+* Commands can be paced (slowed down) and there's a `pause` command enabling waiting for apps to open etc...
 * Includes built-in support for common Windows Media Center commands. 
 * It can easily be extended to suit your needs through a `MCEController.commands file.`
 
@@ -158,7 +159,7 @@ If you've followed the instructions above to connect an instance of MCE Controll
 
 * Double click on any command to cause it to be sent from the Client to the Server (be careful, because if you double click on 'shutdown' your PC will literally shut down!).
 * Type anything into the `Send "chars:" command` edit box and press `Send` to send a `chars:` command.
-* Type a command into the `Send any command` edit box and press `Send` to send that command.
+* Type commands (one per line) into the `Send commands` edit box and press `Send` to send those commands.
 
 Turn on the `Activity Monitor` while in test mode and you'll see events in the log for when activity is detected.
 
@@ -192,7 +193,9 @@ The following command types are supported by **MCE Controller**:
 * **Shutdown** - Allows the host computer to be shutdown, restarted, put in standby, or hibernate mode.
 * **SendMessage** - Enables the sending of window messages to windows. E.g. the 'mcemaximize' command causes the Media Center window to go full screen.
 * **SendInput** - Sends keyboard input as though it were typed on a keyboard.
+* **Chars** - Sends text.
 * **Mouse** - Sends mouse movement and button actions.
+* **Pause** - Pauses after a command before another is exectued (in milliseconds).
 * **Built-In** - Single characters, `VK_` codes, `chars:`, `shiftdown:`, `shiftup:,` and `mcec:.`
 
 ### Built-in Commands
@@ -298,15 +301,46 @@ Values returned by commands in **MCE Controller** are of the format `command=val
 
 ### Defining Your Own Commands
 
-**MCE Controller** supports over 250 built-in commands. You can see how many are defined [here](https://github.com/tig/mcec/blob/master/Resources/Builtin.commands). You can override or augment this set by editing the `MCEControl.commands` file and (Use the `Commands.Open commands file...` menu to find the file location on your machine.Any commands it defines will add to and over-ride matching built-in commands.
+**MCE Controller** supports over 300 built-in commands. You can see how many are defined [here](https://github.com/tig/mcec/blob/master/Resources/Builtin.commands). You can override or augment this set by editing the `MCEControl.commands` file and (Use the `Commands.Open commands file...` menu to find the file location on your machine.Any commands it defines will add to and over-ride matching built-in commands.
 
 A sample `MCEControl.commands` file is installed by default with all entries commented out.
 
 Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1). 
 
-`MCEControl.commands` supports defining four types of commands: `SendInput`, `SendMessage`, `StartProcess`, `Shutdown`, and `SetForegroundWindow`.
+`MCEControl.commands` supports defining all types of commands: `SendInput`, `SendMessage`, `StartProcess`, `Shutdown`, `Chars`, `Pause`, and `SetForegroundWindow`.
 
-**Note on case sensitivity**: In the `MCEControl.commands` file, all XML element and attribute names are case-sensitive. E.g. `ctrl` is NOT the same as `Ctrl`.  The commands themselves (the values of Cmd attributes) are NOT case-sensitive. E.g. ‘MonitorOff’ will be treated the same as `monitoroff`.
+The form of a Command defintion is:
+
+    <type Cmd="text to trigger on" Args="optioal args" etc.../>
+
+**Note on case sensitivity**: All XML element and attribute names are case-insensitive. E.g. `ctrl` is the same as `Ctrl`.  The value of the `Cmd` attribute is NOT case-sensitive. E.g. `MonitorOff` will be treated the same as `monitoroff`. Some attribute values ARE case sensitive (e.g. in `<SendInput/>` commands `Ctrl="true"` will work but `Ctrl="False"` will not).
+
+Also note that you should not make commands a single character or it will interfere with the ability to simulate individual character key presses.
+
+#### Nesting
+
+Commands support chaining by nesting elements. The nexted commands will be executed after the started application starts processing windows messages.
+
+For example, the following launches Notepad, types some text, maximizes it, and then shows the About box. The example is written to be intentionally complex.
+
+    <StartProcess Cmd="notepad" File="notepad.exe" >
+      <Pause Args="100"/>
+      <Chars Cmd="test" Args="this is a test." />
+      <SendInput vk="VK_RETURN"/>
+          <Pause Args="100"/>
+      <SendInput vk="VK_RIGHT" Shift="true" Win="true"/>
+          <Pause Args="100"/>
+      <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
+      <SendInput vk="VK_RETURN">
+        <Chars Args="Second "/>
+        <Chars Args="line..">
+          <SendInput vk="h" Alt="true"/>
+          <SendInput vk="a" Alt="false">
+            <SendInput vk="VK_ESCAPE"/>
+          </SendInput>
+        </Chars>
+      </SendInput>
+    </StartProcess>
 
 #### SendInput Commands
 
@@ -314,13 +348,17 @@ Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to e
 
 For example, the following causes a **Ctrl-P** to be sent to the foreground window, and if that window is Media Center, the My Pictures page appears:
 
-`<SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />`
+    <SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />
 
-(The VK code or 'P' is 73 decimal).
+The VK code or 'P' is 73 decimal. The above command definition is identical to:
+
+    <SendInput Cmd="mypictures" vk="P" Shift="false" Ctrl="true" Alt="false" />
 
 This example causes a Windows-X to be simulated, which causes the Windows 10 "expert" menu to pop up:
 
-`<SendInput Cmd="winx" vk="VK_X" Win="true"/>`
+    <SendInput Cmd="winx" vk="VK_X" Win="true"/>
+
+Note the values of the shift attributes are CASE SENSITIVE. If present, the values must be either `true` or `false` (not `True` or `False`).
 
 #### SendMessage Commands
 
@@ -328,7 +366,7 @@ This example causes a Windows-X to be simulated, which causes the Windows 10 "ex
 
 For example, the following is equivalent to sending a `WM_SYSCOMMAND` with the `SC_MAXIMIZE` flag, causing the window with the class name of `ehshell` to be maximized (`WM_SYSCOMMAND == 247` and `SC_MAXIMIZE == 61488`):
 
-`<SendMessage Cmd="mce_maximize" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />`
+    <SendMessage Cmd="mce_maximize" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />
 
 These commands might be useful in some scenarios:
 
@@ -344,19 +382,19 @@ See the [MSDN documentation](http://msdn.microsoft.com/en-us/library/ms646360(v=
 
 #### StartProcess Commands
 
-`StartProcess` commands start processes. Process commands support chaining using the `nextCommand` element. The embedded command will be executed after the started application starts processing windows’ messages.
+`StartProcess` commands start processes. Examples:
 
-For example, the following launches Media Center and maximizes it:
+    <Startprocess cmd="code" file="code" Arguments="foo.cs" />
+    <StartProcess Cmd="tada" File="C:\Windows\Media\tada.wav" Verb="Open" />
+    <StartProcess Cmd="term" File="shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" />
+    <StartProcess Cmd="netflix" File="shell:AppsFolder\4DF9E0F8.Netflix_mcm4njqhnhss8!Netflix.App" />
 
-    <StartProcess Cmd="mce_start" File="C:\windows\ehome\ehshell.exe">
-        <nextCommand xsi:type="SendMessage" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />
-    </StartProcess>
 
 #### Shutdown Commands
 
 The supported shutdown commands are self-explanatory.
 
-    <Shutdown Cmd="shutdown" Type="shutdown"/>
+    <Shutdown Cmd="shutdown" Type="shutdown" Timeout="30"/>
     <Shutdown Cmd="restart" Type="restart"/>
     <Shutdown Cmd="abort" Type="abort"/>
     <Shutdown Cmd="standby" Type="standby"/>
@@ -370,9 +408,14 @@ For example, the following makes Media Center the foreground Window (assuming Me
 
     <SetForegroundWindow Cmd="mce_activate" ClassName="ehshell"/>
 
-Note that **MCE Controller** supports the `chars:`, `shiftup:`, and `shiftdown:` commands in addition to the commands defined in MCEControl.commands.
 
-Also note that you should not make commands a single character or it will interfere with the ability to simulate individual character key presses.
+#### Chars Commands
+
+The `Chars` command is how the `chars:` commands get processesd. `<Chars Cmd="foo" Arg="bar"/>` defines `foo` such that if **MCE Controller** receives `foo` it will type `bar` just as it had received `chars:bar`. 
+
+#### Pause Commands
+
+The `Pause` command delays executing the next command. `<Pause Cmd="pause3sec" Arg="3000"/>` will pause 3 seconds. This is the same as sending `pause:3000`. 
 
 ### Disabling All Internal Commands
 
@@ -428,3 +471,13 @@ Also, you may find that `greenbutton` is a better function than `mcestart` becau
     * Settings, Command files, and log files are stored in %appdata%.
     * Improved logging.
 * Version 2.0.4 (October 11, 2019) - Fixed bug where Server was not sending commands back to client.
+* Version 2.1.0 (OCtober 25, 2019) - Lots of updates
+    * Commands defined in `MCECommands.command` now *really* override any built-ins. 
+    * Reverted the set of built-in commands to include tons of defaults.
+    * Key and Attribute names (e.g. `<sendinput>` or `Shift=`) in MCECommands.commands` are no longer case senstive.
+    * Default pacing for commands is settable. See `General` settings tab. Default is 0. Specify in ms.
+    * New `Pause` Command enables putting delays between commands
+    * Shutdown commands are expanded and more reliable. Almost all funcdtions supported by the Windows `shutdown.exe` command are supported.
+    * Command window now supports sending multiple lines (scripts)
+    * All `<Commands>` in `MCEControl.commands` can now be nested. This makes it easy to create compound commands (scripts). 
+    * Added `Chars` Command. Useful in nested commands.
