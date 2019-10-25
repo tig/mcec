@@ -22,8 +22,7 @@ namespace MCEControl {
     /// </summary>
     public class CharsCommand : Command {
         public const string CmdPrefix = "chars:";
-        private string chars;
-        [XmlAttribute("Chars")] public string Chars { get => chars; set => chars = value; }
+
         public static List<CharsCommand> Commands { get => commands; }
 
         private static List<CharsCommand> commands = new List<CharsCommand>();
@@ -33,11 +32,7 @@ namespace MCEControl {
 
         public CharsCommand() { }
 
-        public override string ToString() {
-            return $"Cmd=\"{Key}\" Chars=\"{Chars}\"";
-        }
-
-        public override ICommand Clone(Reply reply) => base.Clone(reply, new CharsCommand() { Chars = this.Chars });
+        public override ICommand Clone(Reply reply) => base.Clone(reply, new CharsCommand());
 
         // ICommand:Execute
         public override void Execute() {
@@ -46,12 +41,10 @@ namespace MCEControl {
             // otherwise, use the Chars property
             if (!string.IsNullOrEmpty(Args))
                 text = Regex.Unescape(Args);
-            else if (!string.IsNullOrEmpty(Chars))
-                text = Regex.Unescape(Chars);
             else
                 text = "";
 
-            Logger.Instance.Log4.Info($"Cmd: Sending {text.Length} chars: {text}");
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending {text.Length} chars: {text}");
             new InputSimulator().Keyboard.TextEntry(text);
         }
     }

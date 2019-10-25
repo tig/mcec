@@ -139,6 +139,7 @@
     <Compile Include="FileSystemSafeWatcher.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="CharsCommand.cs" />
+    <Compile Include="PauseCommand.cs" />
     <Compile Include="TextBoxExt.cs">
       <SubType>Component</SubType>
     </Compile>

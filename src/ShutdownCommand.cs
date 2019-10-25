@@ -90,7 +90,7 @@ namespace MCEControl {
                         break;
 
                     default:
-                        Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: Invalid command: {ToString()}");
+                        Logger.Instance.Log4.Info($"{this.GetType().Name}: ShutdownCommands: Invalid command: {ToString()}");
                         break;
                 }
             }

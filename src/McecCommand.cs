@@ -85,7 +85,7 @@ namespace MCEControl {
 
             // Reply.  
             replyBuilder.Insert(0, $"{Args}=");
-            Logger.Instance.Log4.Info($"Cmd: Sending reply: {replyBuilder.ToString()}");
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending reply: {replyBuilder.ToString()}");
             Reply.WriteLine(replyBuilder.ToString());
         }
     }

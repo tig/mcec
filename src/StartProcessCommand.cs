@@ -51,7 +51,7 @@ namespace MCEControl {
         public override void Execute() {
             if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
 
-            Logger.Instance.Log4.Info($"Cmd: Starting process: {ToString()}");
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: Starting process: {ToString()}");
             if (File != null) {
                 var p = new Process {
                     StartInfo = {

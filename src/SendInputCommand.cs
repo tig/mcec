@@ -74,13 +74,13 @@ namespace MCEControl {
         }
 
         public override string ToString() {
-            return $"Cmd=\"{Key}\" Vk=\"{Vk}\" Shift=\"{Shift}\" Ctrl=\"{Ctrl}\" Alt=\"{Alt}\" Win=\"{Win}\"";
+            return $"Cmd=\"{Key}\" Args=\"{Args}\" Vk=\"{Vk}\" Shift=\"{Shift}\" Ctrl=\"{Ctrl}\" Alt=\"{Alt}\" Win=\"{Win}\"";
         }
 
         public override ICommand Clone(Reply reply) => base.Clone(reply, new SendInputCommand(vk, shift, ctrl, alt, win));
 
         // ICommand:Execute
-        public override void Execute() { 
+        public override void Execute() {
             // Forms:
             // Vk = "VK_..." - Simulates keypress of VK_...
             // Vk = "0X_..." - Simulates keypress of keycode 0X..."
@@ -88,6 +88,28 @@ namespace MCEControl {
 
             try {
                 VirtualKeyCode vkcode;
+
+                // Deal with shiftdown/up: commands
+                // TODO: Break this out to a separate command
+                if (!string.IsNullOrEmpty(Args)) {
+                    switch (Key.ToUpperInvariant()) {
+                        case "SHIFTDOWN:":
+                            // Modifyer key down
+                            SendInputCommand.ShiftKey(Args, true);
+                            break;
+
+                        case "SHIFTUP:":
+                            // Modifyer key down
+                            SendInputCommand.ShiftKey(Args, false);
+                            break;
+
+                        default:
+                            Logger.Instance.Log4.Info($"{this.GetType().Name}: Invalid shiftup/down: {ToString()}");
+                            break;
+                    }
+                    return;
+                }
+
                 if (!Vk.StartsWith("VK_", StringComparison.InvariantCultureIgnoreCase) ||
                     (!Enum.TryParse(Vk.ToUpperInvariant(), true, out vkcode) &&
                      !Enum.TryParse(Vk.ToUpperInvariant().Substring(3), true, out vkcode))) {
@@ -101,31 +123,7 @@ namespace MCEControl {
                                          out num)) {
 
                         // Deal with <SendInput Vk="x"/>
-                        if (string.IsNullOrEmpty(Key)) Key = Vk;
-
-                        // Not hex
-                        switch (Key.ToUpperInvariant()) {
-                            case "SHIFTDOWN:":
-                                // Modifyer key down
-                                SendInputCommand.ShiftKey(Args, true);
-                                return;
-                                break;
-
-                            case "SHIFTUP:":
-                                // Modifyer key down
-                                SendInputCommand.ShiftKey(Args, false);
-                                return;
-                                break;
-
-                            default:
-                                if (string.IsNullOrEmpty(Vk)) {
-                                    // bad format. barf.
-                                    Logger.Instance.Log4.Info($"Cmd: Invalid VK: {ToString()}");
-                                    return;
-                                }
-                                num = Vk.ToUpperInvariant().ToCharArray()[0];
-                                break;
-                        }
+                        num = Vk.ToUpperInvariant().ToCharArray()[0];
                     }
                     vkcode = (VirtualKeyCode)num;
                 }
@@ -140,7 +138,7 @@ namespace MCEControl {
                 if (Shift) s = "Shift-" + s;
                 if (Win) s = "Win-" + s;
 
-                Logger.Instance.Log4.Info($"Cmd: Sending VK: '{ToString()}' ({s}) (0x{(ushort)vkcode:x2})");
+                Logger.Instance.Log4.Info($"{this.GetType().Name} '{ToString()}' (:{s}) (0x{(ushort)vkcode:x2})");
 
                 var sim = new KeyboardSimulator();
 
@@ -174,12 +172,12 @@ namespace MCEControl {
                 }
             }
             catch (Exception e) {
-                Logger.Instance.Log4.Info("Cmd: SendInput failed:" + e.Message);
+                Logger.Instance.Log4.Info($"{this.GetType().Name}: failed. {e.Message}");
             }
         }
 
         public static void ShiftKey(String key, Boolean down) {
-            Logger.Instance.Log4.Info($"Cmd: {key} {(down ? "down" : "up")}");
+            Logger.Instance.Log4.Info($"ShiftKey: {key} {(down ? "down" : "up")}");
 
             var sim = new InputSimulator();
             switch (key) {

@@ -49,16 +49,19 @@ namespace MCEControl {
         [XmlElement("SendMessage", typeof(SendMessageCommand))]
         [XmlElement("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
         [XmlElement("Shutdown", typeof(ShutdownCommand))]
+        [XmlElement("Pause", typeof(PauseCommand))]
+        [XmlElement("Mouse", typeof(MouseCommand))]
         [XmlElement(typeof(Command))]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
         public List<Command> EmbeddedCommands { get => embeddedCommands; set => embeddedCommands = value; }
 
+        [XmlAttribute("Args")]
         public virtual string Args { get => args; set => args = value; }
         public virtual Reply Reply { get => reply; set => reply = value; }
 
-        public override string ToString() => $"Cmd=\"{Key}\"";
+        public override string ToString() => $"Cmd=\"{Key}\" Args=\"{Args}\"";
 
-        private string args;
+        private string args = "";
 
         private Reply reply;
 

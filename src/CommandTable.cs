@@ -47,6 +47,8 @@ namespace MCEControl {
         [XmlArrayItem("SendMessage", typeof(SendMessageCommand))]
         [XmlArrayItem("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
         [XmlArrayItem("Shutdown", typeof(ShutdownCommand))]
+        [XmlArrayItem("Pause", typeof(PauseCommand))]
+        [XmlArrayItem("Mouse", typeof(MouseCommand))]
         [XmlArrayItem(typeof(Command))]
         // TODO: Convert to List<Command>
         public Command[] Commands { get => commands; set => commands = value; }
@@ -162,12 +164,13 @@ namespace MCEControl {
 
                     // This supports commands of the form 'chars:args'; these
                     // commands do not need to originate in CommandTable
-                    clone.Args = args;
+                    if (string.IsNullOrEmpty(clone.Args))
+                        clone.Args = args;
 
                     EnqueueCommand(clone);
                 }
                 else
-                    Logger.Instance.Log4.Info("Cmd: Unknown command: " + cmdString);
+                    Logger.Instance.Log4.Info("Commands: Unknown command: " + cmdString);
             }
         }
 
@@ -178,6 +181,7 @@ namespace MCEControl {
         private void EnqueueCommand(ICommand cmd) {
             executeQueue.Enqueue(cmd);
             // If it has embedded-commands enqueue them too
+            if (((Command)cmd).EmbeddedCommands is null) return;
             foreach (var embedded in ((Command)cmd).EmbeddedCommands)
                 EnqueueCommand(embedded);
         }
@@ -242,6 +246,9 @@ namespace MCEControl {
                 cmds.Add(cmd);
 
             foreach (Command cmd in SendInputCommand.Commands)
+                cmds.Add(cmd);
+
+            foreach (Command cmd in PauseCommand.Commands)
                 cmds.Add(cmd);
 
             return cmds;

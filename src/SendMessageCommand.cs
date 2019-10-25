@@ -63,21 +63,21 @@ namespace MCEControl {
                     if (procs.Length > 0) {
                         var h = procs[0].MainWindowHandle;
 
-                        Logger.Instance.Log4.Info($"Cmd: SendMessage {ToString()}");
+                        Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage {ToString()}");
                         Win32.SendMessage(h, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
                     }
                     else {
-                        Logger.Instance.Log4.Info("Cmd: GetProcessByName for " + ClassName + " failed");
+                        Logger.Instance.Log4.Info($"{this.GetType().Name}: GetProcessByName for {ClassName} failed");
                     }
                 }
                 else {
                     var h = Win32.GetForegroundWindow();
-                    Logger.Instance.Log4.Info($"Cmd: SendMessage (forground window): {ToString()}");
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage (forground window): {ToString()}");
                     Win32.SendMessage(h, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
                 }
             }
             catch (Exception e) {
-                Logger.Instance.Log4.Info($"Cmd: SendMessageCommand.Execute failed for {ClassName} with error: {e.Message}");
+                Logger.Instance.Log4.Info($"{this.GetType().Name}: Failed for {ClassName} with error: {e.Message}");
             }
         }
     }
