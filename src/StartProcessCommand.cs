@@ -17,11 +17,11 @@ namespace MCEControl {
     /// </summary>
     public class StartProcessCommand : Command {
         private String file;
-        [XmlAttribute("File")] public string File { get => file; set => file = value; }
+        [XmlAttribute("file")] public string File { get => file; set => file = value; }
         private String arguments;
-        [XmlAttribute("Arguments")] public string Arguments { get => arguments; set => arguments = value; }
+        [XmlAttribute("arguments")] public string Arguments { get => arguments; set => arguments = value; }
         private String verb;
-        [XmlAttribute("Verb")] public string Verb { get => verb; set => verb = value; }
+        [XmlAttribute("verb")] public string Verb { get => verb; set => verb = value; }
 
         public StartProcessCommand() {
         }
@@ -66,10 +66,10 @@ namespace MCEControl {
                 p.Start();
                 if (EmbeddedCommands != null && EmbeddedCommands.Count > 0)
                     try {
-                        p.WaitForInputIdle(50000); // TODO: Make this settable
+                        p.WaitForInputIdle(5000); // TODO: Make this settable
                     }
                     catch (System.InvalidOperationException e) {
-                        System.Threading.Thread.Sleep(5000);
+                        Logger.Instance.Log4.Info($"{this.GetType().Name}: {e.Message}");
                     }
             }
         }

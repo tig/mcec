@@ -17,10 +17,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
+using System.Xml.XPath;
+using System.Xml.Xsl;
 using menelabs.core;
 using WindowsInput;
 using WindowsInput.Native;
@@ -33,22 +36,22 @@ namespace MCEControl {
     // De-Serialzes from XML (.commands files) and auto populates with built-in commands
     //
     // Note, do not change the namespace or you will break existing installations
-    [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "MCEController")]
+    [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "mcecontroller")]
     public class CommandTable : IDisposable {
         [XmlIgnore] private readonly Hashtable hashTable = new Hashtable();
 
         [XmlIgnore] private string userCommandsFile;
         [XmlIgnore] private bool ignoreInternalCommands = false;
 
-        [XmlArray("Commands")]
-        [XmlArrayItem("Chars", typeof(CharsCommand))]
-        [XmlArrayItem("StartProcess", typeof(StartProcessCommand))]
-        [XmlArrayItem("SendInput", typeof(SendInputCommand))]
-        [XmlArrayItem("SendMessage", typeof(SendMessageCommand))]
-        [XmlArrayItem("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
-        [XmlArrayItem("Shutdown", typeof(ShutdownCommand))]
-        [XmlArrayItem("Pause", typeof(PauseCommand))]
-        [XmlArrayItem("Mouse", typeof(MouseCommand))]
+        [XmlArray("commands")]
+        [XmlArrayItem("chars", typeof(CharsCommand))]
+        [XmlArrayItem("startprocess", typeof(StartProcessCommand))]
+        [XmlArrayItem("sendinput", typeof(SendInputCommand))]
+        [XmlArrayItem("sendmessage", typeof(SendMessageCommand))]
+        [XmlArrayItem("setforegroundwindow", typeof(SetForegroundWindowCommand))]
+        [XmlArrayItem("shutdown", typeof(ShutdownCommand))]
+        [XmlArrayItem("pause", typeof(PauseCommand))]
+        [XmlArrayItem("mouse", typeof(MouseCommand))]
         [XmlArrayItem(typeof(Command))]
         // TODO: Convert to List<Command>
         public Command[] Commands { get => commands; set => commands = value; }
@@ -213,17 +216,29 @@ namespace MCEControl {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "None")]
         private static CommandTable LoadBuiltInCommands() {
             CommandTable cmds;
-            // Load the built-in commands from an assembly resource
-            XmlReader reader;
+            // Load the built-in pre-defined commands from an assembly resource
             try {
-                var serializer = new XmlSerializer(typeof(CommandTable));
-                reader =
-                    new XmlTextReader(
+                var reader = new XmlTextReader(
                         Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
-                cmds = (CommandTable)serializer.Deserialize(reader);
+
+                // Transform XML to all lower case key and value names
+                var xsltReader = new XmlTextReader(
+                    Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.xslt"));
+                var myXslTrans = new XslCompiledTransform();
+                myXslTrans.Load(xsltReader);
+                var stm = new MemoryStream();
+                var xsltWriter = XmlWriter.Create(stm, new XmlWriterSettings() { Indent = false, OmitXmlDeclaration = false });
+                myXslTrans.Transform(reader, null, xsltWriter);
+                stm.Position = 0;
+                var lcReader = new XmlTextReader(stm); // lower-case reader
+                var serializer = new XmlSerializer(typeof(CommandTable));
+                cmds = (CommandTable)serializer.Deserialize(lcReader);
                 foreach (Command cmd in cmds.Commands)
                     cmds.Add(cmd);
                 reader.Dispose();
+                xsltWriter.Dispose();
+                xsltReader.Dispose();
+                lcReader.Dispose();
             }
             catch (Exception ex) {
                 MessageBox.Show($"No built-in commands loaded. Error parsing built-in commands. {ex.Message}");
@@ -258,17 +273,32 @@ namespace MCEControl {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "None")]
         private void LoadUserCommands() {
             FileStream fs = null;
-
+  
             try {
-                var serializer = new XmlSerializer(typeof(CommandTable));
                 // A FileStream is needed to read the XML document.
                 fs = new FileStream(userCommandsFile, FileMode.Open, FileAccess.Read);
-                XmlReader reader = new XmlTextReader(fs);
-                CommandTable userCmds = (CommandTable)serializer.Deserialize(reader);
+                var reader = new XmlTextReader(fs);
+
+                // Transform XML to all lower case key and value names
+                var xsltReader = new XmlTextReader(
+                    Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.xslt"));
+                var myXslTrans = new XslCompiledTransform();
+                myXslTrans.Load(xsltReader);
+                var stm = new MemoryStream();
+                var xsltWriter = XmlWriter.Create(stm, new XmlWriterSettings() { Indent = false, OmitXmlDeclaration = false });
+                myXslTrans.Transform(reader, null, xsltWriter);
+                stm.Position = 0;
+                var lcReader = new XmlTextReader(stm); // lower-case reader
+                var serializer = new XmlSerializer(typeof(CommandTable));
+                var userCmds = (CommandTable)serializer.Deserialize(lcReader);
                 Logger.Instance.Log4.Info($"Commands: Loading {userCmds.Commands.Length} user commands from {userCommandsFile}.");
                 foreach (Command cmd in userCmds.Commands)
                     Add(cmd, true);
                 reader.Close();
+                reader.Dispose();
+                xsltWriter.Dispose();
+                xsltReader.Dispose();
+                lcReader.Dispose();
             }
             catch (FileNotFoundException) {
                 Logger.Instance.Log4.Info($"Commands: No user defined commands loaded; {userCommandsFile} was not found.");

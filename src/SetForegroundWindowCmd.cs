@@ -20,9 +20,9 @@ namespace MCEControl {
     /// </summary>
     public class SetForegroundWindowCommand : Command {
         private String className;
-        [XmlAttribute("ClassName")] public string ClassName { get => className; set => className = value; }
+        [XmlAttribute("classname")] public string ClassName { get => className; set => className = value; }
         private String windowName;
-        [XmlAttribute("WindowName")] public string WindowName { get => windowName; set => windowName = value; }
+        [XmlAttribute("windowname")] public string WindowName { get => windowName; set => windowName = value; }
 
         public SetForegroundWindowCommand() {
         }

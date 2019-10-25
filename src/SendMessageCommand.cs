@@ -22,18 +22,18 @@ namespace MCEControl {
     /// </summary>
     public class SendMessageCommand : Command {
         private int msg;
-        [XmlAttribute("Msg")] public int Msg { get => msg; set => msg = value; }
+        [XmlAttribute("msg")] public int Msg { get => msg; set => msg = value; }
 
         // This is int so that -1 can be specified in the XML
         private int lParam;
-        [XmlAttribute("lParam")] public int LParam { get => lParam; set => lParam = value; }
+        [XmlAttribute("lparam")] public int LParam { get => lParam; set => lParam = value; }
 
         private int wParam;
-        [XmlAttribute("wParam")] public int WParam { get => wParam; set => wParam = value; }
+        [XmlAttribute("wparam")] public int WParam { get => wParam; set => wParam = value; }
 
-        [XmlAttribute("ClassName")]
+        [XmlAttribute("className")]
         public String ClassName { get; set; }
-        [XmlAttribute("WindowName")]
+        [XmlAttribute("windowname")]
         public String WindowName { get; set; }
 
 

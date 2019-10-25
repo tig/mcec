@@ -107,6 +107,7 @@
     <Reference Include="System.Drawing">
       <Name>System.Drawing</Name>
     </Reference>
+    <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms">
       <Name>System.Windows.Forms</Name>
     </Reference>
@@ -328,6 +329,7 @@
       <LastGenOutput>AssemblyFileVersion.cs</LastGenOutput>
     </Content>
     <Content Include="Guillen.Icon.ico" />
+    <EmbeddedResource Include="Resources\MCEControl.xslt" />
     <Content Include="Resources\Guillen.Icon.ico" />
     <EmbeddedResource Include="Resources\Builtin.commands" />
     <None Include="Resources\Trafficlight-red-icon.png" />

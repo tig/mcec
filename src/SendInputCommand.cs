@@ -28,10 +28,10 @@ namespace MCEControl {
         private bool win;
         private string vk;
 
-        [XmlAttribute("Alt")] public bool Alt { get => alt; set => alt = value; }
-        [XmlAttribute("Ctrl")] public bool Ctrl { get => ctrl; set => ctrl = value; }
-        [XmlAttribute("Shift")] public bool Shift { get => shift; set => shift = value; }
-        [XmlAttribute("Win")] public bool Win { get => win; set => win = value; }
+        [XmlAttribute("alt")] public bool Alt { get => alt; set => alt = value; }
+        [XmlAttribute("ctrl")] public bool Ctrl { get => ctrl; set => ctrl = value; }
+        [XmlAttribute("shift")] public bool Shift { get => shift; set => shift = value; }
+        [XmlAttribute("win")] public bool Win { get => win; set => win = value; }
         [XmlAttribute("vk")] public string Vk { get => vk; set => vk = value; }
         public static List<SendInputCommand> Commands { get => commands; }
 

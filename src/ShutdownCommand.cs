@@ -17,9 +17,9 @@ namespace MCEControl {
     /// </summary>
     public class ShutdownCommand : Command {
         private String type;
-        [XmlAttribute("Type")] public string Type { get => type; set => type = value; }
+        [XmlAttribute("type")] public string Type { get => type; set => type = value; }
         private int timeOut = 30;
-        [XmlAttribute("TimeOut")] public int TimeOut { get => timeOut; set => timeOut = value; }
+        [XmlAttribute("timeout")] public int TimeOut { get => timeOut; set => timeOut = value; }
         public static List<ShutdownCommand> Commands { get => commands; }
 
         private static List<ShutdownCommand> commands = new List<ShutdownCommand>() {
