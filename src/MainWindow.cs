@@ -41,8 +41,8 @@ namespace MCEControl {
 
 
         // Commands
-        private CommandTable cmdTable;
-        public CommandTable CmdTable { get => cmdTable; set => cmdTable = value; }
+        private Commands commands;
+        public Commands Invoker { get => commands; set => commands = value; }
 
         private CommandWindow cmdWindow;
 
@@ -212,6 +212,9 @@ namespace MCEControl {
             if (cmdWindow == null)
                 cmdWindow = new CommandWindow();
 
+            // watch .command file for changes
+            watcher = new CommandFileWatcher($@"{ConfigPath}MCEControl.commands");
+            watcher.ChangedEvent += (o, a) => CmdTable_CommandsChangedEvent(o, a);
             LoadCommands();
 
             if (Settings.HideOnStartup) {
@@ -226,27 +229,29 @@ namespace MCEControl {
             SetStatus($"Version: {Application.ProductVersion}");
             Start();
         }
-        
-        private void CmdTable_ChangedEvent(object sender, EventArgs e) {
+
+        private void CmdTable_CommandsChangedEvent(object sender, EventArgs e) {
+
             if (cmdWindow.InvokeRequired)
-                cmdWindow.BeginInvoke((Action)(() => { CmdTable_ChangedEvent(sender, e); }));
+                cmdWindow.BeginInvoke((Action)(() => { CmdTable_CommandsChangedEvent(sender, e); }));
             else {
                 LoadCommands();
             }
         }
+
+        private CommandFileWatcher watcher;
+
         private void LoadCommands() {
-            if (CmdTable != null) {
-                CmdTable.ChangedEvent -= (o, a) => CmdTable_ChangedEvent(o, a);
-                CmdTable.Dispose();
+            if (Invoker != null) {
+               // Invoker.Dispose();
             }
 
-            CmdTable = CommandTable.Create($@"{ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
-            if (CmdTable == null) 
-                notifyIcon.Visible = false; 
+            Invoker = Commands.Create($@"{ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
+            if (Invoker == null)
+                notifyIcon.Visible = false;
             else {
-                CmdTable.ChangedEvent += (o, a) => CmdTable_ChangedEvent(o, a);
                 cmdWindow.RefreshList();
-                Logger.Instance.Log4.Info($"{CmdTable.NumCommands} commands available.");
+                Logger.Instance.Log4.Info($"{Invoker.Count} commands available.");
             }
         }
 
@@ -306,7 +311,7 @@ namespace MCEControl {
 
         private void Stop() {
             if (this.InvokeRequired)
-                this.BeginInvoke((MethodInvoker) delegate () { Stop(); });
+                this.BeginInvoke((MethodInvoker)delegate () { Stop(); });
             else {
                 UserActivityMonitor.Stop();
                 StopClient();
@@ -449,15 +454,27 @@ namespace MCEControl {
             }
         }
 
+        /// <summary>
+        /// Anytime a client or server receives data that looks like a command, this function is called.
+        /// </summary>
+        /// <param name="reply">THe reply context any replies should be sent to</param>
+        /// <param name="cmd">the command string</param>
         private void ReceivedData(Reply reply, String cmd) {
-            try {
-                // TODO: Temporary until Invoker implementation
-                CmdTable.Enqueue(reply, cmd);
-                CmdTable.ExecuteNext();
-            }
-            catch (Exception e) {
-                Logger.Instance.Log4.Info($"Command: ({cmd}) error: {e}");
-            }
+            // To ensure we are single-threaded for Invoker, check if we're on UI thread
+            // if not, use Invoke to get onto UI thread.
+            //
+            // TOOD: This is probably not the right model. What we should do is have 
+            // the Invoker run on it's won thread. 
+            if (this.InvokeRequired)
+                this.BeginInvoke((MethodInvoker)delegate () { ReceivedData(reply, cmd); });
+            else
+                try {
+                    Invoker.Enqueue(reply, cmd);
+                    Invoker.ExecuteNext();
+                }
+                catch (Exception e) {
+                    Logger.Instance.Log4.Info($"Command: ({cmd}) error: {e}");
+                }
         }
 
         // Sends a line of text (adds a "\n" to end) to connected client and server
@@ -938,8 +955,8 @@ namespace MCEControl {
             // 
             // logTextBox
             // 
-            this.logTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.logTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.logTextBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.logTextBox.Font = new System.Drawing.Font("Lucida Console", 8F);

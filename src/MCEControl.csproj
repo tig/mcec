@@ -128,7 +128,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Command.cs" />
-    <Compile Include="CommandTable.cs">
+    <Compile Include="CommandFileWatcher.cs" />
+    <Compile Include="Commands.cs" />
+    <Compile Include="SerializedCommands.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CommandWindow.cs">

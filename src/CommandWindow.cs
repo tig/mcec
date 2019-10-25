@@ -83,9 +83,9 @@ namespace MCEControl {
 
         public void RefreshList() { 
             listCmds.Items.Clear();
-            var orderedKeys = MainWindow.Instance.CmdTable.Keys.Cast<string>().OrderBy(c => c);
+            var orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
             foreach (string key in orderedKeys) {
-                Command cmd = (Command)MainWindow.Instance.CmdTable[key];
+                Command cmd = (Command)MainWindow.Instance.Invoker[key];
                 var item = new ListViewItem(cmd.Key);
                 Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                 item.SubItems.Add(match.Groups[1].Value);

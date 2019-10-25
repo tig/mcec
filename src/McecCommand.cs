@@ -63,9 +63,9 @@ namespace MCEControl {
                     Match match = null;
                     try {
                         replyBuilder.Append(Environment.NewLine);
-                        var orderedKeys = MainWindow.Instance.CmdTable.Keys.Cast<string>().OrderBy(c => c);
+                        var orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
                         foreach (string key in orderedKeys) {
-                            cmd = (Command)MainWindow.Instance.CmdTable[key];
+                            cmd = (Command)MainWindow.Instance.Invoker[key];
                             var item = new ListViewItem(cmd.Key);
                             match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                             replyBuilder.Append($"<{match.Groups[1].Value} {cmd.ToString()} />{Environment.NewLine}");

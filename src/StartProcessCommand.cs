@@ -66,7 +66,7 @@ namespace MCEControl {
                 p.Start();
                 if (EmbeddedCommands != null && EmbeddedCommands.Count > 0)
                     try {
-                        p.WaitForInputIdle(5000); // TODO: Make this settable
+                        p.WaitForInputIdle(1000); // TODO: Make this settable
                     }
                     catch (System.InvalidOperationException e) {
                         Logger.Instance.Log4.Info($"{this.GetType().Name}: {e.Message}");
