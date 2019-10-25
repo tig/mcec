@@ -26,6 +26,7 @@ using WindowsInput;
 using WindowsInput.Native;
 
 namespace MCEControl {
+    // TODO: Convert to List<Command>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "Needed for XmlArray")]
 
     // Singleton class holding all commands that MCE Controller will respond to
@@ -47,11 +48,12 @@ namespace MCEControl {
         [XmlArrayItem("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
         [XmlArrayItem("Shutdown", typeof(ShutdownCommand))]
         [XmlArrayItem(typeof(Command))]
+        // TODO: Convert to List<Command>
         public Command[] Commands { get => commands; set => commands = value; }
         private Command[] commands;
 
         [XmlIgnore]
-        public virtual ICommand this[string key] {
+        public ICommand this[string key] {
             get => (ICommand)hashTable[key];
         }
 
@@ -154,22 +156,38 @@ namespace MCEControl {
                 executeQueue.Enqueue(keydownCmd);
             }
             else {
-                // Command is in .commands
+                // Command is in CommandTable...
                 if (this[cmd.ToUpperInvariant()] != null) {
-                    ICommand command = (ICommand)this[cmd.ToUpperInvariant()].Clone(reply, args);
-                    executeQueue.Enqueue(command);
-                    // If it has sub-commands enqueue them too
-                    
+                    Command clone = (Command)((Command)this[cmd.ToUpperInvariant()]).Clone(reply);
+
+                    // This supports commands of the form 'chars:args'; these
+                    // commands do not need to originate in CommandTable
+                    clone.Args = args;
+
+                    EnqueueCommand(clone);
                 }
-                else Logger.Instance.Log4.Info("Cmd: Unknown command: " + cmdString);
+                else
+                    Logger.Instance.Log4.Info("Cmd: Unknown command: " + cmdString);
             }
         }
 
+        /// <summary>
+        /// Enques a Command for execution. Recursively enques embedded commands.
+        /// </summary>
+        /// <param name="cmd">Command to enqueue</param>
+        private void EnqueueCommand(ICommand cmd) {
+            executeQueue.Enqueue(cmd);
+            // If it has embedded-commands enqueue them too
+            foreach (var embedded in ((Command)cmd).EmbeddedCommands)
+                EnqueueCommand(embedded);
+        }
+
         internal void ExecuteNext() {
-            ICommand cmd;
-            if (executeQueue.TryDequeue(out cmd)) {
-                cmd.Execute();
-                cmd = null;
+            ICommand icmd;
+            while (executeQueue.TryDequeue(out icmd)) {
+                Command c = (Command)icmd;
+                c.Execute();
+                System.Threading.Thread.Sleep(MainWindow.Instance.Settings.CommandPacing);
             }
         }
 

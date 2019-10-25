@@ -8,6 +8,7 @@
 //-------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Windows.Forms;
 using System.Xml.Serialization;
 
 namespace MCEControl {
@@ -23,6 +24,7 @@ namespace MCEControl {
 
         private static List<ShutdownCommand> commands = new List<ShutdownCommand>() {
             new ShutdownCommand{ Key = $"shutdown", Type = $"shutdown" },
+            new ShutdownCommand{ Key = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
             new ShutdownCommand{ Key = $"restart", Type = $"restart" },
             new ShutdownCommand{ Key = $"restart-g", Type = $"restart-g" },
             new ShutdownCommand{ Key = $"standby", Type = $"standby" },
@@ -40,7 +42,7 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
         }
 
-        public override Command Clone(Reply reply, string args = null) => new ShutdownCommand() { Reply = reply, Args = args, Key = this.Key, Type = this.Type };
+        public override ICommand Clone(Reply reply) => base.Clone(reply, new ShutdownCommand() { Type = this.Type });
 
         // ICommand:Execute
         public override void Execute() {
@@ -61,12 +63,16 @@ namespace MCEControl {
 
 
                     case "STANDBY":
-                        Shutdown($"/s /hybrid /t {TimeOut} /c \"MCE Controller Forced Standby\"");
+                        Application.SetSuspendState(PowerState.Suspend, true, false);
                         break;
 
                     case "HIBERNATE":
+                         Application.SetSuspendState(PowerState.Hibernate, false, false);
+                         break;
+
+                    case "SHUTDOWN-HYBRID":
                         // Shutdown.exe does not suppport timeout on /h (apparently)
-                        Shutdown($"/h /c \"MCE Controller Forced Hibernation\"");
+                        Shutdown($"/h /c \"MCE Controller Forced Hybrid SHutdown\"");
                         break;
 
                     case "POWEROFF":

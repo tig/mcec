@@ -52,10 +52,7 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\" Msg=\"{Msg}\" lParam=\"{LParam}\" wParam=\"{WParam}\" ClassName=\"{ClassName}\" WindowName=\"{WindowName}\"";
         }
 
-        public override Command Clone(Reply reply, string args = null) => new SendMessageCommand(ClassName, WindowName, Msg, WParam, LParam) {
-            Reply = reply,
-            Args = args
-        };
+        public override ICommand Clone(Reply reply) => base.Clone(reply, new SendMessageCommand(ClassName, WindowName, Msg, WParam, LParam));
 
         // ICommand:Execute
         public override void Execute() {

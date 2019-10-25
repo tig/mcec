@@ -32,7 +32,8 @@ namespace MCEControl {
             WindowName = windowName;
         }
 
-        public override Command Clone(Reply reply, string args = null) => new SetForegroundWindowCommand(ClassName, WindowName) { Reply = reply, Args = args };
+        public override ICommand Clone(Reply reply) => base.Clone(reply, new SetForegroundWindowCommand(ClassName, WindowName));
+
         // ICommand:Execute
         public override void Execute() {
 

@@ -100,6 +100,8 @@ namespace MCEControl {
         private EventLog eventLog1;
         private ComboBox comboBoxLogThresholds;
         private Label labelLogLevel;
+        private TextBox textBoxPacing;
+        private Label labelPacing;
         private TabPage tabServer;
 
         #region Windows Form Designer generated code
@@ -121,23 +123,23 @@ namespace MCEControl {
             this.tabClient = new System.Windows.Forms.TabPage();
             this._checkBoxEnableClient = new System.Windows.Forms.CheckBox();
             this._clientGroup = new System.Windows.Forms.GroupBox();
-            this._editClientPort = new TextBox();
+            this._editClientPort = new System.Windows.Forms.TextBox();
             this._label6 = new System.Windows.Forms.Label();
             this._label8 = new System.Windows.Forms.Label();
-            this._editClientHost = new TextBox();
+            this._editClientHost = new System.Windows.Forms.TextBox();
             this._label7 = new System.Windows.Forms.Label();
-            this._editClientDelayTime = new TextBox();
+            this._editClientDelayTime = new System.Windows.Forms.TextBox();
             this.tabServer = new System.Windows.Forms.TabPage();
             this._checkBoxEnableServer = new System.Windows.Forms.CheckBox();
             this._serverGroup = new System.Windows.Forms.GroupBox();
-            this._editServerPort = new TextBox();
+            this._editServerPort = new System.Windows.Forms.TextBox();
             this._label1 = new System.Windows.Forms.Label();
             this._checkBoxEnableWakeup = new System.Windows.Forms.CheckBox();
             this._wakeupGroup = new System.Windows.Forms.GroupBox();
-            this._editWakeupServer = new TextBox();
-            this._editWakeupCommand = new TextBox();
-            this._editClosingCommand = new TextBox();
-            this._editWakeupPort = new TextBox();
+            this._editWakeupServer = new System.Windows.Forms.TextBox();
+            this._editWakeupCommand = new System.Windows.Forms.TextBox();
+            this._editClosingCommand = new System.Windows.Forms.TextBox();
+            this._editWakeupPort = new System.Windows.Forms.TextBox();
             this._label5 = new System.Windows.Forms.Label();
             this._label2 = new System.Windows.Forms.Label();
             this._label4 = new System.Windows.Forms.Label();
@@ -161,12 +163,14 @@ namespace MCEControl {
             this.checkBoxEnableActivityMonitor = new System.Windows.Forms.CheckBox();
             this.groupBoxActivityMonitor = new System.Windows.Forms.GroupBox();
             this.labelActivityDebounceTime = new System.Windows.Forms.Label();
-            this.textBoxDebounceTime = new TextBox();
-            this.textBoxActivityCommand = new TextBox();
+            this.textBoxDebounceTime = new System.Windows.Forms.TextBox();
+            this.textBoxActivityCommand = new System.Windows.Forms.TextBox();
             this.labelActivityCommand = new System.Windows.Forms.Label();
             this.toolTipClient = new System.Windows.Forms.ToolTip(this.components);
             this._toolTipServer = new System.Windows.Forms.ToolTip(this.components);
             this.eventLog1 = new System.Diagnostics.EventLog();
+            this.labelPacing = new System.Windows.Forms.Label();
+            this.textBoxPacing = new System.Windows.Forms.TextBox();
             this.tabcontrol.SuspendLayout();
             this.tabGeneral.SuspendLayout();
             this.tabClient.SuspendLayout();
@@ -185,10 +189,10 @@ namespace MCEControl {
             // 
             this._buttonCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this._buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this._buttonCancel.Location = new System.Drawing.Point(384, 288);
-            this._buttonCancel.Margin = new System.Windows.Forms.Padding(1);
+            this._buttonCancel.Location = new System.Drawing.Point(768, 554);
+            this._buttonCancel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._buttonCancel.Name = "_buttonCancel";
-            this._buttonCancel.Size = new System.Drawing.Size(75, 24);
+            this._buttonCancel.Size = new System.Drawing.Size(150, 46);
             this._buttonCancel.TabIndex = 2;
             this._buttonCancel.Text = "Cancel";
             this._buttonCancel.UseVisualStyleBackColor = true;
@@ -197,10 +201,10 @@ namespace MCEControl {
             // _buttonOk
             // 
             this._buttonOk.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this._buttonOk.Location = new System.Drawing.Point(296, 288);
-            this._buttonOk.Margin = new System.Windows.Forms.Padding(1);
+            this._buttonOk.Location = new System.Drawing.Point(592, 554);
+            this._buttonOk.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._buttonOk.Name = "_buttonOk";
-            this._buttonOk.Size = new System.Drawing.Size(75, 24);
+            this._buttonOk.Size = new System.Drawing.Size(150, 46);
             this._buttonOk.TabIndex = 1;
             this._buttonOk.Text = "OK";
             this._buttonOk.UseVisualStyleBackColor = true;
@@ -216,24 +220,26 @@ namespace MCEControl {
             this.tabcontrol.Controls.Add(this.tabServer);
             this.tabcontrol.Controls.Add(this.tabSerial);
             this.tabcontrol.Controls.Add(this._tabPageActivityMonitor);
-            this.tabcontrol.Location = new System.Drawing.Point(16, 16);
-            this.tabcontrol.Margin = new System.Windows.Forms.Padding(1);
+            this.tabcontrol.Location = new System.Drawing.Point(32, 31);
+            this.tabcontrol.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.tabcontrol.Name = "tabcontrol";
             this.tabcontrol.SelectedIndex = 0;
-            this.tabcontrol.Size = new System.Drawing.Size(448, 264);
+            this.tabcontrol.Size = new System.Drawing.Size(896, 508);
             this.tabcontrol.TabIndex = 0;
             // 
             // tabGeneral
             // 
             this.tabGeneral.BackColor = System.Drawing.SystemColors.Window;
+            this.tabGeneral.Controls.Add(this.textBoxPacing);
+            this.tabGeneral.Controls.Add(this.labelPacing);
             this.tabGeneral.Controls.Add(this.comboBoxLogThresholds);
             this.tabGeneral.Controls.Add(this.labelLogLevel);
             this.tabGeneral.Controls.Add(this._checkBoxHideOnStartup);
             this.tabGeneral.Controls.Add(this._checkBoxAutoStart);
-            this.tabGeneral.Location = new System.Drawing.Point(4, 22);
-            this.tabGeneral.Margin = new System.Windows.Forms.Padding(1);
+            this.tabGeneral.Location = new System.Drawing.Point(8, 39);
+            this.tabGeneral.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.tabGeneral.Name = "tabGeneral";
-            this.tabGeneral.Size = new System.Drawing.Size(440, 238);
+            this.tabGeneral.Size = new System.Drawing.Size(880, 461);
             this.tabGeneral.TabIndex = 0;
             this.tabGeneral.Text = "General";
             // 
@@ -241,37 +247,39 @@ namespace MCEControl {
             // 
             this.comboBoxLogThresholds.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxLogThresholds.FormattingEnabled = true;
-            this.comboBoxLogThresholds.Location = new System.Drawing.Point(16, 51);
+            this.comboBoxLogThresholds.Location = new System.Drawing.Point(32, 98);
+            this.comboBoxLogThresholds.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.comboBoxLogThresholds.Name = "comboBoxLogThresholds";
-            this.comboBoxLogThresholds.Size = new System.Drawing.Size(121, 21);
+            this.comboBoxLogThresholds.Size = new System.Drawing.Size(238, 33);
             this.comboBoxLogThresholds.TabIndex = 6;
             this.comboBoxLogThresholds.SelectedIndexChanged += new System.EventHandler(this.comboBoxLogThresholds_SelectedIndexChanged);
             // 
             // labelLogLevel
             // 
             this.labelLogLevel.AutoSize = true;
-            this.labelLogLevel.Location = new System.Drawing.Point(13, 35);
+            this.labelLogLevel.Location = new System.Drawing.Point(26, 67);
+            this.labelLogLevel.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.labelLogLevel.Name = "labelLogLevel";
-            this.labelLogLevel.Size = new System.Drawing.Size(78, 13);
+            this.labelLogLevel.Size = new System.Drawing.Size(156, 25);
             this.labelLogLevel.TabIndex = 5;
             this.labelLogLevel.Text = "Log Threshold:";
             // 
             // _checkBoxHideOnStartup
             // 
-            this._checkBoxHideOnStartup.Location = new System.Drawing.Point(16, 8);
-            this._checkBoxHideOnStartup.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxHideOnStartup.Location = new System.Drawing.Point(32, 15);
+            this._checkBoxHideOnStartup.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._checkBoxHideOnStartup.Name = "_checkBoxHideOnStartup";
-            this._checkBoxHideOnStartup.Size = new System.Drawing.Size(160, 15);
+            this._checkBoxHideOnStartup.Size = new System.Drawing.Size(320, 29);
             this._checkBoxHideOnStartup.TabIndex = 0;
             this._checkBoxHideOnStartup.Text = "&Hide window on startup";
             this._checkBoxHideOnStartup.CheckedChanged += new System.EventHandler(this.CheckBoxHideOnStartupCheckedChanged);
             // 
             // _checkBoxAutoStart
             // 
-            this._checkBoxAutoStart.Location = new System.Drawing.Point(16, 85);
-            this._checkBoxAutoStart.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxAutoStart.Location = new System.Drawing.Point(64, 400);
+            this._checkBoxAutoStart.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._checkBoxAutoStart.Name = "_checkBoxAutoStart";
-            this._checkBoxAutoStart.Size = new System.Drawing.Size(160, 16);
+            this._checkBoxAutoStart.Size = new System.Drawing.Size(320, 31);
             this._checkBoxAutoStart.TabIndex = 1;
             this._checkBoxAutoStart.Text = "&Automatically start at login";
             this._checkBoxAutoStart.Visible = false;
@@ -282,20 +290,20 @@ namespace MCEControl {
             this.tabClient.BackColor = System.Drawing.SystemColors.Window;
             this.tabClient.Controls.Add(this._checkBoxEnableClient);
             this.tabClient.Controls.Add(this._clientGroup);
-            this.tabClient.Location = new System.Drawing.Point(4, 22);
-            this.tabClient.Margin = new System.Windows.Forms.Padding(1);
+            this.tabClient.Location = new System.Drawing.Point(8, 39);
+            this.tabClient.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.tabClient.Name = "tabClient";
-            this.tabClient.Size = new System.Drawing.Size(440, 238);
+            this.tabClient.Size = new System.Drawing.Size(880, 461);
             this.tabClient.TabIndex = 1;
             this.tabClient.Text = "Client";
             // 
             // _checkBoxEnableClient
             // 
             this._checkBoxEnableClient.AutoSize = true;
-            this._checkBoxEnableClient.Location = new System.Drawing.Point(20, 10);
-            this._checkBoxEnableClient.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxEnableClient.Location = new System.Drawing.Point(40, 19);
+            this._checkBoxEnableClient.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._checkBoxEnableClient.Name = "_checkBoxEnableClient";
-            this._checkBoxEnableClient.Size = new System.Drawing.Size(88, 17);
+            this._checkBoxEnableClient.Size = new System.Drawing.Size(172, 29);
             this._checkBoxEnableClient.TabIndex = 0;
             this._checkBoxEnableClient.Text = "Enable &Client";
             this.toolTipClient.SetToolTip(this._checkBoxEnableClient, "Starts a TCP/IP client connection to the specified address:port. Commands will be" +
@@ -311,66 +319,66 @@ namespace MCEControl {
             this._clientGroup.Controls.Add(this._editClientHost);
             this._clientGroup.Controls.Add(this._label7);
             this._clientGroup.Controls.Add(this._editClientDelayTime);
-            this._clientGroup.Location = new System.Drawing.Point(12, 11);
-            this._clientGroup.Margin = new System.Windows.Forms.Padding(1);
+            this._clientGroup.Location = new System.Drawing.Point(24, 21);
+            this._clientGroup.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._clientGroup.Name = "_clientGroup";
-            this._clientGroup.Padding = new System.Windows.Forms.Padding(1);
-            this._clientGroup.Size = new System.Drawing.Size(412, 221);
+            this._clientGroup.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this._clientGroup.Size = new System.Drawing.Size(824, 425);
             this._clientGroup.TabIndex = 8;
             this._clientGroup.TabStop = false;
             // 
             // _editClientPort
             // 
-            this._editClientPort.Location = new System.Drawing.Point(16, 88);
-            this._editClientPort.Margin = new System.Windows.Forms.Padding(1);
+            this._editClientPort.Location = new System.Drawing.Point(32, 169);
+            this._editClientPort.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._editClientPort.Name = "_editClientPort";
-            this._editClientPort.Size = new System.Drawing.Size(58, 20);
+            this._editClientPort.Size = new System.Drawing.Size(112, 31);
             this._editClientPort.TabIndex = 3;
             this._editClientPort.TextChanged += new System.EventHandler(this.EditClientPortTextChanged);
             // 
             // _label6
             // 
-            this._label6.Location = new System.Drawing.Point(16, 72);
-            this._label6.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._label6.Location = new System.Drawing.Point(32, 138);
+            this._label6.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._label6.Name = "_label6";
-            this._label6.Size = new System.Drawing.Size(32, 16);
+            this._label6.Size = new System.Drawing.Size(64, 31);
             this._label6.TabIndex = 2;
             this._label6.Text = "&Port:";
             // 
             // _label8
             // 
             this._label8.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this._label8.Location = new System.Drawing.Point(16, 31);
-            this._label8.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._label8.Location = new System.Drawing.Point(32, 60);
+            this._label8.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._label8.Name = "_label8";
-            this._label8.Size = new System.Drawing.Size(88, 16);
+            this._label8.Size = new System.Drawing.Size(176, 31);
             this._label8.TabIndex = 0;
             this._label8.Text = "&Host:";
             // 
             // _editClientHost
             // 
-            this._editClientHost.Location = new System.Drawing.Point(16, 48);
-            this._editClientHost.Margin = new System.Windows.Forms.Padding(1);
+            this._editClientHost.Location = new System.Drawing.Point(32, 92);
+            this._editClientHost.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._editClientHost.Name = "_editClientHost";
-            this._editClientHost.Size = new System.Drawing.Size(162, 20);
+            this._editClientHost.Size = new System.Drawing.Size(320, 31);
             this._editClientHost.TabIndex = 1;
             this._editClientHost.TextChanged += new System.EventHandler(this.EditClientHostTextChanged);
             // 
             // _label7
             // 
-            this._label7.Location = new System.Drawing.Point(16, 112);
-            this._label7.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._label7.Location = new System.Drawing.Point(32, 215);
+            this._label7.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._label7.Name = "_label7";
-            this._label7.Size = new System.Drawing.Size(144, 16);
+            this._label7.Size = new System.Drawing.Size(288, 31);
             this._label7.TabIndex = 2;
             this._label7.Text = "&Reconnect Wait Time (ms):";
             // 
             // _editClientDelayTime
             // 
-            this._editClientDelayTime.Location = new System.Drawing.Point(16, 128);
-            this._editClientDelayTime.Margin = new System.Windows.Forms.Padding(1);
+            this._editClientDelayTime.Location = new System.Drawing.Point(32, 246);
+            this._editClientDelayTime.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._editClientDelayTime.Name = "_editClientDelayTime";
-            this._editClientDelayTime.Size = new System.Drawing.Size(58, 20);
+            this._editClientDelayTime.Size = new System.Drawing.Size(112, 31);
             this._editClientDelayTime.TabIndex = 3;
             this._editClientDelayTime.TextChanged += new System.EventHandler(this.EditClientDelayTimeTextChanged);
             // 
@@ -379,20 +387,20 @@ namespace MCEControl {
             this.tabServer.BackColor = System.Drawing.SystemColors.Window;
             this.tabServer.Controls.Add(this._checkBoxEnableServer);
             this.tabServer.Controls.Add(this._serverGroup);
-            this.tabServer.Location = new System.Drawing.Point(4, 22);
-            this.tabServer.Margin = new System.Windows.Forms.Padding(1);
+            this.tabServer.Location = new System.Drawing.Point(8, 39);
+            this.tabServer.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.tabServer.Name = "tabServer";
-            this.tabServer.Size = new System.Drawing.Size(440, 238);
+            this.tabServer.Size = new System.Drawing.Size(880, 461);
             this.tabServer.TabIndex = 2;
             this.tabServer.Text = "Server";
             // 
             // _checkBoxEnableServer
             // 
             this._checkBoxEnableServer.AutoSize = true;
-            this._checkBoxEnableServer.Location = new System.Drawing.Point(20, 10);
-            this._checkBoxEnableServer.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxEnableServer.Location = new System.Drawing.Point(40, 19);
+            this._checkBoxEnableServer.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._checkBoxEnableServer.Name = "_checkBoxEnableServer";
-            this._checkBoxEnableServer.Size = new System.Drawing.Size(93, 17);
+            this._checkBoxEnableServer.Size = new System.Drawing.Size(180, 29);
             this._checkBoxEnableServer.TabIndex = 0;
             this._checkBoxEnableServer.Text = "Enable &Server";
             this._toolTipServer.SetToolTip(this._checkBoxEnableServer, "Enables the TCP/IP server. It will listen on the specified port for commands.");
@@ -405,38 +413,38 @@ namespace MCEControl {
             this._serverGroup.Controls.Add(this._label1);
             this._serverGroup.Controls.Add(this._checkBoxEnableWakeup);
             this._serverGroup.Controls.Add(this._wakeupGroup);
-            this._serverGroup.Location = new System.Drawing.Point(12, 11);
-            this._serverGroup.Margin = new System.Windows.Forms.Padding(1);
+            this._serverGroup.Location = new System.Drawing.Point(24, 21);
+            this._serverGroup.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._serverGroup.Name = "_serverGroup";
-            this._serverGroup.Padding = new System.Windows.Forms.Padding(1);
-            this._serverGroup.Size = new System.Drawing.Size(412, 221);
+            this._serverGroup.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this._serverGroup.Size = new System.Drawing.Size(824, 425);
             this._serverGroup.TabIndex = 6;
             this._serverGroup.TabStop = false;
             // 
             // _editServerPort
             // 
-            this._editServerPort.Location = new System.Drawing.Point(48, 23);
-            this._editServerPort.Margin = new System.Windows.Forms.Padding(1);
+            this._editServerPort.Location = new System.Drawing.Point(96, 44);
+            this._editServerPort.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._editServerPort.Name = "_editServerPort";
-            this._editServerPort.Size = new System.Drawing.Size(58, 20);
+            this._editServerPort.Size = new System.Drawing.Size(112, 31);
             this._editServerPort.TabIndex = 1;
             this._editServerPort.TextChanged += new System.EventHandler(this.EditServerPortTextChanged);
             // 
             // _label1
             // 
-            this._label1.Location = new System.Drawing.Point(13, 26);
-            this._label1.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._label1.Location = new System.Drawing.Point(26, 50);
+            this._label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._label1.Name = "_label1";
-            this._label1.Size = new System.Drawing.Size(32, 16);
+            this._label1.Size = new System.Drawing.Size(64, 31);
             this._label1.TabIndex = 0;
             this._label1.Text = "&Port:";
             // 
             // _checkBoxEnableWakeup
             // 
-            this._checkBoxEnableWakeup.Location = new System.Drawing.Point(26, 52);
-            this._checkBoxEnableWakeup.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxEnableWakeup.Location = new System.Drawing.Point(52, 100);
+            this._checkBoxEnableWakeup.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._checkBoxEnableWakeup.Name = "_checkBoxEnableWakeup";
-            this._checkBoxEnableWakeup.Size = new System.Drawing.Size(104, 15);
+            this._checkBoxEnableWakeup.Size = new System.Drawing.Size(208, 29);
             this._checkBoxEnableWakeup.TabIndex = 2;
             this._checkBoxEnableWakeup.Text = "Enable &Wakeup";
             this._checkBoxEnableWakeup.CheckedChanged += new System.EventHandler(this.CheckBoxEnableWakeupCheckedChanged);
@@ -451,87 +459,87 @@ namespace MCEControl {
             this._wakeupGroup.Controls.Add(this._label2);
             this._wakeupGroup.Controls.Add(this._label4);
             this._wakeupGroup.Controls.Add(this._label3);
-            this._wakeupGroup.Location = new System.Drawing.Point(16, 53);
-            this._wakeupGroup.Margin = new System.Windows.Forms.Padding(1);
+            this._wakeupGroup.Location = new System.Drawing.Point(32, 102);
+            this._wakeupGroup.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._wakeupGroup.Name = "_wakeupGroup";
-            this._wakeupGroup.Padding = new System.Windows.Forms.Padding(1);
-            this._wakeupGroup.Size = new System.Drawing.Size(384, 155);
+            this._wakeupGroup.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this._wakeupGroup.Size = new System.Drawing.Size(768, 298);
             this._wakeupGroup.TabIndex = 7;
             this._wakeupGroup.TabStop = false;
             // 
             // _editWakeupServer
             // 
-            this._editWakeupServer.Location = new System.Drawing.Point(17, 40);
-            this._editWakeupServer.Margin = new System.Windows.Forms.Padding(1);
+            this._editWakeupServer.Location = new System.Drawing.Point(34, 77);
+            this._editWakeupServer.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._editWakeupServer.Name = "_editWakeupServer";
-            this._editWakeupServer.Size = new System.Drawing.Size(162, 20);
+            this._editWakeupServer.Size = new System.Drawing.Size(320, 31);
             this._editWakeupServer.TabIndex = 1;
             this._editWakeupServer.TextChanged += new System.EventHandler(this.EditWakeupServerTextChanged);
             // 
             // _editWakeupCommand
             // 
-            this._editWakeupCommand.Location = new System.Drawing.Point(16, 80);
-            this._editWakeupCommand.Margin = new System.Windows.Forms.Padding(1);
+            this._editWakeupCommand.Location = new System.Drawing.Point(32, 154);
+            this._editWakeupCommand.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._editWakeupCommand.Name = "_editWakeupCommand";
-            this._editWakeupCommand.Size = new System.Drawing.Size(162, 20);
+            this._editWakeupCommand.Size = new System.Drawing.Size(320, 31);
             this._editWakeupCommand.TabIndex = 5;
             this._editWakeupCommand.TextChanged += new System.EventHandler(this.EditWakeupCommandTextChanged);
             // 
             // _editClosingCommand
             // 
-            this._editClosingCommand.Location = new System.Drawing.Point(16, 120);
-            this._editClosingCommand.Margin = new System.Windows.Forms.Padding(1);
+            this._editClosingCommand.Location = new System.Drawing.Point(32, 231);
+            this._editClosingCommand.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._editClosingCommand.Name = "_editClosingCommand";
-            this._editClosingCommand.Size = new System.Drawing.Size(162, 20);
+            this._editClosingCommand.Size = new System.Drawing.Size(320, 31);
             this._editClosingCommand.TabIndex = 7;
             this._editClosingCommand.TextChanged += new System.EventHandler(this.EditClosingCommandTextChanged);
             // 
             // _editWakeupPort
             // 
-            this._editWakeupPort.Location = new System.Drawing.Point(192, 40);
-            this._editWakeupPort.Margin = new System.Windows.Forms.Padding(1);
+            this._editWakeupPort.Location = new System.Drawing.Point(384, 77);
+            this._editWakeupPort.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._editWakeupPort.Name = "_editWakeupPort";
-            this._editWakeupPort.Size = new System.Drawing.Size(58, 20);
+            this._editWakeupPort.Size = new System.Drawing.Size(112, 31);
             this._editWakeupPort.TabIndex = 3;
             this._editWakeupPort.TextChanged += new System.EventHandler(this.EditWakeupPortTextChanged);
             // 
             // _label5
             // 
             this._label5.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this._label5.Location = new System.Drawing.Point(16, 104);
-            this._label5.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._label5.Location = new System.Drawing.Point(32, 200);
+            this._label5.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._label5.Name = "_label5";
-            this._label5.Size = new System.Drawing.Size(104, 16);
+            this._label5.Size = new System.Drawing.Size(208, 31);
             this._label5.TabIndex = 6;
             this._label5.Text = "Closing Command:";
             // 
             // _label2
             // 
             this._label2.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this._label2.Location = new System.Drawing.Point(16, 24);
-            this._label2.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._label2.Location = new System.Drawing.Point(32, 46);
+            this._label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._label2.Name = "_label2";
-            this._label2.Size = new System.Drawing.Size(88, 15);
+            this._label2.Size = new System.Drawing.Size(176, 29);
             this._label2.TabIndex = 0;
             this._label2.Text = "Wa&keup Host:";
             // 
             // _label4
             // 
             this._label4.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this._label4.Location = new System.Drawing.Point(16, 64);
-            this._label4.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._label4.Location = new System.Drawing.Point(32, 123);
+            this._label4.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._label4.Name = "_label4";
-            this._label4.Size = new System.Drawing.Size(104, 16);
+            this._label4.Size = new System.Drawing.Size(208, 31);
             this._label4.TabIndex = 4;
             this._label4.Text = "Wakeup Command:";
             // 
             // _label3
             // 
             this._label3.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this._label3.Location = new System.Drawing.Point(189, 22);
-            this._label3.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._label3.Location = new System.Drawing.Point(378, 42);
+            this._label3.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._label3.Name = "_label3";
-            this._label3.Size = new System.Drawing.Size(48, 15);
+            this._label3.Size = new System.Drawing.Size(96, 29);
             this._label3.TabIndex = 2;
             this._label3.Text = "P&ort:";
             // 
@@ -540,21 +548,21 @@ namespace MCEControl {
             this.tabSerial.BackColor = System.Drawing.SystemColors.Window;
             this.tabSerial.Controls.Add(this._checkBoxEnableSerialServer);
             this.tabSerial.Controls.Add(this._serialServerGroup);
-            this.tabSerial.Location = new System.Drawing.Point(4, 22);
-            this.tabSerial.Margin = new System.Windows.Forms.Padding(1);
+            this.tabSerial.Location = new System.Drawing.Point(8, 39);
+            this.tabSerial.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.tabSerial.Name = "tabSerial";
-            this.tabSerial.Padding = new System.Windows.Forms.Padding(1);
-            this.tabSerial.Size = new System.Drawing.Size(440, 238);
+            this.tabSerial.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabSerial.Size = new System.Drawing.Size(880, 461);
             this.tabSerial.TabIndex = 3;
             this.tabSerial.Text = "Serial Server";
             // 
             // _checkBoxEnableSerialServer
             // 
             this._checkBoxEnableSerialServer.AutoSize = true;
-            this._checkBoxEnableSerialServer.Location = new System.Drawing.Point(20, 10);
-            this._checkBoxEnableSerialServer.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxEnableSerialServer.Location = new System.Drawing.Point(40, 19);
+            this._checkBoxEnableSerialServer.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._checkBoxEnableSerialServer.Name = "_checkBoxEnableSerialServer";
-            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(122, 17);
+            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(241, 29);
             this._checkBoxEnableSerialServer.TabIndex = 0;
             this._checkBoxEnableSerialServer.Text = "Enable Serial Server";
             this._checkBoxEnableSerialServer.UseVisualStyleBackColor = true;
@@ -575,11 +583,11 @@ namespace MCEControl {
             this._serialServerGroup.Controls.Add(this._labelBuadRate);
             this._serialServerGroup.Controls.Add(this._comboBoxSerialPort);
             this._serialServerGroup.Controls.Add(this._labelSerialPort);
-            this._serialServerGroup.Location = new System.Drawing.Point(12, 11);
-            this._serialServerGroup.Margin = new System.Windows.Forms.Padding(1);
+            this._serialServerGroup.Location = new System.Drawing.Point(24, 21);
+            this._serialServerGroup.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._serialServerGroup.Name = "_serialServerGroup";
-            this._serialServerGroup.Padding = new System.Windows.Forms.Padding(1);
-            this._serialServerGroup.Size = new System.Drawing.Size(412, 221);
+            this._serialServerGroup.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this._serialServerGroup.Size = new System.Drawing.Size(824, 425);
             this._serialServerGroup.TabIndex = 0;
             this._serialServerGroup.TabStop = false;
             // 
@@ -592,20 +600,20 @@ namespace MCEControl {
             "Xon / Xoff",
             "Hardware",
             "Both"});
-            this._comboBoxHandshake.Location = new System.Drawing.Point(95, 155);
-            this._comboBoxHandshake.Margin = new System.Windows.Forms.Padding(1);
+            this._comboBoxHandshake.Location = new System.Drawing.Point(190, 298);
+            this._comboBoxHandshake.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._comboBoxHandshake.Name = "_comboBoxHandshake";
-            this._comboBoxHandshake.Size = new System.Drawing.Size(118, 21);
+            this._comboBoxHandshake.Size = new System.Drawing.Size(232, 33);
             this._comboBoxHandshake.TabIndex = 12;
             this._comboBoxHandshake.SelectedIndexChanged += new System.EventHandler(this.ComboBoxHandshakeSelectedIndexChanged);
             // 
             // _labelHandshake
             // 
             this._labelHandshake.AutoSize = true;
-            this._labelHandshake.Location = new System.Drawing.Point(16, 159);
-            this._labelHandshake.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._labelHandshake.Location = new System.Drawing.Point(32, 306);
+            this._labelHandshake.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._labelHandshake.Name = "_labelHandshake";
-            this._labelHandshake.Size = new System.Drawing.Size(65, 13);
+            this._labelHandshake.Size = new System.Drawing.Size(127, 25);
             this._labelHandshake.TabIndex = 11;
             this._labelHandshake.Text = "&Handshake:";
             // 
@@ -617,20 +625,20 @@ namespace MCEControl {
             "1",
             "2",
             "1.5"});
-            this._comboBoxStopBits.Location = new System.Drawing.Point(95, 129);
-            this._comboBoxStopBits.Margin = new System.Windows.Forms.Padding(1);
+            this._comboBoxStopBits.Location = new System.Drawing.Point(190, 248);
+            this._comboBoxStopBits.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._comboBoxStopBits.Name = "_comboBoxStopBits";
-            this._comboBoxStopBits.Size = new System.Drawing.Size(118, 21);
+            this._comboBoxStopBits.Size = new System.Drawing.Size(232, 33);
             this._comboBoxStopBits.TabIndex = 10;
             this._comboBoxStopBits.SelectedIndexChanged += new System.EventHandler(this.ComboBoxStopBitsSelectedIndexChanged);
             // 
             // _labelStopBits
             // 
             this._labelStopBits.AutoSize = true;
-            this._labelStopBits.Location = new System.Drawing.Point(16, 133);
-            this._labelStopBits.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._labelStopBits.Location = new System.Drawing.Point(32, 256);
+            this._labelStopBits.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._labelStopBits.Name = "_labelStopBits";
-            this._labelStopBits.Size = new System.Drawing.Size(52, 13);
+            this._labelStopBits.Size = new System.Drawing.Size(104, 25);
             this._labelStopBits.TabIndex = 9;
             this._labelStopBits.Text = "&Stop Bits:";
             // 
@@ -644,20 +652,20 @@ namespace MCEControl {
             "Even",
             "Mark",
             "Space"});
-            this._comboBoxParity.Location = new System.Drawing.Point(95, 103);
-            this._comboBoxParity.Margin = new System.Windows.Forms.Padding(1);
+            this._comboBoxParity.Location = new System.Drawing.Point(190, 198);
+            this._comboBoxParity.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._comboBoxParity.Name = "_comboBoxParity";
-            this._comboBoxParity.Size = new System.Drawing.Size(118, 21);
+            this._comboBoxParity.Size = new System.Drawing.Size(232, 33);
             this._comboBoxParity.TabIndex = 8;
             this._comboBoxParity.SelectedIndexChanged += new System.EventHandler(this.ComboBoxParitySelectedIndexChanged);
             // 
             // _labelParity
             // 
             this._labelParity.AutoSize = true;
-            this._labelParity.Location = new System.Drawing.Point(16, 107);
-            this._labelParity.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._labelParity.Location = new System.Drawing.Point(32, 206);
+            this._labelParity.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._labelParity.Name = "_labelParity";
-            this._labelParity.Size = new System.Drawing.Size(36, 13);
+            this._labelParity.Size = new System.Drawing.Size(73, 25);
             this._labelParity.TabIndex = 7;
             this._labelParity.Text = "&Parity:";
             // 
@@ -672,20 +680,20 @@ namespace MCEControl {
             "7",
             "8",
             "9"});
-            this._comboBoxDataBits.Location = new System.Drawing.Point(95, 78);
-            this._comboBoxDataBits.Margin = new System.Windows.Forms.Padding(1);
+            this._comboBoxDataBits.Location = new System.Drawing.Point(190, 150);
+            this._comboBoxDataBits.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._comboBoxDataBits.Name = "_comboBoxDataBits";
-            this._comboBoxDataBits.Size = new System.Drawing.Size(118, 21);
+            this._comboBoxDataBits.Size = new System.Drawing.Size(232, 33);
             this._comboBoxDataBits.TabIndex = 6;
             this._comboBoxDataBits.SelectedIndexChanged += new System.EventHandler(this.ComboBoxDataBitsSelectedIndexChanged);
             // 
             // _labelDataBits
             // 
             this._labelDataBits.AutoSize = true;
-            this._labelDataBits.Location = new System.Drawing.Point(16, 81);
-            this._labelDataBits.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._labelDataBits.Location = new System.Drawing.Point(32, 156);
+            this._labelDataBits.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._labelDataBits.Name = "_labelDataBits";
-            this._labelDataBits.Size = new System.Drawing.Size(53, 13);
+            this._labelDataBits.Size = new System.Drawing.Size(105, 25);
             this._labelDataBits.TabIndex = 5;
             this._labelDataBits.Text = "&Data Bits:";
             // 
@@ -701,20 +709,20 @@ namespace MCEControl {
             "38400",
             "57600",
             "115200"});
-            this._comboBoxBaudRate.Location = new System.Drawing.Point(95, 52);
-            this._comboBoxBaudRate.Margin = new System.Windows.Forms.Padding(1);
+            this._comboBoxBaudRate.Location = new System.Drawing.Point(190, 100);
+            this._comboBoxBaudRate.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._comboBoxBaudRate.Name = "_comboBoxBaudRate";
-            this._comboBoxBaudRate.Size = new System.Drawing.Size(118, 21);
+            this._comboBoxBaudRate.Size = new System.Drawing.Size(232, 33);
             this._comboBoxBaudRate.TabIndex = 4;
             this._comboBoxBaudRate.SelectedIndexChanged += new System.EventHandler(this.ComboBoxBaudRateSelectedIndexChanged);
             // 
             // _labelBuadRate
             // 
             this._labelBuadRate.AutoSize = true;
-            this._labelBuadRate.Location = new System.Drawing.Point(16, 55);
-            this._labelBuadRate.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._labelBuadRate.Location = new System.Drawing.Point(32, 106);
+            this._labelBuadRate.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._labelBuadRate.Name = "_labelBuadRate";
-            this._labelBuadRate.Size = new System.Drawing.Size(61, 13);
+            this._labelBuadRate.Size = new System.Drawing.Size(119, 25);
             this._labelBuadRate.TabIndex = 3;
             this._labelBuadRate.Text = "&Baud Rate:";
             // 
@@ -731,20 +739,20 @@ namespace MCEControl {
             "COM6",
             "COM7",
             "COM8"});
-            this._comboBoxSerialPort.Location = new System.Drawing.Point(95, 26);
-            this._comboBoxSerialPort.Margin = new System.Windows.Forms.Padding(1);
+            this._comboBoxSerialPort.Location = new System.Drawing.Point(190, 50);
+            this._comboBoxSerialPort.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._comboBoxSerialPort.Name = "_comboBoxSerialPort";
-            this._comboBoxSerialPort.Size = new System.Drawing.Size(118, 21);
+            this._comboBoxSerialPort.Size = new System.Drawing.Size(232, 33);
             this._comboBoxSerialPort.TabIndex = 2;
             this._comboBoxSerialPort.SelectedIndexChanged += new System.EventHandler(this.ComboBoxSerialPortSelectedIndexChanged);
             // 
             // _labelSerialPort
             // 
             this._labelSerialPort.AutoSize = true;
-            this._labelSerialPort.Location = new System.Drawing.Point(16, 32);
-            this._labelSerialPort.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._labelSerialPort.Location = new System.Drawing.Point(32, 62);
+            this._labelSerialPort.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._labelSerialPort.Name = "_labelSerialPort";
-            this._labelSerialPort.Size = new System.Drawing.Size(29, 13);
+            this._labelSerialPort.Size = new System.Drawing.Size(57, 25);
             this._labelSerialPort.TabIndex = 1;
             this._labelSerialPort.Text = "&Port:";
             // 
@@ -752,10 +760,10 @@ namespace MCEControl {
             // 
             this._tabPageActivityMonitor.Controls.Add(this.checkBoxEnableActivityMonitor);
             this._tabPageActivityMonitor.Controls.Add(this.groupBoxActivityMonitor);
-            this._tabPageActivityMonitor.Location = new System.Drawing.Point(4, 22);
-            this._tabPageActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
+            this._tabPageActivityMonitor.Location = new System.Drawing.Point(8, 39);
+            this._tabPageActivityMonitor.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._tabPageActivityMonitor.Name = "_tabPageActivityMonitor";
-            this._tabPageActivityMonitor.Size = new System.Drawing.Size(440, 238);
+            this._tabPageActivityMonitor.Size = new System.Drawing.Size(880, 461);
             this._tabPageActivityMonitor.TabIndex = 4;
             this._tabPageActivityMonitor.Text = "Activity Monitor";
             this._tabPageActivityMonitor.UseVisualStyleBackColor = true;
@@ -763,10 +771,10 @@ namespace MCEControl {
             // checkBoxEnableActivityMonitor
             // 
             this.checkBoxEnableActivityMonitor.AutoSize = true;
-            this.checkBoxEnableActivityMonitor.Location = new System.Drawing.Point(20, 10);
-            this.checkBoxEnableActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
+            this.checkBoxEnableActivityMonitor.Location = new System.Drawing.Point(40, 19);
+            this.checkBoxEnableActivityMonitor.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.checkBoxEnableActivityMonitor.Name = "checkBoxEnableActivityMonitor";
-            this.checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(159, 17);
+            this.checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(315, 29);
             this.checkBoxEnableActivityMonitor.TabIndex = 0;
             this.checkBoxEnableActivityMonitor.Text = "Enable &User Activity Monitor";
             this.checkBoxEnableActivityMonitor.UseVisualStyleBackColor = true;
@@ -778,49 +786,49 @@ namespace MCEControl {
             this.groupBoxActivityMonitor.Controls.Add(this.textBoxDebounceTime);
             this.groupBoxActivityMonitor.Controls.Add(this.textBoxActivityCommand);
             this.groupBoxActivityMonitor.Controls.Add(this.labelActivityCommand);
-            this.groupBoxActivityMonitor.Location = new System.Drawing.Point(12, 11);
-            this.groupBoxActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
+            this.groupBoxActivityMonitor.Location = new System.Drawing.Point(24, 21);
+            this.groupBoxActivityMonitor.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.groupBoxActivityMonitor.Name = "groupBoxActivityMonitor";
-            this.groupBoxActivityMonitor.Padding = new System.Windows.Forms.Padding(1);
-            this.groupBoxActivityMonitor.Size = new System.Drawing.Size(412, 221);
+            this.groupBoxActivityMonitor.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBoxActivityMonitor.Size = new System.Drawing.Size(824, 425);
             this.groupBoxActivityMonitor.TabIndex = 0;
             this.groupBoxActivityMonitor.TabStop = false;
             // 
             // labelActivityDebounceTime
             // 
             this.labelActivityDebounceTime.AutoSize = true;
-            this.labelActivityDebounceTime.Location = new System.Drawing.Point(16, 80);
-            this.labelActivityDebounceTime.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this.labelActivityDebounceTime.Location = new System.Drawing.Point(32, 154);
+            this.labelActivityDebounceTime.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelActivityDebounceTime.Name = "labelActivityDebounceTime";
-            this.labelActivityDebounceTime.Size = new System.Drawing.Size(131, 13);
+            this.labelActivityDebounceTime.Size = new System.Drawing.Size(263, 25);
             this.labelActivityDebounceTime.TabIndex = 3;
             this.labelActivityDebounceTime.Text = "Debounce time (seconds):";
             // 
             // textBoxDebounceTime
             // 
-            this.textBoxDebounceTime.Location = new System.Drawing.Point(16, 96);
-            this.textBoxDebounceTime.Margin = new System.Windows.Forms.Padding(1);
+            this.textBoxDebounceTime.Location = new System.Drawing.Point(32, 185);
+            this.textBoxDebounceTime.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.textBoxDebounceTime.Name = "textBoxDebounceTime";
-            this.textBoxDebounceTime.Size = new System.Drawing.Size(45, 20);
+            this.textBoxDebounceTime.Size = new System.Drawing.Size(86, 31);
             this.textBoxDebounceTime.TabIndex = 2;
             this.textBoxDebounceTime.TextChanged += new System.EventHandler(this.textBoxDebounceTime_TextChanged);
             // 
             // textBoxActivityCommand
             // 
-            this.textBoxActivityCommand.Location = new System.Drawing.Point(16, 48);
-            this.textBoxActivityCommand.Margin = new System.Windows.Forms.Padding(1);
+            this.textBoxActivityCommand.Location = new System.Drawing.Point(32, 92);
+            this.textBoxActivityCommand.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.textBoxActivityCommand.Name = "textBoxActivityCommand";
-            this.textBoxActivityCommand.Size = new System.Drawing.Size(149, 20);
+            this.textBoxActivityCommand.Size = new System.Drawing.Size(294, 31);
             this.textBoxActivityCommand.TabIndex = 2;
             this.textBoxActivityCommand.TextChanged += new System.EventHandler(this.textBoxActivityCommand_TextChanged);
             // 
             // labelActivityCommand
             // 
             this.labelActivityCommand.AutoSize = true;
-            this.labelActivityCommand.Location = new System.Drawing.Point(16, 32);
-            this.labelActivityCommand.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this.labelActivityCommand.Location = new System.Drawing.Point(32, 62);
+            this.labelActivityCommand.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelActivityCommand.Name = "labelActivityCommand";
-            this.labelActivityCommand.Size = new System.Drawing.Size(95, 13);
+            this.labelActivityCommand.Size = new System.Drawing.Size(192, 25);
             this.labelActivityCommand.TabIndex = 1;
             this.labelActivityCommand.Text = "Command to send:";
             // 
@@ -836,18 +844,36 @@ namespace MCEControl {
             // 
             this.eventLog1.SynchronizingObject = this;
             // 
+            // labelPacing
+            // 
+            this.labelPacing.AutoSize = true;
+            this.labelPacing.Location = new System.Drawing.Point(32, 184);
+            this.labelPacing.Name = "labelPacing";
+            this.labelPacing.Size = new System.Drawing.Size(303, 25);
+            this.labelPacing.TabIndex = 7;
+            this.labelPacing.Text = "Default command &pacing (ms):";
+            // 
+            // textBoxPacing
+            // 
+            this.textBoxPacing.Location = new System.Drawing.Point(336, 184);
+            this.textBoxPacing.Name = "textBoxPacing";
+            this.textBoxPacing.Size = new System.Drawing.Size(144, 31);
+            this.textBoxPacing.TabIndex = 8;
+            this.textBoxPacing.TextChanged += new System.EventHandler(this.textBoxPacing_TextChanged);
+            // 
             // SettingsDialog
             // 
             this.AcceptButton = this._buttonOk;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.CancelButton = this._buttonCancel;
-            this.ClientSize = new System.Drawing.Size(475, 321);
+            this.ClientSize = new System.Drawing.Size(950, 617);
             this.Controls.Add(this.tabcontrol);
             this.Controls.Add(this._buttonCancel);
             this.Controls.Add(this._buttonOk);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "SettingsDialog";
@@ -955,6 +981,8 @@ namespace MCEControl {
                     comboBoxLogThresholds.SelectedIndex = 2;
                     break;
             }
+
+            textBoxPacing.Text = $"{Settings.CommandPacing}";
 
             //comboBoxLogThresholds.SelectedIndex = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"].Value;
 
@@ -1174,6 +1202,12 @@ namespace MCEControl {
             Settings.TextBoxLogThreshold = comboBoxLogThresholds.SelectedItem.ToString();
             SettingsChanged();
         }
+
+        private void textBoxPacing_TextChanged(object sender, EventArgs e) {
+            if (int.TryParse(textBoxPacing.Text, out var t))
+                Settings.CommandPacing = t;
+            SettingsChanged();
+        }
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "This is just settings info.")]
@@ -1218,6 +1252,7 @@ namespace MCEControl {
         private Int32 activityMonitorDebounceTime = 10;
 
         public int ActivityMonitorDebounceTime { get => activityMonitorDebounceTime; set => activityMonitorDebounceTime = value; }
+        public int CommandPacing = 0;
 
         #region ICloneable Members
 

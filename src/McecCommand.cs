@@ -37,11 +37,7 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\"";
         }
 
-        public override Command Clone(Reply reply, string args = null) => new McecCommand() {
-            Key = this.Key,
-            Reply = reply,
-            Args = args
-        };
+        public override ICommand Clone(Reply reply) => base.Clone(reply, new McecCommand());
 
         // ICommand:Execute
         public override void Execute() {

@@ -23,17 +23,6 @@ namespace MCEControl {
         private String verb;
         [XmlAttribute("Verb")] public string Verb { get => verb; set => verb = value; }
 
-        private List<Command> embeddedCommands;
-        [XmlElement("Chars", typeof(CharsCommand))]
-        [XmlElement("StartProcess", typeof(StartProcessCommand))]
-        [XmlElement("SendInput", typeof(SendInputCommand))]
-        [XmlElement("SendMessage", typeof(SendMessageCommand))]
-        [XmlElement("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
-        [XmlElement("Shutdown", typeof(ShutdownCommand))]
-        [XmlElement(typeof(Command))]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
-        public List<Command> EmbeddedCommands { get => embeddedCommands; set => embeddedCommands = value; }
-
         public StartProcessCommand() {
         }
 
@@ -51,28 +40,16 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\" File=\"{File}\" Arguments=\"{Arguments}\" Verb=\"{Verb}\"";
         }
 
-        public override Command Clone(Reply reply, string args = null) {
-            StartProcessCommand cmd = new StartProcessCommand() {
-                Reply = reply,
-                Args = args,
-                File = this.File,
-                Arguments = this.Arguments,
-                Verb = this.Verb
-            };
-            if (this.EmbeddedCommands != null) {
-                cmd.EmbeddedCommands = new List<Command>();
-                foreach (var next in this.EmbeddedCommands)
-                    cmd.EmbeddedCommands.Add(next.Clone(reply, args));
-            }
-            return cmd;
-        }
+        public override ICommand Clone(Reply reply) => base.Clone(reply, new StartProcessCommand() {
+            File = this.File,
+            Arguments = this.Arguments,
+            Verb = this.Verb
+        });
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Process is long lived")]
         // ICommand:Execute
         public override void Execute() {
-
             if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
-            if (this.Args is null) throw new InvalidOperationException("Args property cannot be null.");
 
             Logger.Instance.Log4.Info($"Cmd: Starting process: {ToString()}");
             if (File != null) {
@@ -94,10 +71,6 @@ namespace MCEControl {
                     catch (System.InvalidOperationException e) {
                         System.Threading.Thread.Sleep(5000);
                     }
-            }
-
-            if (EmbeddedCommands != null) {
-                foreach (var cmd in EmbeddedCommands) cmd.Execute();
             }
         }
     }

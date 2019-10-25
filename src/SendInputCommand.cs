@@ -77,11 +77,7 @@ namespace MCEControl {
             return $"Cmd=\"{Key}\" Vk=\"{Vk}\" Shift=\"{Shift}\" Ctrl=\"{Ctrl}\" Alt=\"{Alt}\" Win=\"{Win}\"";
         }
 
-        public override Command Clone(Reply reply, string args = null) => new SendInputCommand(vk, shift, ctrl, alt, win) {
-            Key = this.Key,
-            Reply = reply,
-            Args = args
-        };
+        public override ICommand Clone(Reply reply) => base.Clone(reply, new SendInputCommand(vk, shift, ctrl, alt, win));
 
         // ICommand:Execute
         public override void Execute() { 
@@ -103,6 +99,10 @@ namespace MCEControl {
                                           CultureInfo.InvariantCulture.NumberFormat, out num)) &&
                          !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
                                          out num)) {
+
+                        // Deal with <SendInput Vk="x"/>
+                        if (string.IsNullOrEmpty(Key)) Key = Vk;
+
                         // Not hex
                         switch (Key.ToUpperInvariant()) {
                             case "SHIFTDOWN:":

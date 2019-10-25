@@ -34,23 +34,22 @@ namespace MCEControl {
         public CharsCommand() { }
 
         public override string ToString() {
-            return $"Cmd=\"{Key}\"";
+            return $"Cmd=\"{Key}\" Chars=\"{Chars}\"";
         }
 
-        public override Command Clone(Reply reply, string args = null) => new CharsCommand() {
-            Key = this.Key,
-            Chars = this.Chars,
-            Reply = reply,
-            Args = args
-        };
+        public override ICommand Clone(Reply reply) => base.Clone(reply, new CharsCommand() { Chars = this.Chars });
 
         // ICommand:Execute
         public override void Execute() {
-            String text = Regex.Unescape(Args);
+            string text;
             // if command came in as a literal "chars:foo" command use args
             // otherwise, use the Chars property
-            if (string.IsNullOrEmpty(text) && !string.IsNullOrEmpty(chars))
-                text = chars;
+            if (!string.IsNullOrEmpty(Args))
+                text = Regex.Unescape(Args);
+            else if (!string.IsNullOrEmpty(Chars))
+                text = Regex.Unescape(Chars);
+            else
+                text = "";
 
             Logger.Instance.Log4.Info($"Cmd: Sending {text.Length} chars: {text}");
             new InputSimulator().Keyboard.TextEntry(text);

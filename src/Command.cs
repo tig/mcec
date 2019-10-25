@@ -33,7 +33,7 @@ namespace MCEControl {
         /// </summary>
         void Execute();
 
-        Command Clone(Reply reply, string args = null);
+        Command Clone(Reply reply, Command icmd);
     }
 
     // Base class for all Command types
@@ -41,6 +41,18 @@ namespace MCEControl {
         private String key;
         [XmlAttribute("Cmd")]
         public string Key { get => key; set => key = value; }
+
+        private List<Command> embeddedCommands;
+        [XmlElement("Chars", typeof(CharsCommand))]
+        [XmlElement("StartProcess", typeof(StartProcessCommand))]
+        [XmlElement("SendInput", typeof(SendInputCommand))]
+        [XmlElement("SendMessage", typeof(SendMessageCommand))]
+        [XmlElement("SetForegroundWindow", typeof(SetForegroundWindowCommand))]
+        [XmlElement("Shutdown", typeof(ShutdownCommand))]
+        [XmlElement(typeof(Command))]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
+        public List<Command> EmbeddedCommands { get => embeddedCommands; set => embeddedCommands = value; }
+
         public virtual string Args { get => args; set => args = value; }
         public virtual Reply Reply { get => reply; set => reply = value; }
 
@@ -50,7 +62,25 @@ namespace MCEControl {
 
         private Reply reply;
 
-        public abstract Command Clone(Reply reply, string args = null);
+        public abstract ICommand Clone(Reply reply);
+
+        public virtual Command Clone(Reply reply, Command clone) {
+            if (clone is null) 
+                throw new ArgumentNullException(nameof(clone));
+
+            clone.Reply = reply;
+
+            clone.Key = this.Key;
+            clone.Args = this.Args;
+            if (this.EmbeddedCommands != null) {
+                clone.EmbeddedCommands = new List<Command>();
+                foreach (Command next in this.EmbeddedCommands) {
+                    Command eClone = (Command)next.Clone(reply);
+                    clone.EmbeddedCommands.Add(eClone);
+                }
+            }
+            return clone;
+        }
 
         public abstract void Execute();
     }
