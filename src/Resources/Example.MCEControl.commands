@@ -179,5 +179,97 @@ The following command starts Media Center and makes it full screen
   <SendInput Cmd="snapshot" vk="44" Shift="false" Ctrl="false" Alt="false" />
   <SendInput Cmd="zoom" vk="90" Shift="false" Ctrl="false" Alt="false" />
 -->
+
+
+    <chars cmd="sayhello" Args="Hello World." />
+
+    <Startprocess cmd="code" file="code" />
+    <StartProcess Cmd="tada" File="C:\Windows\Media\tada.wav" Verb="Open" />
+    <StartProcess Cmd="term" File="shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" />
+    <StartProcess Cmd="netflix" File="shell:AppsFolder\4DF9E0F8.Netflix_mcm4njqhnhss8!Netflix.App" />
+
+    <SendInput Cmd="winx" vk="x" Shift="false" Ctrl="false" Alt="false" Win="true" />
+
+    <SendInput Cmd="run" Vk="r" Win="true"/>
+  
+    <Shutdown Cmd="abortit" Type="shutdown" TimeOut="1000" >
+     <Shutdown Type="abort" />
+    </Shutdown>
+
+    <Chars Cmd="aaa" Args="hello">
+      <Chars Args=" world"/>
+      <Chars Args="."/>
+    </Chars>
+
+    <Chars Cmd="movemouse">
+      <Mouse Args="mm,100,100"/>
+      <Pause Args="250"/>
+      <SendInput vk="moved"/>
+    </Chars>
+
+    <StartProcess Cmd="nothing"  >
+      <SendInput vk="VK_N" Ctrl="true"/>
+      <Chars Cmd="test" Args="Typing into Code." />
+    </StartProcess>
+
+    <StartProcess Cmd="notepad" File="notepad.exe" >
+      <Pause Args="100"/>
+      <Chars Cmd="test" Args="this is a test." />
+      <SendInput vk="VK_RETURN"/>
+          <Pause Args="100"/>
+      <SendInput vk="VK_RIGHT" Shift="true" Win="true"/>
+          <Pause Args="100"/>
+      <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
+      <SendInput vk="VK_A"/>
+      <SendInput vk="VK_B"/>
+      <SendInput vk="VK_RETURN">
+        <Chars Args="Second "/>
+        <Chars Args="line..">
+          <SendInput vk="h" Alt="true"/>
+          <SendInput vk="a" Alt="false">
+            <SendInput vk="VK_ESCAPE"/>
+          </SendInput>
+        </Chars>
+      </SendInput>
+      <SendInput vk="VK_F4" Alt="true"/>
+      <Pause Args="250"/>
+      <SendInput vk="n"/>
+      <StartProcess Cmd="code" File="code" >
+        <Pause Args="5000"/>
+        <SendInput vk="VK_N" Ctrl="true"/>
+        <Chars Cmd="test" Args="Typing into Code." />
+      </StartProcess>
+    </StartProcess>
+
+    <StartProcess Cmd="Start_HDHomeRun" File="C:\AppShortcuts\HDHomeRun.lnk" />
+    <SendInput Cmd="Nfs" vk="13" Shift="false" Ctrl="false" Alt="true" />
+    <SendInput Cmd="Npause" vk="81" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="Nplay" vk="80" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="Nstop" vk="83" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="Nrecord" vk="75" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="Nch+" vk="33" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="Nch-" vk="34" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="Nprev" vk="87" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="Ntvguide" vk="F1" Shift="false" Ctrl="false" Alt="false" />
+    <SendInput Cmd="Nrew" vk="82" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="Nfwd" vk="70" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="Nskipback" vk="37" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="Nskipfwd" vk="39" Shift="false" Ctrl="true" Alt="false" />
+    <SendInput Cmd="Nexit" vk="115" Shift="false" Ctrl="false" Alt="true" />
+    <SendInput Cmd="Nmute" vk="173" Shift="false" Ctrl="false" Alt="false" />
+
+    <StartProcess Cmd="mcestart" File="C:\windows\ehome\ehshell.exe">
+      <nextCommand xsi:type="SendMessage" 
+                ClassName="ehshell"
+                Msg="274" wParam="61488" lParam="0" />
+    </StartProcess>
+
+    <StartProcess Cmd="XBMC" File="C:\Program Files (x86)\XBMC\XBMC.exe" />
+    <StartProcess Cmd="Start_NextPVR_x86" File="C:\Program Files (x86)\NPVR\NextPVR.exe" />
+    <StartProcess Cmd="Start_Kodi_x86" File="C:\Program Files (x86)\Kodi\Kodi.exe" />
+    <StartProcess Cmd="Start_Kodi_x64" File="C:\Program Files\Kodi\Kodi.exe" />
+    <StartProcess Cmd="netflix" File="windowsmediacenterapp:{e6f46126-f8a9-4a97-9159-b70b07890112}\{982ea9d3-915c-4713-a3c8-99a4688b7c59}?EntryPointParameters="/>
+    <StartProcess Cmd="Start_HDHomeRun" File="C:\AppShortcuts\HDHomeRun.lnk" />
+
 </Commands>
 </MCEController>
