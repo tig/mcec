@@ -1244,8 +1244,8 @@ namespace MCEControl {
         public int SerialServerDataBits;
         public StopBits SerialServerStopBits;
         public Handshake SerialServerHandshake;
-        public Point WindowLocation = new Point(120, 50);
-        public Size WindowSize = new Size(640, 400);
+        public Point WindowLocation;
+        public Size WindowSize;
         public bool ShowCommandWindow;
         public bool ActivityMonitorEnabled = false;
         public string ActivityMonitorCommand = "activity";

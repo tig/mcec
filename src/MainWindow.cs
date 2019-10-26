@@ -14,6 +14,7 @@ using MCEControl.Properties;
 using Microsoft.Win32.Security;
 using log4net;
 using Microsoft.Win32;
+using System.Drawing;
 
 [assembly: System.CLSCompliant(true)]
 namespace MCEControl {
@@ -205,10 +206,6 @@ namespace MCEControl {
             log4.Info($"Logger: Logging to {Logger.Instance.LogFile}");
             Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Instance.Settings.TextBoxLogThreshold];
 
-            // Location can not be changed in constructor, has to be done here
-            Location = Settings.WindowLocation;
-            Size = Settings.WindowSize;
-
             if (cmdWindow == null)
                 cmdWindow = new CommandWindow();
 
@@ -225,6 +222,16 @@ namespace MCEControl {
             logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, MainMenuStrip.Font.SizeInPoints - 1,
                 System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             SystemEvents.UserPreferenceChanged += new UserPreferenceChangedEventHandler(SystemEvents_UserPreferenceChanged);
+
+            // Location can not be changed in constructor, has to be done here
+            // Use Window's default for location initially. Size needs highDPI conversion. 
+            if (Settings.WindowLocation.IsEmpty || Settings.WindowSize.IsEmpty) {
+                Size = new Size(this.LogicalToDeviceUnits(1024), this.LogicalToDeviceUnits(640)); 
+            }
+            else {
+                Location = Settings.WindowLocation;
+                Size = Settings.WindowSize;
+            }
 
             SetStatus($"Version: {Application.ProductVersion}");
             Start();

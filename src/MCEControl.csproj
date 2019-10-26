@@ -97,6 +97,12 @@
   <PropertyGroup>
     <SignManifests>true</SignManifests>
   </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System">
       <Name>System</Name>
@@ -303,6 +309,8 @@
     <Compile Include="WindowsInput\WindowsInputDeviceStateAdaptor.cs" />
     <Compile Include="WindowsInput\WindowsInputMessageDispatcher.cs" />
     <EmbeddedResource Include="Resources\MCEControl.commands" />
+    <Resource Include="app.manifest" />
+    <None Include="app.config" />
     <None Include="MCEControl1.ruleset" />
     <None Include="Resources\Trafficlight-gray-icon.bmp" />
     <None Include="Resources\Trafficlight-gray-icon.png" />
@@ -335,11 +343,6 @@
     <Content Include="Resources\Guillen.Icon.ico" />
     <EmbeddedResource Include="Resources\Builtin.commands" />
     <None Include="Resources\Trafficlight-red-icon.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config">
-      <SubType>Designer</SubType>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0,Profile=Client">
