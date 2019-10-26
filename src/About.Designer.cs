@@ -40,7 +40,7 @@
             // _labelTitle
             // 
             this._labelTitle.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F);
-            this._labelTitle.Location = new System.Drawing.Point(223, 16);
+            this._labelTitle.Location = new System.Drawing.Point(206, 16);
             this._labelTitle.Name = "_labelTitle";
             this._labelTitle.Size = new System.Drawing.Size(273, 41);
             this._labelTitle.TabIndex = 0;

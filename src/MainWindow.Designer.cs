@@ -137,8 +137,8 @@ namespace MCEControl
             this.logTextBox.Margin = new System.Windows.Forms.Padding(0);
             this.logTextBox.Multiline = true;
             this.logTextBox.Name = "logTextBox";
-            this.logTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.logTextBox.Size = new System.Drawing.Size(1097, 493);
+            this.logTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.logTextBox.Size = new System.Drawing.Size(597, 215);
             this.logTextBox.TabIndex = 1;
             this.logTextBox.WordWrap = false;
             // 
