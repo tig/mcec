@@ -18,7 +18,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>MCEControl</RootNamespace>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-    <StartupObject>MCEControl.MainWindow</StartupObject>
+    <StartupObject>MCEControl.Program</StartupObject>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
@@ -139,6 +139,13 @@
     <Compile Include="Command.cs" />
     <Compile Include="CommandFileWatcher.cs" />
     <Compile Include="Commands.cs" />
+    <Compile Include="MainWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainWindow.Designer.cs">
+      <DependentUpon>MainWindow.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
     <Compile Include="SerializedCommands.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -169,9 +176,6 @@
     <Compile Include="SerialServer.cs" />
     <Compile Include="SendInputCommand.cs">
       <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="MainWindow.cs">
-      <SubType>Form</SubType>
     </Compile>
     <Compile Include="MouseCommand.cs" />
     <Compile Include="StartProcessCommand.cs">
@@ -314,6 +318,9 @@
     <EmbeddedResource Include="About.resx">
       <DependentUpon>About.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="MainWindow.resx">
+      <DependentUpon>MainWindow.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\MCEControl.commands" />
     <Resource Include="app.manifest" />
     <EmbeddedResource Include="app.config" />
@@ -324,9 +331,6 @@
     <None Include="MCEControl.ruleset" />
     <EmbeddedResource Include="CommandWindow.resx">
       <DependentUpon>CommandWindow.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="MainWindow.resx">
-      <DependentUpon>MainWindow.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

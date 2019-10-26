@@ -40,9 +40,9 @@
             // _labelTitle
             // 
             this._labelTitle.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F);
-            this._labelTitle.Location = new System.Drawing.Point(206, 16);
+            this._labelTitle.Location = new System.Drawing.Point(223, 16);
             this._labelTitle.Name = "_labelTitle";
-            this._labelTitle.Size = new System.Drawing.Size(290, 41);
+            this._labelTitle.Size = new System.Drawing.Size(273, 41);
             this._labelTitle.TabIndex = 0;
             this._labelTitle.Text = "MCE Controller";
             this._labelTitle.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -119,12 +119,12 @@
             this.labelVersion.TabIndex = 7;
             this.labelVersion.Text = "Version a.b.c.d";
             // 
-            // Aboot
+            // About
             // 
             this.AcceptButton = this._buttonOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.SystemColors.Window;
+            this.BackColor = System.Drawing.SystemColors.GradientInactiveCaption;
             this.CancelButton = this._buttonOk;
             this.ClientSize = new System.Drawing.Size(507, 214);
             this.ControlBox = false;
@@ -136,13 +136,14 @@
             this.Controls.Add(this._buttonOk);
             this.Controls.Add(this._linkLabelMceController);
             this.Controls.Add(this._labelTitle);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "Aboot";
+            this.Name = "About";
+            this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Aboot";
+            this.Text = "About";
             ((System.ComponentModel.ISupportInitialize)(this.iconMcec)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
