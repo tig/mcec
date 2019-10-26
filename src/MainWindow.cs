@@ -812,7 +812,7 @@ namespace MCEControl {
         }
 
         private void aboutMenuItem_Click(object sender, EventArgs e) {
-            var a = new AboutBox();
+            var a = new About();
             a.ShowDialog(this);
             a.Dispose();
         }
