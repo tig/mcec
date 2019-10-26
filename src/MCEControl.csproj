@@ -310,7 +310,7 @@
     <Compile Include="WindowsInput\WindowsInputMessageDispatcher.cs" />
     <EmbeddedResource Include="Resources\MCEControl.commands" />
     <Resource Include="app.manifest" />
-    <None Include="app.config" />
+    <EmbeddedResource Include="app.config" />
     <None Include="MCEControl1.ruleset" />
     <None Include="Resources\Trafficlight-gray-icon.bmp" />
     <None Include="Resources\Trafficlight-gray-icon.png" />
