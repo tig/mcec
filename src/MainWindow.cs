@@ -481,7 +481,6 @@ namespace MCEControl {
             }
         }
 
-
         // Notify callback for the TCP/IP Server
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "<Pending>")]
         public void serverSocketCallbackHandler(ServiceNotification notification, ServiceStatus status, Reply reply, String msg) {

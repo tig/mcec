@@ -165,7 +165,6 @@ namespace MCEControl {
                 value.MaxLength = 256 * 1024;
 
                 value.TextChanged += new System.EventHandler(this.LogTextChanged);
-                value.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.LogKeyPress);
                 var frm = value.FindForm();
                 if (frm != null)
                     frm.FormClosed += delegate { Close(); };
@@ -210,15 +209,10 @@ namespace MCEControl {
             }
         }
 
-        // Prevent input into the edit box
-        private void LogKeyPress(object sender, KeyPressEventArgs e) {
-            e.Handled = true;
-        }
-
         // Keep the end of the log visible and prevent it from overflowing
         private void LogTextChanged(object sender, EventArgs e) {
             Debug.Assert(LogTextBox != null);
-            LogTextBox.ScrollToCaret();
+            //LogTextBox.ScrollToCaret();
         }
     }
 }
