@@ -91,23 +91,20 @@ namespace MCEControl {
 
                 // Deal with shiftdown/up: commands
                 // TODO: Break this out to a separate command
-                if (!string.IsNullOrEmpty(Args)) {
+                if (!string.IsNullOrEmpty(Key)) {
                     switch (Key.ToUpperInvariant()) {
                         case "SHIFTDOWN:":
                             // Modifyer key down
                             SendInputCommand.ShiftKey(Args, true);
+                            return;
                             break;
 
                         case "SHIFTUP:":
                             // Modifyer key down
                             SendInputCommand.ShiftKey(Args, false);
-                            break;
-
-                        default:
-                            Logger.Instance.Log4.Info($"{this.GetType().Name}: Invalid shiftup/down: {ToString()}");
+                            return;
                             break;
                     }
-                    return;
                 }
 
                 if (!Vk.StartsWith("VK_", StringComparison.InvariantCultureIgnoreCase) ||
@@ -204,6 +201,10 @@ namespace MCEControl {
                 case "rwin":
                     if (down) sim.Keyboard.KeyDown(VirtualKeyCode.RWIN);
                     else sim.Keyboard.KeyUp(VirtualKeyCode.RWIN);
+                    break;
+
+                default:
+                    Logger.Instance.Log4.Info($"ShiftKey: No shift key specified.");
                     break;
             }
         }
