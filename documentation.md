@@ -8,19 +8,17 @@ By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
 ## Overview
 
-**MCE Controller** lets you control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCE Controller** to control a Windows PC.
+**MCE Controller** provides robust remote control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCE Controller** to control a Windows PC.
 
 For example:
 
-* The command `mcestart` will cause the Windows Media Center application to start. This is equivalent to pressing the green button on the Windows remote control.
+* The command `netflix` will cause the Netflix application to start. 
 * The command `maximize` will cause the current window to be maximized on the display. This is equivalent to choosing the "Maximize" button on the window's window menu.
 * The command `chars:Hello World!` will cause the text "Hello World" to be typed, as though it were typed on the keyboard.
 * The command `VK_MEDIA_NEXT_TRACK` will cause the currently running media player app (Spotify, Windows Media Player, etc...) to jump to the next media track, just as if the user had pressed th "next track" key on the keyboard.
 * The commands that **MCE Controller** support is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
 
 **MCE Controller** was initially developed to enable integration of a Windows Media Center based home theater PC (HTPC) into a Crestron whole-house audio/video system. However, it is general enough that others have used it within other control system that support sending text strings to a TCP/IP port. Most control systems, such as Crestron or AMX, support IR emitting.
-
-For many applications, emitting the Media Center IR commands will suffice. However, for some installations the reliability of IR emitting and other factors may make IR emitting problematic and **MCE Controller** offers a robust solution.
 
 **MCE Controller** can act as either a TCP/IP client or server. When acting as a client the target host and port can be configured. When acting as a server the incoming port can be configured.
 
@@ -30,7 +28,7 @@ For many applications, emitting the Media Center IR commands will suffice. Howev
 
 ## Windows PC Control Capabilities
 
-By default **MCE Controller** supports over 250 built-in commands for controlling a Windows PC remotely. The list below summarizes these control capabilities. 
+By default **MCE Controller** supports over 250 built-in commands for controlling a Windows PC remotely. The list below summarizes these control capabilities.
 
 * Supports simulating key presses (e.g. Alt-Tab, or Win-S) with `SendInput` commands.
 * Supports simulating the mouse with `mouse:` commands.
@@ -84,10 +82,11 @@ Use the `File.Exit` menu to shut down **MCE Controller**.
 
 Configuration settings are stored in a file that will be created in the `%APPDATA%\Roaming\Kindel Systems\MCE Controller` directory when MCE Controller is first run. The configuration settings file is named `MCEControl.settings`.
 
-You can access all settings from the `File.Settings...` menu. The `General` tab shown above supports the following settings:
+All settings can be configured from `Settings` dialog box the `File.Settings...` menu. The `General` tab shown above supports the following settings:
 
 * `Hide Window at Startup` - If checked the **MCE Controller** will start minimized to tray icon.
 * `Log Threshold` - By default only informational log events will be shown in the MCE Controller main window. This setting over-rides this enabling the display of `INFO`, `DEBUG`, or `ALL` log settings. Note that the `.log` files always include `ALL` events.
+* `Default command pacing (ms)` - If this value is greater than 0, **MCE Controller** will delay executing each command it receives by the value (in milliseconds). The default is 0.
 
 ### The Client Tab
 
@@ -95,10 +94,12 @@ The Client tab in the Settings dialog controls **MCE Controller’s** TCP/IP cli
 
 [![Client](settings_client.png "Client")]
 
-* `Enable Client`. This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
-* `Host`. This is the IP address or host name of the server **MCE Controller** is to connect to.
-* `Port`. This is the port that **MCE Controller** will connect to.
-* `Reconnect Wait Time (ms)`. This is the number of milliseconds (default is 30 seconds or 30000 ms) **MCE Controller** will wait before trying to reconnect to the host once a connection has been dropped.
+* `Enable Client` - This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
+* `Host` - This is the IP address or host name of the server **MCE Controller** is to connect to.
+* `Port` - This is the port that **MCE Controller** will connect to.
+* `Reconnect Wait Time (ms)` - This is the number of milliseconds (default is 30 seconds or 30000 ms) **MCE Controller** will wait before trying to reconnect to the host once a connection has been dropped.
+
+The status of the Client is displayed on the main window status bar. Double-clicking on the status will cause the Client to toggle between connected / not connected. Green means connected, red means active but not connected, and gray means the client is not active.
 
 ### The Server Tab
 
@@ -114,6 +115,8 @@ In server mode, **MCE Controller** supports any number of multiple-simultaneous 
 * `Port`- This is the port that **MCE Controller** will listen on.
 * `Enable Wakeup` - If enabled, **MCE Controller** will attempt to connect to the specified host/port, send the “Wakeup command” and disconnect when it first starts. When it shuts down it will send the “Closing command”. This functionality is useful when the remote client needs to be notified that **MCE Controller** is ready (for example after the control system has rebooted).
 
+The status of the Server is displayed on the main window status bar. Double-clicking on the status will cause the Server to toggle between connected / not connected. Green means one or more clients are connected, red means the Server is running but no clients are connected, and gray means the Server is not active.
+
 ### The Serial Server Tab
 
 The Serial Server tab in the Settings dialog controls **MCE Controller’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCE Controller** will open the specified COM port (e.g. COM1) and wait commands to be sent.
@@ -124,6 +127,8 @@ The Serial Server tab in the Settings dialog controls **MCE Controller’s** ser
 * `Port` - This is the serial port that **MCE Controller** will listen on (e.g. COM1).
 * `Baud Rate` - Sets the speed of the serial port.
 * `Data Bits`, `Parity`, `Stop Bits`, and `Handshake`: Set the serial port configuration.
+
+The status of the Serial Server is displayed on the main window status bar. Double-clicking on the status will cause the Serial Server to toggle between connected / not connected. Green means connected, red means not connected, and gray means the Serial Server is not active.
 
 ### The Activity Monitor Tab
 
@@ -137,16 +142,16 @@ The Serial Server tab in the Settings dialog controls **MCE Controller’s** ser
 
 ## Testing MCE Controller
 
-**MCE Controller** includes a built in TCP/IP client that can send commands to another instance of **MCE Controller** running on the same or different PC. You can even use the Client and Server within the same instance.
+The buit-in TCP/IP client can send commands to another instance of **MCE Controller** running on the same or different PC. Or, if both the Client and Server in a single instnace are set to connect to `localhost` and the same port they can connect to each other, enabling easy testing of commands.
 
-By default **MCE Controller** is configured such that by checking two checkboxes you can easily put it into "test mode".
+By default **MCE Controller** is configured such the following iwll put it into "test mode".
 
 1. Open the Settings dialog from the `File.Settings...` menu.
-2. Click on the Client tab and check the `Act as Client` check-box
-3. Click on the Server tab and check the `Act as Server` check-box
-4. Hit `Ok`
-
-Because the default settings have the Client connecting to port `5150` on `localhost` and the default server port is also `5150` this will cause **MCE Controller** to connect to itself.
+2. Click on the Client tab and check the `Act as Client` check-box. 
+3. Enter `localhost` in the `Host` edit box.
+4. Click on the Server tab and check the `Act as Server` check-box
+5. Hit `Ok`
+6. Click on the `Commands.Show Commands...` menu and start testing commands.
 
 ### The Commands Window
 
@@ -154,11 +159,17 @@ The `Commands Window` shows a list of all Commands **MCE Controller** is configu
 
 [![Commands](commands.png "Commands")]
 
-If you've followed the instructions above to connect an instance of MCE Controller to itself, use `Commands.Show Commands...` to open the `Commands Window`. 
-
 * Double click on any command to cause it to be sent from the Client to the Server (be careful, because if you double click on 'shutdown' your PC will literally shut down!).
 * Type anything into the `Send "chars:" command` edit box and press `Send` to send a `chars:` command.
-* Type a command into the `Send any command` edit box and press `Send` to send that command.
+* Type a command (or list of commands, one per line) into the `Send any command` edit box and press `Send` to send those commands.
+
+Try this as a quick test:
+
+    shiftdown:lwin
+    x
+    shiftup:lwin
+
+This will cause the Win-X menu to pop up.
 
 Turn on the `Activity Monitor` while in test mode and you'll see events in the log for when activity is detected.
 
@@ -169,16 +180,16 @@ PuTTY is a free terminal emulator (and Telnet and SSH client). It works well for
 #### Using PUTTY to test TCP/IP interactions
 
 1.  Run PUTTY.EXE
-2.  Set _Host Name_ to _localhost_ (or the network name of the PC running MCE Controller
-3.  Set _Port_ to the port MCE Controller is set to listen on (e.g. 5150)
-4.  Set the _Connection Type_ to _Raw_.
-5.  Click _Open_
+2.  Set `Host Name` to `localhost` (or the network name of the PC running MCE Controller
+3.  Set `Port` to the port MCE Controller is set to listen on (e.g. 5150)
+4.  Set the `Connection Type` to `Raw`.
+5.  Click `Open`
 
 Type commands in the PuTTY Window and see how MCE Controller reacts.
 
 #### Using PUTTY to test serial connections
 
-PuTTY supports connecting via serial ports. The usage is the same as in the TCP/IP example above except you set the appropriate COM port settings in PuTTY and choose the _Serial_ destination type.
+PuTTY supports connecting via serial ports. The usage is the same as in the TCP/IP example above except you set the appropriate COM port settings in PuTTY and choose the `Serial` destination type.
 
 ## Commands Details
 
@@ -216,9 +227,9 @@ VK_MEDIA_PLAY_PAUSE
 VK_F1
 ```
 
-If you want a keystroke that includes a shift modifier (e.g. `Win-D` or `Ctrl-G`) define a custom `SendInput` command as described below.
+To send a keystroke that includes a shift modifier (e.g. `Win-D` or `Ctrl-G`) define a custom `SendInput` command as described below.
 
-You can find a list of all Window's virtual key codes on [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx)
+A list of all Window's virtual key codes can be found here: [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx)
 
 #### Character Commands
 
@@ -232,43 +243,38 @@ Unicode (and other escaped character sequences are supported). `chars:\u20AC` wi
 
 To simulate a key down event for one of the modifiers keys (shift, control, alt, and the Windows key) send a `shiftdown:` or `shiftup:` command. The syntax is:
 
-`shiftdown:[shift|ctrl|alt|lwin|rwin]`
+    shiftdown:[shift|ctrl|alt|lwin|rwin]
 
 and
 
-`shiftup:[shift|ctrl|alt|lwin|rwin]`
+    shiftup:[shift|ctrl|alt|lwin|rwin]
 
 For example, to simulate the typing of 'Test!' send the following commands:
 
-```
-shiftdown:shift
-t
-shiftup:shift
-e
-s
-t
-shiftdown:shift
-1
-shiftup:shift
-```
+    shiftdown:shift
+    t
+    shiftup:shift
+    e
+    s
+    t
+    shiftdown:shift
+    1
 
 (Although, using a `chars:` command would probably work better in most cases).
 
 This scheme can be used as an alternative way of sending ctrl-, alt-, and win- keystrokes. For example to simulate ctrl-s:
 
-```
-shiftdown:ctrl
-s
-shiftup:ctrl
-```
+    shiftdown:ctrl
+    s
+    shiftup:ctrl
 
 #### mouse: Commands
 
-**MCE Controller** can simulate mouse movement. With this it is possible to build a remote control that acts like a mouse (I built a test app for Windows Phone 7 that enables WP7 to work like a touchpad; contact me if you are interested in it).
+With `Mouse` commands it is possible to build a remote control that acts like a mouse (I built a test app for Windows Phone 7 that enables WP7 to work like a touchpad; contact me if you are interested in it).
 
 The general format of the mouse commands is:
 
-`mouse:<action>[,<param>,...,<param>]`
+    mouse:<action>[,<param>,...,<param>]
 
 The available mouse actions are:
 
@@ -298,53 +304,69 @@ Values returned by commands in **MCE Controller** are of the format `command=val
 
 ### Defining Your Own Commands
 
-**MCE Controller** supports over 250 built-in commands. You can see how many are defined [here](https://github.com/tig/mcec/blob/master/Resources/Builtin.commands). You can override or augment this set by editing the `MCEControl.commands` file and (Use the `Commands.Open commands file...` menu to find the file location on your machine.Any commands it defines will add to and over-ride matching built-in commands.
+**MCE Controller** supports over 250 built-in commands. You can see how most are defined [here](https://github.com/tig/mcec/blob/master/Resources/Builtin.commands). You can override or augment this set by editing the `MCEControl.commands` file and (Use the `Commands.Open commands file...` menu to find the file location on your machine.Any commands it defines will add to and over-ride matching built-in commands.
 
-A sample `MCEControl.commands` file is installed by default with all entries commented out.
+A sample `MCEControl.commands` file is installed by default with all entries commented out. The file format is XML and must include the root elements shown below. `Commands` are defined within the `<Commands>` element.
 
-Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1). 
+    <?xml version="1.0" encoding="utf-8"?>
+    <MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <Commands xmlns="http://www.kindel.com/products/mcecontroller">
+        <!-- Put commands below here -->
 
-`MCEControl.commands` supports defining four types of commands: `SendInput`, `SendMessage`, `StartProcess`, `Shutdown`, and `SetForegroundWindow`.
+        <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
+        
+        <!-- Put commands above  here -->
+      </Commands>
+    </MCEController>
 
-**Note on case sensitivity**: In the `MCEControl.commands` file, all XML element and attribute names are case-sensitive. E.g. `ctrl` is NOT the same as `Ctrl`.  The commands themselves (the values of Cmd attributes) are NOT case-sensitive. E.g. ‘MonitorOff’ will be treated the same as `monitoroff`.
+Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1).
+
+`MCEControl.commands` supports defining four types of commands, described below. 
+
+* `SendInput`
+* `SendMessage`
+* `StartProcess`
+* `Shutdown`
+* `SetForegroundWindow`
+
+**Note on case sensitivity**: In the `MCEControl.commands` file, all XML element and attribute names are case-insensitive. E.g. `ctrl` IS the same as `Ctrl`. The value of the `Cmd` attribute is NOT case-sensitive (e.g. `Cmd="MonitorOff"` will be treated the same as `cmd="monitoroff"`. The values of any `true/false` attribute must be lower case `true` or `false`.
 
 #### SendInput Commands
 
-`SendInput` commands send keystrokes. Any combination of shift, ctrl, alt, and left/right Windows keys can be used with any "virtual key code". See the `winuser.h` file in the Windows SDK or [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx) for a definition of all standard `VK_` codes. **MCE Controller** understands key codes in hex (e.g. `0x2a`) or decimal format, or as a `VK_` name. **MCE Controller** uses the Windows `SendInput()` API to send keystrokes. Keystrokes go to the foreground window.
+`SendInput` commands send keystrokes. Any combination of shift, ctrl, alt, and left/right Windows keys can be used with any "virtual key code". See the `winuser.h` file in the Windows SDK or [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx) for a definition of all standard `VK_` codes. `SendInput` commands understand single characters (e.g. `x`), key codes in hex (e.g. `0x2a`) or decimal format, or as a `VK_` name. The Windows `SendInput()` API is used send keystrokes. Keystrokes go to the foreground window.
 
 For example, the following causes a **Ctrl-P** to be sent to the foreground window, and if that window is Media Center, the My Pictures page appears:
 
-`<SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />`
+    <SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />
 
 (The VK code or 'P' is 73 decimal).
 
 This example causes a Windows-X to be simulated, which causes the Windows 10 "expert" menu to pop up:
 
-`<SendInput Cmd="winx" vk="VK_X" Win="true"/>`
+    <SendInput Cmd="winx" vk="VK_X" Win="true"/>
 
 #### SendMessage Commands
 
-`SendMessage` commands are just that. They cause **MCE Controller** to send a Windows message using the `SendMessage()` API to the foreground window if no class name is specified, or to a particular window if that window’s class is specified. `Msg`, `wParam`, and `lParam` must be specified in decimal (not hex!).
+`SendMessage` commands are just that. They cause a Windows message to be sent using the `SendMessage()` API to the foreground window if no class name is specified, or to a particular window if that window’s class is specified. `Msg`, `wParam`, and `lParam` must be specified in decimal (**not hex!**).
 
 For example, the following is equivalent to sending a `WM_SYSCOMMAND` with the `SC_MAXIMIZE` flag, causing the window with the class name of `ehshell` to be maximized (`WM_SYSCOMMAND == 247` and `SC_MAXIMIZE == 61488`):
 
-`<SendMessage Cmd="mce_maximize" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />`
+    <SendMessage Cmd="mce_maximize" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />
 
-These commands might be useful in some scenarios:
+These example commands might be useful in some scenarios:
 
-```
- <!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
- <SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
- <!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
- <SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
- <SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
-```
+    <!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
+    <SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
+    <!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
+    <SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
+    <SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
 
 See the [MSDN documentation](http://msdn.microsoft.com/en-us/library/ms646360(v=VS.85).aspx) for more `WM_SYSCOMMAND` possibilities.
 
 #### StartProcess Commands
 
-`StartProcess` commands start processes. Process commands support chaining using the `nextCommand` element. The embedded command will be executed after the started application starts processing windows’ messages.
+`StartProcess` commands start processes (programs). Process commands support chaining using nested command elements. For `Start Process` commands the first embedded command will be executed after the started application starts processing windows messages.
 
 For example, the following launches Media Center and maximizes it:
 
