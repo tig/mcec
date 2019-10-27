@@ -381,7 +381,8 @@ For example, the following launches Notepad, types some text, maximizes it, and 
 For example, the following causes a **Ctrl-P** to be sent to the foreground window, and if that window is Media Center, the My Pictures page appears:
 
 ```xml
-<SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" /<SendInput Cmd="mypictures" vk="P" Shift="false" Ctrl="true" Alt="false" />
+<SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />
+<SendInput Cmd="mypictures" vk="P" Shift="false" Ctrl="true" Alt="false" />
 ```
 
 This example causes a Windows-X to be simulated, which causes the Windows 10 "expert" menu to pop up:
