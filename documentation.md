@@ -309,17 +309,19 @@ Values returned by commands in **MCE Controller** are of the format `command=val
 
 A sample `MCEControl.commands` file is installed by default with all entries commented out. The file format is XML and must include the root elements shown below. `Commands` are defined within the `<Commands>` element.
 
-    <?xml version="1.0" encoding="utf-8"?>
-    <MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-      <Commands xmlns="http://www.kindel.com/products/mcecontroller">
-        <!-- Put commands below here -->
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Commands xmlns="http://www.kindel.com/products/mcecontroller">
+    <!-- Put commands below here -->
 
-        <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
-        
-        <!-- Put commands above  here -->
-      </Commands>
-    </MCEController>
+    <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
+    
+    <!-- Put commands above  here -->
+    </Commands>
+</MCEController>
+```
 
 Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1).
 
@@ -335,7 +337,9 @@ Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to e
 
 The form of a Command defintion is:
 
+```xml
     <type Cmd="text to trigger on" Args="optioal args" etc.../>
+```
 
 **Note on case sensitivity**: All XML element and attribute names are case-insensitive. E.g. `ctrl` is the same as `Ctrl`.  The value of the `Cmd` attribute is NOT case-sensitive. E.g. `MonitorOff` will be treated the same as `monitoroff`. Some attribute values ARE case sensitive (e.g. in `<SendInput/>` commands `Ctrl="true"` will work but `Ctrl="False"` will not).
 
@@ -347,24 +351,26 @@ Commands support chaining by nesting elements. The nexted commands will be execu
 
 For example, the following launches Notepad, types some text, maximizes it, and then shows the About box. The example is written to be intentionally complex.
 
-    <StartProcess Cmd="notepad" File="notepad.exe" >
-      <Pause Args="100"/>
-      <Chars Cmd="test" Args="this is a test." />
-      <SendInput vk="VK_RETURN"/>
-          <Pause Args="100"/>
-      <SendInput vk="VK_RIGHT" Shift="true" Win="true"/>
-          <Pause Args="100"/>
-      <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
-      <SendInput vk="VK_RETURN">
-        <Chars Args="Second "/>
-        <Chars Args="line..">
-          <SendInput vk="h" Alt="true"/>
-          <SendInput vk="a" Alt="false">
-            <SendInput vk="VK_ESCAPE"/>
-          </SendInput>
-        </Chars>
-      </SendInput>
-    </StartProcess>
+```xml
+<StartProcess Cmd="notepad" File="notepad.exe" >
+    <Pause Args="100"/>
+    <Chars Cmd="test" Args="this is a test." />
+    <SendInput vk="VK_RETURN"/>
+        <Pause Args="100"/>
+    <SendInput vk="VK_RIGHT" Shift="true" Win="true"/>
+        <Pause Args="100"/>
+    <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
+    <SendInput vk="VK_RETURN">
+    <Chars Args="Second "/>
+    <Chars Args="line..">
+        <SendInput vk="h" Alt="true"/>
+        <SendInput vk="a" Alt="false">
+        <SendInput vk="VK_ESCAPE"/>
+        </SendInput>
+    </Chars>
+    </SendInput>
+</StartProcess>
+```
 
 **Note on case sensitivity**: In the `MCEControl.commands` file, all XML element and attribute names are case-insensitive. E.g. `ctrl` IS the same as `Ctrl`. The value of the `Cmd` attribute is NOT case-sensitive (e.g. `Cmd="MonitorOff"` will be treated the same as `cmd="monitoroff"`. The values of any `true/false` attribute must be lower case `true` or `false`.
 
@@ -374,13 +380,15 @@ For example, the following launches Notepad, types some text, maximizes it, and 
 
 For example, the following causes a **Ctrl-P** to be sent to the foreground window, and if that window is Media Center, the My Pictures page appears:
 
-    <SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />
-
-    <SendInput Cmd="mypictures" vk="P" Shift="false" Ctrl="true" Alt="false" />
+```xml
+<SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" /<SendInput Cmd="mypictures" vk="P" Shift="false" Ctrl="true" Alt="false" />
+```
 
 This example causes a Windows-X to be simulated, which causes the Windows 10 "expert" menu to pop up:
 
-    <SendInput Cmd="winx" vk="VK_X" Win="true"/>
+```xml
+<SendInput Cmd="winx" vk="VK_X" Win="true"/>
+```
 
 #### SendMessage Commands
 
@@ -388,15 +396,19 @@ This example causes a Windows-X to be simulated, which causes the Windows 10 "ex
 
 For example, the following is equivalent to sending a `WM_SYSCOMMAND` with the `SC_MAXIMIZE` flag, causing the window with the class name of `ehshell` to be maximized (`WM_SYSCOMMAND == 247` and `SC_MAXIMIZE == 61488`):
 
-    <SendMessage Cmd="mce_maximize" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />
+```xml
+<SendMessage Cmd="mce_maximize" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />
+```
 
 These example commands might be useful in some scenarios:
 
-    <!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
-    <SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
-    <!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
-    <SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
-    <SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
+```xml
+<!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
+<SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
+<!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
+<SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
+<SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
+```
 
 See the [MSDN documentation](http://msdn.microsoft.com/en-us/library/ms646360(v=VS.85).aspx) for more `WM_SYSCOMMAND` possibilities.
 
@@ -406,20 +418,24 @@ See the [MSDN documentation](http://msdn.microsoft.com/en-us/library/ms646360(v=
 
 Examples:
 
-    <Startprocess cmd="code" file="code" Arguments="foo.cs" />
-    <StartProcess Cmd="tada" File="C:\Windows\Media\tada.wav" Verb="Open" />
-    <StartProcess Cmd="term" File="shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" />
-    <StartProcess Cmd="netflix" File="shell:AppsFolder\4DF9E0F8.Netflix_mcm4njqhnhss8!Netflix.App" />
+```xml
+<Startprocess cmd="code" file="code" Arguments="foo.cs" />
+<StartProcess Cmd="tada" File="C:\Windows\Media\tada.wav" Verb="Open" />
+<StartProcess Cmd="term" File="shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" />
+<StartProcess Cmd="netflix" File="shell:AppsFolder\4DF9E0F8.Netflix_mcm4njqhnhss8!Netflix.App" />
+```
 
 #### Shutdown Commands
 
 The supported shutdown commands are self-explanatory.
 
-    <Shutdown Cmd="shutdown" Type="shutdown" Timeout="30"/>
-    <Shutdown Cmd="restart" Type="restart"/>
-    <Shutdown Cmd="abort" Type="abort"/>
-    <Shutdown Cmd="standby" Type="standby"/>
-    <Shutdown Cmd="hibernate" Type="hibernate"/>
+```xml
+<Shutdown Cmd="shutdown" Type="shutdown" Timeout="30"/>
+<Shutdown Cmd="restart" Type="restart"/>
+<Shutdown Cmd="abort" Type="abort"/>
+<Shutdown Cmd="standby" Type="standby"/>
+<Shutdown Cmd="hibernate" Type="hibernate"/>
+```
 
 #### SetForgroundWindow Commands
 
@@ -427,7 +443,9 @@ The `SetForegroundWindow` command sets the specified window (using the window’
 
 For example, the following makes Media Center the foreground Window (assuming Media Center is running):
 
-    <SetForegroundWindow Cmd="mce_activate" ClassName="ehshell"/>
+```xml
+<SetForegroundWindow Cmd="mce_activate" ClassName="ehshell"/>
+```
 
 #### Chars Commands
 
