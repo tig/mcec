@@ -2,13 +2,18 @@
 ---
 
 @import "{{ site.theme }}";
-,header {
-    width: 270px;
+header {
+    width: 260px;
 }
-.wrapper {
+
+wrapper {
     width: 960px;
 }
-.section {
+
+section {
     width: 640px;
 }
-code {  font-size: small }
+
+code {  
+    font-size: small 
+}
