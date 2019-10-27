@@ -2,18 +2,16 @@
 ---
 
 @import "{{ site.theme }}";
-header {
-    width: 260px;
+header, footer {
+    width: 170px;
 }
 
-.wrapper {
-    width: 960px;
-}
+
 
 section {
-    width: 640px;
+    width: 740px;
 }
 
 div.language-xml  {  
-    font-size: small;
+    font-size: 12px;
 }
