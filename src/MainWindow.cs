@@ -731,20 +731,13 @@ namespace MCEControl {
             Process.Start(Program.ConfigPath);
         }
 
-        private void helpMenuItem_Click(object sender, EventArgs e) {
-            Process.Start("https://github.com/tig/mcec/wiki");
-        }
 
-        private void wikiMenuItem_Click(object sender, EventArgs e) {
-            Process.Start("https://github.com/tig/mcec/wiki");
+        private void docsMenuItem_Click(object sender, EventArgs e) {
+            Process.Start("https://tig.github.io/mcec/");
         }
 
         private void MenuItemEditCommands_Click(object sender, EventArgs e) {
             Process.Start(Program.ConfigPath);
-        }
-
-        private void helpMenuItem_Click(object sender, CancelEventArgs e) {
-            Process.Start("https://github.com/tig/mcec/wiki");
         }
 
         private void updatesMenuItem_Click(object sender, EventArgs e) {

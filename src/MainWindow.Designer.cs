@@ -18,7 +18,7 @@ namespace MCEControl
         private ToolStripMenuItem helpToolStripMenuItem;
         private ToolStripSeparator toolStripSeparator2;
         private ToolStripSeparator toolStripSeparator1;
-        private ToolStripMenuItem wikiMenuItem;
+        private ToolStripMenuItem docsMenuItem;
         private ToolStripSeparator toolStripSeparator3;
         private ToolStripMenuItem checkUpdatesMenuItem;
         private ToolStripSeparator toolStripSeparator4;
@@ -73,7 +73,7 @@ namespace MCEControl
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.sendAwakeMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.wikiMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.docsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.checkUpdatesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
@@ -294,7 +294,7 @@ namespace MCEControl
             // helpToolStripMenuItem
             // 
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.wikiMenuItem,
+            this.docsMenuItem,
             this.toolStripSeparator3,
             this.checkUpdatesMenuItem,
             this.toolStripSeparator4,
@@ -303,34 +303,34 @@ namespace MCEControl
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "&Help";
             // 
-            // wikiMenuItem
+            // docsMenuItem
             // 
-            this.wikiMenuItem.Name = "wikiMenuItem";
-            this.wikiMenuItem.Size = new System.Drawing.Size(170, 22);
-            this.wikiMenuItem.Text = "&Wiki";
-            this.wikiMenuItem.Click += new System.EventHandler(this.wikiMenuItem_Click);
+            this.docsMenuItem.Name = "docsMenuItem";
+            this.docsMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.docsMenuItem.Text = "&Documentation...";
+            this.docsMenuItem.Click += new System.EventHandler(this.docsMenuItem_Click);
             // 
             // toolStripSeparator3
             // 
             this.toolStripSeparator3.Name = "toolStripSeparator3";
-            this.toolStripSeparator3.Size = new System.Drawing.Size(167, 6);
+            this.toolStripSeparator3.Size = new System.Drawing.Size(177, 6);
             // 
             // checkUpdatesMenuItem
             // 
             this.checkUpdatesMenuItem.Name = "checkUpdatesMenuItem";
-            this.checkUpdatesMenuItem.Size = new System.Drawing.Size(170, 22);
+            this.checkUpdatesMenuItem.Size = new System.Drawing.Size(180, 22);
             this.checkUpdatesMenuItem.Text = "&Check for updates";
             this.checkUpdatesMenuItem.Click += new System.EventHandler(this.updatesMenuItem_Click);
             // 
             // toolStripSeparator4
             // 
             this.toolStripSeparator4.Name = "toolStripSeparator4";
-            this.toolStripSeparator4.Size = new System.Drawing.Size(167, 6);
+            this.toolStripSeparator4.Size = new System.Drawing.Size(177, 6);
             // 
             // aboutMenuItem
             // 
             this.aboutMenuItem.Name = "aboutMenuItem";
-            this.aboutMenuItem.Size = new System.Drawing.Size(170, 22);
+            this.aboutMenuItem.Size = new System.Drawing.Size(180, 22);
             this.aboutMenuItem.Text = "&About...";
             this.aboutMenuItem.Click += new System.EventHandler(this.aboutMenuItem_Click);
             // 
@@ -350,7 +350,7 @@ namespace MCEControl
             this.MinimizeBox = false;
             this.Name = "MainWindow";
             this.Text = "MCE Controller";
-            this.HelpButtonClicked += new System.ComponentModel.CancelEventHandler(this.helpMenuItem_Click);
+            this.HelpButtonClicked += new System.ComponentModel.CancelEventHandler(this.docsMenuItem_Click);
             this.Closing += new System.ComponentModel.CancelEventHandler(this.mainWindow_Closing);
             this.Load += new System.EventHandler(this.mainWindow_Load);
             this.Layout += new System.Windows.Forms.LayoutEventHandler(this.MainWindow_Layout);
@@ -360,9 +360,7 @@ namespace MCEControl
             this.menuStrip.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
-
         }
-
         #endregion
     }
 }
