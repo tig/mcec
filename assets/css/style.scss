@@ -2,4 +2,13 @@
 ---
 
 @import "{{ site.theme }}";
+,header {
+    width: 270px;
+}
+.wrapper {
+    width: 960px;
+}
+.section {
+    width: 640px;
+}
 code {  font-size: small }
