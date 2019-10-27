@@ -1,4 +1,6 @@
-name: MCE Controller
+title: MCE Controller
 description: MCE Controller documentation
+logo: Guillen256x256.png
+show_downloads: true
 theme: jekyll-theme-minimal
 
