@@ -8,7 +8,7 @@ By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
 ## Overview
 
-**MCE Controller** provides robust remote control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCE Controller** to control a Windows PC.
+**MCE Controller** (MCEC) provides robust remote control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for *Commands*. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCEC** to control a Windows PC.
 
 For example:
 
@@ -16,19 +16,19 @@ For example:
 * The command `maximize` will cause the current window to be maximized on the display. This is equivalent to choosing the "Maximize" button on the window's window menu.
 * The command `chars:Hello World!` will cause the text "Hello World" to be typed, as though it were typed on the keyboard.
 * The command `VK_MEDIA_NEXT_TRACK` will cause the currently running media player app (Spotify, Windows Media Player, etc...) to jump to the next media track, just as if the user had pressed th "next track" key on the keyboard.
-* The commands that **MCE Controller** support is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
+* The commands that **MCEC** supports is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
 
-**MCE Controller** was initially developed to enable integration of a Windows Media Center based home theater PC (HTPC) into a Crestron whole-house audio/video system. However, it is general enough that others have used it within other control system that support sending text strings to a TCP/IP port. Most control systems, such as Crestron or AMX, support IR emitting.
+**MCEC** was initially developed to enable integration of a Windows Media Center based home theater PC (HTPC) into a Crestron whole-house audio/video system. However, it is general enough that others have used it within other control system that support sending text strings to a TCP/IP port. Most control systems, such as Crestron or AMX, support IR emitting.
 
-**MCE Controller** can act as either a TCP/IP client or server. When acting as a client the target host and port can be configured. When acting as a server the incoming port can be configured.
+**MCEC** can act as either a TCP/IP client or server. When acting as a client the target host and port can be configured. When acting as a server the incoming port can be configured.
 
-**MCE Controller** can also listen on an RS-232 serial port.
+**MCEC** can also listen on an RS-232 serial port.
 
-**MCE Controller** can run showing only a taskbar icon. By double clicking on the taskbar a status window is displayed that shows a log of all activity. You can also right-click on the taskbar icon for a menu.
+**MCEC** can run showing only a taskbar icon. By double clicking on the taskbar a status window is displayed that shows a log of all activity. You can also right-click on the taskbar icon for a menu.
 
 ## Windows PC Control Capabilities
 
-By default **MCE Controller** supports over 250 built-in commands for controlling a Windows PC remotely. The list below summarizes these control capabilities.
+By default **MCEC** supports over 250 built-in commands for controlling a Windows PC remotely. The list below summarizes these control capabilities.
 
 * Supports simulating key presses (e.g. Alt-Tab, or Win-S) with `SendInput` commands.
 * Supports simulating the mouse with `mouse:` commands.
@@ -54,51 +54,51 @@ By default **MCE Controller** supports over 250 built-in commands for controllin
 
 ## Installation
 
-Important Note: **MCE Controller** requires the .NET Framework 4.7+. Go to [http://www.microsoft.com/net](http://www.microsoft.com/net) to ensure you have this installed before running **MCE Controller**.
+Important Note: **MCE Controller** requires the .NET Framework 4.7+. Install .NET Frameworks from [http://www.microsoft.com/net](http://www.microsoft.com/net) .
 
-**MCE Controller** V2 was developed for Windows 10. It has not been tested on older versions of Windows. Submit an [Issue](https://github.com/tig/mcec/issues) if you have a specific version of Windows you'd like supported.
+**MCEC** V2 was developed for Windows 10. It has not been tested on older versions of Windows. Submit an [Issue](https://github.com/tig/mcec/issues) if you have a specific version of Windows you'd like supported.
 
-To install, simply run `MCEController Setup.exe`. You can un-install **MCE Controller** via add/remove programs.
+To install, simply run `MCEController Setup.exe`. You can un-install **MCEC** via add/remove programs.
 
 ## Running
 
-When **MCE Controller** runs, it defaults to showing itself. If you close the main MCE Controller window the app will minimize to an icon in the taskbar. Double clicking on the taskbar icon will cause **MCE Controller** to show itself again.
+When **MCE Controller** runs, it defaults to showing itself. If you close the main MCE Controller window the app will minimize to an icon in the taskbar. Double clicking on the taskbar icon will cause the window to show itself again.
 
-If you would like **MCE Controller** to automatically hide upon startup, check the _Hide Window at Startup_ checkbox in the `Settings` dialog.
+If you would like **MCEC** to automatically hide upon startup, check the _Hide Window at Startup_ checkbox in the `Settings` dialog.
 
-To have **MCE Controller** start automatically do the following:
+To have **MCEC** start automatically do the following:
 
 1. Create a Windows shortcut to `MCEControl.exe` (found in `C:\Program Files (x86)\Kindel Systems\MCE Controller` by default).
 2. Put the shortcut file into the Windows Startup Folder (`C:\Users\[User Name]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup`).
 
-You can run multiple instances of **MCE Controller**. To do so simply copy the EXE to a 2nd directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
+Run multiple instances of **MCEC** by simply copying the `MCE Controller.exe` and `log4net.dll` from the insallation directory to another directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
 
 ## Closing
 
-Use the `File.Exit` menu to shut down **MCE Controller**.
+Use the `File.Exit` menu to shut down the app. 
 
 ## Settings
 
 [![Settings](settings_general.png "Settings")]
 
-Configuration settings are stored in a file that will be created in the `%APPDATA%\Roaming\Kindel Systems\MCE Controller` directory when MCE Controller is first run. The configuration settings file is named `MCEControl.settings`.
+Configuration settings are stored in `MCEControl.settings` found in the  `%APPDATA%\Roaming\Kindel Systems\MCE Controller` directory.
 
 All settings can be configured from `Settings` dialog box the `File.Settings...` menu. The `General` tab shown above supports the following settings:
 
-* `Hide Window at Startup` - If checked the **MCE Controller** will start minimized to tray icon.
-* `Log Threshold` - By default only informational log events will be shown in the MCE Controller main window. This setting over-rides this enabling the display of `INFO`, `DEBUG`, or `ALL` log settings. Note that the `.log` files always include `ALL` events.
-* `Default command pacing (ms)` - If this value is greater than 0, **MCE Controller** will delay executing each command it receives by the value (in milliseconds). The default is 0.
+* `Hide Window at Startup` - If checked the **MCEC** will start minimized to tray icon.
+* `Log Threshold` - By default only informational log events will be shown in the MCE Controller main window. This setting over-rides this enabling the display of `INFO`, `DEBUG`, or `ALL` log settings. Note that the log files always include `ALL` events.
+* `Default command pacing (ms)` - If this value is greater than 0, **MCEC** will delay executing each command it receives by the value (in milliseconds). The default is 0.
 
 ### The Client Tab
 
-The Client tab in the Settings dialog controls **MCE Controller’s** TCP/IP client functionality. When acting as a client, **MCE Controller** will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. **MCE Controller** sends nothing to the host by default.
+The *Client* Settings tab controls **MCE Controller’s** TCP/IP client functionality. When acting as a client, **MCEC** will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. **MCEC** sends nothing to the host by default.
 
 [![Client](settings_client.png "Client")]
 
 * `Enable Client` - This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
-* `Host` - This is the IP address or host name of the server **MCE Controller** is to connect to.
-* `Port` - This is the port that **MCE Controller** will connect to.
-* `Reconnect Wait Time (ms)` - This is the number of milliseconds (default is 30 seconds or 30000 ms) **MCE Controller** will wait before trying to reconnect to the host once a connection has been dropped.
+* `Host` - This is the IP address or host name of the server **MCEC** will connect to.
+* `Port` - This is the port that **MCEC** will connect to.
+* `Reconnect Wait Time (ms)` - This is the number of milliseconds (default is 30 seconds or 30000 ms) **MCEC** will wait before trying to reconnect to the host once a connection has been dropped.
 
 The status of the Client is displayed on the main window status bar. Double-clicking on the status will cause the Client to toggle between connected / not connected. Green means connected, red means active but not connected, and gray means the client is not active.
 
@@ -106,26 +106,26 @@ The status of the Client is displayed on the main window status bar. Double-clic
 
 **MCE Controller** can act as either a TCP/IP client or server (it can actually operate as both simultaneously, which can be useful for testing, but not much else). By default MCE Controller is configured to act as a TCP/IP server listening on port 5150. You can change this behavior using the Settings dialog described below.
 
-The Server tab in the Settings dialog controls **MCE Controller’s** TCP/IP server functionality. When acting as a server, **MCE Controller** will open the specified port and wait for a client to connect. When a client does connect **MCE Controller** will wait for incoming commands until the client closes the connection.
+The *Server* Settings tab controls **MCEC’s** TCP/IP server functionality. When acting as a server, **MCEC** will open the specified port and wait for a client to connect. When a client does connect **MCEC** will wait for incoming commands until the client closes the connection.
 
-In server mode, **MCE Controller** supports any number of multiple-simultaneous connections.
+**MCEC** supports any number of multiple-simultaneous connections to the Server.
 
 [![Server](settings_server.png "Server")]
 
 * `Enable Server` - This checkbox enables or disables the TCP/IP server functionality. If enabled, the followings settings apply:
-* `Port`- This is the port that **MCE Controller** will listen on.
-* `Enable Wakeup` - If enabled, **MCE Controller** will attempt to connect to the specified host/port, send the “Wakeup command” and disconnect when it first starts. When it shuts down it will send the “Closing command”. This functionality is useful when the remote client needs to be notified that **MCE Controller** is ready (for example after the control system has rebooted).
+* `Port`- This is the port that **MCEC** will listen on.
+* `Enable Wakeup` - If enabled, **MCEC** will attempt to connect to the specified host/port, send the “Wakeup command” and disconnect when it first starts. When it shuts down it will send the “Closing command”. This functionality is useful when the remote client needs to be notified that **MCEC** is ready (for example after the control system has rebooted).
 
 The status of the Server is displayed on the main window status bar. Double-clicking on the status will cause the Server to toggle between connected / not connected. Green means one or more clients are connected, red means the Server is running but no clients are connected, and gray means the Server is not active.
 
 ### The Serial Server Tab
 
-The Serial Server tab in the Settings dialog controls **MCE Controller’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCE Controller** will open the specified COM port (e.g. COM1) and wait commands to be sent.
+The *Serial Server* Settings controls **MCE Controller’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCEC** will open the specified COM port (e.g. COM1) and wait commands to be sent.
 
 [![Serial](settings_serialserver.png "Serial")]
 
 * `Enable Serial Server` - This checkbox enables or disables the Serial Server functionality. It is disabled by default. If enabled, the followings settings apply:
-* `Port` - This is the serial port that **MCE Controller** will listen on (e.g. COM1).
+* `Port` - This is the serial port that **MCEC** will listen on (e.g. COM1).
 * `Baud Rate` - Sets the speed of the serial port.
 * `Data Bits`, `Parity`, `Stop Bits`, and `Handshake`: Set the serial port configuration.
 
@@ -133,19 +133,19 @@ The status of the Serial Server is displayed on the main window status bar. Doub
 
 ### The Activity Monitor Tab
 
-**MCE Controller**'s `User Activity Monitor` sends a command to the home automation system when a user is using the PC. It knows the user is using the PC monitoring keyboard and mouse movement. If the mouse is moving or keys are being pressed, the PC is in use. This is useful for adding additional context to a room occupancy sensor in a home automation system. 
+**MCE Controller**'s `User Activity Monitor` sends a command (`activity` by default) to the home automation system when a user is using the PC. It knows the user is using the PC monitoring keyboard and mouse movement. If the mouse is moving or keys are being pressed, the PC is in use. This is useful for adding additional context to a room occupancy sensor in a home automation system. 
 
 [![Activity Monitor](settings_serialserver.png "Activity Monitor")]
 
 * `Enable User Activity Monitor` - This checkbox enables or disables the Activity Montitor. It is disabled by default. If enabled, the followings settings apply:
-* `Command to send` - The string that will be sent when user activity is detected. 
+* `Command to send` - The string that will be sent when user activity is detected. `activity` is default.
 * `Debounce time (seconds)` - The activity message will be sent no more frequently than `Debounce time` seconds.
 
 ## Testing MCE Controller
 
 The buit-in TCP/IP client can send commands to another instance of **MCE Controller** running on the same or different PC. Or, if both the Client and Server in a single instance are set to connect to `localhost` and the same port they can connect to each other, enabling easy testing of commands.
 
-By default **MCE Controller** is configured such the following iwll put it into "test mode".
+By default **MCEC** is configured such the following will configure "test mode".
 
 1. Open the Settings dialog from the `File.Settings...` menu.
 2. Click on the Client tab and check the `Act as Client` check-box. 
@@ -156,13 +156,13 @@ By default **MCE Controller** is configured such the following iwll put it into 
 
 ### The Commands Window
 
-The `Commands Window` shows a list of all Commands **MCE Controller** is configured to 'listen for'. It is useful to see the full list and to be able to test them.
+The `Commands Window` shows a list of all *Commands* **MCE Controller** is configured to 'listen for'. It is useful to see the full list and to be able to test them.
 
 [![Commands](commands.png "Commands")]
 
 * Double click on any command to cause it to be sent from the Client to the Server (be careful, because if you double click on 'shutdown' your PC will literally shut down!).
 * Type anything into the `Send "chars:" command` edit box and press `Send` to send a `chars:` command.
-* Type a command (or list of commands, one per line) into the `Send any command` edit box and press `Send` to send those commands.
+* Type a command (or list of *Commands*, one per line) into the `Send any command` edit box and press `Send` to send those commands.
 
 Try this as a quick test:
 
@@ -192,9 +192,9 @@ Type commands in the PuTTY Window and see how MCE Controller reacts.
 
 PuTTY supports connecting via serial ports. The usage is the same as in the TCP/IP example above except you set the appropriate COM port settings in PuTTY and choose the `Serial` destination type.
 
-## Commands Details
+## *Commands* Details
 
-**MCE Controller** works with **Commands**. Commands are text strings like `greenbutton`, `hibernate`, and `winkey` tha **MCE Controller** listens to and acts on. Each command has a **Type**. When **MCE Controller** receives a command it causes an action to happen on the PC it is running on. The action taken is dependent on the type of command and the parameters set for that command.
+**MCE Controller** works with ***Commands***. *Commands* are text strings like `greenbutton`, `hibernate`, and `winkey` tha **MCEC** listens to and acts on. Each command has a **Type**. When **MCEC** receives a command it causes an action to happen on the PC it is running on. The action taken is dependent on the type of command and the parameters set for that command.
 
 ### Types
 The following command types are supported by **MCE Controller**:
@@ -211,9 +211,9 @@ The following command types are supported by **MCE Controller**:
 
 ### Built-in Commands
 
-**MCE Controller** includes a set of pre-defined commands for controlling a Windows PC as well as standard keyboard input. Pre-defined commands can be viewed in `Commands.Show Commands` window. See the section titled “Defining Your Own Commands” below for instructions on how to add or change the commands **MCE Controller** supports.
+**MCE Controller** includes a set of pre-defined commands for controlling a Windows PC as well as standard keyboard input. Pre-defined commands can be viewed in `Commands.Show Commands` window. See the section titled “Defining Your Own Commands” below for instructions on how to add or change the commands **MCEC** supports.
 
-**MCE Controller** commands are _not_ case-sensitive. Thus `VK_UP` is equivalent to `vk_up` and `shutdown` is equivalent to `ShutDown`.
+**MCEC** commands are _not_ case-sensitive. Thus `VK_UP` is equivalent to `vk_up` and `shutdown` is equivalent to `ShutDown`.
 
 The following describes the Built-In commands that are supported:
 
@@ -238,7 +238,7 @@ Sending a single character is equivalent to a single key press of a key on the k
 
 Anytime **MCE Controller** receives `chars:` plus some text, it simulates the typing of that text on the keyboard. The syntax of the command is `chars:*` where '*'' represents one or more characters. This is equivalent to typing those characters on the keyboard. E.g. `chars:3` will cause the number 3 to be typed as though the user had pressed the 3 key on the keyboard. `chars:Hello` will cause `Hello` to be typed.
 
-Unicode (and other escaped character sequences are supported). `chars:\u20AC` will cause the € character to be input into the foreground window on the machine **MCE Controller** is running on.
+Unicode (and other escaped character sequences are supported). `chars:\u20AC` will cause the € character to be input into the foreground window on the machine **MCEC** is running on.
 
 #### Keyboard Commands
 
@@ -291,17 +291,17 @@ The available mouse actions are:
 * **hs,n** - Simlate a horizontal scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated to the right; a negative value indicates that the wheel was rotated to the left (`mouse:hs,3`).
 * **vs,n** - Simlate a vertical scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated forward, away from the user; a negative value indicates that the wheel was rotated backward, toward the user (`mouse:vs,3`).
 
-When sending mouse movements it is best if the **MCE Controller** window is hidden as the display log tends to chew up a lot of resources, making things jerky.
+When sending mouse movements it is best if the **MCEC** window is hidden as the display log tends to chew up a lot of resources, making things jerky.
 
 #### mcec: Commands
 
 The following commands control **MCE Controller** itself:
 
 * **mcec:ver** – Gets the version number.
-* **mcec:exit** – Causes **MCE Controller** to exit.
+* **mcec:exit** – Causes **MCEC** to exit.
 * **mcec:cmds** – Lists all commands.
 
-Values returned by commands in **MCE Controller** are of the format `command=value` where command is the command to the left of the command prefix (`mcec:`).
+Values returned by commands in **MCEC** are of the format `command=value` where command is the command to the left of the command prefix (`mcec:`).
 
 ### Defining Your Own Commands
 
@@ -347,7 +347,7 @@ Also note that you should not make commands a single character or it will interf
 
 #### Nesting
 
-Commands support chaining by nesting elements. The nexted commands will be executed after the started application starts processing windows messages.
+*Commands* support chaining by nesting elements. The nexted commands will be executed after the started application starts processing windows messages.
 
 For example, the following launches Notepad, types some text, maximizes it, and then shows the About box. The example is written to be intentionally complex.
 
@@ -450,7 +450,7 @@ For example, the following makes Media Center the foreground Window (assuming Me
 
 #### Chars Commands
 
-The `Chars` command is how the `chars:` commands get processed. `<Chars Cmd="foo" Arg="bar"/>` defines `foo` such that if **MCE Controller** receives `foo` it will type `bar` just as it had received `chars:bar`. 
+The `Chars` command is how the `chars:` commands get processed. `<Chars Cmd="foo" Arg="bar"/>` defines `foo` such that if **MCEC** receives `foo` it will type `bar` just as it had received `chars:bar`. 
 
 #### Pause Commands
 
