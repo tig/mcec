@@ -36,7 +36,8 @@ By default **MCE Controller** supports over 250 built-in commands for controllin
 * Supports simulating start process commands (e.g. run `notepad.exe`) with the `StartProcess`command.
 * Supports simulating changing the window focus with the `SetForegroundWindow` command.
 * Supports sending text (e.g. simulating typing) with the `chars:` command.
-* Includes built-in support for common Windows Media Center commands. 
+* Commands can be paced (slowed down) and there's a `pause` command enabling waiting for apps to open etc...
+* Includes built-in support for common Windows Media Center commands.
 * It can easily be extended to suit your needs through a `MCEController.commands file.`
 
 ## Key Features
@@ -111,7 +112,7 @@ In server mode, **MCE Controller** supports any number of multiple-simultaneous 
 
 [![Server](settings_server.png "Server")]
 
-*  `Enable Server` - This checkbox enables or disables the TCP/IP server functionality. If enabled, the followings settings apply:
+* `Enable Server` - This checkbox enables or disables the TCP/IP server functionality. If enabled, the followings settings apply:
 * `Port`- This is the port that **MCE Controller** will listen on.
 * `Enable Wakeup` - If enabled, **MCE Controller** will attempt to connect to the specified host/port, send the “Wakeup command” and disconnect when it first starts. When it shuts down it will send the “Closing command”. This functionality is useful when the remote client needs to be notified that **MCE Controller** is ready (for example after the control system has rebooted).
 
@@ -142,7 +143,7 @@ The status of the Serial Server is displayed on the main window status bar. Doub
 
 ## Testing MCE Controller
 
-The buit-in TCP/IP client can send commands to another instance of **MCE Controller** running on the same or different PC. Or, if both the Client and Server in a single instnace are set to connect to `localhost` and the same port they can connect to each other, enabling easy testing of commands.
+The buit-in TCP/IP client can send commands to another instance of **MCE Controller** running on the same or different PC. Or, if both the Client and Server in a single instance are set to connect to `localhost` and the same port they can connect to each other, enabling easy testing of commands.
 
 By default **MCE Controller** is configured such the following iwll put it into "test mode".
 
@@ -179,11 +180,11 @@ PuTTY is a free terminal emulator (and Telnet and SSH client). It works well for
 
 #### Using PUTTY to test TCP/IP interactions
 
-1.  Run PUTTY.EXE
-2.  Set `Host Name` to `localhost` (or the network name of the PC running MCE Controller
-3.  Set `Port` to the port MCE Controller is set to listen on (e.g. 5150)
-4.  Set the `Connection Type` to `Raw`.
-5.  Click `Open`
+1. Run PUTTY.EXE
+2. Set `Host Name` to `localhost` (or the network name of the PC running MCE Controller
+3. Set `Port` to the port MCE Controller is set to listen on (e.g. 5150)
+4. Set the `Connection Type` to `Raw`.
+5. Click `Open`
 
 Type commands in the PuTTY Window and see how MCE Controller reacts.
 
@@ -203,7 +204,9 @@ The following command types are supported by **MCE Controller**:
 * **Shutdown** - Allows the host computer to be shutdown, restarted, put in standby, or hibernate mode.
 * **SendMessage** - Enables the sending of window messages to windows. E.g. the 'mcemaximize' command causes the Media Center window to go full screen.
 * **SendInput** - Sends keyboard input as though it were typed on a keyboard.
+* **Chars** - Sends text.
 * **Mouse** - Sends mouse movement and button actions.
+* **Pause** - Pauses after a command before another is exectued (in milliseconds).
 * **Built-In** - Single characters, `VK_` codes, `chars:`, `shiftdown:`, `shiftup:,` and `mcec:.`
 
 ### Built-in Commands
@@ -218,14 +221,12 @@ The following describes the Built-In commands that are supported:
 
 Any Windows virtual key code is supported by default. The form of the commands are `VK_<key name>`. For example you can send **MCE Controller** any of the following commands and the corresponding key press will be simulated.
 
-```
 VK_ESCAPE
 VK_LWIN
 VK_VOLUME_MUTE
 VK_VOLUME_UP
 VK_MEDIA_PLAY_PAUSE
 VK_F1
-```
 
 To send a keystroke that includes a shift modifier (e.g. `Win-D` or `Ctrl-G`) define a custom `SendInput` command as described below.
 
@@ -329,6 +330,41 @@ Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to e
 * `StartProcess`
 * `Shutdown`
 * `SetForegroundWindow`
+* `Chars`
+* `Pause`
+
+The form of a Command defintion is:
+
+    <type Cmd="text to trigger on" Args="optioal args" etc.../>
+
+**Note on case sensitivity**: All XML element and attribute names are case-insensitive. E.g. `ctrl` is the same as `Ctrl`.  The value of the `Cmd` attribute is NOT case-sensitive. E.g. `MonitorOff` will be treated the same as `monitoroff`. Some attribute values ARE case sensitive (e.g. in `<SendInput/>` commands `Ctrl="true"` will work but `Ctrl="False"` will not).
+
+Also note that you should not make commands a single character or it will interfere with the ability to simulate individual character key presses.
+
+#### Nesting
+
+Commands support chaining by nesting elements. The nexted commands will be executed after the started application starts processing windows messages.
+
+For example, the following launches Notepad, types some text, maximizes it, and then shows the About box. The example is written to be intentionally complex.
+
+    <StartProcess Cmd="notepad" File="notepad.exe" >
+      <Pause Args="100"/>
+      <Chars Cmd="test" Args="this is a test." />
+      <SendInput vk="VK_RETURN"/>
+          <Pause Args="100"/>
+      <SendInput vk="VK_RIGHT" Shift="true" Win="true"/>
+          <Pause Args="100"/>
+      <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
+      <SendInput vk="VK_RETURN">
+        <Chars Args="Second "/>
+        <Chars Args="line..">
+          <SendInput vk="h" Alt="true"/>
+          <SendInput vk="a" Alt="false">
+            <SendInput vk="VK_ESCAPE"/>
+          </SendInput>
+        </Chars>
+      </SendInput>
+    </StartProcess>
 
 **Note on case sensitivity**: In the `MCEControl.commands` file, all XML element and attribute names are case-insensitive. E.g. `ctrl` IS the same as `Ctrl`. The value of the `Cmd` attribute is NOT case-sensitive (e.g. `Cmd="MonitorOff"` will be treated the same as `cmd="monitoroff"`. The values of any `true/false` attribute must be lower case `true` or `false`.
 
@@ -340,7 +376,7 @@ For example, the following causes a **Ctrl-P** to be sent to the foreground wind
 
     <SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />
 
-(The VK code or 'P' is 73 decimal).
+    <SendInput Cmd="mypictures" vk="P" Shift="false" Ctrl="true" Alt="false" />
 
 This example causes a Windows-X to be simulated, which causes the Windows 10 "expert" menu to pop up:
 
@@ -368,17 +404,18 @@ See the [MSDN documentation](http://msdn.microsoft.com/en-us/library/ms646360(v=
 
 `StartProcess` commands start processes (programs). Process commands support chaining using nested command elements. For `Start Process` commands the first embedded command will be executed after the started application starts processing windows messages.
 
-For example, the following launches Media Center and maximizes it:
+Examples:
 
-    <StartProcess Cmd="mce_start" File="C:\windows\ehome\ehshell.exe">
-        <nextCommand xsi:type="SendMessage" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />
-    </StartProcess>
+    <Startprocess cmd="code" file="code" Arguments="foo.cs" />
+    <StartProcess Cmd="tada" File="C:\Windows\Media\tada.wav" Verb="Open" />
+    <StartProcess Cmd="term" File="shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" />
+    <StartProcess Cmd="netflix" File="shell:AppsFolder\4DF9E0F8.Netflix_mcm4njqhnhss8!Netflix.App" />
 
 #### Shutdown Commands
 
 The supported shutdown commands are self-explanatory.
 
-    <Shutdown Cmd="shutdown" Type="shutdown"/>
+    <Shutdown Cmd="shutdown" Type="shutdown" Timeout="30"/>
     <Shutdown Cmd="restart" Type="restart"/>
     <Shutdown Cmd="abort" Type="abort"/>
     <Shutdown Cmd="standby" Type="standby"/>
@@ -392,9 +429,15 @@ For example, the following makes Media Center the foreground Window (assuming Me
 
     <SetForegroundWindow Cmd="mce_activate" ClassName="ehshell"/>
 
-Note that **MCE Controller** supports the `chars:`, `shiftup:`, and `shiftdown:` commands in addition to the commands defined in MCEControl.commands.
+#### Chars Commands
 
-Also note that you should not make commands a single character or it will interfere with the ability to simulate individual character key presses.
+The `Chars` command is how the `chars:` commands get processed. `<Chars Cmd="foo" Arg="bar"/>` defines `foo` such that if **MCE Controller** receives `foo` it will type `bar` just as it had received `chars:bar`. 
+
+#### Pause Commands
+
+The `Pause` command delays executing the next command. `<Pause Cmd="pause3sec" Arg="3000"/>` will pause 3 seconds. This is the same as sending `pause:3000`.
+
+Pause commands cause a delay _in addition to_ any delay introduced by the `Pacing` setting in Settings.
 
 ### Disabling All Internal Commands
 
@@ -412,11 +455,11 @@ Informational, debug, and diagnostic events are logged to `MCEControl.log` while
 
 The `mcestart` command will launch Media Center and cause it to be maximized. If you do not want this behavior, change `MCEControl.commands` such that the `mcestart` command does not have the embedded `nextCommand` element.
 
-For **MCE Contoller** to work property the target application (Media Center) must be the active window (foreground) on the desktop. You can use the `mceactivate` command to cause Media Center to be the foreground app if it’s already running. Alternatively you can just use `mcestart` as it will end up causing the same thing to happen (although not as quickly).
+For **MCE Controller** to work property the target application (Media Center) must be the active window (foreground) on the desktop. You can use the `mceactivate` command to cause Media Center to be the foreground app if it’s already running. Alternatively you can just use `mcestart` as it will end up causing the same thing to happen (although not as quickly).
 
 Also, you may find that `greenbutton` is a better function than `mcestart` because it is equivalent to the green-button on a Windows remote control. `mcestart` is a bit different because if Media Center is already running `mcestart` will not go to the "Start" screen of Media Center while `greenbutton` will. However, `greenbutton` does not cause the Media Center window to be maximized.
 
-# Version History
+## Version History
 
 * Version 1.0.1 (February 22, 2004) – First publicly released version.
 * Version 1.0.2 (March 24, 2004) - New features: Added support for system shutdown, restart, standby, and hibernate (the Shutdown command type). Renamed a few commands ("mce_start" is now "mcestart" for example) to be more consistent.
@@ -441,12 +484,22 @@ Also, you may find that `greenbutton` is a better function than `mcestart` becau
 * Version 1.8.6 (May, 2014) – Internal commands can be disabled via a registry key. Fixed bug when client forcibly closed socket. Added logging.
 * Version 1.9.0 (April 15, 2017) - Moved from Codeplex to GitHub.
 * Version 2.0.0 (October 8, 2019) - Version 2. Major update.
-    * Use the PC as an occupancy sensor for a room. The User Activity Monitor feature will send a command to the home automation system when a user is using the PC (moving the mouse or typing).
-    * Re-engineered Client & Server implementation is more robust.
-    * New/enhanced built-in test mode that makes it easy to test commands. The new Commands Window shows all available commands.
-    * Significantly updated UI throughout. Menus and dialog boxes reorganized based on user feedback. Full Windows 10 system font and dpi scaling support.
-    * Command extension has been enhanced. User defined MCEControl.commands is now automatically generated.
-    * StartProcess commands are now more robust and flexible.
-    * Settings, Command files, and log files are stored in %appdata%.
-    * Improved logging.
+  * Use the PC as an occupancy sensor for a room. The User Activity Monitor feature will send a command to the home automation system when a user is using the PC (moving the mouse or typing).
+  * Re-engineered Client & Server implementation is more robust.
+  * New/enhanced built-in test mode that makes it easy to test commands. The new Commands Window shows all available commands.
+  * Significantly updated UI throughout. Menus and dialog boxes reorganized based on user feedback. Full Windows 10 system font and dpi scaling support.
+  * Command extension has been enhanced. User defined MCEControl.commands is now automatically generated.
+  * StartProcess commands are now more robust and flexible.
+  * Settings, Command files, and log files are stored in %appdata%.
+  * Improved logging.
 * Version 2.0.4 (October 11, 2019) - Fixed bug where Server was not sending commands back to client.
+* Version 2.1.0 (OCtober 25, 2019) - Lots of updates
+  * Commands defined in `MCECommands.command` now *really* override any built-ins. 
+  * Reverted the set of built-in commands to include tons of defaults.
+  * Key and Attribute names (e.g. `<sendinput>` or `Shift=`) in MCECommands.commands` are no longer case senstive.
+  * Default pacing for commands is settable. See `General` settings tab. Default is 0. Specify in ms.
+  * New `Pause` Command enables putting delays between commands
+  * Shutdown commands are expanded and more reliable. Almost all funcdtions supported by the Windows `shutdown.exe` command are supported.
+  * Command window now supports sending multiple lines (scripts)
+  * All `<Commands>` in `MCEControl.commands` can now be nested. This makes it easy to create compound commands (scripts).
+  * Added `Chars` Command. Useful in nested commands.
