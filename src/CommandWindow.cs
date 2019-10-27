@@ -71,9 +71,11 @@ namespace MCEControl {
         }
 
         private void listCmds_DoubleClick(object sender, EventArgs e) {
-            log4.Debug("listCmds_DoubleClick");
-            textBoxSendCommand.Text = listCmds.SelectedItems[0].Text;
-            Send();
+            if (listCmds.SelectedItems.Count > 0) {
+                log4.Debug("listCmds_DoubleClick");
+                textBoxSendCommand.Text = listCmds.SelectedItems[0].Text;
+                Send();
+            }
         }
 
         private void CommandWindow_VisibleChanged(object sender, EventArgs e) {
