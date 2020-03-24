@@ -25,6 +25,7 @@ using Microsoft.Win32.Security;
 using log4net;
 using Microsoft.Win32;
 using System.Drawing;
+using MCEControl.Services;
 
 namespace MCEControl {
     public partial class MainWindow : Form {
@@ -69,6 +70,9 @@ namespace MCEControl {
             ShowInTaskbar = true;
 
             Program.CheckVersion();
+            if (TelemetryService.Instance.TelemetryEnabled)
+                Logger.Instance.Log4.Info("Telemetry is enabled.");
+
             SetStatus("");
             sendAwakeMenuItem.Enabled = false;
         }
@@ -180,6 +184,7 @@ namespace MCEControl {
                 notifyIcon.Visible = false;
             else {
                 cmdWindow.RefreshList();
+
                 Logger.Instance.Log4.Info($"{Invoker.Count} commands available.");
             }
         }

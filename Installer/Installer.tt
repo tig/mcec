@@ -32,33 +32,74 @@
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 !define PRODUCT_STARTMENU_REGVAL "NSIS:StartMenuDir"
 
-; MUI 1.67 compatible ------
-;!include "MUI.nsh"
 !include MUI2.nsh
+!include nsdialogs.nsh
+!include LogicLib.nsh
+!include x64.nsh
 
 ; MUI Settings
 !define MUI_ABORTWARNING
 !define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
 
+;=========== Telemetry Checkbox ==========
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW telemetrycheckshow
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE telemetrycheckleave
+
+Var mycheckbox
+
+Function telemetrycheckshow
+${NSD_CreateCheckbox} 120u -18u 50% 12u "Telemetry"
+Pop $mycheckbox
+SetCtlColors $mycheckbox "" 0xFFFFFFFF ;${MUI_BGCOLOR}
+${NSD_Check} $mycheckbox ; Check it by default
+FunctionEnd
+
+Function telemetrycheckleave
+${NSD_GetState} $mycheckbox $0
+${If} ${RunningX64}
+    SetRegView 64
+${EndIf}  
+WriteRegDWORD HKLM "Software\Kindel Systems\MCE Controller" "Telemetry" $0
+${If} ${RunningX64}
+SetRegView 32
+${EndIf}  
+FunctionEnd
+;=========== Telemetry Checkbox END ==========
+
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
+
 ; License page
 !insertmacro MUI_PAGE_LICENSE "license.txt"
+
 ; Directory page
 ;!insertmacro MUI_PAGE_DIRECTORY
 ; Start menu page
+
 var ICONS_GROUP
 !define MUI_STARTMENUPAGE_NODISABLE
 !define MUI_STARTMENUPAGE_DEFAULTFOLDER "MCE Controller"
 !define MUI_STARTMENUPAGE_REGISTRY_ROOT "${PRODUCT_UNINST_ROOT_KEY}"
 !define MUI_STARTMENUPAGE_REGISTRY_KEY "${PRODUCT_UNINST_KEY}"
 !define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "${PRODUCT_STARTMENU_REGVAL}"
+
 !insertmacro MUI_PAGE_STARTMENU Application $ICONS_GROUP
+
 ; Instfiles page
 !insertmacro MUI_PAGE_INSTFILES
+
 ; Finish page
 !define MUI_FINISHPAGE_RUN "$PROGRAMFILES\Kindel Systems\MCE Controller\MCEControl.exe"
+
+;!define MUI_FINISHPAGE_SHOWREADME "Tel"
+;!define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
+;!define MUI_FINISHPAGE_SHOWREADME_TEXT "Telemetry"
+;!define MUI_FINISHPAGE_RUN_FUNCTION finishpageaction
+
+!define MUI_FINISHPAGE_LINK "MCE Controller Home Page."
+!define MUI_FINISHPAGE_LINK_LOCATION "https://tig.github.io/mcec"
+
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages

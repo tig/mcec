@@ -15,6 +15,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using MCEControl.Services;
 
 namespace MCEControl {
     
@@ -57,6 +58,8 @@ namespace MCEControl {
 
             foreach (Command cmd in PauseCommand.Commands)
                 commands.Add(cmd);
+
+            var nBuiltin = commands.Count;
             Logger.Instance.Log4.Info($"{commands.GetType().Name}: {commands.Count} built-in commands defined.");
 
             // Load external .commands file
@@ -66,6 +69,12 @@ namespace MCEControl {
                     commands.Add(cmd, true);
                 Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} user-defined commands loaded.");
             }
+
+            TelemetryService.Instance.TrackEvent("Commands Created",
+                properties: new Dictionary<string, string> {
+                    {"builtinCommands", $"{nBuiltin}" },
+                    {"userCommands", $"{serializedCmds.Count}" }
+                    });
 
             return commands;
         }

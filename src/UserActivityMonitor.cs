@@ -15,7 +15,7 @@ namespace MCEControl {
     // Uses a global Windows hook to detect keyboard or mouse activity
     // Based on this post: https://www.codeproject.com/Articles/7294/Processing-Global-Mouse-and-Keyboard-Hooks-in-C
 #pragma warning disable CA1724
-    public sealed class UserActivityMonitor {
+    public sealed class UserActivityMonitor : IDisposable{
     
         private bool _logActivity = false;    // log mouse/keyboard events to MCEC window
         private int _debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
@@ -68,14 +68,14 @@ namespace MCEControl {
         /// 
         /// </summary>
         private void StartSessionUnlockedTimer() {
-            if (timer != null) {
-                timer.Stop();
-                timer.Dispose();
-                timer = null;
+            if (_timer != null) {
+                _timer.Stop();
+                _timer.Dispose();
+                _timer = null;
             }
-            timer = new Timer();
-            timer.Tick += Timer_Tick;
-            timer.Interval = this._debounceTime * 1000;
+            _timer = new Timer();
+            _timer.Tick += Timer_Tick;
+            _timer.Interval = this._debounceTime * 1000;
         }
 
         public static void Stop() {
@@ -86,15 +86,15 @@ namespace MCEControl {
             }
         }
 
-        private Timer timer = null;
+        private Timer _timer = null;
 
         private void SystemEvents_SessionSwitch(object sender, Microsoft.Win32.SessionSwitchEventArgs e) {
             if (e.Reason == SessionSwitchReason.SessionLock) {
                 // Desktop has been locked - Pretty good signal there's not going to be any activity
                 // Stop the timer
                 Logger.Instance.Log4.Info($"ActivityMonitor: Session Locked.");
-                if (timer != null) 
-                    timer.Enabled = false;
+                if (_timer != null) 
+                    _timer.Enabled = false;
             }
             else if (e.Reason == SessionSwitchReason.SessionUnlock) {
                 // Desktop has been Unlocked - this is a signal there's activity. 
@@ -102,7 +102,7 @@ namespace MCEControl {
 
                 Logger.Instance.Log4.Info($"ActivityMonitor: Session Unlocked.");
                 StartSessionUnlockedTimer();
-                timer.Enabled = true;
+                _timer.Enabled = true;
             }
         }
 
@@ -126,7 +126,7 @@ namespace MCEControl {
                     MainWindow.Instance.SendLine(_activityCmd);
 
                     // Enable desktop-locked/unlocked timer (desktop is clearly unlocked!)
-                    timer.Enabled = true;
+                    _timer.Enabled = true;
                 }
                 LastTime = DateTime.Now;
             }
@@ -168,5 +168,41 @@ namespace MCEControl {
         private void HookManager_MouseWheel(object sender, MouseEventArgs e) {
             Activity($"Wheel={e.Delta:000}");
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        void Dispose(bool disposing) {
+            if (!disposedValue) {
+                if (disposing) {
+                    // TODO: dispose managed state (managed objects).
+                    if (_timer != null) {
+                        _timer.Dispose();
+                        _timer = null;
+                    }
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+
+                disposedValue = true;
+            }
+        }
+
+        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+        // ~UserActivityMonitor()
+        // {
+        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+        //   Dispose(false);
+        // }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose() {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }

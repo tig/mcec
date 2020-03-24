@@ -43,6 +43,7 @@
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>bin\Debug\</OutputPath>
@@ -159,6 +160,12 @@
     <Compile Include="Logger.cs" />
     <Compile Include="CharsCommand.cs" />
     <Compile Include="PauseCommand.cs" />
+    <Compile Include="Services\TelemetryService.cs" />
+    <Compile Include="Services\TelemetryService.tt.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>TelemetryService.tt</DependentUpon>
+    </Compile>
     <Compile Include="TextBoxExt.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -315,6 +322,10 @@
     <Compile Include="WindowsInput\Native\XButton.cs" />
     <Compile Include="WindowsInput\WindowsInputDeviceStateAdaptor.cs" />
     <Compile Include="WindowsInput\WindowsInputMessageDispatcher.cs" />
+    <Content Include="Services\TelemetryService.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TelemetryService.tt.cs</LastGenOutput>
+    </Content>
     <EmbeddedResource Include="About.resx">
       <DependentUpon>About.cs</DependentUpon>
     </EmbeddedResource>
@@ -379,6 +390,9 @@
     <PackageReference Include="log4net">
       <Version>2.0.8</Version>
     </PackageReference>
+    <PackageReference Include="Microsoft.ApplicationInsights">
+      <Version>2.13.1</Version>
+    </PackageReference>
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers">
       <Version>2.9.6</Version>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -411,6 +425,7 @@
     <PostBuildEvent>"$(DevEnvDir)TextTransform.exe" "$(SolutionDir)..\Installer\Installer.tt"
 copy "$(SolutionDir)bin\$(ConfigurationName)\MCEControl.exe" "$(SolutionDir)..\Installer" 
 copy "$(SolutionDir)bin\$(ConfigurationName)\log4net.dll" "$(SolutionDir)..\Installer"
+"C:\Program Files (x86)\NSIS\makensis.exe" "$(SolutionDir)..\Installer\Installer.nsi" /WX /V4
 </PostBuildEvent>
   </PropertyGroup>
 </Project>

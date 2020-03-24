@@ -82,3 +82,6 @@ CVS/
 *.nsi
 AssemblyFileVersion.cs
 *.settings
+
+# T4 generated files (for telemety ID)
+*.tt.cs

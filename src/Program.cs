@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MCEControl.Services;
 
 namespace MCEControl {
     static class Program {
@@ -18,6 +19,8 @@ namespace MCEControl {
             Logger.Instance.LogFile = $@"{ConfigPath}MCEControl.log";
             Logger.Instance.Log4.Debug("Main");
 
+            TelemetryService.Instance.Start("MCE Controller");
+
             // TODO: Update to check for 4.7 or newer
             if (!IsNet45OrNewer()) {
                 MessageBox.Show(global::MCEControl.Properties.Resources.Error_RequiresDotNetVersion);
@@ -27,6 +30,7 @@ namespace MCEControl {
             // Load AppSettings
             MainWindow.Instance.Settings = AppSettings.Deserialize($@"{ConfigPath}{AppSettings.SettingsFileName}");
             Application.Run(MainWindow.Instance);
+            TelemetryService.Instance.Stop();
         }
 
         internal static bool IsNet45OrNewer() {
