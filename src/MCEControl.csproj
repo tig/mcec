@@ -166,6 +166,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>TelemetryService.tt</DependentUpon>
     </Compile>
+    <Compile Include="Services\UpdateService.cs" />
     <Compile Include="TextBoxExt.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -178,7 +179,6 @@
     <Compile Include="UserActivityMonitor\HookManager.cs" />
     <Compile Include="UserActivityMonitor\HookManager.Structures.cs" />
     <Compile Include="UserActivityMonitor\HookManager.Windows.cs" />
-    <Compile Include="LatestVersion.cs" />
     <Compile Include="UserActivityMonitor\MouseEventExtArgs.cs" />
     <Compile Include="SerialServer.cs" />
     <Compile Include="SendInputCommand.cs">
@@ -417,6 +417,9 @@
       <Version>2.9.6</Version>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Octokit">
+      <Version>0.45.0</Version>
     </PackageReference>
     <PackageReference Include="System.Text.Json">
       <Version>4.7.1</Version>

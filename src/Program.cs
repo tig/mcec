@@ -24,6 +24,7 @@ namespace MCEControl {
             Logger.Instance.Log4.Debug("Main");
 
             TelemetryService.Instance.Start("MCE Controller");
+            UpdateService.Instance.GotLatestVersion += Instance_GotLatestVersion;
 
             // TODO: Update to check for 4.7 or newer
             if (!IsNet45OrNewer()) {
@@ -51,25 +52,26 @@ namespace MCEControl {
 
         internal static void CheckVersion() {
             Logger.Instance.Log4.Info($"MCE Controller Version: {Application.ProductVersion}");
-            var lv = new LatestVersion() { Url = "https://tig.github.io/mcec/install_version.txt" };
 
-            lv.GetLatestStableVersionAsync((o, version) => {
-                if (version == null && !String.IsNullOrWhiteSpace(lv.ErrorMessage)) {
-                    Logger.Instance.Log4.Info(
-                        $"Could not access tig.github.io/mcec to see if a newer version is available. {lv.ErrorMessage}");
-                }
-                else if (lv.CompareVersions() < 0) {
-                    Logger.Instance.Log4.Info(
-                        $"A newer version of MCE Controller ({version}) is available at tig.github.io/mcec.");
-                }
-                else if (lv.CompareVersions() > 0) {
-                    Logger.Instance.Log4.Info(
-                        $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version}).");
-                }
-                else {
-                    Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller.");
-                }
-            });
+            UpdateService.Instance.GetLatestStableVersionAsync().ConfigureAwait(false);
+        }
+
+        private static void Instance_GotLatestVersion(object sender, Version version) {
+            if (version == null && !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
+                Logger.Instance.Log4.Info(
+                    $"Could not access tig.github.io/mcec to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
+            }
+            else if (UpdateService.Instance.CompareVersions() < 0) {
+                Logger.Instance.Log4.Info(
+                    $"A newer version of MCE Controller ({version}) is available at {UpdateService.Instance.DownloadUri}");
+            }
+            else if (UpdateService.Instance.CompareVersions() > 0) {
+                Logger.Instance.Log4.Info(
+                    $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version}).");
+            }
+            else {
+                Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller.");
+            }
         }
 
         internal static string ConfigPath {
