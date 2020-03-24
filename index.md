@@ -69,3 +69,4 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
 * Version 2.2.0 (March 24, 2020) - 
   * Activity Monitor will now send activity messages every `Debounce Time` seconds whenever the Windows desktop/session is unlocked.
   * Added telemetry and modified Setup to support opt-in/out. 
+  * Update/version checker now checks against Github Releases in the `tig/mcec` respository.
