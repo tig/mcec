@@ -56,7 +56,7 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
   * Settings, Command files, and log files are stored in %appdata%.
   * Improved logging.
 * Version 2.0.4 (October 11, 2019) - Fixed bug where Server was not sending commands back to client.
-* Version 2.1.0 (OCtober 25, 2019) - Lots of updates
+* Version 2.1.0 (October 25, 2019) - Lots of updates
   * Commands defined in `MCECommands.command` now *really* override any built-ins. 
   * Reverted the set of built-in commands to include tons of defaults.
   * Key and Attribute names (e.g. `<sendinput>` or `Shift=`) in MCECommands.commands` are no longer case senstive.
@@ -66,3 +66,6 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
   * Command window now supports sending multiple lines (scripts)
   * All `<Commands>` in `MCEControl.commands` can now be nested. This makes it easy to create compound commands (scripts).
   * Added `Chars` Command. Useful in nested commands.
+* Version 2.2.0 (March 24, 2020) - 
+  * Activity Monitor will now send activity messages every `Debounce Time` seconds whenever the Windows desktop/session is unlocked.
+  * Added telemetry and modified Setup to support opt-in/out. 

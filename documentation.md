@@ -60,6 +60,8 @@ Important Note: **MCE Controller** requires the .NET Framework 4.7+. Install .NE
 
 To install, simply run `MCEController Setup.exe`. You can un-install **MCEC** via add/remove programs.
 
+If `Telemetry` is checked, usage inoformation will be sent to a telemtery service to enable improvements based on usage data. All telemetry data is anonymized, and all instances of where usage information is generated can be found by searching the source code for `TrackEvent`. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables telemetry and `0` disables it).
+
 ## Running
 
 When **MCE Controller** runs, it defaults to showing itself. If you close the main MCE Controller window the app will minimize to an icon in the taskbar. Double clicking on the taskbar icon will cause the window to show itself again.
