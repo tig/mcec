@@ -8,6 +8,7 @@
 //-------------------------------------------------------------------
 using System;
 using System.Windows.Forms;
+using MCEControl.Services;
 using Microsoft.Win32;
 
 namespace MCEControl {
@@ -62,6 +63,7 @@ namespace MCEControl {
             // does not start until a user input is detected. There is no documented way to detect whehter a session is unlocked.
             // This is not a big deal, but is a bug.
             Logger.Instance.Log4.Info($"ActivityMonitor: Start - Debounce Time set to {_debounceTime} seconds.");
+            TelemetryService.Instance.TrackEvent("ActivityMonitor Start");
         }
 
         /// <summary>
@@ -80,6 +82,8 @@ namespace MCEControl {
 
         public static void Stop() {
             Logger.Instance.Log4.Info($"ActivityMonitor: Stop.");
+            TelemetryService.Instance.TrackEvent("ActivityMonitor Stop");
+
             if (_userActivityMonitor != null) {
                 _userActivityMonitor.Dispose();
                 _userActivityMonitor = null;

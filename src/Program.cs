@@ -15,6 +15,10 @@ namespace MCEControl {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+
+
             // Start logging
             Logger.Instance.LogFile = $@"{ConfigPath}MCEControl.log";
             Logger.Instance.Log4.Debug("Main");
@@ -30,12 +34,19 @@ namespace MCEControl {
             // Load AppSettings
             MainWindow.Instance.Settings = AppSettings.Deserialize($@"{ConfigPath}{AppSettings.SettingsFileName}");
             Application.Run(MainWindow.Instance);
-            TelemetryService.Instance.Stop();
         }
 
         internal static bool IsNet45OrNewer() {
             // Class "ReflectionContext" exists from .NET 4.5 onwards.
             return Type.GetType("System.Reflection.ReflectionContext", false) != null;
+        }
+        private static void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e) {
+            TelemetryService.Instance.TrackException(e.Exception);
+        }
+
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e) {
+            var ex = e.ExceptionObject as Exception;
+            TelemetryService.Instance.TrackException(ex);
         }
 
         internal static void CheckVersion() {

@@ -7,6 +7,7 @@
 // Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -16,6 +17,7 @@ using System.Text;
 using System.Threading;
 using log4net;
 using MCEControl.Properties;
+using MCEControl.Services;
 
 namespace MCEControl {
     /// <summary>
@@ -109,6 +111,11 @@ namespace MCEControl {
 
         private void Connect() {
             SetStatus(ServiceStatus.Started, $"{_host}:{_port}");
+            TelemetryService.Instance.TrackEvent("SocketClient Connect",
+                properties: new Dictionary<string, string> {
+                    {"host", $"{_host}" },
+                    {"port", $"{_port}" }
+                });
 
             IPEndPoint endPoint;
             try {

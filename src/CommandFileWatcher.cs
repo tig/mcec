@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MCEControl.Services;
 using menelabs.core;
 
 namespace MCEControl {
@@ -59,6 +60,7 @@ namespace MCEControl {
 
         private void OnChanged(object source, FileSystemEventArgs e) {
             Logger.Instance.Log4.Info($"Commands:{e.FullPath} changed.");
+            TelemetryService.Instance.TrackEvent("Commands file change detected");
             OnChangedEvent();
         }
 

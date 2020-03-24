@@ -199,8 +199,10 @@ namespace MCEControl {
                 notifyIcon.Visible = true;
                 Hide();
             }
-            else
+            else {
                 Logger.Instance.Log4.Info("Exiting...");
+                TelemetryService.Instance.Stop();
+            }
         }
 
         private void Start() {
@@ -350,16 +352,20 @@ namespace MCEControl {
         }
 
         private void ShowCommandWindow() {
-            if (this.InvokeRequired)
+            if (this.InvokeRequired) {
+                TelemetryService.Instance.TrackEvent("ShowCommandWindow");
                 this.BeginInvoke((MethodInvoker)delegate () { ShowCommandWindow(); });
+            }
             else {
                 cmdWindow.Visible = Settings.ShowCommandWindow = true;
             }
         }
 
         private void HideCommandWindow() {
-            if (this.InvokeRequired)
+            if (this.InvokeRequired) {
+                TelemetryService.Instance.TrackEvent("HideCommandWindow");
                 this.BeginInvoke((MethodInvoker)delegate () { HideCommandWindow(); });
+            }
             else {
                 Settings.ShowCommandWindow = cmdWindow.Visible = false;
             }
@@ -681,6 +687,8 @@ namespace MCEControl {
                 DefaultTab = defaultTabName
             };
 
+            TelemetryService.Instance.TrackEvent("ShowSettings");
+
             if (d.ShowDialog(this) == DialogResult.OK) {
                 Settings = d.Settings;
 
@@ -715,36 +723,49 @@ namespace MCEControl {
         }
 
         private void aboutMenuItem_Click(object sender, EventArgs e) {
+            TelemetryService.Instance.TrackEvent("aboutMenuItem");
             var a = new About();
             a.ShowDialog(this);
             a.Dispose();
         }
 
         private void settingsMenuItem_Click(object sender, EventArgs e) {
+            TelemetryService.Instance.TrackEvent("settingsMenuItem");
             ShowSettings("General");
         }
 
         private void sendAwakeMenuItem_Click(object sender, EventArgs e) {
+            TelemetryService.Instance.TrackEvent("sendAwakeMenuItem");
+
             server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
         }
 
         private void commandsMenuItem_Click(object sender, EventArgs e) {
+            TelemetryService.Instance.TrackEvent("commandsMenuItem");
             ShowCommandWindow();
         }
         private void openCommandsFolderMenuItem_Click(object sender, EventArgs e) {
+            TelemetryService.Instance.TrackEvent("openCommandsFolderMenuItem");
+
             Process.Start(Program.ConfigPath);
         }
 
 
         private void docsMenuItem_Click(object sender, EventArgs e) {
+            TelemetryService.Instance.TrackEvent("docsMenuItem");
+
             Process.Start("https://tig.github.io/mcec/");
         }
 
         private void MenuItemEditCommands_Click(object sender, EventArgs e) {
+            TelemetryService.Instance.TrackEvent("MenuItemEditCommands");
+
             Process.Start(Program.ConfigPath);
         }
 
         private void updatesMenuItem_Click(object sender, EventArgs e) {
+            TelemetryService.Instance.TrackEvent("updatesMenuItem");
+
             Program.CheckVersion();
         }
 
