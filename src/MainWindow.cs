@@ -796,7 +796,7 @@ namespace MCEControl {
         private void MainWindow_Layout(object sender, LayoutEventArgs e) {
             // Adjust vertical location & height of TextBox to deal with font scaling changes.
             // Note we add a little margin on the left
-            logTextBox.Location = new System.Drawing.Point(8, menuStrip.Height);
+            logTextBox.Location = new System.Drawing.Point(4, menuStrip.Height);
             logTextBox.Size = new System.Drawing.Size(this.ClientSize.Width - logTextBox.Location.X, this.ClientSize.Height - menuStrip.Height - statusStrip.Height);
         }
 

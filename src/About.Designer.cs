@@ -39,7 +39,7 @@
             // 
             // _labelTitle
             // 
-            this._labelTitle.Font = new System.Drawing.Font("Microsoft Sans Serif", 24F);
+            this._labelTitle.Font = new System.Drawing.Font("Consolas", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this._labelTitle.Location = new System.Drawing.Point(206, 16);
             this._labelTitle.Name = "_labelTitle";
             this._labelTitle.Size = new System.Drawing.Size(273, 41);
@@ -77,7 +77,7 @@
             this._linkLabelKindelSystems.TabIndex = 1;
             this._linkLabelKindelSystems.TabStop = true;
             this._linkLabelKindelSystems.Tag = "http://www.kindel.com";
-            this._linkLabelKindelSystems.Text = "© 2019 Kindel Systems, LLC.";
+            this._linkLabelKindelSystems.Text = "© 2020 Kindel Systems, LLC.";
             this._linkLabelKindelSystems.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabelCharlieLinkClicked);
             // 
             // _labelSummary
@@ -103,9 +103,11 @@
             // _label1
             // 
             this._label1.AutoSize = true;
+            this._label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 7F);
+            this._label1.ForeColor = System.Drawing.Color.DimGray;
             this._label1.Location = new System.Drawing.Point(51, 183);
             this._label1.Name = "_label1";
-            this._label1.Size = new System.Drawing.Size(113, 13);
+            this._label1.Size = new System.Drawing.Size(112, 13);
             this._label1.TabIndex = 7;
             this._label1.Text = "Icon by Guillen Design";
             this._label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -124,7 +126,7 @@
             this.AcceptButton = this._buttonOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.SystemColors.GradientInactiveCaption;
+            this.BackColor = System.Drawing.Color.Black;
             this.CancelButton = this._buttonOk;
             this.ClientSize = new System.Drawing.Size(507, 214);
             this.ControlBox = false;
@@ -136,6 +138,7 @@
             this.Controls.Add(this._buttonOk);
             this.Controls.Add(this._linkLabelMceController);
             this.Controls.Add(this._labelTitle);
+            this.ForeColor = System.Drawing.Color.White;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
