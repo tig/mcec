@@ -8,6 +8,8 @@
 //-------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
@@ -20,7 +22,9 @@ using log4net;
 using log4net.Core;
 using log4net.Repository.Hierarchy;
 using MCEControl.Properties;
+using MCEControl.Services;
 using Microsoft.Win32;
+using System.Text.Json;
 
 namespace MCEControl {
     /// <summary>
@@ -1210,49 +1214,112 @@ namespace MCEControl {
         }
     }
 
+
+    [System.AttributeUsage(System.AttributeTargets.Property)]
+    public class SafeForTelemetryAttribute : System.Attribute {
+    }
+
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "This is just settings info.")]
     public class AppSettings : ICloneable {
         public const string SettingsFileName = "MCEControl.settings";
 
         // General
-        public bool AutoStart;
-        public bool HideOnStartup;
-        public string TextBoxLogThreshold = "INFO";
+        private bool autoStart;
+        private bool hideOnStartup;
+        private string textBoxLogThreshold = "INFO";
 
         // Global
         [XmlIgnore] public bool DisableInternalCommands;
 
         // Client
-        public bool ActAsClient;
+        private bool actAsClient;
 
         // Server
-        public bool ActAsServer = true;
-        public int ClientDelayTime = 30000;
-        public String ClientHost = "localhost";
-        public int ClientPort = 5150;
-        public String ClosingCommand;
-        public int Opacity = 100;
-        public int ServerPort = 5150;
-        public String WakeupCommand;
-        public bool WakeupEnabled;
-        public String WakeupHost;
-        public int WakeupPort;
-        public bool ActAsSerialServer = false;
-        public String SerialServerPortName;
-        public int SerialServerBaudRate;
-        public Parity SerialServerParity;
-        public int SerialServerDataBits;
-        public StopBits SerialServerStopBits;
-        public Handshake SerialServerHandshake;
-        public Point WindowLocation;
-        public Size WindowSize;
-        public bool ShowCommandWindow;
-        public bool ActivityMonitorEnabled = false;
-        public string ActivityMonitorCommand = "activity";
+        private bool actAsServer = true;
+        private int clientDelayTime = 30000;
+        private String clientHost = "localhost";
+        private int clientPort = 5150;
+        private String closingCommand;
+        private int opacity = 100;
+        private int serverPort = 5150;
+        private String wakeupCommand;
+        private bool wakeupEnabled;
+        private String wakeupHost;
+        private int wakeupPort;
+        private bool actAsSerialServer = false;
+        private String serialServerPortName;
+        private int serialServerBaudRate;
+        private Parity serialServerParity;
+        private int serialServerDataBits;
+        private StopBits serialServerStopBits;
+        private Handshake serialServerHandshake;
+        private Point windowLocation;
+        private Size windowSize;
+        private bool showCommandWindow;
+        private bool activityMonitorEnabled = false;
+        private string activityMonitorCommand = "activity";
         private Int32 activityMonitorDebounceTime = 10;
+        private int commandPacing = 0;
 
+        [SafeForTelemetryAttribute] 
+        public bool AutoStart { get => autoStart; set => autoStart = value; }
+        [SafeForTelemetryAttribute] 
+        public bool HideOnStartup { get => hideOnStartup; set => hideOnStartup = value; }
+        [SafeForTelemetryAttribute] 
+        public string TextBoxLogThreshold { get => textBoxLogThreshold; set => textBoxLogThreshold = value; }
+        [SafeForTelemetryAttribute] 
+        public bool ActAsClient { get => actAsClient; set => actAsClient = value; }
+        [SafeForTelemetryAttribute] 
+        public bool ActAsServer { get => actAsServer; set => actAsServer = value; }
+        [SafeForTelemetryAttribute] 
+        public int ClientDelayTime { get => clientDelayTime; set => clientDelayTime = value; }
+        [SafeForTelemetryAttribute] 
+        public string ClientHost { get => clientHost; set => clientHost = value; }
+        [SafeForTelemetryAttribute] 
+        public int ClientPort { get => clientPort; set => clientPort = value; }
+        [SafeForTelemetryAttribute]
+        public string ClosingCommand { get => closingCommand; set => closingCommand = value; }
+        [SafeForTelemetryAttribute] 
+        public int Opacity { get => opacity; set => opacity = value; }
+        [SafeForTelemetryAttribute] 
+        public int ServerPort { get => serverPort; set => serverPort = value; }
+        [SafeForTelemetryAttribute] 
+        public string WakeupCommand { get => wakeupCommand; set => wakeupCommand = value; }
+        [SafeForTelemetryAttribute] 
+        public bool WakeupEnabled { get => wakeupEnabled; set => wakeupEnabled = value; }
+        [SafeForTelemetryAttribute] 
+        public string WakeupHost { get => wakeupHost; set => wakeupHost = value; }
+        [SafeForTelemetryAttribute] 
+        public int WakeupPort { get => wakeupPort; set => wakeupPort = value; }
+        [SafeForTelemetryAttribute] 
+        public bool ActAsSerialServer { get => actAsSerialServer; set => actAsSerialServer = value; }
+        [SafeForTelemetryAttribute] 
+        public string SerialServerPortName { get => serialServerPortName; set => serialServerPortName = value; }
+        [SafeForTelemetryAttribute] 
+        public int SerialServerBaudRate { get => serialServerBaudRate; set => serialServerBaudRate = value; }
+        [SafeForTelemetryAttribute] 
+        public Parity SerialServerParity { get => serialServerParity; set => serialServerParity = value; }
+        [SafeForTelemetryAttribute] 
+        public int SerialServerDataBits { get => serialServerDataBits; set => serialServerDataBits = value; }
+        [SafeForTelemetryAttribute] 
+        public StopBits SerialServerStopBits { get => serialServerStopBits; set => serialServerStopBits = value; }
+        [SafeForTelemetryAttribute] 
+        public Handshake SerialServerHandshake { get => serialServerHandshake; set => serialServerHandshake = value; }
+        [SafeForTelemetryAttribute] 
+        public Point WindowLocation { get => windowLocation; set => windowLocation = value; }
+        [SafeForTelemetryAttribute] 
+        public Size WindowSize { get => windowSize; set => windowSize = value; }
+        [SafeForTelemetryAttribute] 
+        public bool ShowCommandWindow { get => showCommandWindow; set => showCommandWindow = value; }
+        [SafeForTelemetryAttribute] 
+        public bool ActivityMonitorEnabled { get => activityMonitorEnabled; set => activityMonitorEnabled = value; }
+        [SafeForTelemetryAttribute] 
+        public string ActivityMonitorCommand { get => activityMonitorCommand; set => activityMonitorCommand = value; }
+        [SafeForTelemetryAttribute]
         public int ActivityMonitorDebounceTime { get => activityMonitorDebounceTime; set => activityMonitorDebounceTime = value; }
-        public int CommandPacing = 0;
+        [SafeForTelemetryAttribute] 
+        public int CommandPacing { get => commandPacing; set => commandPacing = value; }
+
 
         #region ICloneable Members
 
@@ -1347,7 +1414,28 @@ namespace MCEControl {
                 if (fs != null) fs.Dispose();
             }
 
+            TelemetryService.Instance.TrackEvent("Settings", settings.GetTelemetryDictionary());
+
             return settings;
+        }
+
+        public virtual IDictionary<string, string> GetTelemetryDictionary() {
+            var dictionary = new Dictionary<string, string>();
+            foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(this)) {
+                if (property.Attributes.Contains(new SafeForTelemetryAttribute())) {
+                    object value = property.GetValue(this);
+                    if (value != null) {
+                        if (property.PropertyType.IsSubclassOf(typeof(AppSettings))) {
+                            // Go deep
+                            var propDict = ((AppSettings)value).GetTelemetryDictionary();
+                            dictionary.Add(property.Name, JsonSerializer.Serialize(propDict, propDict.GetType()));
+                        }
+                        else
+                            dictionary.Add(property.Name, JsonSerializer.Serialize(value, value.GetType()));
+                    }
+                }
+            }
+            return dictionary;
         }
     }
 }

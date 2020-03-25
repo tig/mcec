@@ -84,3 +84,4 @@ AssemblyFileVersion.cs
 *.settings
 
 Installer/*.config
+*.tt.cs

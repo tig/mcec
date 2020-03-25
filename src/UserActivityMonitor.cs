@@ -8,17 +8,19 @@
 //-------------------------------------------------------------------
 using System;
 using System.Windows.Forms;
+using MCEControl.Services;
+using Microsoft.Win32;
 
 namespace MCEControl {
 
     // Uses a global Windows hook to detect keyboard or mouse activity
     // Based on this post: https://www.codeproject.com/Articles/7294/Processing-Global-Mouse-and-Keyboard-Hooks-in-C
 #pragma warning disable CA1724
-    public sealed class UserActivityMonitor {
+    public sealed class UserActivityMonitor : IDisposable{
     
-        private bool logActivity = false;    // log mouse/keyboard events to MCEC window
-        private int debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
-        private readonly string activityCmd = "activity";
+        private bool _logActivity = false;    // log mouse/keyboard events to MCEC window
+        private int _debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
+        private readonly string _activityCmd = "activity";
 
         private System.DateTime LastTime;
 
@@ -26,51 +28,109 @@ namespace MCEControl {
         private UserActivityMonitor() {
         }
 
-        private static Gma.UserActivityMonitor.GlobalEventProvider userActivityMonitor = null;
+        private static Gma.UserActivityMonitor.GlobalEventProvider _userActivityMonitor = null;
         
-        public static UserActivityMonitor Instance => lazy.Value; public bool LogActivity { get => logActivity; set => logActivity = value; }
+        public static UserActivityMonitor Instance => lazy.Value;
+        public bool LogActivity { get => _logActivity; set => _logActivity = value; }
            
-        public void Start(int DebounceTime)
-        {
-            if (userActivityMonitor != null)
-                userActivityMonitor = null;
+        /// <summary>
+        /// Starts the Activity Monitor. 
+        /// </summary>
+        /// <param name="debounceTime">Specifies the maximum frequency at which activity messages will be sent in seconds.</param>
+        public void Start(int debounceTime) {
+            if (_userActivityMonitor != null)
+                _userActivityMonitor = null;
 
             LastTime = DateTime.Now;
 
-            userActivityMonitor = new Gma.UserActivityMonitor.GlobalEventProvider();
-            userActivityMonitor.MouseMove += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseMove);
-            userActivityMonitor.MouseClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseClick);
-            userActivityMonitor.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.HookManager_KeyPress);
-            userActivityMonitor.KeyDown += new System.Windows.Forms.KeyEventHandler(this.HookManager_KeyDown);
-            userActivityMonitor.MouseDown += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDown);
-            userActivityMonitor.MouseUp += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseUp);
-            userActivityMonitor.KeyUp += new System.Windows.Forms.KeyEventHandler(this.HookManager_KeyUp);
-            userActivityMonitor.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDoubleClick);
+            _userActivityMonitor = new Gma.UserActivityMonitor.GlobalEventProvider();
+            _userActivityMonitor.MouseMove += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseMove);
+            _userActivityMonitor.MouseClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseClick);
+            _userActivityMonitor.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.HookManager_KeyPress);
+            _userActivityMonitor.KeyDown += new System.Windows.Forms.KeyEventHandler(this.HookManager_KeyDown);
+            _userActivityMonitor.MouseDown += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDown);
+            _userActivityMonitor.MouseUp += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseUp);
+            _userActivityMonitor.KeyUp += new System.Windows.Forms.KeyEventHandler(this.HookManager_KeyUp);
+            _userActivityMonitor.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDoubleClick);
 
-            debounceTime = DebounceTime;
+            this._debounceTime = debounceTime;
+
+            StartSessionUnlockedTimer();
+
+            Microsoft.Win32.SystemEvents.SessionSwitch += new Microsoft.Win32.SessionSwitchEventHandler(SystemEvents_SessionSwitch);
+
+            // BUGBUG: If app is started with the session unlocked (which will be most of the time), the Session Unlocked Timer
+            // does not start until a user input is detected. There is no documented way to detect whehter a session is unlocked.
+            // This is not a big deal, but is a bug.
+            Logger.Instance.Log4.Info($"ActivityMonitor: Start - Debounce Time set to {_debounceTime} seconds.");
+            TelemetryService.Instance.TrackEvent("ActivityMonitor Start");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private void StartSessionUnlockedTimer() {
+            if (_timer != null) {
+                _timer.Stop();
+                _timer.Dispose();
+                _timer = null;
+            }
+            _timer = new Timer();
+            _timer.Tick += Timer_Tick;
+            _timer.Interval = this._debounceTime * 1000;
         }
 
         public static void Stop() {
-            Logger.Instance.Log4.Info($"ActivityMonitor: Stopping.");
-            if (userActivityMonitor != null) {
-                userActivityMonitor.Dispose();
-                userActivityMonitor = null;
+            Logger.Instance.Log4.Info($"ActivityMonitor: Stop.");
+            TelemetryService.Instance.TrackEvent("ActivityMonitor Stop");
+
+            if (_userActivityMonitor != null) {
+                _userActivityMonitor.Dispose();
+                _userActivityMonitor = null;
             }
         }
 
+        private Timer _timer = null;
+
+        private void SystemEvents_SessionSwitch(object sender, Microsoft.Win32.SessionSwitchEventArgs e) {
+            if (e.Reason == SessionSwitchReason.SessionLock) {
+                // Desktop has been locked - Pretty good signal there's not going to be any activity
+                // Stop the timer
+                Logger.Instance.Log4.Info($"ActivityMonitor: Session Locked.");
+                if (_timer != null) 
+                    _timer.Enabled = false;
+            }
+            else if (e.Reason == SessionSwitchReason.SessionUnlock) {
+                // Desktop has been Unlocked - this is a signal there's activity. 
+                // Start a repeating timer (using the same duration as debounce) 
+
+                Logger.Instance.Log4.Info($"ActivityMonitor: Session Unlocked.");
+                StartSessionUnlockedTimer();
+                _timer.Enabled = true;
+            }
+        }
+
+        private void Timer_Tick(object sender, EventArgs e) {
+            //Logger.Instance.Log4.Info($"ActivityMonitor: Tick.");
+            this.Activity("Session is unlocked (tick).");
+        }
+
         private void Activity(string logInfo) {
-            if (userActivityMonitor == null) return;
+            if (_userActivityMonitor == null) return;
 
             if (LogActivity)
                 Logger.Instance.Log4.Info($"ActivityMonitor: {logInfo}");
 
-            if (LastTime.AddSeconds(debounceTime) <= DateTime.Now) {
-                Logger.Instance.Log4.Info("ActivityMonitor: User Activity Dectected");
+            if (LastTime.AddSeconds(_debounceTime) <= DateTime.Now) {
+                Logger.Instance.Log4.Info($"ActivityMonitor: User Activity Dectected");
                 if ((MainWindow.Instance.Client != null && MainWindow.Instance.Client.CurrentStatus == ServiceStatus.Connected) ||
                     (MainWindow.Instance.Server != null && MainWindow.Instance.Server.CurrentStatus == ServiceStatus.Connected) ||
                     (MainWindow.Instance.SerialServer != null && MainWindow.Instance.SerialServer.CurrentStatus == ServiceStatus.Connected)) {
-                    Logger.Instance.Log4.Info("ActivityMonitor: Sending " + activityCmd);
-                    MainWindow.Instance.SendLine(activityCmd);
+                    Logger.Instance.Log4.Info("ActivityMonitor: Sending " + _activityCmd);
+                    MainWindow.Instance.SendLine(_activityCmd);
+
+                    // Enable desktop-locked/unlocked timer (desktop is clearly unlocked!)
+                    _timer.Enabled = true;
                 }
                 LastTime = DateTime.Now;
             }
@@ -112,5 +172,41 @@ namespace MCEControl {
         private void HookManager_MouseWheel(object sender, MouseEventArgs e) {
             Activity($"Wheel={e.Delta:000}");
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        void Dispose(bool disposing) {
+            if (!disposedValue) {
+                if (disposing) {
+                    // TODO: dispose managed state (managed objects).
+                    if (_timer != null) {
+                        _timer.Dispose();
+                        _timer = null;
+                    }
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+
+                disposedValue = true;
+            }
+        }
+
+        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+        // ~UserActivityMonitor()
+        // {
+        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+        //   Dispose(false);
+        // }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose() {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }

@@ -12,6 +12,7 @@ using System;
 using System.Diagnostics;
 using System.Windows.Forms;
 using MCEControl.Properties;
+using MCEControl.Services;
 
 namespace MCEControl {
     /// <summary>
@@ -47,15 +48,15 @@ namespace MCEControl {
             labelVersion.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
         }
 
-  
-
         private void ButtonOkClick(object sender, EventArgs e) => Close();
 
         private void LinkLabelMceControllerLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+            TelemetryService.Instance.TrackEvent("About Box License Link Clicked");
             Process.Start(_linkLabelMceController.Tag.ToString());
         }
 
         private void LinkLabelCharlieLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+            TelemetryService.Instance.TrackEvent("About Box Kindel Systems Page Link Clicked");
             Process.Start(_linkLabelKindelSystems.Tag.ToString());
         }
     }

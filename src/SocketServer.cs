@@ -9,12 +9,14 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using log4net;
+using MCEControl.Services;
 
 namespace MCEControl {
     /// <summary>
@@ -68,6 +70,13 @@ namespace MCEControl {
                 // Create the listening socket...
                 _mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 var ipLocal = new IPEndPoint(IPAddress.Any, port);
+
+                TelemetryService.Instance.TrackEvent("SocketServer Start",
+                    properties: new Dictionary<string, string> {
+                    {"ipAddress", $"{ipLocal.Address}" },
+                    {"port", $"{port}" }
+                        });
+
                 // Bind to local IP Address...
                 Log4.Debug("Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
                 _mainSocket.Bind(ipLocal);
@@ -87,6 +96,8 @@ namespace MCEControl {
 
         public void Stop() {
             Log4.Debug("SocketServer Stop");
+            TelemetryService.Instance.TrackEvent("SocketServer Stop");
+
             Dispose(true);
             SetStatus(ServiceStatus.Stopped);
         }
@@ -190,7 +201,6 @@ namespace MCEControl {
         enum TelnetOptions {
             SGA = 3
         }
-
 
         // This the call back function which will be invoked when the socket
         // detects any client writing of data on the stream
