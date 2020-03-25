@@ -78,10 +78,11 @@ Thumbs.db
 .cvsignore
 CVS/
 
-#Generated
+#Generated for Installer
 *.nsi
 AssemblyFileVersion.cs
 *.settings
-
 Installer/*.config
+
+# T4 generated files (for telemety ID)
 *.tt.cs
