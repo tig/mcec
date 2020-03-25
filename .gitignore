@@ -82,3 +82,5 @@ CVS/
 *.nsi
 AssemblyFileVersion.cs
 *.settings
+
+Installer/*.config
