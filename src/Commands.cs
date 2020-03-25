@@ -73,7 +73,7 @@ namespace MCEControl {
             TelemetryService.Instance.TrackEvent("Commands Created",
                 properties: new Dictionary<string, string> {
                     {"builtinCommands", $"{nBuiltin}" },
-                    {"userCommands", $"{serializedCmds.Count}" }
+                    {"userCommands", $"{(serializedCmds == null ? 0 : serializedCmds.Count)}" }
                     });
 
             return commands;

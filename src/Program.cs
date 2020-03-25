@@ -42,17 +42,20 @@ namespace MCEControl {
             return Type.GetType("System.Reflection.ReflectionContext", false) != null;
         }
         private static void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e) {
+            Logger.DumpException(e.Exception);
             TelemetryService.Instance.TrackException(e.Exception);
+            MessageBox.Show($"Unhandled Exception: {e.Exception.Message}\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec", Application.ProductName);
         }
 
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e) {
             var ex = e.ExceptionObject as Exception;
+            Logger.DumpException(ex);
             TelemetryService.Instance.TrackException(ex);
+            MessageBox.Show($"Unhandled Exception: {ex.Message}\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec", Application.ProductName);
         }
-
+                    
         internal static void CheckVersion() {
             Logger.Instance.Log4.Info($"MCE Controller Version: {Application.ProductVersion}");
-
             UpdateService.Instance.GetLatestStableVersionAsync().ConfigureAwait(false);
         }
 

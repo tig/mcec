@@ -45,7 +45,7 @@ namespace MCEControl.Services {
 #if DEBUG
             _config.TelemetryChannel.DeveloperMode = true;
 #else
-            config.TelemetryChannel.DeveloperMode = Debugger.IsAttached;
+            _config.TelemetryChannel.DeveloperMode = Debugger.IsAttached;
 #endif
 
             _telemetry = new TelemetryClient(_config);

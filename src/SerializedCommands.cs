@@ -84,7 +84,7 @@ namespace MCEControl {
                 }
                 catch (Exception e) {
                     Logger.Instance.Log4.Info($"Commands: Could not create user-defined commands file {userCommandsFile}. {e.Message}");
-                    ExceptionUtils.DumpException(e);
+                    Logger.DumpException(e);
                 }
                 finally {
                     if (uc != null) uc.Close();
@@ -93,7 +93,7 @@ namespace MCEControl {
             }
             catch (Exception ex) {
                 Logger.Instance.Log4.Info($"Commands: No commands loaded. Error with {userCommandsFile}. {ex.Message}");
-                ExceptionUtils.DumpException(ex);
+                Logger.DumpException(ex);
             }
             finally {
                 if (fs != null) fs.Close();
@@ -132,11 +132,11 @@ namespace MCEControl {
             }
             catch (InvalidOperationException ex) {
                 Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing .commands XML. {ex.Message} {ex.InnerException.Message}");
-                ExceptionUtils.DumpException(ex);
+                Logger.DumpException(ex);
             }
             catch (Exception ex) {
                 Logger.Instance.Log4.Info($"Commands: Error parsing .commands XML. {ex.Message}");
-                ExceptionUtils.DumpException(ex);
+                Logger.DumpException(ex);
             }
             finally {
                 if (xmlReader != null) xmlReader.Dispose();

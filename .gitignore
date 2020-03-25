@@ -85,3 +85,5 @@ AssemblyFileVersion.cs
 
 # T4 generated files (for telemety ID)
 *.tt.cs
+
+Installer/*.config

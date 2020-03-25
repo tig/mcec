@@ -429,8 +429,8 @@
   <PropertyGroup>
     <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" -out "$(SolutionDir)\AssemblyFileVersion.cs" "$(SolutionDir)\AssemblyFileVersion.tt"</PreBuildEvent>
     <PostBuildEvent>"$(DevEnvDir)TextTransform.exe" "$(SolutionDir)..\Installer\Installer.tt"
-copy "$(SolutionDir)bin\$(ConfigurationName)\MCEControl.exe" "$(SolutionDir)..\Installer" 
-copy "$(SolutionDir)bin\$(ConfigurationName)\log4net.dll" "$(SolutionDir)..\Installer"
+copy "$(SolutionDir)bin\$(ConfigurationName)\MCEControl.exe.*" "$(SolutionDir)..\Installer\" 
+copy "$(SolutionDir)bin\$(ConfigurationName)\*.dll" "$(SolutionDir)..\Installer\"
 "C:\Program Files (x86)\NSIS\makensis.exe" "$(SolutionDir)..\Installer\Installer.nsi" /WX /V4
 </PostBuildEvent>
   </PropertyGroup>
