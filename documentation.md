@@ -1,6 +1,6 @@
 # **MCE Controller V2 Documentation**
 
-Copyright © 2019 [Kindel Systems](http://www.kindel.com), LLC. Licensed under the [MIT License](https://github.com/tig/mcec/blob/master/license.md).
+Copyright © 2020 [Kindel Systems](http://www.kindel.com), LLC. Licensed under the [MIT License](https://github.com/tig/mcec/blob/master/license.md).
 
 By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
@@ -60,7 +60,7 @@ Important Note: **MCE Controller** requires the .NET Framework 4.7+. Install .NE
 
 To install, simply run `MCEController Setup.exe`. You can un-install **MCEC** via add/remove programs.
 
-If `Telemetry` is checked, usage inoformation will be sent to a telemtery service to enable improvements based on usage data. All telemetry data is anonymized, and all instances of where usage information is generated can be found by searching the source code for `TrackEvent`. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables telemetry and `0` disables it).
+If `Telemetry` is checked, usage information will be sent to a telemetry service to enable improvements based on usage data. All telemetry data is anonymized, and all instances of where usage information is generated can be found by searching the source code for `TrackEvent`. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables telemetry and `0` disables it).
 
 ## Running
 
