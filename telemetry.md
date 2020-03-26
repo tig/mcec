@@ -20,11 +20,30 @@ First, here's what is explicitly NOT collected:
 
 [This search shows](https://github.com/tig/mcec/search?q=TrackEvent&unscoped_q=TrackEvent) all instances of `TrackEvent` in the source-code with comments describing the telemetry data being collected and the rationale.
 
+In addition, the source code has been annotated with comments that include `// TELEMETRY:` with a clear description of the information collected. For example:
+
+```csharp
+// TELEMETRY: 
+// what: application runtime
+// why: to understand how long the app stays running
+// how is PII protected: the time the app runs is not PII
+TrackEvent("Application Stopped", metrics: new Dictionary<string, double>
+    {{"runTime", _runTime.Elapsed.TotalMilliseconds}});
+```
+
 ### What measures have been implemented to ensure no personally identifiable information is collected via telemetry?
 
-* Careful review of telemetry data to identify potentially personally identifiable information. Quick revision of the software to stop collecting such information. For example, an early build with telemetry enabled was incorrectly collecting the end user's machine name. This was fixed immediately with commit `046c5c3`.
-* For any data structures which are collected 'en-mass`, a property attribute has been implemented such that only properties that are explicitly tagged for collection will be collected. This [search illustrates](https://github.com/tig/mcec/search?q=SafeForTelemetryAttribute&unscoped_q=SafeForTelemetryAttribute) this mechanism.
+First, all telemetry data is regularly reviewed to identify potentially personally identifiable information. If there's any risk, a quick revision of the software is made to stop collecting such information. For example, an early build with telemetry enabled was incorrectly collecting the end user's machine name. This was fixed immediately with commit `046c5c3`.
 
+For any data structures which are collected 'en-mass`, a property attribute has been implemented such that only properties that are explicitly tagged for collection will be collected. This [search illustrates](https://github.com/tig/mcec/search?q=SafeForTelemetryAttribute&unscoped_q=SafeForTelemetryAttribute) this mechanism.
+
+For example, users can change the wakeup command used. While it's unlikely a user would ever set the wakeup command to be something with PII in it, they may. To protect against collecting such PII the `WakeupCommand` setting is NOT tagged with `SafeForTelemetryAttribute`:
+
+```csharp
+// [SafeForTelemetryAttribute] 
+// TELEMETRY: WakeupCommand can be set by user and thus may contain PII, so it is not collected
+public string WakeupCommand { get => wakeupCommand; set => wakeupCommand = value; }
+```
 
 ### What system is used to collect and analyzed telemetry?
 
