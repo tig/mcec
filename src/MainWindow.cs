@@ -179,17 +179,14 @@ namespace MCEControl {
                 // Invoker.Dispose();
             }
 
-            // Load (reload) Commands
             Invoker = Commands.Create($@"{Program.ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
             if (Invoker == null)
                 notifyIcon.Visible = false;
             else {
-                Logger.Instance.Log4.Info($"{Invoker.Count} commands available.");
                 cmdWindow.RefreshList();
-            }
-            cmdWindow.RefreshList();
 
-            Logger.Instance.Log4.Info($"{Invoker.Count} commands available.");
+                Logger.Instance.Log4.Info($"{Invoker.Count} commands available.");
+            }
         }
 
         private void mainWindow_Closing(object sender, CancelEventArgs e) {
@@ -354,12 +351,6 @@ namespace MCEControl {
             }
         }
 
-        // Anytime a client or server receives data that looks like a command, ReceivData() is called.
-        // Those calls could come from threads other than the UI thread. This implementation relies on
-        // the async behavior of BeginInvoke such that they are each handled sequentially, in the 
-        // order they happened. 
-        private void ReceivedLine(Reply reply, String cmd) {
->>>>>>> Stashed changes
         private void ShowCommandWindow() {
             if (this.InvokeRequired) {
                 TelemetryService.Instance.TrackEvent("ShowCommandWindow");
