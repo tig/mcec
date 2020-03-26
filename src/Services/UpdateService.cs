@@ -32,9 +32,10 @@ namespace MCEControl.Services {
                 try {
                     var github = new GitHubClient(new Octokit.ProductHeaderValue("tig-mcec"));
                     var release = await github.Repository.Release.GetLatest("tig", "mcec").ConfigureAwait(false);
-#if false
+#if DEBUG
                     Logger.Instance.Log4.Debug($"The latest release is tagged at {release.TagName} and is named {release.Name}. Download Url: {release.Assets[0].BrowserDownloadUrl}");
 #endif
+
                     var v = release.TagName;
                     // Remove leading "v" (v2.0.0.1000.alpha)
                     if (v.StartsWith("v", StringComparison.InvariantCultureIgnoreCase))

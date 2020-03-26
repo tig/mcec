@@ -62,7 +62,7 @@ namespace MCEControl {
         private static void Instance_GotLatestVersion(object sender, Version version) {
             if (version == null && !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
                 Logger.Instance.Log4.Info(
-                    $"Could not access tig.github.io/mcec to check for a newer version. {UpdateService.Instance.ErrorMessage}");
+                    $"Could not access tig.github.io/mcec to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
             }
             else if (UpdateService.Instance.CompareVersions() < 0) {
                 Logger.Instance.Log4.Info(
@@ -70,10 +70,10 @@ namespace MCEControl {
             }
             else if (UpdateService.Instance.CompareVersions() > 0) {
                 Logger.Instance.Log4.Info(
-                    $"This version of MCE Controller is NEWER than the latest release published on tig.github.io/mcec ({version}).");
+                    $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version}).");
             }
             else {
-                Logger.Instance.Log4.Info("This version of MCE Controller is the most recent version from tig.github/mcec.");
+                Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller.");
             }
         }
 
