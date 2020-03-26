@@ -57,6 +57,8 @@ namespace MCEControl.Services {
             h.Initialize();
             h.ComputeHash(Encoding.UTF8.GetBytes($"{Environment.UserName}/{Environment.MachineName}"));
             _telemetry.Context.User.Id = Convert.ToBase64String(h.Hash);
+            // See: https://stackoverflow.com/questions/42861344/how-to-overwrite-or-ignore-cloud-roleinstance-with-application-insights
+            _telemetry.Context.Cloud.RoleInstance = _telemetry.Context.User.Id;
 
             if (startProperties == null)
                 startProperties = new Dictionary<string, string>();
