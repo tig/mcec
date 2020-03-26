@@ -65,14 +65,19 @@ namespace MCEControl {
             // Load external .commands file
             serializedCmds = SerializedCommands.LoadUserCommands(userCommandsFile);
             if (serializedCmds != null) {
-                foreach (Command cmd in serializedCmds.commandArray)
+                foreach (Command cmd in serializedCmds.commandArray) {
+                    // TELEMETRY: Mark user defined commands as such so they don't get collected
+                    cmd.UserDefined = true;
                     commands.Add(cmd, true);
+                }
                 Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} user-defined commands loaded.");
             }
 
+            // TELEMETRY: 
+            // what: Collect number of user defined commands created. 
+            // why: To determine how often users actaully create user commands, if at all.
             TelemetryService.Instance.TrackEvent("Commands Created",
                 properties: new Dictionary<string, string> {
-                    {"builtinCommands", $"{nBuiltin}" },
                     {"userCommands", $"{(serializedCmds == null ? 0 : serializedCmds.Count)}" }
                     });
 

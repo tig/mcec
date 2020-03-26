@@ -21,6 +21,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
+using MCEControl.Services;
 using menelabs.core;
 using WindowsInput;
 using WindowsInput.Native;
@@ -65,6 +66,11 @@ namespace MCEControl {
 
         private Reply reply;
 
+        // TELEMETRY:
+        // Ensure only built-in command names are collected
+        public bool UserDefined { get => userDefined; set => userDefined = value; }
+        private bool userDefined = false;
+
         public abstract ICommand Clone(Reply reply);
 
         public virtual Command Clone(Reply reply, Command clone) {
@@ -85,6 +91,12 @@ namespace MCEControl {
             return clone;
         }
 
-        public abstract void Execute();
+        public virtual void Execute() {
+            // TELEMETRY: 
+            // what: the number of commands of each type (key) received and executed
+            // why: to understand what commands are used and which are not
+            // how is PII protected: the name of the command, key, is not user definable
+            TelemetryService.Instance.GetTelemetryClient().GetMetric($"{(UserDefined ? "<userDefined>" : key)} Executed").TrackValue(1);
+        }
     }
 }

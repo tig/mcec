@@ -46,6 +46,8 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override void Execute() {
+            base.Execute();
+
             try {
                 Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: Executing {ToString()}");
                 switch (Type.ToUpperInvariant()) {

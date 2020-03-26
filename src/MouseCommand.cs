@@ -55,6 +55,7 @@ namespace MCEControl {
      
         // ICommand:Execute
         public override void Execute() {
+            base.Execute();
 
             if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
             if (this.Args is null) throw new InvalidOperationException("Args property cannot be null.");

@@ -199,6 +199,8 @@ namespace MCEControl {
         // Send text on serial port. 
         // BUGBUG: This function has never been tested.
         public override void Send(string text, Reply replyContext = null) {
+            base.Send(text, replyContext);
+
             if (_serialPort != null && _serialPort.IsOpen)
                 _serialPort.Write(text);
             

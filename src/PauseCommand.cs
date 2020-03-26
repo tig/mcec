@@ -41,6 +41,8 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override void Execute() {
+            base.Execute();
+
             int time;
             if (int.TryParse(Args, out time)) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Pausing {time}ms");

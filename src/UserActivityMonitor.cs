@@ -63,6 +63,11 @@ namespace MCEControl {
             // does not start until a user input is detected. There is no documented way to detect whehter a session is unlocked.
             // This is not a big deal, but is a bug.
             Logger.Instance.Log4.Info($"ActivityMonitor: Start - Debounce Time set to {_debounceTime} seconds.");
+
+            // TELEMETRY: 
+            // what: when activity montioring is turned off
+            // why: to understand how user trun activity monitoring on and off
+            // how is PII protected: whether activity monitoring is on or off is not PII
             TelemetryService.Instance.TrackEvent("ActivityMonitor Start");
         }
 
@@ -82,6 +87,10 @@ namespace MCEControl {
 
         public static void Stop() {
             Logger.Instance.Log4.Info($"ActivityMonitor: Stop.");
+            // TELEMETRY: 
+            // what: when activity montioring is turned off
+            // why: to understand how user trun activity monitoring on and off
+            // how is PII protected: whether activity monitoring is on or off is not PII
             TelemetryService.Instance.TrackEvent("ActivityMonitor Stop");
 
             if (_userActivityMonitor != null) {
@@ -127,6 +136,13 @@ namespace MCEControl {
                     (MainWindow.Instance.Server != null && MainWindow.Instance.Server.CurrentStatus == ServiceStatus.Connected) ||
                     (MainWindow.Instance.SerialServer != null && MainWindow.Instance.SerialServer.CurrentStatus == ServiceStatus.Connected)) {
                     Logger.Instance.Log4.Info("ActivityMonitor: Sending " + _activityCmd);
+
+                    // TELEMETRY: 
+                    // what: the count of activity dectected
+                    // why: to understand how frequently activity is detected
+                    // how is PII protected: the frequency of activity is not PII
+                    TelemetryService.Instance.GetTelemetryClient().GetMetric($"activity Sent").TrackValue(1);
+
                     MainWindow.Instance.SendLine(_activityCmd);
 
                     // Enable desktop-locked/unlocked timer (desktop is clearly unlocked!)

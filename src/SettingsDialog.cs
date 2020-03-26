@@ -1273,7 +1273,9 @@ namespace MCEControl {
         public bool ActAsServer { get => actAsServer; set => actAsServer = value; }
         [SafeForTelemetryAttribute] 
         public int ClientDelayTime { get => clientDelayTime; set => clientDelayTime = value; }
-        [SafeForTelemetryAttribute] 
+        
+        // [SafeForTelemetryAttribute] 
+        // TELEMETRY: Client host may contain PII, so it is not collected
         public string ClientHost { get => clientHost; set => clientHost = value; }
         [SafeForTelemetryAttribute] 
         public int ClientPort { get => clientPort; set => clientPort = value; }
@@ -1283,7 +1285,9 @@ namespace MCEControl {
         public int Opacity { get => opacity; set => opacity = value; }
         [SafeForTelemetryAttribute] 
         public int ServerPort { get => serverPort; set => serverPort = value; }
-        [SafeForTelemetryAttribute] 
+
+        // [SafeForTelemetryAttribute] 
+        // TELEMETRY: WakeupCommand can be set by user and thus may contain PII, so it is not collected
         public string WakeupCommand { get => wakeupCommand; set => wakeupCommand = value; }
         [SafeForTelemetryAttribute] 
         public bool WakeupEnabled { get => wakeupEnabled; set => wakeupEnabled = value; }
@@ -1313,7 +1317,9 @@ namespace MCEControl {
         public bool ShowCommandWindow { get => showCommandWindow; set => showCommandWindow = value; }
         [SafeForTelemetryAttribute] 
         public bool ActivityMonitorEnabled { get => activityMonitorEnabled; set => activityMonitorEnabled = value; }
-        [SafeForTelemetryAttribute] 
+
+        // [SafeForTelemetryAttribute] 
+        // TELEMETRY: Activity Montior command can be changed by user, and thus may contain PII, so it is not collected
         public string ActivityMonitorCommand { get => activityMonitorCommand; set => activityMonitorCommand = value; }
         [SafeForTelemetryAttribute]
         public int ActivityMonitorDebounceTime { get => activityMonitorDebounceTime; set => activityMonitorDebounceTime = value; }
@@ -1414,11 +1420,23 @@ namespace MCEControl {
                 if (fs != null) fs.Dispose();
             }
 
+            // TELEMETRY: 
+            // what: Settings
+            // why: To understand what settings get changed and which dont
+            // how is PII protected: only settings clearly identified as not containing PII are collected
             TelemetryService.Instance.TrackEvent("Settings", settings.GetTelemetryDictionary());
 
             return settings;
         }
 
+        /// <summary>
+        /// Returns a dictionary of settings, filtered by those that can't contain PII
+        /// TELEMETRY: 
+        /// what: Settings
+        /// why: To understand what settings get changed and which dont
+        /// how is PII protected: only settings clearly identified as not containing PII are collected
+        /// </summary>
+        /// <returns></returns>
         public virtual IDictionary<string, string> GetTelemetryDictionary() {
             var dictionary = new Dictionary<string, string>();
             foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(this)) {

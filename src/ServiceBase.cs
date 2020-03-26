@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using log4net;
+using MCEControl.Services;
 
 namespace MCEControl {
     
@@ -65,7 +66,15 @@ namespace MCEControl {
         
         public ServiceStatus CurrentStatus { get; set; }
 
-        public abstract void Send(string text, Reply replyContext = null);
+        public virtual void Send(string text, Reply replyContext = null) {
+            if (text == null) throw new ArgumentNullException(nameof(text));
+            // TELEMETRY: 
+            // what: the number of commands of each type (key) sent
+            // why: to understand what commands are used to control other systems and which are not
+            // how is PII protected: we only collect the text if it is a key for a built-in command
+            var userDefined = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(q => (q.Key == text.Trim('\r').Trim('\n') && q.UserDefined == false));
+            TelemetryService.Instance.GetTelemetryClient().GetMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent").TrackValue(1);
+        }
 
         // Send a status notification
         protected void SetStatus(ServiceStatus status, String msg = "") {

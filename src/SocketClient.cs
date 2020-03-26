@@ -96,6 +96,8 @@ namespace MCEControl {
 
         // Send text to remote connection
         public override void Send(string text, Reply replyContext = null) {
+            base.Send(text, replyContext);
+
             if (text is null) throw new ArgumentNullException(nameof(text));
             if (_tcpClient == null || !_tcpClient.Connected || _bw.CancellationPending) return;
             try {

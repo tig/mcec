@@ -49,6 +49,7 @@ namespace MCEControl.Services {
 #endif
 
             _telemetry = new TelemetryClient(_config);
+
             _telemetry.Context.Component.Version = FileVersionInfo.GetVersionInfo(Assembly.GetAssembly(typeof(TelemetryService)).Location).FileVersion;
             _telemetry.Context.Session.Id = Guid.NewGuid().ToString();
             _telemetry.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
@@ -75,6 +76,10 @@ namespace MCEControl.Services {
         }
 
         public void Stop() {
+            // TELEMETRY: 
+            // what: application runtime
+            // why: to understand how long the app stays running
+            // how is PII protected: the time the app runs is not PII
             TrackEvent("Application Stopped", metrics: new Dictionary<string, double>
                 {{"runTime", _runTime.Elapsed.TotalMilliseconds}});
 

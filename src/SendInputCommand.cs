@@ -81,6 +81,8 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override void Execute() {
+            base.Execute();
+
             // Forms:
             // Vk = "VK_..." - Simulates keypress of VK_...
             // Vk = "0X_..." - Simulates keypress of keycode 0X..."

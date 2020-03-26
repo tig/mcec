@@ -36,6 +36,7 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override void Execute() {
+            base.Execute();
             string text;
             // if command came in as a literal "chars:foo" command use args
             // otherwise, use the Chars property

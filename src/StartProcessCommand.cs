@@ -49,6 +49,8 @@ namespace MCEControl {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Process is long lived")]
         // ICommand:Execute
         public override void Execute() {
+            base.Execute();
+
             if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
 
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Starting process: {ToString()}");

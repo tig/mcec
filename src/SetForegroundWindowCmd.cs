@@ -36,6 +36,7 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override void Execute() {
+            base.Execute();
 
             try {
                 if (ClassName != null) {
