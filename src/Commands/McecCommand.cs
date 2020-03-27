@@ -23,18 +23,18 @@ namespace MCEControl {
         public const string CmdPrefix = "mcec:";
 
         public static McecCommand[] Commands = new McecCommand[] {
-            new McecCommand{ Key = $"{CmdPrefix}" },   // The rest are for documentation
-            new McecCommand{ Key = $"{CmdPrefix }ver" },
-            new McecCommand{ Key = $"{CmdPrefix }exit" },
-            new McecCommand{ Key = $"{CmdPrefix }cmds" },
-            new McecCommand{ Key = $"{CmdPrefix }time" },
+            new McecCommand{ Cmd = $"{CmdPrefix}" },   // The rest are for documentation
+            new McecCommand{ Cmd = $"{CmdPrefix }ver" },
+            new McecCommand{ Cmd = $"{CmdPrefix }exit" },
+            new McecCommand{ Cmd = $"{CmdPrefix }cmds" },
+            new McecCommand{ Cmd = $"{CmdPrefix }time" },
         };
 
         public McecCommand() {
         }
 
         public override string ToString() {
-            return $"Cmd=\"{Key}\"";
+            return $"Cmd=\"{Cmd}\"";
         }
 
         public override ICommand Clone(Reply reply) => base.Clone(reply, new McecCommand());
@@ -68,13 +68,13 @@ namespace MCEControl {
                         var orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
                         foreach (string key in orderedKeys) {
                             cmd = (Command)MainWindow.Instance.Invoker[key];
-                            var item = new ListViewItem(cmd.Key);
+                            var item = new ListViewItem(cmd.Cmd);
                             match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                             replyBuilder.Append($"<{match.Groups[1].Value} {cmd.ToString()} />{Environment.NewLine}");
                         }
                     }
                     catch (Exception e) {
-                        Logger.Instance.Log4.Info($"{this.GetType().Name}: ({Key}:{Args}) <{match.Groups[1].Value} {cmd.ToString()}/> - {e.Message}");
+                        Logger.Instance.Log4.Info($"{this.GetType().Name}: ({Cmd}:{Args}) <{match.Groups[1].Value} {cmd.ToString()}/> - {e.Message}");
                     }
                     break;
 

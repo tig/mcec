@@ -23,15 +23,15 @@ namespace MCEControl {
         public static List<ShutdownCommand> Commands { get => commands; }
 
         private static List<ShutdownCommand> commands = new List<ShutdownCommand>() {
-            new ShutdownCommand{ Key = $"shutdown", Type = $"shutdown" },
-            new ShutdownCommand{ Key = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
-            new ShutdownCommand{ Key = $"restart", Type = $"restart" },
-            new ShutdownCommand{ Key = $"restart-g", Type = $"restart-g" },
-            new ShutdownCommand{ Key = $"standby", Type = $"standby" },
-            new ShutdownCommand{ Key = $"hibernate", Type = $"hibernate"},
-            new ShutdownCommand{ Key = $"abort", Type = $"abort" },
-            new ShutdownCommand{ Key = $"poweroff", Type = $"poweroff" },
-            new ShutdownCommand{ Key = $"logoff", Type = $"logoff" },
+            new ShutdownCommand{ Cmd = $"shutdown", Type = $"shutdown" },
+            new ShutdownCommand{ Cmd = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
+            new ShutdownCommand{ Cmd = $"restart", Type = $"restart" },
+            new ShutdownCommand{ Cmd = $"restart-g", Type = $"restart-g" },
+            new ShutdownCommand{ Cmd = $"standby", Type = $"standby" },
+            new ShutdownCommand{ Cmd = $"hibernate", Type = $"hibernate"},
+            new ShutdownCommand{ Cmd = $"abort", Type = $"abort" },
+            new ShutdownCommand{ Cmd = $"poweroff", Type = $"poweroff" },
+            new ShutdownCommand{ Cmd = $"logoff", Type = $"logoff" },
         };
 
         public ShutdownCommand() {
@@ -39,7 +39,7 @@ namespace MCEControl {
         }
 
         public override string ToString() {
-            return $"Cmd=\"{Key}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
+            return $"Cmd=\"{Cmd}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
         }
 
         public override ICommand Clone(Reply reply) => base.Clone(reply, new ShutdownCommand() { Type = this.Type });
@@ -97,7 +97,7 @@ namespace MCEControl {
                 }
             }
             catch (System.ComponentModel.Win32Exception e) {
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: ({Key}) {e.Message}");
+                Logger.Instance.Log4.Info($"{this.GetType().Name}: ({Cmd}) {e.Message}");
             }
         }
 

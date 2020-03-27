@@ -16,12 +16,11 @@ using System.Xml.Serialization;
 using System.Xml.Xsl;
 
 namespace MCEControl {
-    // TODO: Convert to List<Command>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "Needed for XmlArray")]
 
-    // De-Serialzes from XML (.commands files) and auto populates with built-in commands
-    //
-    // Note, do not change the namespace or you will break existing installations
+    /// <summary>
+    /// Serialzes to/from XML (.commands files)
+    /// IMPORTANT! Do not change the namespace or you will break existing installations 
+    /// </summary>
     [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "mcecontroller")]
     public class SerializedCommands  {
         [XmlArray("commands")]
@@ -45,7 +44,10 @@ namespace MCEControl {
         public SerializedCommands() {
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "None")]
+        /// <summary>
+        /// Load commands from the .commands file embedded in the .exe resources.
+        /// </summary>
+        /// <returns></returns>
         public static SerializedCommands LoadBuiltInCommands() {
             // Load the built-in pre-defined commands from an assembly resource
             SerializedCommands cmds = Deserialize(Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
@@ -57,9 +59,8 @@ namespace MCEControl {
         }
 
         /// <summary>
-        /// Load any over-rides from the MCECommands.commands file
+        /// Load any over-rides from the MCECommands.commands file.
         /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "None")]
         static public SerializedCommands LoadUserCommands(string userCommandsFile) {
             SerializedCommands cmds = null;
             FileStream fs = null;
@@ -148,21 +149,5 @@ namespace MCEControl {
             }
             return cmds;
         }
-
-        //private static void GenerateXSD() {
-        //    var schemas = new XmlSchemas();
-        //    var exporter = new XmlSchemaExporter(schemas);
-        //    var mapping = new XmlReflectionImporter().ImportTypeMapping(typeof(CommandTable));
-        //    exporter.ExportTypeMapping(mapping);
-        //    var schemaWriter = new StringWriter();
-        //    foreach (System.Xml.Schema.XmlSchema schema in schemas) {
-        //        schema.Write(schemaWriter);
-        //    }
-
-        //    using (FileStream fs = File.Create("MCEControl.xsd")) {
-        //        byte[] info = new System.Text.UTF8Encoding(true).GetBytes(schemaWriter.ToString());
-        //        fs.Write(info, 0, info.Length);
-        //    }
-        //}
     }
 }

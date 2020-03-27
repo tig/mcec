@@ -23,24 +23,24 @@ namespace MCEControl {
         public const string CmdPrefix = "mouse:";
 
         private static List<MouseCommand> commands = new List<MouseCommand>() {
-            new MouseCommand{ Key = $"{CmdPrefix }" }, // the rest are just for documentation in the Commmand Window
-            new MouseCommand{ Key = $"{CmdPrefix }lbc" },
-            new MouseCommand{ Key = $"{CmdPrefix }lbc" },
-            new MouseCommand{ Key = $"{CmdPrefix }lbdc" },
-            new MouseCommand{ Key = $"{CmdPrefix }lbd" },
-            new MouseCommand{ Key = $"{CmdPrefix }lbu" },
-            new MouseCommand{ Key = $"{CmdPrefix }rbc" },
-            new MouseCommand{ Key = $"{CmdPrefix }rbdc" },
-            new MouseCommand{ Key = $"{CmdPrefix }rbd" },
-            new MouseCommand{ Key = $"{CmdPrefix }rbu" },
-            new MouseCommand{ Key = $"{CmdPrefix }xbc,3" },
-            new MouseCommand{ Key = $"{CmdPrefix }xbcd,3" },
-            new MouseCommand{ Key = $"{CmdPrefix }xbd,3" },
-            new MouseCommand{ Key = $"{CmdPrefix }xbu,3" },
-            new MouseCommand{ Key = $"{CmdPrefix }mm,x,y" },
-            new MouseCommand{ Key = $"{CmdPrefix }mt,x,y" },
-            new MouseCommand{ Key = $"{CmdPrefix }hs,x" },
-            new MouseCommand{ Key = $"{CmdPrefix }vs,y" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }" }, // the rest are just for documentation in the Commmand Window
+            new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }lbdc" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }lbd" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }lbu" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }rbc" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }rbdc" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }rbd" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }rbu" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }xbc,3" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }xbcd,3" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }xbd,3" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }xbu,3" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }mm,x,y" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }mt,x,y" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }hs,x" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }vs,y" },
         };
 
         public static List<MouseCommand> Commands { get => commands;  }
@@ -48,7 +48,7 @@ namespace MCEControl {
         public MouseCommand() { }
 
         public override string ToString() {
-            return $"Cmd=\"{Key}\"";
+            return $"Cmd=\"{Cmd}\"";
         }
 
         public override ICommand Clone(Reply reply) => base.Clone(reply, new MouseCommand());

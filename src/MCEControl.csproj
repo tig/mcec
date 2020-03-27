@@ -352,7 +352,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AssemblyFileVersion.cs</LastGenOutput>
     </Content>
-    <Content Include="Guillen.Icon.ico" />
     <EmbeddedResource Include="Resources\MCEControl.xslt" />
     <Content Include="Resources\Guillen.Icon.ico" />
     <EmbeddedResource Include="Resources\Builtin.commands" />

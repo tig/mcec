@@ -25,6 +25,12 @@ namespace MCEControl {
     public class Commands : Hashtable {
         private ConcurrentQueue<ICommand> executeQueue = new ConcurrentQueue<ICommand>();
 
+        /// <summary>
+        /// Creaates a `Commands` instance from a combination of an external .commands file and the built-in commands.
+        /// </summary>
+        /// <param name="userCommandsFile">Path to MCEControl.commands file.</param>
+        /// <param name="disableInternalCommands">If true, internal commands will not be added to created instance.</param>
+        /// <returns></returns>
         public static Commands Create(string userCommandsFile, bool disableInternalCommands) {
             Commands commands = new Commands();
             SerializedCommands serializedCmds;
@@ -85,12 +91,12 @@ namespace MCEControl {
 
         // Adds a command to the hashtable. Optionally logs. Ensures case insenstiitivy. 
         private void Add(Command cmd, bool log = false) {
-            if (!string.IsNullOrEmpty(cmd.Key)) {
-                if (this.ContainsKey(cmd.Key.ToUpperInvariant())) {
-                    this.Remove(cmd.Key.ToUpperInvariant());
+            if (!string.IsNullOrEmpty(cmd.Cmd)) {
+                if (this.ContainsKey(cmd.Cmd.ToUpperInvariant())) {
+                    this.Remove(cmd.Cmd.ToUpperInvariant());
                 }
-                this.Add(cmd.Key.ToUpperInvariant(), (ICommand)cmd);
-                if (log) Logger.Instance.Log4.Info($"{this.GetType().Name}: Command added: {cmd.Key}");
+                this.Add(cmd.Cmd.ToUpperInvariant(), (ICommand)cmd);
+                if (log) Logger.Instance.Log4.Info($"{this.GetType().Name}: Command added: {cmd.Cmd}");
             }
             else Logger.Instance.Log4.Info($"{this.GetType().Name}: Error parsing command: {cmd.ToString()}");
         }

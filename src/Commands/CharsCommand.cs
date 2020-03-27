@@ -28,7 +28,7 @@ namespace MCEControl {
 
         private static List<CharsCommand> commands = new List<CharsCommand>();
         static CharsCommand() {
-            Commands.Add(new CharsCommand { Key = $"{CmdPrefix}" });
+            Commands.Add(new CharsCommand { Cmd = $"{CmdPrefix}" });
         }
 
         public CharsCommand() { }

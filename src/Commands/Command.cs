@@ -26,11 +26,14 @@ namespace MCEControl {
         Command Clone(Reply reply, Command clone);
     }
 
-    // Base class for all Command types
+    /// <summary>
+    /// Base class for all Command types
+    /// IMPORANT: Be very careful changing this schema as it may break forward compat
+    /// </summary>
     public abstract class Command : ICommand {
-        private String key;
+        private String cmd;
         [XmlAttribute("cmd")]
-        public string Key { get => key; set => key = value; }
+        public string Cmd { get => cmd; set => cmd = value; }
 
         private List<Command> embeddedCommands;
         [XmlElement("chars", typeof(CharsCommand))]
@@ -49,7 +52,7 @@ namespace MCEControl {
         public virtual string Args { get => args; set => args = value; }
         public virtual Reply Reply { get => reply; set => reply = value; }
 
-        public override string ToString() => $"Cmd=\"{Key}\" Args=\"{Args}\"";
+        public override string ToString() => $"Cmd=\"{Cmd}\" Args=\"{Args}\"";
 
         private string args = "";
 
@@ -68,7 +71,7 @@ namespace MCEControl {
 
             clone.Reply = reply;
 
-            clone.Key = this.Key;
+            clone.Cmd = this.Cmd;
             clone.Args = this.Args;
             if (this.EmbeddedCommands != null) {
                 clone.EmbeddedCommands = new List<Command>();
@@ -89,7 +92,7 @@ namespace MCEControl {
             // what: the number of commands of each type (key) received and executed
             // why: to understand what commands are used and which are not
             // how is PII protected: the name of the command, key, is not user definable
-            TelemetryService.Instance.GetTelemetryClient().GetMetric($"{(UserDefined ? "<userDefined>" : key)} Executed").TrackValue(1);
+            TelemetryService.Instance.GetTelemetryClient().GetMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed").TrackValue(1);
         }
     }
 }

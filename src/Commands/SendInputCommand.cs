@@ -58,7 +58,7 @@ namespace MCEControl {
             }
         }
         public SendInputCommand(string vk, bool shift, bool ctrl, bool alt) {
-            Key = Vk = vk;
+            Cmd = Vk = vk;
             Shift = shift;
             Ctrl = ctrl;
             Alt = alt;
@@ -66,7 +66,7 @@ namespace MCEControl {
         }
 
         public SendInputCommand(string vk, bool shift, bool ctrl, bool alt, bool win) {
-            Key = Vk = vk;
+            Cmd = Vk = vk;
             Shift = shift;
             Ctrl = ctrl;
             Alt = alt;
@@ -74,7 +74,7 @@ namespace MCEControl {
         }
 
         public override string ToString() {
-            return $"Cmd=\"{Key}\" Args=\"{Args}\" Vk=\"{Vk}\" Shift=\"{Shift}\" Ctrl=\"{Ctrl}\" Alt=\"{Alt}\" Win=\"{Win}\"";
+            return $"Cmd=\"{Cmd}\" Args=\"{Args}\" Vk=\"{Vk}\" Shift=\"{Shift}\" Ctrl=\"{Ctrl}\" Alt=\"{Alt}\" Win=\"{Win}\"";
         }
 
         public override ICommand Clone(Reply reply) => base.Clone(reply, new SendInputCommand(vk, shift, ctrl, alt, win));
@@ -93,8 +93,8 @@ namespace MCEControl {
 
                 // Deal with shiftdown/up: commands
                 // TODO: Break this out to a separate command
-                if (!string.IsNullOrEmpty(Key)) {
-                    switch (Key.ToUpperInvariant()) {
+                if (!string.IsNullOrEmpty(Cmd)) {
+                    switch (Cmd.ToUpperInvariant()) {
                         case "SHIFTDOWN:":
                             // Modifyer key down
                             SendInputCommand.ShiftKey(Args, true);

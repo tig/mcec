@@ -28,13 +28,13 @@ namespace MCEControl {
         private static List<PauseCommand> commands = new List<PauseCommand>();
 
         static PauseCommand() {
-            Commands.Add(new PauseCommand { Key = $"{CmdPrefix}" });
+            Commands.Add(new PauseCommand { Cmd = $"{CmdPrefix}" });
         }
 
         public PauseCommand() { }
 
         public override string ToString() {
-            return $"Cmd=\"{Key}\" Args=\"{Args}\"";
+            return $"Cmd=\"{Cmd}\" Args=\"{Args}\"";
         }
 
         public override ICommand Clone(Reply reply) => base.Clone(reply, new PauseCommand());

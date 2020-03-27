@@ -77,7 +77,7 @@ namespace MCEControl {
             // what: the number of commands of each type (key) sent
             // why: to understand what commands are used to control other systems and which are not
             // how is PII protected: we only collect the text if it is a key for a built-in command
-            var userDefined = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(q => (q.Key == text.Trim('\r').Trim('\n') && q.UserDefined == false));
+            var userDefined = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(q => (q.Cmd == text.Trim('\r').Trim('\n') && q.UserDefined == false));
             TelemetryService.Instance.GetTelemetryClient().GetMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent").TrackValue(1);
         }
 

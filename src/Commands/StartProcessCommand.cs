@@ -37,7 +37,7 @@ namespace MCEControl {
 
         // TODO: This does not show embedded next commands
         public override string ToString() {
-            return $"Cmd=\"{Key}\" File=\"{File}\" Arguments=\"{Arguments}\" Verb=\"{Verb}\"";
+            return $"Cmd=\"{Cmd}\" File=\"{File}\" Arguments=\"{Arguments}\" Verb=\"{Verb}\"";
         }
 
         public override ICommand Clone(Reply reply) => base.Clone(reply, new StartProcessCommand() {
