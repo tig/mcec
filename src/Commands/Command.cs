@@ -11,19 +11,9 @@
 //#define SERIALIZE
 
 using System;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
-using menelabs.core;
-using WindowsInput;
-using WindowsInput.Native;
 
 namespace MCEControl {
     // Implements Command Pattern
@@ -33,7 +23,7 @@ namespace MCEControl {
         /// </summary>
         void Execute();
 
-        Command Clone(Reply reply, Command icmd);
+        Command Clone(Reply reply, Command clone);
     }
 
     // Base class for all Command types

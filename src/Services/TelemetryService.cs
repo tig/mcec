@@ -10,7 +10,6 @@ using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.Implementation;
 using Microsoft.Win32;
-using log4net;
 
 namespace MCEControl {
     /// <summary>
@@ -54,7 +53,7 @@ namespace MCEControl {
             _telemetry.Context.Session.Id = Guid.NewGuid().ToString();
             _telemetry.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
             // Anonymyize user ID
-            using var h = SHA256.Create();
+            var h = SHA256.Create();
             h.Initialize();
             h.ComputeHash(Encoding.UTF8.GetBytes($"{Environment.UserName}/{Environment.MachineName}"));
             _telemetry.Context.User.Id = Convert.ToBase64String(h.Hash);

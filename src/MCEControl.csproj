@@ -66,7 +66,8 @@
     <ErrorReport>prompt</ErrorReport>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
-    <CodeAnalysisRuleSet>MCEControl.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>
+    </CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>bin\Release\</OutputPath>
@@ -89,7 +90,8 @@
     <ErrorReport>prompt</ErrorReport>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
-    <CodeAnalysisRuleSet>MCEControl.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>
+    </CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup />
   <PropertyGroup>
@@ -123,10 +125,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="About.cs">
+    <Compile Include="Dialogs\About.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="About.Designer.cs">
+    <Compile Include="Dialogs\About.Designer.cs">
       <DependentUpon>About.cs</DependentUpon>
     </Compile>
     <Compile Include="AssemblyFileVersion.cs">
@@ -138,7 +140,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Commands\Command.cs" />
-    <Compile Include="CommandFileWatcher.cs" />
+    <Compile Include="Helpers\CommandFileWatcher.cs" />
     <Compile Include="Commands\Commands.cs" />
     <Compile Include="MainWindow.cs">
       <SubType>Form</SubType>
@@ -150,14 +152,14 @@
     <Compile Include="Commands\SerializedCommands.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CommandWindow.cs">
+    <Compile Include="Dialogs\CommandWindow.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="CommandWindow.Designer.cs">
+    <Compile Include="Dialogs\CommandWindow.Designer.cs">
       <DependentUpon>CommandWindow.cs</DependentUpon>
     </Compile>
-    <Compile Include="FileSystemSafeWatcher.cs" />
-    <Compile Include="Logger.cs" />
+    <Compile Include="Helpers\FileSystemSafeWatcher.cs" />
+    <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Commands\CharsCommand.cs" />
     <Compile Include="Commands\PauseCommand.cs" />
     <Compile Include="Services\TelemetryService.cs" />
@@ -167,10 +169,10 @@
       <DependentUpon>TelemetryService.tt</DependentUpon>
     </Compile>
     <Compile Include="Services\UpdateService.cs" />
-    <Compile Include="TextBoxExt.cs">
+    <Compile Include="Helpers\TextBoxExt.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="UserActivityMonitor.cs" />
+    <Compile Include="Services\UserActivityMonitorService.cs" />
     <Compile Include="Gma.UserActivityMonitor\GlobalEventProvider.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -203,7 +205,7 @@
     <Compile Include="Commands\SetForegroundWindowCmd.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SettingsDialog.cs">
+    <Compile Include="Dialogs\SettingsDialog.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Commands\ShutdownCommand.cs">
@@ -323,7 +325,7 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>TelemetryService.tt.cs</LastGenOutput>
     </Content>
-    <EmbeddedResource Include="About.resx">
+    <EmbeddedResource Include="Dialogs\About.resx">
       <DependentUpon>About.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainWindow.resx">
@@ -332,12 +334,10 @@
     <EmbeddedResource Include="Resources\MCEControl.commands" />
     <Resource Include="app.manifest" />
     <EmbeddedResource Include="app.config" />
-    <None Include="MCEControl1.ruleset" />
     <None Include="Resources\Trafficlight-gray-icon.bmp" />
     <None Include="Resources\Trafficlight-gray-icon.png" />
     <None Include="Resources\Trafficlight-green-icon.png" />
-    <None Include="MCEControl.ruleset" />
-    <EmbeddedResource Include="CommandWindow.resx">
+    <EmbeddedResource Include="Dialogs\CommandWindow.resx">
       <DependentUpon>CommandWindow.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -345,7 +345,7 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="SettingsDialog.resx">
+    <EmbeddedResource Include="Dialogs\SettingsDialog.resx">
       <DependentUpon>SettingsDialog.cs</DependentUpon>
     </EmbeddedResource>
     <Content Include="AssemblyFileVersion.tt">

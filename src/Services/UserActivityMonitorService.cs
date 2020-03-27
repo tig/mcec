@@ -15,7 +15,7 @@ namespace MCEControl {
     // Uses a global Windows hook to detect keyboard or mouse activity
     // Based on this post: https://www.codeproject.com/Articles/7294/Processing-Global-Mouse-and-Keyboard-Hooks-in-C
 #pragma warning disable CA1724
-    public sealed class UserActivityMonitor : IDisposable{
+    public sealed class UserActivityMonitorService : IDisposable{
     
         private bool _logActivity = false;    // log mouse/keyboard events to MCEC window
         private int _debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
@@ -23,13 +23,13 @@ namespace MCEControl {
 
         private System.DateTime LastTime;
 
-        private static readonly Lazy<UserActivityMonitor> lazy = new Lazy<UserActivityMonitor>(() => new UserActivityMonitor());
-        private UserActivityMonitor() {
+        private static readonly Lazy<UserActivityMonitorService> lazy = new Lazy<UserActivityMonitorService>(() => new UserActivityMonitorService());
+        private UserActivityMonitorService() {
         }
 
         private static Gma.UserActivityMonitor.GlobalEventProvider _userActivityMonitor = null;
         
-        public static UserActivityMonitor Instance => lazy.Value;
+        public static UserActivityMonitorService Instance => lazy.Value;
         public bool LogActivity { get => _logActivity; set => _logActivity = value; }
            
         /// <summary>

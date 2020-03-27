@@ -99,13 +99,11 @@ namespace MCEControl {
                             // Modifyer key down
                             SendInputCommand.ShiftKey(Args, true);
                             return;
-                            break;
 
                         case "SHIFTUP:":
                             // Modifyer key down
                             SendInputCommand.ShiftKey(Args, false);
                             return;
-                            break;
                     }
                 }
 

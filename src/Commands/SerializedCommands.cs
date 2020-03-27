@@ -10,14 +10,10 @@
 using System;
 using System.IO;
 using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
-using System.Xml.XPath;
 using System.Xml.Xsl;
-using menelabs.core;
 
 namespace MCEControl {
     // TODO: Convert to List<Command>
@@ -115,18 +111,24 @@ namespace MCEControl {
             XmlWriter lcWriter = null;
             XmlReader lcReader = null;
             try {
+#pragma warning disable CA3075 // Insecure DTD processing in XML
                 xmlReader = new XmlTextReader(xmlStream);
+#pragma warning restore CA3075 // Insecure DTD processing in XML
 
                 // Transform XML to all lower case key and value names
+#pragma warning disable CA3075 // Insecure DTD processing in XML
                 xsltReader = new XmlTextReader(
                     Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.xslt"));
+#pragma warning restore CA3075 // Insecure DTD processing in XML
                 var myXslTrans = new XslCompiledTransform();
                 myXslTrans.Load(xsltReader);
                 var stm = new MemoryStream();
                 lcWriter = XmlWriter.Create(stm, new XmlWriterSettings() { Indent = false, OmitXmlDeclaration = false });
                 myXslTrans.Transform(xmlReader, null, lcWriter);
                 stm.Position = 0;
+#pragma warning disable CA3075 // Insecure DTD processing in XML
                 lcReader = new XmlTextReader(stm); // lower-case reader
+#pragma warning restore CA3075 // Insecure DTD processing in XML
 
                 cmds = (SerializedCommands)new XmlSerializer(typeof(SerializedCommands)).Deserialize(lcReader);
             }

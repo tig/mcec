@@ -7,24 +7,13 @@
 // Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
+using System.Diagnostics;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Diagnostics;
-using System;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Windows.Forms;
-using MCEControl.Properties;
-using Microsoft.Win32.Security;
 using log4net;
 using Microsoft.Win32;
-using System.Drawing;
+using Microsoft.Win32.Security;
 
 namespace MCEControl {
     public partial class MainWindow : Form {
@@ -218,14 +207,14 @@ namespace MCEControl {
                 StartClient();
 
             if (Settings.ActivityMonitorEnabled)
-                UserActivityMonitor.Instance.Start(Settings.ActivityMonitorDebounceTime);
+                UserActivityMonitorService.Instance.Start(Settings.ActivityMonitorDebounceTime);
         }
 
         private void Stop() {
             if (this.InvokeRequired)
                 this.BeginInvoke((MethodInvoker)delegate () { Stop(); });
             else {
-                UserActivityMonitor.Stop();
+                UserActivityMonitorService.Stop();
                 StopClient();
                 StopServer();
                 StopSerialServer();

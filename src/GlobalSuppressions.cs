@@ -7,6 +7,8 @@
 // Code Analysis results, point to "Suppress Message", and click 
 // "In Suppression File".
 // You do not need to add suppressions to this file manually.
+using System.Diagnostics.CodeAnalysis;
+
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage(null, "ENC1003")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1060:MovePInvokesToNativeMethodsClass", Scope = "member", Target = "Microsoft.Win32.Security.Win32.#EqualSid(System.IntPtr,System.IntPtr)")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Interoperability", "CA1401:PInvokesShouldNotBeVisible", Scope = "member", Target = "Microsoft.Win32.Security.Win32.#EqualSid(System.IntPtr,System.IntPtr)")]
@@ -220,3 +222,4 @@
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1710:Identifiers should have correct suffix", Justification = "<Pending>", Scope = "type", Target = "~T:MCEControl.Commands")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "<Pending>", Scope = "member", Target = "~P:MCEControl.MainWindow.Invoker")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.SerializedCommands.LoadBuiltInCommands~MCEControl.SerializedCommands")]
+[assembly: SuppressMessage("Design", "CA1024:Use properties where appropriate", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.TelemetryService.GetTelemetryClient~Microsoft.ApplicationInsights.TelemetryClient")]

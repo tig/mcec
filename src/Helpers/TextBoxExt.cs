@@ -6,7 +6,7 @@ namespace MCEControl {
     /// Enforce MaxLength property even when setting text programmatically
     /// https://stackoverflow.com/questions/10011508/textbox-maximum-amount-of-characters-its-not-maxlength
     /// </summary>
-    public class TextBoxExt : System.Windows.Forms.TextBox {
+    public class TextBoxExt : TextBox {
         new public void AppendText(string text) {
             if (this.Text.Length == this.MaxLength) {
                 return;

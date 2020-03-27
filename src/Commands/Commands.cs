@@ -17,7 +17,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MCEControl {
-    
+
     /// <summary>
     /// Holds all active Commands. Uses a hash-table for lookup. 
     /// Is the Invoker in the Commands pattern.
@@ -94,7 +94,7 @@ namespace MCEControl {
             }
             else Logger.Instance.Log4.Info($"{this.GetType().Name}: Error parsing command: {cmd.ToString()}");
         }
-        
+
         /// <summary>
         /// Decodes a commands tring and enqueues the associated Command for execution.
         /// </summary>
