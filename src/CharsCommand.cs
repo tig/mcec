@@ -15,6 +15,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 using WindowsInput;
 using WindowsInput.Native;
+using MCEControl;
 
 namespace MCEControl {
     /// <summary>

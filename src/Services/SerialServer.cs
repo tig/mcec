@@ -13,7 +13,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.IO.Ports;
-using MCEControl.Services;
 using System.Collections.Generic;
 
 namespace MCEControl {

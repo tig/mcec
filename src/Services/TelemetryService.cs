@@ -12,7 +12,7 @@ using Microsoft.ApplicationInsights.Extensibility.Implementation;
 using Microsoft.Win32;
 using log4net;
 
-namespace MCEControl.Services {
+namespace MCEControl {
     /// <summary>
     /// Singleton class enabling Microsoft Azure Application Insights telemetry
     /// </summary>

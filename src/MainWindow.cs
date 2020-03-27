@@ -25,7 +25,6 @@ using Microsoft.Win32.Security;
 using log4net;
 using Microsoft.Win32;
 using System.Drawing;
-using MCEControl.Services;
 
 namespace MCEControl {
     public partial class MainWindow : Form {

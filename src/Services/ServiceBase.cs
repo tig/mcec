@@ -12,7 +12,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using log4net;
-using MCEControl.Services;
 
 namespace MCEControl {
     public enum ServiceNotification {

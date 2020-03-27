@@ -8,7 +8,6 @@
 //-------------------------------------------------------------------
 using System;
 using System.Windows.Forms;
-using MCEControl.Services;
 using Microsoft.Win32;
 
 namespace MCEControl {

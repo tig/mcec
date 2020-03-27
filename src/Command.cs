@@ -21,7 +21,6 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
-using MCEControl.Services;
 using menelabs.core;
 using WindowsInput;
 using WindowsInput.Native;

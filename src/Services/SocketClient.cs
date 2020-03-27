@@ -17,7 +17,6 @@ using System.Text;
 using System.Threading;
 using log4net;
 using MCEControl.Properties;
-using MCEControl.Services;
 
 namespace MCEControl {
     /// <summary>

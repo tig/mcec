@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Octokit;
 
-namespace MCEControl.Services {
+namespace MCEControl {
     public class UpdateService {
         private static readonly Lazy<UpdateService> _lazy = new Lazy<UpdateService>(() => new UpdateService());
         public static UpdateService Instance => _lazy.Value;

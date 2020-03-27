@@ -16,7 +16,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using log4net;
-using MCEControl.Services;
 
 namespace MCEControl {
     /// <summary>
