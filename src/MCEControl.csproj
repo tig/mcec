@@ -212,9 +212,6 @@
     <Compile Include="Services\SocketServer.cs" />
     <Compile Include="Commands\McecCommand.cs" />
     <Compile Include="Gma.UserActivityMonitor\NativeMethods.cs" />
-    <Compile Include="Util.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Win32\AccessToken.cs">
       <SubType>Code</SubType>
     </Compile>
