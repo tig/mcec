@@ -137,9 +137,9 @@
     <Compile Include="AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Command.cs" />
+    <Compile Include="Commands\Command.cs" />
     <Compile Include="CommandFileWatcher.cs" />
-    <Compile Include="Commands.cs" />
+    <Compile Include="Commands\Commands.cs" />
     <Compile Include="MainWindow.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -147,7 +147,7 @@
       <DependentUpon>MainWindow.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
-    <Compile Include="SerializedCommands.cs">
+    <Compile Include="Commands\SerializedCommands.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CommandWindow.cs">
@@ -158,8 +158,8 @@
     </Compile>
     <Compile Include="FileSystemSafeWatcher.cs" />
     <Compile Include="Logger.cs" />
-    <Compile Include="CharsCommand.cs" />
-    <Compile Include="PauseCommand.cs" />
+    <Compile Include="Commands\CharsCommand.cs" />
+    <Compile Include="Commands\PauseCommand.cs" />
     <Compile Include="Services\TelemetryService.cs" />
     <Compile Include="Services\TelemetryService.tt.cs">
       <AutoGen>True</AutoGen>
@@ -171,21 +171,21 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="UserActivityMonitor.cs" />
-    <Compile Include="UserActivityMonitor\GlobalEventProvider.cs">
+    <Compile Include="Gma.UserActivityMonitor\GlobalEventProvider.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="GlobalSuppressions.cs" />
-    <Compile Include="UserActivityMonitor\HookManager.Callbacks.cs" />
-    <Compile Include="UserActivityMonitor\HookManager.cs" />
-    <Compile Include="UserActivityMonitor\HookManager.Structures.cs" />
-    <Compile Include="UserActivityMonitor\HookManager.Windows.cs" />
-    <Compile Include="UserActivityMonitor\MouseEventExtArgs.cs" />
+    <Compile Include="Gma.UserActivityMonitor\HookManager.Callbacks.cs" />
+    <Compile Include="Gma.UserActivityMonitor\HookManager.cs" />
+    <Compile Include="Gma.UserActivityMonitor\HookManager.Structures.cs" />
+    <Compile Include="Gma.UserActivityMonitor\HookManager.Windows.cs" />
+    <Compile Include="Gma.UserActivityMonitor\MouseEventExtArgs.cs" />
     <Compile Include="Services\SerialServer.cs" />
-    <Compile Include="SendInputCommand.cs">
+    <Compile Include="Commands\SendInputCommand.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="MouseCommand.cs" />
-    <Compile Include="StartProcessCommand.cs">
+    <Compile Include="Commands\MouseCommand.cs" />
+    <Compile Include="Commands\StartProcessCommand.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
@@ -193,25 +193,25 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="SendMessageCommand.cs">
+    <Compile Include="Commands\SendMessageCommand.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Services\ServiceBase.cs" />
     <Compile Include="Services\SocketClient.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SetForegroundWindowCmd.cs">
+    <Compile Include="Commands\SetForegroundWindowCmd.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SettingsDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="ShutdownCommand.cs">
+    <Compile Include="Commands\ShutdownCommand.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Services\SocketServer.cs" />
-    <Compile Include="McecCommand.cs" />
-    <Compile Include="UserActivityMonitor\NativeMethods.cs" />
+    <Compile Include="Commands\McecCommand.cs" />
+    <Compile Include="Gma.UserActivityMonitor\NativeMethods.cs" />
     <Compile Include="Util.cs">
       <SubType>Code</SubType>
     </Compile>
