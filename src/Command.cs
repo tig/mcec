@@ -88,6 +88,10 @@ namespace MCEControl {
                     clone.EmbeddedCommands.Add(eClone);
                 }
             }
+
+            //TELEMETRY: Prevent info regarding user defined commands from being collected.
+            clone.UserDefined = this.UserDefined;
+
             return clone;
         }
 
