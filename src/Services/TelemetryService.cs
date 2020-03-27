@@ -61,6 +61,10 @@ namespace MCEControl.Services {
             // See: https://stackoverflow.com/questions/42861344/how-to-overwrite-or-ignore-cloud-roleinstance-with-application-insights
             _telemetry.Context.Cloud.RoleInstance = _telemetry.Context.User.Id;
 
+            // TELEMETRY: 
+            // what: application properties
+            // why: to track versions in use, OS support, and .NET versions
+            // how is PII protected: none of this is PII
             if (startProperties == null)
                 startProperties = new Dictionary<string, string>();
 
