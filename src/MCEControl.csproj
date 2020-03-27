@@ -180,7 +180,7 @@
     <Compile Include="UserActivityMonitor\HookManager.Structures.cs" />
     <Compile Include="UserActivityMonitor\HookManager.Windows.cs" />
     <Compile Include="UserActivityMonitor\MouseEventExtArgs.cs" />
-    <Compile Include="SerialServer.cs" />
+    <Compile Include="Services\SerialServer.cs" />
     <Compile Include="SendInputCommand.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -196,8 +196,8 @@
     <Compile Include="SendMessageCommand.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ServiceBase.cs" />
-    <Compile Include="SocketClient.cs">
+    <Compile Include="Services\ServiceBase.cs" />
+    <Compile Include="Services\SocketClient.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SetForegroundWindowCmd.cs">
@@ -209,7 +209,7 @@
     <Compile Include="ShutdownCommand.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SocketServer.cs" />
+    <Compile Include="Services\SocketServer.cs" />
     <Compile Include="McecCommand.cs" />
     <Compile Include="UserActivityMonitor\NativeMethods.cs" />
     <Compile Include="Util.cs">
