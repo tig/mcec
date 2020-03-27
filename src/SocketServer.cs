@@ -64,40 +64,29 @@ namespace MCEControl {
         // Control functions (Start, Stop, etc...)
         //-----------------------------------------------------------
         public void Start(int port) {
-
             try {
-                Log4.Debug("SocketServer Start");
                 // Create the listening socket...
                 _mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 var ipLocal = new IPEndPoint(IPAddress.Any, port);
-
-                TelemetryService.Instance.TrackEvent("SocketServer Start",
-                    properties: new Dictionary<string, string> {
-                    {"ipAddress", $"{ipLocal.Address}" },
-                    {"port", $"{port}" }
-                        });
-
                 // Bind to local IP Address...
-                Log4.Debug("Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
+                Log4.Debug("SocketServer - Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
                 _mainSocket.Bind(ipLocal);
                 // Start listening...
                 Log4.Debug("_mainSocket.Listen");
                 _mainSocket.Listen(4);
                 // Create the call back for any client connections...
-                SetStatus(ServiceStatus.Started);
+                SetStatus(ServiceStatus.Started, $"{ipLocal.Address}:{port}");
                 SetStatus(ServiceStatus.Waiting);
                 _mainSocket.BeginAccept(OnClientConnect, null);
             }
             catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, null, $"Start: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+                SendNotification(ServiceNotification.Error, CurrentStatus, null, $"{se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
                 SetStatus(ServiceStatus.Stopped);
             }
         }
 
         public void Stop() {
             Log4.Debug("SocketServer Stop");
-            TelemetryService.Instance.TrackEvent("SocketServer Stop");
-
             Dispose(true);
             SetStatus(ServiceStatus.Stopped);
         }

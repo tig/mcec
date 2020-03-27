@@ -509,7 +509,7 @@ namespace MCEControl {
             switch (notification) {
                 case ServiceNotification.ReceivedData:
                     Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                    s = $"Server: Received from Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint}: {msg}";
+                    s = $"SocketServer: Received from Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint}: {msg}";
                     Logger.Instance.Log4.Info(s);
                     ReceivedData(serverReplyContext, msg);
                     return;
@@ -543,7 +543,7 @@ namespace MCEControl {
                         case ServiceStatus.Waiting:
                         case ServiceStatus.Stopped:
                         case ServiceStatus.Sleeping:
-                            s = $"{status}: {msg}";
+                            s = $"({status}): {msg}";
                             break;
 
                         case ServiceStatus.Connected:
@@ -563,7 +563,7 @@ namespace MCEControl {
                     s = "Unknown notification: " + notification;
                     break;
             }
-            Logger.Instance.Log4.Info($"Server: {s}");
+            Logger.Instance.Log4.Info($"SocketServer: {s}");
         }
 
         private void HandleSocketServerStatusChange(ServiceStatus status) {
@@ -571,7 +571,7 @@ namespace MCEControl {
             String s = "";
             switch (status) {
                 case ServiceStatus.Started:
-                    s = $"TCP/IP server started on port {Settings.ServerPort}";
+                    s = $"Started on port {Settings.ServerPort}";
                     //SetStatus(s);
                     if (Settings.WakeupEnabled)
                         server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
@@ -587,14 +587,14 @@ namespace MCEControl {
                     return;
 
                 case ServiceStatus.Stopped:
-                    s = "Stopped.";
+                    s = "Stopped";
                     //SetStatus("Client/Sever Not Active");
                     if (Settings.WakeupEnabled)
                         server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost,
                             Settings.WakeupPort);
                     break;
             }
-            Logger.Instance.Log4.Info($"Server: {s}");
+            Logger.Instance.Log4.Info($"SocketServer: {s}");
         }
 
         //

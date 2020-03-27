@@ -49,11 +49,6 @@ namespace MCEControl {
         // Control functions (Start, Stop, etc...)
         //-----------------------------------------------------------
         public void Start(String portName, int baudRate, Parity parity, int dataBits, StopBits stopBits, Handshake handshake) {
-            TelemetryService.Instance.TrackEvent("SerialServer Start",
-                properties: new Dictionary<string, string> {
-                    {"settings", $"{GetSettingsDisplayString()}" }
-                });
-
             if (_serialPort != null || _readThread != null)
                 Stop();
 
@@ -96,7 +91,6 @@ namespace MCEControl {
 
         public void Stop() {
             Log4.Debug("Serial Server Stop");
-            TelemetryService.Instance.TrackEvent("SerialServer Stop");
 
             Dispose(true);
             SetStatus(ServiceStatus.Stopped);

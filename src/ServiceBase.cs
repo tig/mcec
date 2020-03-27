@@ -8,13 +8,13 @@
 //-------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using log4net;
 using MCEControl.Services;
 
 namespace MCEControl {
-    
     public enum ServiceNotification {
         None = 0,
         Initialized = 1,
@@ -56,14 +56,20 @@ namespace MCEControl {
         private log4net.ILog log4;
         protected ILog Log4 { get => log4; set => log4 = value; }
 
+        /// <summary>
+        /// TELEMETRY: Enables collecting of how long sessions are connected for.
+        /// </summary>
+        private Stopwatch _connectedTime = new Stopwatch();
+
         protected ServiceBase() {
             Log4 = log4net.LogManager.GetLogger("MCEControl");
+            CurrentStatus = ServiceStatus.Stopped;
         }
 
         public delegate
             void NotificationCallback(ServiceNotification notify, ServiceStatus status, Reply reply, String msg = "");
         public event NotificationCallback Notifications;
-        
+
         public ServiceStatus CurrentStatus { get; set; }
 
         public virtual void Send(string text, Reply replyContext = null) {
@@ -78,6 +84,28 @@ namespace MCEControl {
 
         // Send a status notification
         protected void SetStatus(ServiceStatus status, String msg = "") {
+            // TELEMETRY: 
+            // what: Service status
+            // why: to understand the typical/non-typical conenction flows
+            // how is PII protected: no PII is involved
+            TelemetryService.Instance.TrackEvent($"{this.GetType().Name} {Enum.GetName(typeof(ServiceStatus), status)}", properties: new Dictionary<string, string> { { "msg", msg } });
+
+            switch (status) {
+                case ServiceStatus.Connected:
+                    _connectedTime.Start();
+                    break;
+
+                case ServiceStatus.Stopped:
+                    if (_connectedTime.IsRunning) {
+                        _connectedTime.Stop();
+                        // TELEMETRY: 
+                        // what: how long the session was connected for
+                        // why: to understand the typical/non-typical connection scenarios
+                        // how is PII protected: no PII is involved
+                        TelemetryService.Instance.GetTelemetryClient().GetMetric($"{this.GetType().Name} Connected Time").TrackValue(_connectedTime.ElapsedMilliseconds);
+                    }
+                    break;
+            }
             CurrentStatus = status;
             SendNotification(ServiceNotification.StatusChange, status, null, msg);
         }

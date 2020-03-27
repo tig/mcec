@@ -112,12 +112,6 @@ namespace MCEControl {
         }
 
         private void Connect() {
-            SetStatus(ServiceStatus.Started, $"{_host}:{_port}");
-            TelemetryService.Instance.TrackEvent("SocketClient Connect",
-                properties: new Dictionary<string, string> {
-                    {"host", $"{_host}" },
-                    {"port", $"{_port}" }
-                });
 
             IPEndPoint endPoint;
             try {
@@ -129,7 +123,9 @@ namespace MCEControl {
                     throw new IOException($"{_host}:{_port} didn't resolve to a valid address.");
 
                 endPoint = new IPEndPoint(ipv4Addresses[0], _port);
-                
+                // TELEMETRY: Do not pass _host to SetStatus to avoid collecting PII
+                SetStatus(ServiceStatus.Started, $"{ipv4Addresses[0]}:{_port}");
+
                 _tcpClient.BeginConnect(endPoint.Address, _port, ar => {
                     if (_tcpClient == null)
                         return;
