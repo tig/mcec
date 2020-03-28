@@ -52,7 +52,7 @@ Function telemetrycheckshow
 ${NSD_CreateCheckbox} 120u -18u 50% 12u "Collect Telemetry Information"
 Pop $mycheckbox
 SetCtlColors $mycheckbox "" 0xFFFFFFFF ;${MUI_BGCOLOR}
-;${NSD_Check} $mycheckbox ; Do not check it by default
+${NSD_Check} $mycheckbox ; Do not check it by default
 FunctionEnd
 
 Function telemetrycheckleave
