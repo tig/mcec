@@ -26,6 +26,51 @@ namespace MCEControl {
         private ConcurrentQueue<ICommand> executeQueue = new ConcurrentQueue<ICommand>();
 
         /// <summary>
+        /// Creaates a `Commands` instance of default & built-in commands. 
+        /// </summary>
+        /// <returns></returns>
+        private static Commands CreateBuiltIns() {
+            Commands commands = new Commands();
+
+            SerializedCommands serializedCmds;
+            // Add the built-ins defined in the Command-derived classes
+            foreach (Command cmd in McecCommand.BuiltInCommands)
+                commands.Add(cmd);
+
+            foreach (Command cmd in MouseCommand.BuiltInCommands)
+                commands.Add(cmd);
+
+            foreach (Command cmd in ShutdownCommand.BuiltInCommands)
+                commands.Add(cmd);
+
+            foreach (Command cmd in CharsCommand.BuiltInCommands)
+                commands.Add(cmd);
+
+            foreach (Command cmd in SendInputCommand.BuiltInCommands)
+                commands.Add(cmd);
+
+            foreach (Command cmd in PauseCommand.BuiltInCommands)
+                commands.Add(cmd);
+
+            foreach (Command cmd in StartProcessCommand.BuiltInCommands)
+                commands.Add(cmd);
+
+            foreach (Command cmd in SetForegroundWindowCommand.BuiltInCommands)
+                commands.Add(cmd);
+
+            foreach (Command cmd in SendMessageCommand.BuiltInCommands)
+                commands.Add(cmd);
+            Logger.Instance.Log4.Info($"{commands.GetType().Name}: {commands.Count} built-in commands defined.");
+
+            // Load the .commands file that's built in as an EXE resource
+            serializedCmds = SerializedCommands.LoadBuiltInCommands();
+            foreach (Command cmd in serializedCmds.commandArray)
+                commands.Add(cmd);
+            Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded from built-in .commands resource.");
+
+            return commands;
+        }
+        /// <summary>
         /// Creaates a `Commands` instance from a combination of an external .commands file and the built-in commands.
         /// </summary>
         /// <param name="userCommandsFile">Path to MCEControl.commands file.</param>
@@ -35,67 +80,56 @@ namespace MCEControl {
             Commands commands = new Commands();
             SerializedCommands serializedCmds;
 
-            // Start with the .commands file that's built in as an EXE resource
-            if (!disableInternalCommands)
-                serializedCmds = SerializedCommands.LoadBuiltInCommands();
-            else
-                serializedCmds = new SerializedCommands();
+            // Add the built-ins that are defiend in the `Command`-derived classes
+            // SECURITY: `Enabled` is set to `false` for all of these.
+            if (!disableInternalCommands) {
+                foreach (var cmd in CreateBuiltIns().Values.Cast<Command>())
+                    commands.Add(cmd);
+            }
 
-            foreach (Command cmd in serializedCmds.commandArray)
-                commands.Add(cmd);
-            Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded from built-in .commands resource.");
+            int nBuiltIn = commands.Count;
 
-            // Add the built-ins
-            foreach (Command cmd in McecCommand.Commands)
-                commands.Add(cmd);
-
-            foreach (Command cmd in MouseCommand.Commands)
-                commands.Add(cmd);
-
-            foreach (Command cmd in ShutdownCommand.Commands)
-                commands.Add(cmd);
-
-            foreach (Command cmd in CharsCommand.Commands)
-                commands.Add(cmd);
-
-            foreach (Command cmd in SendInputCommand.Commands)
-                commands.Add(cmd);
-
-            foreach (Command cmd in PauseCommand.Commands)
-                commands.Add(cmd);
-
-            var nBuiltin = commands.Count;
-            Logger.Instance.Log4.Info($"{commands.GetType().Name}: {commands.Count} built-in commands defined.");
-
-            // Load external .commands file
+            // Load external .commands file. 
             serializedCmds = SerializedCommands.LoadUserCommands(userCommandsFile);
-            if (serializedCmds != null) {
+            if (serializedCmds != null && serializedCmds.commandArray != null) {
                 foreach (Command cmd in serializedCmds.commandArray) {
                     // TELEMETRY: Mark user defined commands as such so they don't get collected
-                    cmd.UserDefined = true;
-                    commands.Add(cmd, true);
+                    if (!commands.ContainsKey(cmd.Cmd))
+                        cmd.UserDefined = true;
+                    commands.Add(cmd);
                 }
-                Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} user-defined commands loaded.");
+                Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded.");
             }
 
             // TELEMETRY: 
             // what: Collect number of user defined commands created. 
             // why: To determine how often users actaully create user commands, if at all.
-            TelemetryService.Instance.TrackEvent("Commands Created",
+            TelemetryService.Instance.TrackEvent("User Commands Created",
                 properties: new Dictionary<string, string> {
-                    {"userCommands", $"{(serializedCmds == null ? 0 : serializedCmds.Count)}" }
+                    {"userCommands", $"{commands.Values.Cast<Command>().GroupBy(o => o.UserDefined)}" }
                     });
 
             return commands;
         }
 
+        internal void Save(string userCommandsFile) {
+            var sc = new SerializedCommands();
+
+            var values = Values.Cast<Command>().ToArray();
+
+            // Sort 
+            sc.commandArray = values.OrderBy(c => c.Cmd).ToArray();
+
+            SerializedCommands.SaveCommands(userCommandsFile, sc);
+        }
+
         // Adds a command to the hashtable. Optionally logs. Ensures case insenstiitivy. 
         private void Add(Command cmd, bool log = false) {
             if (!string.IsNullOrEmpty(cmd.Cmd)) {
-                if (this.ContainsKey(cmd.Cmd.ToUpperInvariant())) {
-                    this.Remove(cmd.Cmd.ToUpperInvariant());
+                if (this.ContainsKey(cmd.Cmd.ToLowerInvariant())) {
+                    this.Remove(cmd.Cmd.ToLowerInvariant());
                 }
-                this.Add(cmd.Cmd.ToUpperInvariant(), (ICommand)cmd);
+                this.Add(cmd.Cmd.ToLowerInvariant(), (ICommand)cmd);
                 if (log) Logger.Instance.Log4.Info($"{this.GetType().Name}: Command added: {cmd.Cmd}");
             }
             else Logger.Instance.Log4.Info($"{this.GetType().Name}: Error parsing command: {cmd.ToString()}");
@@ -121,24 +155,21 @@ namespace MCEControl {
             else {
                 cmd = cmdString;
             }
-            cmd = cmd.ToUpperInvariant();
+            cmd = cmd.ToLowerInvariant();
 
             // TODO: Implement ignoreInternalCommands?
 
-            if (cmdString.Length == 1) {
-                // It's a single character, just send it by creating a SendInputCommand
-                SendInputCommand keydownCmd = new SendInputCommand(cmdString, false, false, false, false);
-                keydownCmd.Args = args;
-                keydownCmd.Reply = reply;
+            if (cmdString.Length == 1 && ((Command)this["chars:"]).Enabled) {
+                var charsCmd = new CharsCommand() { Args = cmdString, Enabled =true, Reply = reply };
 
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending keydown for: {cmdString}");
-                executeQueue.Enqueue(keydownCmd);
+                Logger.Instance.Log4.Info($"{this.GetType().Name}: Typing: {cmdString}");
+                executeQueue.Enqueue(charsCmd);
             }
             else {
                 // See if we know about this Command - case insensitive
-                if (this[cmd.ToUpperInvariant()] != null) {
+                if (this[cmd.ToLowerInvariant()] != null) {
                     // Always create a clone for enqueing (so Reply context can be independent)
-                    Command clone = (Command)((Command)this[cmd.ToUpperInvariant()]).Clone(reply);
+                    Command clone = (Command)((Command)this[cmd.ToLowerInvariant()]).Clone(reply);
 
                     // This supports commands of the form 'chars:args'; these
                     // commands do not need to originate in CommandTable

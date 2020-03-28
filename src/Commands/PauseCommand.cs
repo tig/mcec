@@ -24,11 +24,10 @@ namespace MCEControl {
     public class PauseCommand : Command {
         public const string CmdPrefix = "pause:";
 
-        public static List<PauseCommand> Commands { get => commands; }
-        private static List<PauseCommand> commands = new List<PauseCommand>();
-
-        static PauseCommand() {
-            Commands.Add(new PauseCommand { Cmd = $"{CmdPrefix}" });
+        public static new List<PauseCommand> BuiltInCommands {
+            get => new List<PauseCommand>() { 
+                new PauseCommand { Cmd = $"{CmdPrefix}" } 
+            };
         }
 
         public PauseCommand() { }
@@ -40,15 +39,15 @@ namespace MCEControl {
         public override ICommand Clone(Reply reply) => base.Clone(reply, new PauseCommand());
 
         // ICommand:Execute
-        public override void Execute() {
-            base.Execute();
-
+        public override bool Execute() {
+            if (!base.Execute()) return false;
             int time;
             if (int.TryParse(Args, out time)) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Pausing {time}ms");
                 // TODO: Is this the smartest way to do this?
                 System.Threading.Thread.Sleep(time);
             }
+            return true;
         }
     }
 }

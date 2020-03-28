@@ -143,7 +143,7 @@ namespace MCEControl {
 
             // Since the main Socket is now free, it can go back and wait for
             // other clients who are attempting to connect
-            _mainSocket.BeginAccept(OnClientConnect, null);
+            _mainSocket?.BeginAccept(OnClientConnect, null);
         }
 
         // Start waiting for data from the client

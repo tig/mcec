@@ -8,18 +8,14 @@
 //-------------------------------------------------------------------
 
 using System;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
-using System.Resources;
-using System.Windows.Forms;
-using MCEControl.Properties;
-using Microsoft.Win32.Security;
+using System.Linq;
 using log4net;
-using log4net.Repository.Hierarchy;
-using log4net.Core;
 using log4net.Appender;
+using log4net.Core;
 using log4net.Layout;
+using log4net.Repository.Hierarchy;
+
 
 namespace MCEControl {
     // Logger is a singleton that implements logging to both an external (file based) log (via log4net)
@@ -152,21 +148,36 @@ namespace MCEControl {
         public static void DumpException(Exception ex) {
             if (ex is null) throw new ArgumentNullException(nameof(ex));
             WriteExceptionInfo(ex);
-            if (null != ex.InnerException) {
-                WriteExceptionInfo(ex.InnerException);
-            }
         }
 
         public static void WriteExceptionInfo(Exception ex) {
             if (ex is null) throw new ArgumentNullException(nameof(ex));
             Logger.Instance.Log4.Debug($"--------- Exception Data ---------");
-            Logger.Instance.Log4.Debug($"Message: {ex.Message}");
+            Logger.Instance.Log4.Debug($"Message: {ex.FullMessage()}");
             Logger.Instance.Log4.Debug($"Exception Type: {ex.GetType().FullName}");
             Logger.Instance.Log4.Debug($"Source: {ex.Source}");
             Logger.Instance.Log4.Debug($"StrackTrace: {ex.StackTrace}");
             Logger.Instance.Log4.Debug($"TargetSite: {ex.TargetSite}");
+            Logger.Instance.Log4.Debug($"--------- Full Exception ---------");
+            Logger.Instance.Log4.Debug($"{ex.ToString()}");
         }
     }
+
+    /// <summary>
+    /// See https://stackoverflow.com/questions/5928976/what-is-the-proper-way-to-display-the-full-innerexception
+    /// </summary>
+    public static class ExtensionMethods {
+        public static string FullMessage(this Exception ex) {
+            if (ex is null) throw new ArgumentNullException(nameof(ex));
+
+            if (ex is AggregateException aex) return aex.InnerExceptions.Aggregate("[ ", (total, next) => $"{total}[{next.FullMessage()}] ") + "]";
+            var msg = ex.Message.Replace(", see inner exception.", "").Trim();
+            var innerMsg = ex.InnerException?.FullMessage();
+            if (innerMsg is object && innerMsg != msg) msg = $"{msg} \n[ {innerMsg} ]";
+            return msg;
+        }
+    }
+
 
     public class TextBoxAppender : AppenderSkeleton {
         private readonly object lockObj = new object();

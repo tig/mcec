@@ -27,12 +27,11 @@ namespace MCEControl {
         public CommandWindow() {
             log4 = log4net.LogManager.GetLogger("MCEControl");
             InitializeComponent();
+            testRadio.Checked = true;
         }
         
         private void CommandWindow_Load(object sender, EventArgs e) {
             Icon = MainWindow.Instance.Icon;
-
-
         }
 
         private void CommandWindow_FormClosing(object sender, FormClosingEventArgs e) {
@@ -71,7 +70,7 @@ namespace MCEControl {
         }
 
         private void listCmds_DoubleClick(object sender, EventArgs e) {
-            if (listCmds.SelectedItems.Count > 0) {
+            if (listCmds.SelectedItems.Count > 0 && testRadio.Checked) {
                 log4.Debug("listCmds_DoubleClick");
                 textBoxSendCommand.Text = listCmds.SelectedItems[0].Text;
                 Send();
@@ -85,13 +84,14 @@ namespace MCEControl {
 
         public void RefreshList() { 
             listCmds.Items.Clear();
-            var orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
-            foreach (string key in orderedKeys) {
-                Command cmd = (Command)MainWindow.Instance.Invoker[key];
+            var orderedCmds = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
+            foreach (string command in orderedCmds) {
+                Command cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(command.ToLowerInvariant(), StringComparison.Ordinal));
                 var item = new ListViewItem(cmd.Cmd);
                 Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                 item.SubItems.Add(match.Groups[1].Value);
                 item.SubItems.Add(cmd.ToString());
+                item.Checked = cmd.Enabled;
                 listCmds.Items.Add(item);
             }
             // Set column widths to fit longest items
@@ -101,6 +101,30 @@ namespace MCEControl {
 
             listCmds.Focus();
             listCmds.Items[0].Selected = true;
+            saveChangesBtn.Enabled = false;
+        }
+
+        private void listCmds_ItemChecked(object sender, ItemCheckedEventArgs e) {
+            Command cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(e.Item.SubItems[0].Text.ToLowerInvariant(), StringComparison.Ordinal)); 
+            cmd.Enabled = e.Item.Checked;
+            saveChangesBtn.Enabled = true;
+        }
+
+        private void saveChangesBtn_Click(object sender, EventArgs e) {
+            //MainWindow.Instance.Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
+        }
+
+        private void testRadio_CheckedChanged(object sender, EventArgs e) {
+            listCmds.CheckBoxes = editRadio.Checked;
+            saveChangesBtn.Visible = editRadio.Checked;
+
+            labelSendAnyChars.Visible = testRadio.Checked;
+            labelSendChars.Visible = testRadio.Checked;
+            textBoxChars.Visible = testRadio.Checked;
+            textBoxSendCommand.Visible = testRadio.Checked;
+            buttonSend.Visible = testRadio.Checked;
+            buttonSendChars.Visible = testRadio.Checked;
+
         }
     }
 }

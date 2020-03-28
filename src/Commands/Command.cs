@@ -21,7 +21,7 @@ namespace MCEControl {
         /// <summary>
         /// Called to execute the command. 
         /// </summary>
-        void Execute();
+        bool Execute();
 
         Command Clone(Reply reply, Command clone);
     }
@@ -32,10 +32,15 @@ namespace MCEControl {
     /// </summary>
     public abstract class Command : ICommand {
         private String cmd;
+
+        protected Command() {
+            Enabled = false; // SECURITY: Explicity
+            UserDefined = false; // TELEMERTRY: Explicit
+        }
+        public static List<Command> BuiltInCommands { get => new List<Command>() { }; }
+
         [XmlAttribute("cmd")]
         public string Cmd { get => cmd; set => cmd = value; }
-
-        private List<Command> embeddedCommands;
         [XmlElement("chars", typeof(CharsCommand))]
         [XmlElement("startprocess", typeof(StartProcessCommand))]
         [XmlElement("sendinput", typeof(SendInputCommand))]
@@ -44,24 +49,24 @@ namespace MCEControl {
         [XmlElement("shutdown", typeof(ShutdownCommand))]
         [XmlElement("pause", typeof(PauseCommand))]
         [XmlElement("mouse", typeof(MouseCommand))]
+        [XmlElement("mceccommand", typeof(McecCommand))]
         [XmlElement(typeof(Command))]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
-        public List<Command> EmbeddedCommands { get => embeddedCommands; set => embeddedCommands = value; }
-
+        public List<Command> EmbeddedCommands { get; set; }
+        
         [XmlAttribute("args")]
-        public virtual string Args { get => args; set => args = value; }
-        public virtual Reply Reply { get => reply; set => reply = value; }
+        public virtual string Args { get; set; }
+
+        [XmlAttribute("enabled")]
+        public bool Enabled { get; set; }
+        public virtual Reply Reply { get; set; }
 
         public override string ToString() => $"Cmd=\"{Cmd}\" Args=\"{Args}\"";
 
-        private string args = "";
-
-        private Reply reply;
-
         // TELEMETRY:
         // Ensure only built-in command names are collected
-        public bool UserDefined { get => userDefined; set => userDefined = value; }
-        private bool userDefined = false;
+        [XmlIgnore]
+        public bool UserDefined { get; set; }
 
         public abstract ICommand Clone(Reply reply);
 
@@ -77,6 +82,7 @@ namespace MCEControl {
                 clone.EmbeddedCommands = new List<Command>();
                 foreach (Command next in this.EmbeddedCommands) {
                     Command eClone = (Command)next.Clone(reply);
+                    clone.Enabled = Enabled;
                     clone.EmbeddedCommands.Add(eClone);
                 }
             }
@@ -84,15 +90,29 @@ namespace MCEControl {
             //TELEMETRY: Prevent info regarding user defined commands from being collected.
             clone.UserDefined = this.UserDefined;
 
+            clone.Enabled = this.Enabled;
+
             return clone;
         }
 
-        public virtual void Execute() {
+        /// <summary>
+        /// Execute command. Derived classes must call base before processing in order to ensure
+        /// only enabled commands get run, and to collect telemetry.
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool Execute() {
+            if (!Enabled) {
+                Logger.Instance.Log4.Info($"Command: Attempt to execute a disabled command ({Cmd})");
+                Logger.Instance.Log4.Info($"         As of MCE Controller v2.2.1 commands are disabled by default.");
+                Logger.Instance.Log4.Info($"         Edit MCEControl.commands to enable commands (change `Enabled=\"false\"' to 'Enabled=\"true\"').");
+                return false;
+            }
             // TELEMETRY: 
             // what: the number of commands of each type (key) received and executed
             // why: to understand what commands are used and which are not
             // how is PII protected: the name of the command, key, is not user definable
             TelemetryService.Instance.GetTelemetryClient().GetMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed").TrackValue(1);
+            return true;
         }
     }
 }

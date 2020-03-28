@@ -35,9 +35,8 @@ namespace MCEControl {
         public override ICommand Clone(Reply reply) => base.Clone(reply, new SetForegroundWindowCommand(ClassName, WindowName));
 
         // ICommand:Execute
-        public override void Execute() {
-            base.Execute();
-
+        public override bool Execute() {
+            if (!base.Execute()) return false;
             try {
                 if (ClassName != null) {
                     var procs = Process.GetProcessesByName(ClassName);
@@ -49,12 +48,15 @@ namespace MCEControl {
                     }
                     else {
                         Logger.Instance.Log4.Info($"{this.GetType().Name}: GetProcessByName for {ClassName} failed");
+                        return false;
                     }
                 }
             }
             catch (Exception e) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Failed for {ClassName} with error: {e.Message}");
+                return false; 
             }
+            return true;
         }
     }
 }

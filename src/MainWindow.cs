@@ -10,6 +10,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using log4net;
 using Microsoft.Win32;
@@ -172,8 +173,7 @@ namespace MCEControl {
                 notifyIcon.Visible = false;
             else {
                 cmdWindow.RefreshList();
-
-                Logger.Instance.Log4.Info($"{Invoker.Count} commands available.");
+                Logger.Instance.Log4.Info($"{Invoker.Values.Cast<Command>().Count(cmd => (cmd.Enabled))} commands enabled ({Invoker.Values.Cast<Command>().Count(cmd => (!cmd.Enabled))} commands disabled).");
             }
         }
 
@@ -188,6 +188,9 @@ namespace MCEControl {
                 Hide();
             }
             else {
+                // Save Commands
+                Logger.Instance.Log4.Info($@"Saving {Program.ConfigPath}MCEControl.commands...");
+                Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
                 Logger.Instance.Log4.Info("Exiting...");
                 TelemetryService.Instance.Stop();
             }

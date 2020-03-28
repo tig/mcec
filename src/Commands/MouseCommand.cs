@@ -22,28 +22,28 @@ namespace MCEControl {
     public class MouseCommand : Command {
         public const string CmdPrefix = "mouse:";
 
-        private static List<MouseCommand> commands = new List<MouseCommand>() {
-            new MouseCommand{ Cmd = $"{CmdPrefix }" }, // the rest are just for documentation in the Commmand Window
-            new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }lbdc" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }lbd" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }lbu" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }rbc" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }rbdc" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }rbd" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }rbu" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }xbc,3" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }xbcd,3" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }xbd,3" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }xbu,3" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }mm,x,y" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }mt,x,y" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }hs,x" },
-            new MouseCommand{ Cmd = $"{CmdPrefix }vs,y" },
-        };
-
-        public static List<MouseCommand> Commands { get => commands;  }
+        public static new List<MouseCommand> BuiltInCommands {
+            get => new List<MouseCommand>() {
+                new MouseCommand{ Cmd = $"{CmdPrefix }" }, 
+                new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }lbdc" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }lbd" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }lbu" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }rbc" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }rbdc" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }rbd" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }rbu" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }xbc,3" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }xbcd,3" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }xbd,3" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }xbu,3" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }mm,x,y" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }mt,x,y" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }hs,x" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }vs,y" },
+            };
+        }
 
         public MouseCommand() { }
 
@@ -52,18 +52,17 @@ namespace MCEControl {
         }
 
         public override ICommand Clone(Reply reply) => base.Clone(reply, new MouseCommand());
-     
-        // ICommand:Execute
-        public override void Execute() {
-            base.Execute();
 
+        // ICommand:Execute
+        public override bool Execute() {
+            if (!base.Execute()) return false;
             if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
             if (this.Args is null) throw new InvalidOperationException("Args property cannot be null.");
 
             var sim = new InputSimulator();
             // Format is "mouse:<action>[,<parameters>]
-            string[] param = Args.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries) ;
-            if (param.Length == 0) return;
+            string[] param = Args.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            if (param.Length == 0) return true;
 
             switch (param[0]) {
                 case "lbc": sim.Mouse.LeftButtonClick(); break;
@@ -94,6 +93,7 @@ namespace MCEControl {
                 case "hs": sim.Mouse.HorizontalScroll(GetIntOrZero(param, 1)); break;
                 case "vs": sim.Mouse.VerticalScroll(GetIntOrZero(param, 1)); break;
             }
+            return true;
         }
 
         private static int GetIntOrZero(String[] s, int index) {

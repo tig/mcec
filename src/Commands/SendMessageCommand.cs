@@ -9,6 +9,7 @@
 //-------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml.Serialization;
 using Microsoft.Win32.Security;
@@ -36,6 +37,14 @@ namespace MCEControl {
         [XmlAttribute("windowname")]
         public String WindowName { get; set; }
 
+        public static new List<SendMessageCommand> BuiltInCommands {
+            get => new List<SendMessageCommand>() {
+                  new SendMessageCommand() { Cmd = "maximize", Msg=274, wParam=61488, lParam=0 },
+                  new SendMessageCommand() { Cmd = "screensaver", Msg=274, wParam=61760, lParam=0 },
+                  new SendMessageCommand() { Cmd = "monitoroff", Msg=274, wParam=61808, lParam=2 },
+                  new SendMessageCommand() { Cmd = "monitoron", Msg=274, wParam=61808, lParam=-1 }
+            }; 
+        }
 
         public SendMessageCommand() {
         }
@@ -55,8 +64,8 @@ namespace MCEControl {
         public override ICommand Clone(Reply reply) => base.Clone(reply, new SendMessageCommand(ClassName, WindowName, Msg, WParam, LParam));
 
         // ICommand:Execute
-        public override void Execute() {
-            base.Execute();
+        public override bool Execute() {
+            if (!base.Execute()) return false;
 
             try {
                 if (ClassName != null) {
@@ -79,7 +88,9 @@ namespace MCEControl {
             }
             catch (Exception e) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Failed for {ClassName} with error: {e.Message}");
+                return true;
             }
+            return false;
         }
     }
 }

@@ -28,28 +28,30 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
+            this.labelSendChars = new System.Windows.Forms.Label();
             this.textBoxChars = new System.Windows.Forms.TextBox();
             this.buttonSendChars = new System.Windows.Forms.Button();
-            this.label4 = new System.Windows.Forms.Label();
             this.listCmds = new System.Windows.Forms.ListView();
             this.columnCmd = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnType = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnDetails = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.label5 = new System.Windows.Forms.Label();
+            this.labelSendAnyChars = new System.Windows.Forms.Label();
             this.textBoxSendCommand = new System.Windows.Forms.TextBox();
             this.buttonSend = new System.Windows.Forms.Button();
+            this.saveChangesBtn = new System.Windows.Forms.Button();
+            this.testRadio = new System.Windows.Forms.RadioButton();
+            this.editRadio = new System.Windows.Forms.RadioButton();
             this.SuspendLayout();
             // 
-            // label1
+            // labelSendChars
             // 
-            this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(8, 408);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(126, 13);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "&Send \"chars:\" command:";
+            this.labelSendChars.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.labelSendChars.AutoSize = true;
+            this.labelSendChars.Location = new System.Drawing.Point(8, 408);
+            this.labelSendChars.Name = "labelSendChars";
+            this.labelSendChars.Size = new System.Drawing.Size(126, 13);
+            this.labelSendChars.TabIndex = 0;
+            this.labelSendChars.Text = "&Send \"chars:\" command:";
             // 
             // textBoxChars
             // 
@@ -70,22 +72,14 @@
             this.buttonSendChars.UseVisualStyleBackColor = true;
             this.buttonSendChars.Click += new System.EventHandler(this.buttonSendChars_Click);
             // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(12, 9);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(294, 13);
-            this.label4.TabIndex = 5;
-            this.label4.Text = "All built-in and user defined &commands (double-click to send):";
-            // 
             // listCmds
             // 
-            this.listCmds.Activation = System.Windows.Forms.ItemActivation.TwoClick;
+            this.listCmds.Activation = System.Windows.Forms.ItemActivation.OneClick;
             this.listCmds.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.listCmds.AutoArrange = false;
+            this.listCmds.CheckBoxes = true;
             this.listCmds.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnCmd,
             this.columnType,
@@ -93,14 +87,15 @@
             this.listCmds.FullRowSelect = true;
             this.listCmds.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this.listCmds.HideSelection = false;
-            this.listCmds.Location = new System.Drawing.Point(12, 25);
+            this.listCmds.Location = new System.Drawing.Point(12, 55);
             this.listCmds.MultiSelect = false;
             this.listCmds.Name = "listCmds";
-            this.listCmds.Size = new System.Drawing.Size(765, 375);
+            this.listCmds.Size = new System.Drawing.Size(765, 345);
             this.listCmds.TabIndex = 6;
             this.listCmds.UseCompatibleStateImageBehavior = false;
             this.listCmds.View = System.Windows.Forms.View.Details;
             this.listCmds.ItemActivate += new System.EventHandler(this.listCmds_ItemActivate);
+            this.listCmds.ItemChecked += new System.Windows.Forms.ItemCheckedEventHandler(this.listCmds_ItemChecked);
             this.listCmds.DoubleClick += new System.EventHandler(this.listCmds_DoubleClick);
             // 
             // columnCmd
@@ -118,15 +113,15 @@
             this.columnDetails.Text = "Details";
             this.columnDetails.Width = 300;
             // 
-            // label5
+            // labelSendAnyChars
             // 
-            this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(24, 432);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(109, 13);
-            this.label5.TabIndex = 7;
-            this.label5.Text = "Send &any commands:";
+            this.labelSendAnyChars.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.labelSendAnyChars.AutoSize = true;
+            this.labelSendAnyChars.Location = new System.Drawing.Point(24, 432);
+            this.labelSendAnyChars.Name = "labelSendAnyChars";
+            this.labelSendAnyChars.Size = new System.Drawing.Size(109, 13);
+            this.labelSendAnyChars.TabIndex = 7;
+            this.labelSendAnyChars.Text = "Send &any commands:";
             // 
             // textBoxSendCommand
             // 
@@ -151,19 +146,57 @@
             this.buttonSend.UseVisualStyleBackColor = true;
             this.buttonSend.Click += new System.EventHandler(this.buttonSend_Click);
             // 
+            // saveChangesBtn
+            // 
+            this.saveChangesBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.saveChangesBtn.DialogResult = System.Windows.Forms.DialogResult.OK;
+            this.saveChangesBtn.Enabled = false;
+            this.saveChangesBtn.Location = new System.Drawing.Point(12, 406);
+            this.saveChangesBtn.Name = "saveChangesBtn";
+            this.saveChangesBtn.Size = new System.Drawing.Size(221, 23);
+            this.saveChangesBtn.TabIndex = 10;
+            this.saveChangesBtn.Text = "Save MCECommands.commands file";
+            this.saveChangesBtn.UseVisualStyleBackColor = true;
+            this.saveChangesBtn.Click += new System.EventHandler(this.saveChangesBtn_Click);
+            // 
+            // testRadio
+            // 
+            this.testRadio.AutoSize = true;
+            this.testRadio.Location = new System.Drawing.Point(13, 13);
+            this.testRadio.Name = "testRadio";
+            this.testRadio.Size = new System.Drawing.Size(241, 17);
+            this.testRadio.TabIndex = 11;
+            this.testRadio.TabStop = true;
+            this.testRadio.Text = "&Test Sending Commands (doule-click to send)";
+            this.testRadio.UseVisualStyleBackColor = true;
+            this.testRadio.CheckedChanged += new System.EventHandler(this.testRadio_CheckedChanged);
+            // 
+            // editRadio
+            // 
+            this.editRadio.AutoSize = true;
+            this.editRadio.Location = new System.Drawing.Point(13, 32);
+            this.editRadio.Name = "editRadio";
+            this.editRadio.Size = new System.Drawing.Size(153, 17);
+            this.editRadio.TabIndex = 11;
+            this.editRadio.TabStop = true;
+            this.editRadio.Text = "&Enable/Disable Commands";
+            this.editRadio.UseVisualStyleBackColor = true;
+            // 
             // CommandWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(789, 527);
+            this.Controls.Add(this.editRadio);
+            this.Controls.Add(this.testRadio);
+            this.Controls.Add(this.saveChangesBtn);
             this.Controls.Add(this.buttonSend);
             this.Controls.Add(this.textBoxSendCommand);
-            this.Controls.Add(this.label5);
+            this.Controls.Add(this.labelSendAnyChars);
             this.Controls.Add(this.listCmds);
-            this.Controls.Add(this.label4);
             this.Controls.Add(this.buttonSendChars);
             this.Controls.Add(this.textBoxChars);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.labelSendChars);
             this.Name = "CommandWindow";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.Text = "Commands";
@@ -177,16 +210,18 @@
 
         #endregion
 
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label labelSendChars;
         private System.Windows.Forms.TextBox textBoxChars;
         private System.Windows.Forms.Button buttonSendChars;
-        private System.Windows.Forms.Label label4;
         private System.Windows.Forms.ListView listCmds;
         private System.Windows.Forms.ColumnHeader columnCmd;
         private System.Windows.Forms.ColumnHeader columnType;
-        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label labelSendAnyChars;
         private System.Windows.Forms.TextBox textBoxSendCommand;
         private System.Windows.Forms.Button buttonSend;
         private System.Windows.Forms.ColumnHeader columnDetails;
+        private System.Windows.Forms.Button saveChangesBtn;
+        private System.Windows.Forms.RadioButton testRadio;
+        private System.Windows.Forms.RadioButton editRadio;
     }
 }

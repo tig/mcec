@@ -24,11 +24,10 @@ namespace MCEControl {
     public class CharsCommand : Command {
         public const string CmdPrefix = "chars:";
 
-        public static List<CharsCommand> Commands { get => commands; }
-
-        private static List<CharsCommand> commands = new List<CharsCommand>();
-        static CharsCommand() {
-            Commands.Add(new CharsCommand { Cmd = $"{CmdPrefix}" });
+        public static new List<CharsCommand> BuiltInCommands {
+            get => new List<CharsCommand>() {
+                new CharsCommand { Cmd = $"{CmdPrefix}" } 
+            };
         }
 
         public CharsCommand() { }
@@ -36,8 +35,9 @@ namespace MCEControl {
         public override ICommand Clone(Reply reply) => base.Clone(reply, new CharsCommand());
 
         // ICommand:Execute
-        public override void Execute() {
-            base.Execute();
+        public override bool Execute() {
+            if (!base.Execute()) return false;
+
             string text;
             // if command came in as a literal "chars:foo" command use args
             // otherwise, use the Chars property
@@ -48,6 +48,7 @@ namespace MCEControl {
 
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending {text.Length} chars: {text}");
             new InputSimulator().Keyboard.TextEntry(text);
+            return true;
         }
     }
 }

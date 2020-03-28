@@ -254,26 +254,26 @@ namespace MCEControl
             // showCommandsMenuItem
             // 
             this.showCommandsMenuItem.Name = "showCommandsMenuItem";
-            this.showCommandsMenuItem.Size = new System.Drawing.Size(212, 22);
-            this.showCommandsMenuItem.Text = "Show &Commands...";
+            this.showCommandsMenuItem.Size = new System.Drawing.Size(337, 22);
+            this.showCommandsMenuItem.Text = "Enable and Test &Commands...";
             this.showCommandsMenuItem.Click += new System.EventHandler(this.commandsMenuItem_Click);
             // 
             // openCommandsFolderMenuItem
             // 
             this.openCommandsFolderMenuItem.Name = "openCommandsFolderMenuItem";
-            this.openCommandsFolderMenuItem.Size = new System.Drawing.Size(212, 22);
-            this.openCommandsFolderMenuItem.Text = "&Open .commands folder...";
+            this.openCommandsFolderMenuItem.Size = new System.Drawing.Size(337, 22);
+            this.openCommandsFolderMenuItem.Text = "&Open folder containing MCEControl.commands...";
             this.openCommandsFolderMenuItem.Click += new System.EventHandler(this.openCommandsFolderMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(209, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(334, 6);
             // 
             // sendAwakeMenuItem
             // 
             this.sendAwakeMenuItem.Name = "sendAwakeMenuItem";
-            this.sendAwakeMenuItem.Size = new System.Drawing.Size(212, 22);
+            this.sendAwakeMenuItem.Size = new System.Drawing.Size(337, 22);
             this.sendAwakeMenuItem.Text = "Send &Awake Signal";
             this.sendAwakeMenuItem.Click += new System.EventHandler(this.sendAwakeMenuItem_Click);
             // 

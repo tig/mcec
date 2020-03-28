@@ -16,23 +16,24 @@ namespace MCEControl {
     /// Summary description for ShutdownCommands.
     /// </summary>
     public class ShutdownCommand : Command {
+        public static new List<ShutdownCommand> BuiltInCommands {
+            get => new List<ShutdownCommand>() {
+                new ShutdownCommand{ Cmd = $"shutdown", Type = $"shutdown" },
+                new ShutdownCommand{ Cmd = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
+                new ShutdownCommand{ Cmd = $"restart", Type = $"restart" },
+                new ShutdownCommand{ Cmd = $"restart-g", Type = $"restart-g" },
+                new ShutdownCommand{ Cmd = $"standby", Type = $"standby" },
+                new ShutdownCommand{ Cmd = $"hibernate", Type = $"hibernate"},
+                new ShutdownCommand{ Cmd = $"abort", Type = $"abort" },
+                new ShutdownCommand{ Cmd = $"poweroff", Type = $"poweroff" },
+                new ShutdownCommand{ Cmd = $"logoff", Type = $"logoff" },
+            };
+        }
+
         private String type;
         [XmlAttribute("type")] public string Type { get => type; set => type = value; }
         private int timeOut = 30;
         [XmlAttribute("timeout")] public int TimeOut { get => timeOut; set => timeOut = value; }
-        public static List<ShutdownCommand> Commands { get => commands; }
-
-        private static List<ShutdownCommand> commands = new List<ShutdownCommand>() {
-            new ShutdownCommand{ Cmd = $"shutdown", Type = $"shutdown" },
-            new ShutdownCommand{ Cmd = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
-            new ShutdownCommand{ Cmd = $"restart", Type = $"restart" },
-            new ShutdownCommand{ Cmd = $"restart-g", Type = $"restart-g" },
-            new ShutdownCommand{ Cmd = $"standby", Type = $"standby" },
-            new ShutdownCommand{ Cmd = $"hibernate", Type = $"hibernate"},
-            new ShutdownCommand{ Cmd = $"abort", Type = $"abort" },
-            new ShutdownCommand{ Cmd = $"poweroff", Type = $"poweroff" },
-            new ShutdownCommand{ Cmd = $"logoff", Type = $"logoff" },
-        };
 
         public ShutdownCommand() {
             // Serialzable, must have constructor
@@ -45,49 +46,47 @@ namespace MCEControl {
         public override ICommand Clone(Reply reply) => base.Clone(reply, new ShutdownCommand() { Type = this.Type });
 
         // ICommand:Execute
-        public override void Execute() {
-            base.Execute();
-
+        public override bool Execute() {
+            if (!base.Execute()) return false;
             try {
                 Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: Executing {ToString()}");
-                switch (Type.ToUpperInvariant()) {
-                    case "SHUTDOWN":
+                switch (Type.ToLowerInvariant()) {
+                    case "shutdown":
                         Shutdown($"/s /t {TimeOut} /f /c \"MCE Controller Forced Shutdown\"");
                         break;
 
-                    case "RESTART":
+                    case "restart":
                         Shutdown($"/r /t {TimeOut} /f /c \"MCE Controller Forced Restart\"");
                         break;
 
-                    case "RESTART-G":
+                    case "restart-g":
                         Shutdown($"/g /t {TimeOut} /f /c \"MCE Controller Forced Restart with re-Login\"");
                         break;
 
-
-                    case "STANDBY":
+                    case "standby":
                         Application.SetSuspendState(PowerState.Suspend, true, false);
                         break;
 
-                    case "HIBERNATE":
-                         Application.SetSuspendState(PowerState.Hibernate, false, false);
-                         break;
+                    case "hibernate":
+                        Application.SetSuspendState(PowerState.Hibernate, false, false);
+                        break;
 
-                    case "SHUTDOWN-HYBRID":
+                    case "shutdown-hybrid":
                         // Shutdown.exe does not suppport timeout on /h (apparently)
                         Shutdown($"/h /c \"MCE Controller Forced Hybrid SHutdown\"");
                         break;
 
-                    case "POWEROFF":
+                    case "poweroff":
                         // Shutdown.exe does not suppport timeout on /p (apparently)
                         Shutdown($"/p /c \"MCE Controller Forced Power Off\"");
                         break;
 
-                    case "LOGOFF":
+                    case "logoff":
                         // Shutdown.exe does not suppport timeout on /l (apparently)
                         Shutdown($"/l /c \"MCE Controller Forced Logoff\"");
                         break;
 
-                    case "ABORT":
+                    case "abort":
                         Shutdown($"/a");
                         break;
 
@@ -98,7 +97,9 @@ namespace MCEControl {
             }
             catch (System.ComponentModel.Win32Exception e) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: ({Cmd}) {e.Message}");
+                return false;
             }
+            return true;
         }
 
         public static void Shutdown(string shutdownArgs) {
