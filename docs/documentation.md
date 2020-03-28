@@ -73,7 +73,7 @@ To have **MCEC** start automatically do the following:
 1. Create a Windows shortcut to `MCEControl.exe` (found in `C:\Program Files (x86)\Kindel Systems\MCE Controller` by default).
 2. Put the shortcut file into the Windows Startup Folder (`C:\Users\[User Name]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup`).
 
-Run multiple instances of **MCEC** by simply copying the `MCE Controller.exe` and `log4net.dll` from the insallation directory to another directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
+Run multiple instances of **MCEC** by simply copying the contents of the isntallation directory to another directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
 
 ## Closing
 
@@ -81,7 +81,7 @@ Use the `File.Exit` menu to shut down the app.
 
 ## Settings
 
-[![Settings](settings_general.png "Settings")]
+![Settings](settings_general.png "Settings")
 
 Configuration settings are stored in `MCEControl.settings` found in the  `%APPDATA%\Roaming\Kindel Systems\MCE Controller` directory.
 
@@ -95,7 +95,7 @@ All settings can be configured from `Settings` dialog box the `File.Settings...`
 
 The *Client* Settings tab controls **MCE Controller’s** TCP/IP client functionality. When acting as a client, **MCEC** will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. **MCEC** sends nothing to the host by default.
 
-[![Client](settings_client.png "Client")]
+![Client](settings_client.png "Client")
 
 * `Enable Client` - This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
 * `Host` - This is the IP address or host name of the server **MCEC** will connect to.
@@ -112,7 +112,7 @@ The *Server* Settings tab controls **MCEC’s** TCP/IP server functionality. Whe
 
 **MCEC** supports any number of multiple-simultaneous connections to the Server.
 
-[![Server](settings_server.png "Server")]
+![Server](settings_server.png "Server")
 
 * `Enable Server` - This checkbox enables or disables the TCP/IP server functionality. If enabled, the followings settings apply:
 * `Port`- This is the port that **MCEC** will listen on.
@@ -124,7 +124,7 @@ The status of the Server is displayed on the main window status bar. Double-clic
 
 The *Serial Server* Settings controls **MCE Controller’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCEC** will open the specified COM port (e.g. COM1) and wait commands to be sent.
 
-[![Serial](settings_serialserver.png "Serial")]
+![Serial](settings_serialserver.png "Serial")
 
 * `Enable Serial Server` - This checkbox enables or disables the Serial Server functionality. It is disabled by default. If enabled, the followings settings apply:
 * `Port` - This is the serial port that **MCEC** will listen on (e.g. COM1).
@@ -135,17 +135,27 @@ The status of the Serial Server is displayed on the main window status bar. Doub
 
 ### The Activity Monitor Tab
 
-**MCE Controller**'s `User Activity Monitor` sends a command (`activity` by default) to the home automation system when a user is using the PC. It knows the user is using the PC monitoring keyboard and mouse movement. If the mouse is moving or keys are being pressed, the PC is in use. This is useful for adding additional context to a room occupancy sensor in a home automation system. 
+**MCE Controller**'s `User Activity Monitor` sends a command (`activity` by default) to the home automation system when a user is using the PC. It knows the user is using the PC monitoring keyboard and mouse movement. If the mouse is moving or keys are being pressed, the PC is in use. This is useful for adding additional context to a room occupancy sensor in a home automation system.
 
-[![Activity Monitor](settings_serialserver.png "Activity Monitor")]
+![Activity Monitor](settings_activity.png "Activity Monitor")
 
-* `Enable User Activity Monitor` - This checkbox enables or disables the Activity Montitor. It is disabled by default. If enabled, the followings settings apply:
+* `Enable User Activity Monitor` - This checkbox enables or disables the Activity Monitor. It is disabled by default. If enabled, the followings settings apply:
 * `Command to send` - The string that will be sent when user activity is detected. `activity` is default.
 * `Debounce time (seconds)` - The activity message will be sent no more frequently than `Debounce time` seconds.
 
+See [Control4 User Activity Driver](https://github.com/tig/User_Activity) for an example Control4 driver that utilizes this functionality.
+
+## Enabling or Disabling Commands
+
+By default ALL commands are disabled to reduce the surface area *MCEC* exposes on the network. Use the `Commands Window` to enable/disable commands.
+
+![Commands](commands_enable.png "Commands")
+
+Clicking the `Save MCECommmands.commands. file` button will immediately save changes. Note the `.commands` file will be saved automatically whenever *MCEC* exits.
+
 ## Testing MCE Controller
 
-The buit-in TCP/IP client can send commands to another instance of **MCE Controller** running on the same or different PC. Or, if both the Client and Server in a single instance are set to connect to `localhost` and the same port they can connect to each other, enabling easy testing of commands.
+The built-in TCP/IP client can send commands to another instance of **MCE Controller** running on the same or different PC. Or, if both the Client and Server in a single instance are set to connect to `localhost` and the same port they can connect to each other, enabling easy testing of commands.
 
 By default **MCEC** is configured such the following will configure "test mode".
 
@@ -154,17 +164,17 @@ By default **MCEC** is configured such the following will configure "test mode".
 3. Enter `localhost` in the `Host` edit box.
 4. Click on the Server tab and check the `Act as Server` check-box
 5. Hit `Ok`
-6. Click on the `Commands.Show Commands...` menu and start testing commands.
+6. Click on the `Commands.Enable and Test Commands...` menu and start testing commands.
 
-### The Commands Window
+![Commands](commands_test.png "Commands")
 
 The `Commands Window` shows a list of all *Commands* **MCE Controller** is configured to 'listen for'. It is useful to see the full list and to be able to test them.
-
-[![Commands](commands.png "Commands")]
 
 * Double click on any command to cause it to be sent from the Client to the Server (be careful, because if you double click on 'shutdown' your PC will literally shut down!).
 * Type anything into the `Send "chars:" command` edit box and press `Send` to send a `chars:` command.
 * Type a command (or list of *Commands*, one per line) into the `Send any command` edit box and press `Send` to send those commands.
+
+The example in the screenshot above will start the movie Blade Runner playing on Netflix (if the Netflix app is installed from the Windows Store).
 
 Try this as a quick test:
 
@@ -194,9 +204,11 @@ Type commands in the PuTTY Window and see how MCE Controller reacts.
 
 PuTTY supports connecting via serial ports. The usage is the same as in the TCP/IP example above except you set the appropriate COM port settings in PuTTY and choose the `Serial` destination type.
 
-## *Commands* Details
+## Commands Details
 
 **MCE Controller** works with ***Commands***. *Commands* are text strings like `greenbutton`, `hibernate`, and `winkey` tha **MCEC** listens to and acts on. Each command has a **Type**. When **MCEC** receives a command it causes an action to happen on the PC it is running on. The action taken is dependent on the type of command and the parameters set for that command.
+
+*IMPORTANT*: As of version 2.2.1, ALL commands are disabled by default to reduce the surface area *MCEC* exposes on the network. Use the `Commands Window` to enable/disable commands.
 
 ### Types
 The following command types are supported by **MCE Controller**:
@@ -213,11 +225,11 @@ The following command types are supported by **MCE Controller**:
 
 ### Built-in Commands
 
-**MCE Controller** includes a set of pre-defined commands for controlling a Windows PC as well as standard keyboard input. Pre-defined commands can be viewed in `Commands.Show Commands` window. See the section titled “Defining Your Own Commands” below for instructions on how to add or change the commands **MCEC** supports.
+**MCE Controller** includes a set of pre-defined commands for controlling a Windows PC as well as standard keyboard input. Pre-defined commands can be viewed in the `Commands Window`. See the section titled “Defining Your Own Commands” below for instructions on how to add or change the commands **MCEC** supports.
 
-**MCEC** commands are _not_ case-sensitive. Thus `VK_UP` is equivalent to `vk_up` and `shutdown` is equivalent to `ShutDown`.
+**MCEC** commands (`Cmd` values) are _not_ case-sensitive. Thus `VK_UP` is equivalent to `vk_up` and `shutdown` is equivalent to `ShutDown`.
 
-The following describes the Built-In commands that are supported:
+The following describes the Built-In commands:
 
 #### Windows Virtual Key Code Commands
 
@@ -237,6 +249,8 @@ A list of all Window's virtual key codes can be found here: [this MSDN page](htt
 #### Character Commands
 
 Sending a single character is equivalent to a single key press of a key on the keyboard. For example sending `a` will result in the A key being pressed. `1` will result in the `1` key being pressed. There is no difference between sending `a` and `A`. Use `shiftdown:/shiftup:` to simulate the pressing of the shift, control, alt, and windows keys.
+
+Note: the `chars:` command must be enabled for single character commands to work.
 
 Anytime **MCE Controller** receives `chars:` plus some text, it simulates the typing of that text on the keyboard. The syntax of the command is `chars:*` where '*'' represents one or more characters. This is equivalent to typing those characters on the keyboard. E.g. `chars:3` will cause the number 3 to be typed as though the user had pressed the 3 key on the keyboard. `chars:Hello` will cause `Hello` to be typed.
 
@@ -307,27 +321,28 @@ Values returned by commands in **MCEC** are of the format `command=value` where 
 
 ### Defining Your Own Commands
 
-**MCE Controller** supports over 250 built-in commands. You can see how most are defined [here](https://github.com/tig/mcec/blob/master/Resources/Builtin.commands). You can override or augment this set by editing the `MCEControl.commands` file and (Use the `Commands.Open commands file...` menu to find the file location on your machine.Any commands it defines will add to and over-ride matching built-in commands.
+**MCE Controller** provides almost 300 built-in commands. The first time MCE Controller runs, it creates an `MCEControl.commands` file including all built-in commands (with `Enabled="false"` set on ALL of them). After running MCEController once, you can You can override or augment this set by editing the `MCEControl.commands` file and (Use the `Commands.Open commands folder...` menu to find the file location on your machine. 
 
-A sample `MCEControl.commands` file is installed by default with all entries commented out. The file format is XML and must include the root elements shown below. `Commands` are defined within the `<Commands>` element.
+Note deleting a built-in command from the `.commands` file will not remove it permanently. Anytime **MCEC* saves the file built-in commands will be re-added; however, `Enabled="false"` will be set which is functionally equivalent to deleting them.
+
+Some of the built-in commands are obviously just examples.
+
+#### File Format
+
+The file format is XML and must include the headers. `Commands` are defined within the `<commands>` element.
 
 ```xml
-<?xml version="1.0" encoding="utf-8"?>
-<MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <Commands xmlns="http://www.kindel.com/products/mcecontroller">
-    <!-- Put commands below here -->
-
-    <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
-    
-    <!-- Put commands above  here -->
-    </Commands>
-</MCEController>
+<?xml version="1.0"?>
+<mcecontroller xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="2.2.1.159">
+  <commands xmlns="http://www.kindel.com/products/mcecontroller">
+    ...
+  </commands>
+</mcecontroler>
 ```
 
 Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1).
 
-`MCEControl.commands` supports defining four types of commands, described below. 
+`MCEControl.commands` supports defining the following types of commands. 
 
 * `SendInput`
 * `SendMessage`
@@ -337,7 +352,7 @@ Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to e
 * `Chars`
 * `Pause`
 
-The form of a Command defintion is:
+The form of a Command definition is:
 
 ```xml
     <type Cmd="text to trigger on" Args="optioal args" etc.../>
@@ -345,7 +360,7 @@ The form of a Command defintion is:
 
 **Note on case sensitivity**: All XML element and attribute names are case-insensitive. E.g. `ctrl` is the same as `Ctrl`.  The value of the `Cmd` attribute is NOT case-sensitive. E.g. `MonitorOff` will be treated the same as `monitoroff`. Some attribute values ARE case sensitive (e.g. in `<SendInput/>` commands `Ctrl="true"` will work but `Ctrl="False"` will not).
 
-Also note that you should not make commands a single character or it will interfere with the ability to simulate individual character key presses.
+Do not make commands a single character or it will interfere with the ability to simulate individual character key presses.
 
 #### Nesting
 
@@ -452,7 +467,7 @@ For example, the following makes Media Center the foreground Window (assuming Me
 
 #### Chars Commands
 
-The `Chars` command is how the `chars:` commands get processed. `<Chars Cmd="foo" Arg="bar"/>` defines `foo` such that if **MCEC** receives `foo` it will type `bar` just as it had received `chars:bar`. 
+The `Chars` command is how the `chars:` commands get processed. `<Chars Cmd="foo" Arg="bar"/>` defines `foo` such that if **MCEC** receives `foo` it will type `bar` just as it had received `chars:bar`.
 
 #### Pause Commands
 
@@ -479,48 +494,3 @@ The `mcestart` command will launch Media Center and cause it to be maximized. If
 For **MCE Controller** to work property the target application (Media Center) must be the active window (foreground) on the desktop. You can use the `mceactivate` command to cause Media Center to be the foreground app if it’s already running. Alternatively you can just use `mcestart` as it will end up causing the same thing to happen (although not as quickly).
 
 Also, you may find that `greenbutton` is a better function than `mcestart` because it is equivalent to the green-button on a Windows remote control. `mcestart` is a bit different because if Media Center is already running `mcestart` will not go to the "Start" screen of Media Center while `greenbutton` will. However, `greenbutton` does not cause the Media Center window to be maximized.
-
-## Version History
-
-* Version 1.0.1 (February 22, 2004) – First publicly released version.
-* Version 1.0.2 (March 24, 2004) - New features: Added support for system shutdown, restart, standby, and hibernate (the Shutdown command type). Renamed a few commands ("mce_start" is now "mcestart" for example) to be more consistent.
-* Version 1.0.3 (March 26, 2004) - Added installer.
-* Version 1.0.4 (February 26, 2005) - Fixed bug that caused MCE Controller to prevent logoffs and shutdowns.
-* Version 1.0.5 (April, 2005) – Added support for arbitrary # of characters for the “key:” command.
-* Version 1.1.0 (May 11, 2005) – No functional changes. Changed the source license to the BSD license and posted on Sourceforge.
-* Version 1.3.0 (January 3, 2012) – Added support for "chars:". Removed support for "keys:". Added "enter" command. Now builds with VS2010.
-* Version 1.3.1 (January 4, 2012) – Fixed bug parsing -1 in the lParam of SendMessageCommands. Commented MCEController.commands. Minor code cleanup.
-* Version 1.3.2 (January 4, 2012) – Fixed bug in how .commands and .settings are stored (Win7 broke permissions).
-* Version 1.3.3 (January 9, 2012) – Added capability to send individual key presses with shift/ctrl/alt/win modifiers (what keys: originally was supposed to do).
-* Version 1.4.0 (February 11, 2012) - Server now supports any number of client connections. Expanded MCEController.commands to include commands used by iRule (http://iruleathome.com). Updated About Box & Help menu to reflect move to GitHub. Added menu item to open directory containing MCEController.commands.
-* Version 1.5.0 (March 27, 2012) - 'chars:' command now supports escaped characters. This allows the sending of Unicode characters such as € (e.g. 'chars:\u20AC' will cause the € character to be input on the server machine).
-* Version 1.5.1 (April 2, 2012) - Removed readme file from distribution and updated online docs.
-* Version 1.5.2 (October, 4, 2012) - Fixed .settings file bug where it would sometimes read from Program Files and write to AppData. Now always writes to AppData unless started outside of Program Files. Fixed Setting dialog to be more resilient to bad data. Fixed Send Awake so that it does not fault on bad data, but logs errors. General code clean up. Built with VS2012.
-* Version 1.6.0 (October 10, 2012) - Added mouse simulation support.
-* Version 1.6.1 (November 6, 2012) - Fixed bug with some Telnet clients that don't buffer each line before sending.
-* Version 1.7.0 (December 19, 2012) - Added Serial Server support.
-* Version 1.8.0 (December 30, 2012) - Added VK_ command support. Added 'command window'. New icon. Updated documentation.
-* Version 1.8.1 (January 1, 2013) - Updated links for CodePlex. Fixed crashing bug on exit.
-* Version 1.8.4 (March, 2014) - New icon by [http://guillendesign.deviantart.com/](http://guillendesign.deviantart.com/), Minor menu tweaks, MCEControl.commands is now an optional file. The previously defined set of commands from older builds are now built into the program. If a MCEControl.commands file is present it will add to and override these pre-defined commands. Upgrades and un-installs will no longer overwrite or delete the MCEControl.commands file.
-* Version 1.8.6 (May, 2014) – Internal commands can be disabled via a registry key. Fixed bug when client forcibly closed socket. Added logging.
-* Version 1.9.0 (April 15, 2017) - Moved from Codeplex to GitHub.
-* Version 2.0.0 (October 8, 2019) - Version 2. Major update.
-  * Use the PC as an occupancy sensor for a room. The User Activity Monitor feature will send a command to the home automation system when a user is using the PC (moving the mouse or typing).
-  * Re-engineered Client & Server implementation is more robust.
-  * New/enhanced built-in test mode that makes it easy to test commands. The new Commands Window shows all available commands.
-  * Significantly updated UI throughout. Menus and dialog boxes reorganized based on user feedback. Full Windows 10 system font and dpi scaling support.
-  * Command extension has been enhanced. User defined MCEControl.commands is now automatically generated.
-  * StartProcess commands are now more robust and flexible.
-  * Settings, Command files, and log files are stored in %appdata%.
-  * Improved logging.
-* Version 2.0.4 (October 11, 2019) - Fixed bug where Server was not sending commands back to client.
-* Version 2.1.0 (OCtober 25, 2019) - Lots of updates
-  * Commands defined in `MCECommands.command` now *really* override any built-ins. 
-  * Reverted the set of built-in commands to include tons of defaults.
-  * Key and Attribute names (e.g. `<sendinput>` or `Shift=`) in MCECommands.commands` are no longer case senstive.
-  * Default pacing for commands is settable. See `General` settings tab. Default is 0. Specify in ms.
-  * New `Pause` Command enables putting delays between commands
-  * Shutdown commands are expanded and more reliable. Almost all funcdtions supported by the Windows `shutdown.exe` command are supported.
-  * Command window now supports sending multiple lines (scripts)
-  * All `<Commands>` in `MCEControl.commands` can now be nested. This makes it easy to create compound commands (scripts).
-  * Added `Chars` Command. Useful in nested commands.

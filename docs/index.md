@@ -70,3 +70,10 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
   * Activity Monitor will now send activity messages every `Debounce Time` seconds whenever the Windows desktop/session is unlocked.
   * Added telemetry and modified Setup to support opt-in/out. 
   * Update/version checker now checks against Github Releases in the `tig/mcec` respository.
+* Version 2.2.1 (March 28, 2020) - 
+  * Commands Window now has ability to enable/disable commands in addition to test them.
+  * Commands are now disabled by default (set Enabled property to true to enable). This was done to reduce the surface area MCE Controller exposes by default.
+  * .commands file is now generated via code instead of a resource.
+  * .commands file is saved by app when it exits. Previously MCE Controller only _read_ the file.
+  * Legacy command files will be converted when encountered. A message box will pop explaining. ALL commands which were defined in the file when read will be set to Enabled=true. Highly recommended users review all commands and disable commands that are not explicitly used.
+  

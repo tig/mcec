@@ -32,7 +32,6 @@ namespace MCEControl {
         private static Commands CreateBuiltIns() {
             Commands commands = new Commands();
 
-            SerializedCommands serializedCmds;
             // Add the built-ins defined in the Command-derived classes
             foreach (Command cmd in McecCommand.BuiltInCommands)
                 commands.Add(cmd);
@@ -63,10 +62,11 @@ namespace MCEControl {
             Logger.Instance.Log4.Info($"{commands.GetType().Name}: {commands.Count} built-in commands defined.");
 
             // Load the .commands file that's built in as an EXE resource
-            serializedCmds = SerializedCommands.LoadBuiltInCommands();
-            foreach (Command cmd in serializedCmds.commandArray)
-                commands.Add(cmd);
-            Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded from built-in .commands resource.");
+            // SerializedCommands serializedCmds;
+            //serializedCmds = SerializedCommands.LoadBuiltInCommands();
+            //foreach (Command cmd in serializedCmds.commandArray)
+            //    commands.Add(cmd);
+            //Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded from built-in .commands resource.");
 
             return commands;
         }
@@ -90,7 +90,7 @@ namespace MCEControl {
             int nBuiltIn = commands.Count;
 
             // Load external .commands file. 
-            serializedCmds = SerializedCommands.LoadUserCommands(userCommandsFile);
+            serializedCmds = SerializedCommands.LoadCommands(userCommandsFile);
             if (serializedCmds != null && serializedCmds.commandArray != null) {
                 foreach (Command cmd in serializedCmds.commandArray) {
                     // TELEMETRY: Mark user defined commands as such so they don't get collected
@@ -146,7 +146,8 @@ namespace MCEControl {
             string args = "";
 
             // parse cmd and args (eg. char vs "shutdown" vs "mouse:<action>[,<parameter>,<parameter>]"
-            //"mouse:<action>[,<parameter>,<parameter>]"
+            // and "mouse:<action>[,<parameter>,<parameter>]"
+            // These commands are handled internally as Cmd="cmd:" Args="<args>"
             Match match = Regex.Match(cmdString, @"(\w+:)(.+)");
             if (match.Success) {
                 cmd = match.Groups[1].Value;
@@ -161,8 +162,6 @@ namespace MCEControl {
 
             if (cmdString.Length == 1 && ((Command)this["chars:"]).Enabled) {
                 var charsCmd = new CharsCommand() { Args = cmdString, Enabled =true, Reply = reply };
-
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: Typing: {cmdString}");
                 executeQueue.Enqueue(charsCmd);
             }
             else {
@@ -203,8 +202,7 @@ namespace MCEControl {
             // TODO: This is simple and just dequeues and executes anything on the queue
             // needs to be smarter? Will this block incoming?
             while (executeQueue.TryDequeue(out icmd)) {
-                Command c = (Command)icmd;
-                c.Execute();
+                ((Command)icmd).Execute();
                 System.Threading.Thread.Sleep(MainWindow.Instance.Settings.CommandPacing);
             }
         }

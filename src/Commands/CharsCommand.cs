@@ -46,7 +46,7 @@ namespace MCEControl {
             else
                 text = "";
 
-            Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending {text.Length} chars: {text}");
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: Typing {text.Length} chars: {text}");
             new InputSimulator().Keyboard.TextEntry(text);
             return true;
         }

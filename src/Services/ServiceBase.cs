@@ -73,6 +73,9 @@ namespace MCEControl {
 
         public virtual void Send(string text, Reply replyContext = null) {
             if (text == null) throw new ArgumentNullException(nameof(text));
+
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending \"{text}\"");
+
             // TELEMETRY: 
             // what: the number of commands of each type (key) sent
             // why: to understand what commands are used to control other systems and which are not

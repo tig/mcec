@@ -22,7 +22,7 @@ namespace MCEControl {
         public const string CmdPrefix = "mcec:";
         public static new List<McecCommand> BuiltInCommands {
             get => new List<McecCommand>() {
-            new McecCommand { Cmd = $"{CmdPrefix}" },   // The rest are for documentation
+            new McecCommand { Cmd = $"{CmdPrefix}" },   // Commands that use form of "cmd:" must define a blank version
             new McecCommand { Cmd = $"{CmdPrefix }ver" },
             new McecCommand { Cmd = $"{CmdPrefix }exit" },
             new McecCommand { Cmd = $"{CmdPrefix }cmds" },

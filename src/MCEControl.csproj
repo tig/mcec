@@ -331,7 +331,6 @@
     <EmbeddedResource Include="MainWindow.resx">
       <DependentUpon>MainWindow.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Resources\MCEControl.commands" />
     <Resource Include="app.manifest" />
     <EmbeddedResource Include="app.config" />
     <None Include="Resources\Trafficlight-gray-icon.bmp" />
@@ -354,7 +353,6 @@
     </Content>
     <EmbeddedResource Include="Resources\MCEControl.xslt" />
     <Content Include="Resources\Guillen.Icon.ico" />
-    <EmbeddedResource Include="Resources\Builtin.commands" />
     <None Include="Resources\Trafficlight-red-icon.png" />
   </ItemGroup>
   <ItemGroup>

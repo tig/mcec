@@ -15,6 +15,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32.Security;
 using WindowsInput.Native;
@@ -46,35 +47,35 @@ namespace MCEControl {
 
         }
 
-        private void buttonSendChars_Click(object sender, EventArgs e) {
-            if (textBoxChars.TextLength == 1)
-                textBoxSendCommand.Text = textBoxChars.Text;
-            else {
-                textBoxSendCommand.Text = "chars:" + textBoxChars.Text;
-            }
-            Send();
-        }
-
         private void buttonSend_Click(object sender, EventArgs e) {
-            foreach (string line in textBoxSendCommand.Lines)
-                Send(line);
-        }
+            // TELEMETRY: 
+            // what: See how often users test commands 
+            // why: To determine how often users actaully test commands, if at all.
+            TelemetryService.Instance.TrackEvent("listCmds_DoubleClick");
 
-        private static void Send(string line) {
-            Logger.Instance.Log4.Info("Sending Command: " + line);
-            MainWindow.Instance.SendLine(line);
-        }
-
-        private void Send() {
-            Send(textBoxSendCommand.Text);
+            textBoxSendCommand.Select();
+            Task.Run(() => {
+                foreach (string line in textBoxSendCommand.Lines)
+                    Send(line);
+            });
         }
 
         private void listCmds_DoubleClick(object sender, EventArgs e) {
+            // TELEMETRY: 
+            // what: See how often users test commands 
+            // why: To determine how often users actaully test commands, if at all.
+            TelemetryService.Instance.TrackEvent("listCmds_DoubleClick");
+
             if (listCmds.SelectedItems.Count > 0 && testRadio.Checked) {
                 log4.Debug("listCmds_DoubleClick");
                 textBoxSendCommand.Text = listCmds.SelectedItems[0].Text;
-                Send();
+                textBoxSendCommand.Select();
+                Send(textBoxSendCommand.Text);
             }
+        }
+
+        private void Send(string line) {
+            MainWindow.Instance.SendLine(line);
         }
 
         private void CommandWindow_VisibleChanged(object sender, EventArgs e) {
@@ -111,7 +112,12 @@ namespace MCEControl {
         }
 
         private void saveChangesBtn_Click(object sender, EventArgs e) {
-            //MainWindow.Instance.Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
+            // TELEMETRY: 
+            // what: See how often manually save commands 
+            // why: 
+            TelemetryService.Instance.TrackEvent("saveChangesBtn_Click");
+
+            MainWindow.Instance.Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
         }
 
         private void testRadio_CheckedChanged(object sender, EventArgs e) {
@@ -119,12 +125,8 @@ namespace MCEControl {
             saveChangesBtn.Visible = editRadio.Checked;
 
             labelSendAnyChars.Visible = testRadio.Checked;
-            labelSendChars.Visible = testRadio.Checked;
-            textBoxChars.Visible = testRadio.Checked;
             textBoxSendCommand.Visible = testRadio.Checked;
             buttonSend.Visible = testRadio.Checked;
-            buttonSendChars.Visible = testRadio.Checked;
-
         }
     }
 }

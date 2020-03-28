@@ -98,6 +98,10 @@ namespace MCEControl {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
+
+        internal void Stop() {
+            throw new NotImplementedException();
+        }
         #endregion
     }
 }

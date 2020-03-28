@@ -24,7 +24,7 @@ namespace MCEControl {
 
         public static new List<MouseCommand> BuiltInCommands {
             get => new List<MouseCommand>() {
-                new MouseCommand{ Cmd = $"{CmdPrefix }" }, 
+                new MouseCommand{ Cmd = $"{CmdPrefix }" },  // Commands that use form of "cmd:" must define a blank version
                 new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }lbdc" },

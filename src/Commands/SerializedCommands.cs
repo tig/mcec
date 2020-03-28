@@ -23,6 +23,10 @@ namespace MCEControl {
     /// </summary>
     [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "mcecontroller")]
     public class SerializedCommands {
+#pragma warning disable CA1051 // Do not declare visible instance fields
+        [XmlAttribute("version")]
+        public string Version;
+
         [XmlArray("commands")]
         [XmlArrayItem("chars", typeof(CharsCommand))]
         [XmlArrayItem("startprocess", typeof(StartProcessCommand))]
@@ -37,37 +41,32 @@ namespace MCEControl {
 
         // XmlSerialization does not work with List<>. Must use an array.
         // Must be public for serialization to work
-#pragma warning disable CA1051 // Do not declare visible instance fields
         public Command[] commandArray;
-
-        [XmlAttribute("Version")]
-        public string Version = null;
-#pragma warning restore CA1051 // Do not declare visible instance fields
 
         [XmlIgnore] public int Count { get => (commandArray == null ? 0 : commandArray.Length); }
 
         public SerializedCommands() {
         }
 
-        /// <summary>
-        /// Load commands from the .commands file embedded in the .exe resources.
-        /// </summary>
-        /// <returns></returns>
-        public static SerializedCommands LoadBuiltInCommands() {
-            // Load the built-in pre-defined commands from an assembly resource
-            SerializedCommands cmds = Deserialize(Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
-            if (cmds == null) {
-                var msg = $"Error parsing built-in .commands resource.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
-                MessageBox.Show(msg, Application.ProductName);
-                Logger.Instance.Log4.Info($"Commands: {msg}");
-            }
-            return cmds;
-        }
+        ///// <summary>
+        ///// Load commands from the .commands file embedded in the .exe resources.
+        ///// </summary>
+        ///// <returns></returns>
+        //public static SerializedCommands LoadBuiltInCommands() {
+        //    // Load the built-in pre-defined commands from an assembly resource
+        //    SerializedCommands cmds = Deserialize(Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
+        //    if (cmds == null) {
+        //        var msg = $"Error parsing built-in .commands resource.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
+        //        MessageBox.Show(msg, Application.ProductName);
+        //        Logger.Instance.Log4.Info($"Commands: {msg}");
+        //    }
+        //    return cmds;
+        //}
 
         /// <summary>
         /// Load any over-rides from the MCECommands.commands file.
         /// </summary>
-        static public SerializedCommands LoadUserCommands(string userCommandsFile) {
+        static public SerializedCommands LoadCommands(string userCommandsFile) {
             SerializedCommands cmds = null;
             FileStream fs = null;
             try {
@@ -77,32 +76,32 @@ namespace MCEControl {
 
                 // Is this a legacy load? If so, enable all commands and warn user
                 if (string.IsNullOrEmpty(cmds.Version)) {
-                    var msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\Disable any commands that are not used using the Commands window.";
+                    var msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\nDisable any commands that are not used using the Commands window.";
                     MessageBox.Show(msg, Application.ProductName);
                     Logger.Instance.Log4.Info($"Commands: {msg}");
                     cmds.commandArray = cmds.commandArray.Select(c => { c.Enabled = true; return c; }).ToArray();
                 }
             }
             catch (FileNotFoundException) {
-                Logger.Instance.Log4.Info($"Commands: {userCommandsFile} was not found; creating it.");
+                Logger.Instance.Log4.Info($"Commands: {userCommandsFile} was not found.");
 
-                // If the user .commands file is not found, create it
-                Stream uc = Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.commands");
-                FileStream ucFS = null;
-                try {
-                    ucFS = new FileStream(userCommandsFile, FileMode.Create, FileAccess.ReadWrite);
-                    uc.CopyTo(ucFS);
-                }
-                catch (Exception e) {
-                    var msg = $"Could not create user-defined commands file ({userCommandsFile}) - {e.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
-                    MessageBox.Show(msg, Application.ProductName);
-                    Logger.Instance.Log4.Info($"Commands: {msg}");
-                    Logger.DumpException(e);
-                }
-                finally {
-                    if (uc != null) uc.Close();
-                    if (ucFS != null) ucFS.Close();
-                }
+                //// If the user .commands file is not found, create it
+                //Stream uc = Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.commands");
+                //FileStream ucFS = null;
+                //try {
+                //    ucFS = new FileStream(userCommandsFile, FileMode.Create, FileAccess.ReadWrite);
+                //    uc.CopyTo(ucFS);
+                //}
+                //catch (Exception e) {
+                //    var msg = $"Could not create user-defined commands file ({userCommandsFile}) - {e.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
+                //    MessageBox.Show(msg, Application.ProductName);
+                //    Logger.Instance.Log4.Info($"Commands: {msg}");
+                //    Logger.DumpException(e);
+                //}
+                //finally {
+                //    if (uc != null) uc.Close();
+                //    if (ucFS != null) ucFS.Close();
+                //}
             }
             catch (Exception ex) {
                 var msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
@@ -158,23 +157,17 @@ namespace MCEControl {
             XmlReader lcReader = null;
             try {
 #pragma warning disable CA3075 // Insecure DTD processing in XML
-                xmlReader = new XmlTextReader(xmlStream);
-#pragma warning restore CA3075 // Insecure DTD processing in XML
-
                 // Transform XML to all lower case key and value names
-#pragma warning disable CA3075 // Insecure DTD processing in XML
+                xmlReader = new XmlTextReader(xmlStream);
                 xsltReader = new XmlTextReader(
                     Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.xslt"));
-#pragma warning restore CA3075 // Insecure DTD processing in XML
                 var myXslTrans = new XslCompiledTransform();
                 myXslTrans.Load(xsltReader);
                 var stm = new MemoryStream();
                 lcWriter = XmlWriter.Create(stm, new XmlWriterSettings() { Indent = false, OmitXmlDeclaration = false });
                 myXslTrans.Transform(xmlReader, null, lcWriter);
                 stm.Position = 0;
-#pragma warning disable CA3075 // Insecure DTD processing in XML
                 lcReader = new XmlTextReader(stm); // lower-case reader
-#pragma warning restore CA3075 // Insecure DTD processing in XML
 
                 cmds = (SerializedCommands)new XmlSerializer(typeof(SerializedCommands)).Deserialize(lcReader);
             }

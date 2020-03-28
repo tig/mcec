@@ -190,6 +190,11 @@ namespace MCEControl {
             else {
                 // Save Commands
                 Logger.Instance.Log4.Info($@"Saving {Program.ConfigPath}MCEControl.commands...");
+
+                // Stop file system watcher
+                watcher.Dispose();
+                watcher = null;
+
                 Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
                 Logger.Instance.Log4.Info("Exiting...");
                 TelemetryService.Instance.Stop();
