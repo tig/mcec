@@ -8,23 +8,12 @@
 //-------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
-using System.IO;
 using System.IO.Ports;
 using System.Windows.Forms;
-using System.Xml;
-using System.Xml.Serialization;
 using log4net;
-using log4net.Core;
-using log4net.Repository.Hierarchy;
-using MCEControl.Properties;
-using Microsoft.Win32;
-using System.Text.Json;
-using Microsoft.Win32.Security.Win32Structs;
 
 namespace MCEControl {
     /// <summary>
@@ -41,14 +30,11 @@ namespace MCEControl {
 
         private GroupBox _clientGroup;
 
-        private TabPage tabGeneral;
+        private TabPage _tabGeneral;
         private GroupBox _serverGroup;
 
-        private AppSettings settings;
-        public AppSettings Settings { get => settings; set => settings = value; }
-
-        private string defaultTab;
-        public string DefaultTab { get => defaultTab; set => defaultTab = value; }
+        public AppSettings Settings { get; set; }
+        public string DefaultTab { get; set; }
 
         private GroupBox _wakeupGroup;
         private Button _buttonCancel;
@@ -58,14 +44,14 @@ namespace MCEControl {
         private CheckBox _checkBoxEnableServer;
         private CheckBox _checkBoxEnableWakeup;
         private CheckBox _checkBoxHideOnStartup;
-        private System.Windows.Forms.TextBox _editClientDelayTime;
-        private System.Windows.Forms.TextBox _editClientHost;
-        private System.Windows.Forms.TextBox _editClientPort;
-        private System.Windows.Forms.TextBox _editClosingCommand;
-        private System.Windows.Forms.TextBox _editServerPort;
-        private System.Windows.Forms.TextBox _editWakeupCommand;
-        private System.Windows.Forms.TextBox _editWakeupPort;
-        private System.Windows.Forms.TextBox _editWakeupServer;
+        private TextBox _editClientDelayTime;
+        private TextBox _editClientHost;
+        private TextBox _editClientPort;
+        private TextBox _editClosingCommand;
+        private TextBox _editServerPort;
+        private TextBox _editWakeupCommand;
+        private TextBox _editWakeupPort;
+        private TextBox _editWakeupServer;
         private Label _label1;
         private Label _label2;
         private Label _label3;
@@ -74,9 +60,9 @@ namespace MCEControl {
         private Label _label6;
         private Label _label7;
         private Label _label8;
-        private TabPage tabClient;
-        private TabControl tabcontrol;
-        private TabPage tabSerial;
+        private TabPage _tabClient;
+        private TabControl _tabcontrol;
+        private TabPage _tabSerial;
         private GroupBox _serialServerGroup;
         private CheckBox _checkBoxEnableSerialServer;
         private ComboBox _comboBoxHandshake;
@@ -91,21 +77,21 @@ namespace MCEControl {
         private Label _labelBuadRate;
         private ComboBox _comboBoxSerialPort;
         private Label _labelSerialPort;
-        private ToolTip toolTipClient;
-        private System.ComponentModel.IContainer components;
+        private ToolTip _toolTipClient;
+        private System.ComponentModel.IContainer _components;
         private ToolTip _toolTipServer;
         private TabPage _tabPageActivityMonitor;
-        private GroupBox groupBoxActivityMonitor;
-        private CheckBox checkBoxEnableActivityMonitor;
-        private System.Windows.Forms.TextBox textBoxActivityCommand;
-        private Label labelActivityCommand;
-        private Label labelActivityDebounceTime;
-        private System.Windows.Forms.TextBox textBoxDebounceTime;
-        private EventLog eventLog1;
-        private ComboBox comboBoxLogThresholds;
-        private Label labelLogLevel;
-        private TextBox textBoxPacing;
-        private Label labelPacing;
+        private GroupBox _groupBoxActivityMonitor;
+        private CheckBox _checkBoxEnableActivityMonitor;
+        private System.Windows.Forms.TextBox _textBoxActivityCommand;
+        private Label _labelActivityCommand;
+        private Label _labelActivityDebounceTime;
+        private System.Windows.Forms.TextBox _textBoxDebounceTime;
+        private EventLog _eventLog;
+        private ComboBox _comboBoxLogThresholds;
+        private Label _labelLogLevel;
+        private TextBox _textBoxPacing;
+        private Label _labelPacing;
         private CheckBox _unlockDetection;
         private CheckBox _inputDetection;
         private TabPage _tabServer;
@@ -117,18 +103,18 @@ namespace MCEControl {
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            this.components = new System.ComponentModel.Container();
+            this._components = new System.ComponentModel.Container();
             this._buttonCancel = new System.Windows.Forms.Button();
             this._buttonOk = new System.Windows.Forms.Button();
-            this.tabcontrol = new System.Windows.Forms.TabControl();
-            this.tabGeneral = new System.Windows.Forms.TabPage();
-            this.textBoxPacing = new System.Windows.Forms.TextBox();
-            this.labelPacing = new System.Windows.Forms.Label();
-            this.comboBoxLogThresholds = new System.Windows.Forms.ComboBox();
-            this.labelLogLevel = new System.Windows.Forms.Label();
+            this._tabcontrol = new System.Windows.Forms.TabControl();
+            this._tabGeneral = new System.Windows.Forms.TabPage();
+            this._textBoxPacing = new System.Windows.Forms.TextBox();
+            this._labelPacing = new System.Windows.Forms.Label();
+            this._comboBoxLogThresholds = new System.Windows.Forms.ComboBox();
+            this._labelLogLevel = new System.Windows.Forms.Label();
             this._checkBoxHideOnStartup = new System.Windows.Forms.CheckBox();
             this._checkBoxAutoStart = new System.Windows.Forms.CheckBox();
-            this.tabClient = new System.Windows.Forms.TabPage();
+            this._tabClient = new System.Windows.Forms.TabPage();
             this._checkBoxEnableClient = new System.Windows.Forms.CheckBox();
             this._clientGroup = new System.Windows.Forms.GroupBox();
             this._editClientPort = new System.Windows.Forms.TextBox();
@@ -152,7 +138,7 @@ namespace MCEControl {
             this._label2 = new System.Windows.Forms.Label();
             this._label4 = new System.Windows.Forms.Label();
             this._label3 = new System.Windows.Forms.Label();
-            this.tabSerial = new System.Windows.Forms.TabPage();
+            this._tabSerial = new System.Windows.Forms.TabPage();
             this._checkBoxEnableSerialServer = new System.Windows.Forms.CheckBox();
             this._serialServerGroup = new System.Windows.Forms.GroupBox();
             this._comboBoxHandshake = new System.Windows.Forms.ComboBox();
@@ -168,29 +154,29 @@ namespace MCEControl {
             this._comboBoxSerialPort = new System.Windows.Forms.ComboBox();
             this._labelSerialPort = new System.Windows.Forms.Label();
             this._tabPageActivityMonitor = new System.Windows.Forms.TabPage();
-            this.checkBoxEnableActivityMonitor = new System.Windows.Forms.CheckBox();
-            this.groupBoxActivityMonitor = new System.Windows.Forms.GroupBox();
+            this._checkBoxEnableActivityMonitor = new System.Windows.Forms.CheckBox();
+            this._groupBoxActivityMonitor = new System.Windows.Forms.GroupBox();
             this._unlockDetection = new System.Windows.Forms.CheckBox();
             this._inputDetection = new System.Windows.Forms.CheckBox();
-            this.labelActivityDebounceTime = new System.Windows.Forms.Label();
-            this.textBoxDebounceTime = new System.Windows.Forms.TextBox();
-            this.textBoxActivityCommand = new System.Windows.Forms.TextBox();
-            this.labelActivityCommand = new System.Windows.Forms.Label();
-            this.toolTipClient = new System.Windows.Forms.ToolTip(this.components);
-            this._toolTipServer = new System.Windows.Forms.ToolTip(this.components);
-            this.eventLog1 = new System.Diagnostics.EventLog();
-            this.tabcontrol.SuspendLayout();
-            this.tabGeneral.SuspendLayout();
-            this.tabClient.SuspendLayout();
+            this._labelActivityDebounceTime = new System.Windows.Forms.Label();
+            this._textBoxDebounceTime = new System.Windows.Forms.TextBox();
+            this._textBoxActivityCommand = new System.Windows.Forms.TextBox();
+            this._labelActivityCommand = new System.Windows.Forms.Label();
+            this._toolTipClient = new System.Windows.Forms.ToolTip(this._components);
+            this._toolTipServer = new System.Windows.Forms.ToolTip(this._components);
+            this._eventLog = new System.Diagnostics.EventLog();
+            this._tabcontrol.SuspendLayout();
+            this._tabGeneral.SuspendLayout();
+            this._tabClient.SuspendLayout();
             this._clientGroup.SuspendLayout();
             this._tabServer.SuspendLayout();
             this._serverGroup.SuspendLayout();
             this._wakeupGroup.SuspendLayout();
-            this.tabSerial.SuspendLayout();
+            this._tabSerial.SuspendLayout();
             this._serialServerGroup.SuspendLayout();
             this._tabPageActivityMonitor.SuspendLayout();
-            this.groupBoxActivityMonitor.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.eventLog1)).BeginInit();
+            this._groupBoxActivityMonitor.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this._eventLog)).BeginInit();
             this.SuspendLayout();
             // 
             // _buttonCancel
@@ -220,74 +206,74 @@ namespace MCEControl {
             // 
             // tabcontrol
             // 
-            this.tabcontrol.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this._tabcontrol.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.tabcontrol.Controls.Add(this.tabGeneral);
-            this.tabcontrol.Controls.Add(this.tabClient);
-            this.tabcontrol.Controls.Add(this._tabServer);
-            this.tabcontrol.Controls.Add(this.tabSerial);
-            this.tabcontrol.Controls.Add(this._tabPageActivityMonitor);
-            this.tabcontrol.Location = new System.Drawing.Point(16, 16);
-            this.tabcontrol.Margin = new System.Windows.Forms.Padding(1);
-            this.tabcontrol.Name = "tabcontrol";
-            this.tabcontrol.SelectedIndex = 0;
-            this.tabcontrol.Size = new System.Drawing.Size(448, 264);
-            this.tabcontrol.TabIndex = 0;
+            this._tabcontrol.Controls.Add(this._tabGeneral);
+            this._tabcontrol.Controls.Add(this._tabClient);
+            this._tabcontrol.Controls.Add(this._tabServer);
+            this._tabcontrol.Controls.Add(this._tabSerial);
+            this._tabcontrol.Controls.Add(this._tabPageActivityMonitor);
+            this._tabcontrol.Location = new System.Drawing.Point(16, 16);
+            this._tabcontrol.Margin = new System.Windows.Forms.Padding(1);
+            this._tabcontrol.Name = "tabcontrol";
+            this._tabcontrol.SelectedIndex = 0;
+            this._tabcontrol.Size = new System.Drawing.Size(448, 264);
+            this._tabcontrol.TabIndex = 0;
             // 
             // tabGeneral
             // 
-            this.tabGeneral.BackColor = System.Drawing.SystemColors.Window;
-            this.tabGeneral.Controls.Add(this.textBoxPacing);
-            this.tabGeneral.Controls.Add(this.labelPacing);
-            this.tabGeneral.Controls.Add(this.comboBoxLogThresholds);
-            this.tabGeneral.Controls.Add(this.labelLogLevel);
-            this.tabGeneral.Controls.Add(this._checkBoxHideOnStartup);
-            this.tabGeneral.Controls.Add(this._checkBoxAutoStart);
-            this.tabGeneral.Location = new System.Drawing.Point(4, 22);
-            this.tabGeneral.Margin = new System.Windows.Forms.Padding(1);
-            this.tabGeneral.Name = "tabGeneral";
-            this.tabGeneral.Size = new System.Drawing.Size(440, 238);
-            this.tabGeneral.TabIndex = 0;
-            this.tabGeneral.Text = "General";
+            this._tabGeneral.BackColor = System.Drawing.SystemColors.Window;
+            this._tabGeneral.Controls.Add(this._textBoxPacing);
+            this._tabGeneral.Controls.Add(this._labelPacing);
+            this._tabGeneral.Controls.Add(this._comboBoxLogThresholds);
+            this._tabGeneral.Controls.Add(this._labelLogLevel);
+            this._tabGeneral.Controls.Add(this._checkBoxHideOnStartup);
+            this._tabGeneral.Controls.Add(this._checkBoxAutoStart);
+            this._tabGeneral.Location = new System.Drawing.Point(4, 22);
+            this._tabGeneral.Margin = new System.Windows.Forms.Padding(1);
+            this._tabGeneral.Name = "tabGeneral";
+            this._tabGeneral.Size = new System.Drawing.Size(440, 238);
+            this._tabGeneral.TabIndex = 0;
+            this._tabGeneral.Text = "General";
             // 
             // textBoxPacing
             // 
-            this.textBoxPacing.Location = new System.Drawing.Point(168, 96);
-            this.textBoxPacing.Margin = new System.Windows.Forms.Padding(2);
-            this.textBoxPacing.Name = "textBoxPacing";
-            this.textBoxPacing.Size = new System.Drawing.Size(74, 20);
-            this.textBoxPacing.TabIndex = 4;
-            this.textBoxPacing.TextChanged += new System.EventHandler(this.textBoxPacing_TextChanged);
+            this._textBoxPacing.Location = new System.Drawing.Point(168, 96);
+            this._textBoxPacing.Margin = new System.Windows.Forms.Padding(2);
+            this._textBoxPacing.Name = "textBoxPacing";
+            this._textBoxPacing.Size = new System.Drawing.Size(74, 20);
+            this._textBoxPacing.TabIndex = 4;
+            this._textBoxPacing.TextChanged += new System.EventHandler(this.textBoxPacing_TextChanged);
             // 
             // labelPacing
             // 
-            this.labelPacing.AutoSize = true;
-            this.labelPacing.Location = new System.Drawing.Point(16, 96);
-            this.labelPacing.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.labelPacing.Name = "labelPacing";
-            this.labelPacing.Size = new System.Drawing.Size(150, 13);
-            this.labelPacing.TabIndex = 3;
-            this.labelPacing.Text = "Default command &pacing (ms):";
+            this._labelPacing.AutoSize = true;
+            this._labelPacing.Location = new System.Drawing.Point(16, 96);
+            this._labelPacing.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this._labelPacing.Name = "labelPacing";
+            this._labelPacing.Size = new System.Drawing.Size(150, 13);
+            this._labelPacing.TabIndex = 3;
+            this._labelPacing.Text = "Default command &pacing (ms):";
             // 
             // comboBoxLogThresholds
             // 
-            this.comboBoxLogThresholds.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboBoxLogThresholds.FormattingEnabled = true;
-            this.comboBoxLogThresholds.Location = new System.Drawing.Point(16, 51);
-            this.comboBoxLogThresholds.Name = "comboBoxLogThresholds";
-            this.comboBoxLogThresholds.Size = new System.Drawing.Size(121, 21);
-            this.comboBoxLogThresholds.TabIndex = 2;
-            this.comboBoxLogThresholds.SelectedIndexChanged += new System.EventHandler(this.comboBoxLogThresholds_SelectedIndexChanged);
+            this._comboBoxLogThresholds.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this._comboBoxLogThresholds.FormattingEnabled = true;
+            this._comboBoxLogThresholds.Location = new System.Drawing.Point(16, 51);
+            this._comboBoxLogThresholds.Name = "comboBoxLogThresholds";
+            this._comboBoxLogThresholds.Size = new System.Drawing.Size(121, 21);
+            this._comboBoxLogThresholds.TabIndex = 2;
+            this._comboBoxLogThresholds.SelectedIndexChanged += new System.EventHandler(this.comboBoxLogThresholds_SelectedIndexChanged);
             // 
             // labelLogLevel
             // 
-            this.labelLogLevel.AutoSize = true;
-            this.labelLogLevel.Location = new System.Drawing.Point(13, 35);
-            this.labelLogLevel.Name = "labelLogLevel";
-            this.labelLogLevel.Size = new System.Drawing.Size(78, 13);
-            this.labelLogLevel.TabIndex = 1;
-            this.labelLogLevel.Text = "Log Threshold:";
+            this._labelLogLevel.AutoSize = true;
+            this._labelLogLevel.Location = new System.Drawing.Point(13, 35);
+            this._labelLogLevel.Name = "labelLogLevel";
+            this._labelLogLevel.Size = new System.Drawing.Size(78, 13);
+            this._labelLogLevel.TabIndex = 1;
+            this._labelLogLevel.Text = "Log Threshold:";
             // 
             // _checkBoxHideOnStartup
             // 
@@ -312,15 +298,15 @@ namespace MCEControl {
             // 
             // tabClient
             // 
-            this.tabClient.BackColor = System.Drawing.SystemColors.Window;
-            this.tabClient.Controls.Add(this._checkBoxEnableClient);
-            this.tabClient.Controls.Add(this._clientGroup);
-            this.tabClient.Location = new System.Drawing.Point(4, 22);
-            this.tabClient.Margin = new System.Windows.Forms.Padding(1);
-            this.tabClient.Name = "tabClient";
-            this.tabClient.Size = new System.Drawing.Size(440, 238);
-            this.tabClient.TabIndex = 1;
-            this.tabClient.Text = "Client";
+            this._tabClient.BackColor = System.Drawing.SystemColors.Window;
+            this._tabClient.Controls.Add(this._checkBoxEnableClient);
+            this._tabClient.Controls.Add(this._clientGroup);
+            this._tabClient.Location = new System.Drawing.Point(4, 22);
+            this._tabClient.Margin = new System.Windows.Forms.Padding(1);
+            this._tabClient.Name = "tabClient";
+            this._tabClient.Size = new System.Drawing.Size(440, 238);
+            this._tabClient.TabIndex = 1;
+            this._tabClient.Text = "Client";
             // 
             // _checkBoxEnableClient
             // 
@@ -331,7 +317,7 @@ namespace MCEControl {
             this._checkBoxEnableClient.Size = new System.Drawing.Size(88, 17);
             this._checkBoxEnableClient.TabIndex = 1;
             this._checkBoxEnableClient.Text = "Enable &Client";
-            this.toolTipClient.SetToolTip(this._checkBoxEnableClient, "Starts a TCP/IP client connection to the specified address:port. Commands will be" +
+            this._toolTipClient.SetToolTip(this._checkBoxEnableClient, "Starts a TCP/IP client connection to the specified address:port. Commands will be" +
         " recieved as replies.");
             this._checkBoxEnableClient.CheckedChanged += new System.EventHandler(this.CheckEnableClientCheckedChanged);
             // 
@@ -570,16 +556,16 @@ namespace MCEControl {
             // 
             // tabSerial
             // 
-            this.tabSerial.BackColor = System.Drawing.SystemColors.Window;
-            this.tabSerial.Controls.Add(this._checkBoxEnableSerialServer);
-            this.tabSerial.Controls.Add(this._serialServerGroup);
-            this.tabSerial.Location = new System.Drawing.Point(4, 22);
-            this.tabSerial.Margin = new System.Windows.Forms.Padding(1);
-            this.tabSerial.Name = "tabSerial";
-            this.tabSerial.Padding = new System.Windows.Forms.Padding(1);
-            this.tabSerial.Size = new System.Drawing.Size(440, 238);
-            this.tabSerial.TabIndex = 3;
-            this.tabSerial.Text = "Serial Server";
+            this._tabSerial.BackColor = System.Drawing.SystemColors.Window;
+            this._tabSerial.Controls.Add(this._checkBoxEnableSerialServer);
+            this._tabSerial.Controls.Add(this._serialServerGroup);
+            this._tabSerial.Location = new System.Drawing.Point(4, 22);
+            this._tabSerial.Margin = new System.Windows.Forms.Padding(1);
+            this._tabSerial.Name = "tabSerial";
+            this._tabSerial.Padding = new System.Windows.Forms.Padding(1);
+            this._tabSerial.Size = new System.Drawing.Size(440, 238);
+            this._tabSerial.TabIndex = 3;
+            this._tabSerial.Text = "Serial Server";
             // 
             // _checkBoxEnableSerialServer
             // 
@@ -783,8 +769,8 @@ namespace MCEControl {
             // 
             // _tabPageActivityMonitor
             // 
-            this._tabPageActivityMonitor.Controls.Add(this.checkBoxEnableActivityMonitor);
-            this._tabPageActivityMonitor.Controls.Add(this.groupBoxActivityMonitor);
+            this._tabPageActivityMonitor.Controls.Add(this._checkBoxEnableActivityMonitor);
+            this._tabPageActivityMonitor.Controls.Add(this._groupBoxActivityMonitor);
             this._tabPageActivityMonitor.Location = new System.Drawing.Point(4, 22);
             this._tabPageActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
             this._tabPageActivityMonitor.Name = "_tabPageActivityMonitor";
@@ -795,31 +781,31 @@ namespace MCEControl {
             // 
             // checkBoxEnableActivityMonitor
             // 
-            this.checkBoxEnableActivityMonitor.AutoSize = true;
-            this.checkBoxEnableActivityMonitor.Location = new System.Drawing.Point(20, 10);
-            this.checkBoxEnableActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
-            this.checkBoxEnableActivityMonitor.Name = "checkBoxEnableActivityMonitor";
-            this.checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(159, 17);
-            this.checkBoxEnableActivityMonitor.TabIndex = 0;
-            this.checkBoxEnableActivityMonitor.Text = "Enable &User Activity Monitor";
-            this.checkBoxEnableActivityMonitor.UseVisualStyleBackColor = true;
-            this.checkBoxEnableActivityMonitor.CheckedChanged += new System.EventHandler(this.checkBoxEnableActivityMonitor_CheckedChanged);
+            this._checkBoxEnableActivityMonitor.AutoSize = true;
+            this._checkBoxEnableActivityMonitor.Location = new System.Drawing.Point(20, 10);
+            this._checkBoxEnableActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxEnableActivityMonitor.Name = "checkBoxEnableActivityMonitor";
+            this._checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(159, 17);
+            this._checkBoxEnableActivityMonitor.TabIndex = 0;
+            this._checkBoxEnableActivityMonitor.Text = "Enable &User Activity Monitor";
+            this._checkBoxEnableActivityMonitor.UseVisualStyleBackColor = true;
+            this._checkBoxEnableActivityMonitor.CheckedChanged += new System.EventHandler(this.checkBoxEnableActivityMonitor_CheckedChanged);
             // 
             // groupBoxActivityMonitor
             // 
-            this.groupBoxActivityMonitor.Controls.Add(this._unlockDetection);
-            this.groupBoxActivityMonitor.Controls.Add(this._inputDetection);
-            this.groupBoxActivityMonitor.Controls.Add(this.labelActivityDebounceTime);
-            this.groupBoxActivityMonitor.Controls.Add(this.textBoxDebounceTime);
-            this.groupBoxActivityMonitor.Controls.Add(this.textBoxActivityCommand);
-            this.groupBoxActivityMonitor.Controls.Add(this.labelActivityCommand);
-            this.groupBoxActivityMonitor.Location = new System.Drawing.Point(12, 11);
-            this.groupBoxActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
-            this.groupBoxActivityMonitor.Name = "groupBoxActivityMonitor";
-            this.groupBoxActivityMonitor.Padding = new System.Windows.Forms.Padding(1);
-            this.groupBoxActivityMonitor.Size = new System.Drawing.Size(412, 221);
-            this.groupBoxActivityMonitor.TabIndex = 0;
-            this.groupBoxActivityMonitor.TabStop = false;
+            this._groupBoxActivityMonitor.Controls.Add(this._unlockDetection);
+            this._groupBoxActivityMonitor.Controls.Add(this._inputDetection);
+            this._groupBoxActivityMonitor.Controls.Add(this._labelActivityDebounceTime);
+            this._groupBoxActivityMonitor.Controls.Add(this._textBoxDebounceTime);
+            this._groupBoxActivityMonitor.Controls.Add(this._textBoxActivityCommand);
+            this._groupBoxActivityMonitor.Controls.Add(this._labelActivityCommand);
+            this._groupBoxActivityMonitor.Location = new System.Drawing.Point(12, 11);
+            this._groupBoxActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
+            this._groupBoxActivityMonitor.Name = "groupBoxActivityMonitor";
+            this._groupBoxActivityMonitor.Padding = new System.Windows.Forms.Padding(1);
+            this._groupBoxActivityMonitor.Size = new System.Drawing.Size(412, 221);
+            this._groupBoxActivityMonitor.TabIndex = 0;
+            this._groupBoxActivityMonitor.TabStop = false;
             // 
             // unlockDetectionRadio
             // 
@@ -847,45 +833,45 @@ namespace MCEControl {
             // 
             // labelActivityDebounceTime
             // 
-            this.labelActivityDebounceTime.AutoSize = true;
-            this.labelActivityDebounceTime.Location = new System.Drawing.Point(17, 112);
-            this.labelActivityDebounceTime.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
-            this.labelActivityDebounceTime.Name = "labelActivityDebounceTime";
-            this.labelActivityDebounceTime.Size = new System.Drawing.Size(283, 13);
-            this.labelActivityDebounceTime.TabIndex = 4;
-            this.labelActivityDebounceTime.Text = "Send activity command no more frequently than (seconds):";
+            this._labelActivityDebounceTime.AutoSize = true;
+            this._labelActivityDebounceTime.Location = new System.Drawing.Point(17, 112);
+            this._labelActivityDebounceTime.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._labelActivityDebounceTime.Name = "labelActivityDebounceTime";
+            this._labelActivityDebounceTime.Size = new System.Drawing.Size(283, 13);
+            this._labelActivityDebounceTime.TabIndex = 4;
+            this._labelActivityDebounceTime.Text = "Send activity command no more frequently than (seconds):";
             // 
             // textBoxDebounceTime
             // 
-            this.textBoxDebounceTime.Location = new System.Drawing.Point(302, 109);
-            this.textBoxDebounceTime.Margin = new System.Windows.Forms.Padding(1);
-            this.textBoxDebounceTime.Name = "textBoxDebounceTime";
-            this.textBoxDebounceTime.Size = new System.Drawing.Size(51, 20);
-            this.textBoxDebounceTime.TabIndex = 5;
-            this.textBoxDebounceTime.TextChanged += new System.EventHandler(this.textBoxDebounceTime_TextChanged);
+            this._textBoxDebounceTime.Location = new System.Drawing.Point(302, 109);
+            this._textBoxDebounceTime.Margin = new System.Windows.Forms.Padding(1);
+            this._textBoxDebounceTime.Name = "textBoxDebounceTime";
+            this._textBoxDebounceTime.Size = new System.Drawing.Size(51, 20);
+            this._textBoxDebounceTime.TabIndex = 5;
+            this._textBoxDebounceTime.TextChanged += new System.EventHandler(this.textBoxDebounceTime_TextChanged);
             // 
             // textBoxActivityCommand
             // 
-            this.textBoxActivityCommand.Location = new System.Drawing.Point(114, 80);
-            this.textBoxActivityCommand.Margin = new System.Windows.Forms.Padding(1);
-            this.textBoxActivityCommand.Name = "textBoxActivityCommand";
-            this.textBoxActivityCommand.Size = new System.Drawing.Size(149, 20);
-            this.textBoxActivityCommand.TabIndex = 3;
-            this.textBoxActivityCommand.TextChanged += new System.EventHandler(this.textBoxActivityCommand_TextChanged);
+            this._textBoxActivityCommand.Location = new System.Drawing.Point(114, 80);
+            this._textBoxActivityCommand.Margin = new System.Windows.Forms.Padding(1);
+            this._textBoxActivityCommand.Name = "textBoxActivityCommand";
+            this._textBoxActivityCommand.Size = new System.Drawing.Size(149, 20);
+            this._textBoxActivityCommand.TabIndex = 3;
+            this._textBoxActivityCommand.TextChanged += new System.EventHandler(this.textBoxActivityCommand_TextChanged);
             // 
             // labelActivityCommand
             // 
-            this.labelActivityCommand.AutoSize = true;
-            this.labelActivityCommand.Location = new System.Drawing.Point(17, 83);
-            this.labelActivityCommand.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
-            this.labelActivityCommand.Name = "labelActivityCommand";
-            this.labelActivityCommand.Size = new System.Drawing.Size(95, 13);
-            this.labelActivityCommand.TabIndex = 2;
-            this.labelActivityCommand.Text = "Command to send:";
+            this._labelActivityCommand.AutoSize = true;
+            this._labelActivityCommand.Location = new System.Drawing.Point(17, 83);
+            this._labelActivityCommand.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this._labelActivityCommand.Name = "labelActivityCommand";
+            this._labelActivityCommand.Size = new System.Drawing.Size(95, 13);
+            this._labelActivityCommand.TabIndex = 2;
+            this._labelActivityCommand.Text = "Command to send:";
             // 
             // toolTipClient
             // 
-            this.toolTipClient.ToolTipTitle = "Client";
+            this._toolTipClient.ToolTipTitle = "Client";
             // 
             // _toolTipServer
             // 
@@ -893,7 +879,7 @@ namespace MCEControl {
             // 
             // eventLog1
             // 
-            this.eventLog1.SynchronizingObject = this;
+            this._eventLog.SynchronizingObject = this;
             // 
             // SettingsDialog
             // 
@@ -903,7 +889,7 @@ namespace MCEControl {
             this.BackColor = System.Drawing.SystemColors.Control;
             this.CancelButton = this._buttonCancel;
             this.ClientSize = new System.Drawing.Size(475, 321);
-            this.Controls.Add(this.tabcontrol);
+            this.Controls.Add(this._tabcontrol);
             this.Controls.Add(this._buttonCancel);
             this.Controls.Add(this._buttonOk);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -915,11 +901,11 @@ namespace MCEControl {
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Settings";
             this.Load += new System.EventHandler(this.SettingsDialog_Load);
-            this.tabcontrol.ResumeLayout(false);
-            this.tabGeneral.ResumeLayout(false);
-            this.tabGeneral.PerformLayout();
-            this.tabClient.ResumeLayout(false);
-            this.tabClient.PerformLayout();
+            this._tabcontrol.ResumeLayout(false);
+            this._tabGeneral.ResumeLayout(false);
+            this._tabGeneral.PerformLayout();
+            this._tabClient.ResumeLayout(false);
+            this._tabClient.PerformLayout();
             this._clientGroup.ResumeLayout(false);
             this._clientGroup.PerformLayout();
             this._tabServer.ResumeLayout(false);
@@ -928,15 +914,15 @@ namespace MCEControl {
             this._serverGroup.PerformLayout();
             this._wakeupGroup.ResumeLayout(false);
             this._wakeupGroup.PerformLayout();
-            this.tabSerial.ResumeLayout(false);
-            this.tabSerial.PerformLayout();
+            this._tabSerial.ResumeLayout(false);
+            this._tabSerial.PerformLayout();
             this._serialServerGroup.ResumeLayout(false);
             this._serialServerGroup.PerformLayout();
             this._tabPageActivityMonitor.ResumeLayout(false);
             this._tabPageActivityMonitor.PerformLayout();
-            this.groupBoxActivityMonitor.ResumeLayout(false);
-            this.groupBoxActivityMonitor.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.eventLog1)).EndInit();
+            this._groupBoxActivityMonitor.ResumeLayout(false);
+            this._groupBoxActivityMonitor.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this._eventLog)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -993,31 +979,31 @@ namespace MCEControl {
             _serialServerGroup.Enabled = _checkBoxEnableSerialServer.Checked;
 
             
-            groupBoxActivityMonitor.Enabled = checkBoxEnableActivityMonitor.Checked = Settings.ActivityMonitorEnabled;
+            _groupBoxActivityMonitor.Enabled = _checkBoxEnableActivityMonitor.Checked = Settings.ActivityMonitorEnabled;
             _unlockDetection.Checked = Settings.UnlockDetection;
             _inputDetection.Checked = Settings.InputDetection;
-            textBoxActivityCommand.Text = Settings.ActivityMonitorCommand;
-            textBoxDebounceTime.Text = $"{Settings.ActivityMonitorDebounceTime}";
+            _textBoxActivityCommand.Text = Settings.ActivityMonitorCommand;
+            _textBoxDebounceTime.Text = $"{Settings.ActivityMonitorDebounceTime}";
 
-            comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"]);
-            comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["INFO"]);
-            comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["DEBUG"]);
+            _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"]);
+            _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["INFO"]);
+            _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["DEBUG"]);
 
             switch (Settings.TextBoxLogThreshold) {
                 case "ALL":
-                    comboBoxLogThresholds.SelectedIndex = 0;
+                    _comboBoxLogThresholds.SelectedIndex = 0;
                     break;
 
                 case "INFO":
-                    comboBoxLogThresholds.SelectedIndex = 1;
+                    _comboBoxLogThresholds.SelectedIndex = 1;
                     break;
 
                 case "DEBUG":
-                    comboBoxLogThresholds.SelectedIndex = 2;
+                    _comboBoxLogThresholds.SelectedIndex = 2;
                     break;
             }
 
-            textBoxPacing.Text = $"{Settings.CommandPacing}";
+            _textBoxPacing.Text = $"{Settings.CommandPacing}";
 
             //comboBoxLogThresholds.SelectedIndex = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"].Value;
 
@@ -1041,10 +1027,10 @@ namespace MCEControl {
                 return;
             }
 
-            if (checkBoxEnableActivityMonitor.Checked) {
-                if (!int.TryParse(textBoxDebounceTime.Text, out var t)) t = 0;
-                _buttonOk.Enabled = !(String.IsNullOrEmpty(textBoxActivityCommand.Text) || 
-                                    String.IsNullOrEmpty(textBoxDebounceTime.Text) || 
+            if (_checkBoxEnableActivityMonitor.Checked) {
+                if (!int.TryParse(_textBoxDebounceTime.Text, out var t)) t = 0;
+                _buttonOk.Enabled = !(String.IsNullOrEmpty(_textBoxActivityCommand.Text) || 
+                                    String.IsNullOrEmpty(_textBoxDebounceTime.Text) || 
                                     (t == 0));
                 return;
             }
@@ -1056,8 +1042,8 @@ namespace MCEControl {
         /// Clean up any resources being used.
         /// </summary>
         protected override void Dispose(bool disposing) {
-            if (components != null) {
-                components.Dispose();
+            if (_components != null) {
+                _components.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -1196,50 +1182,50 @@ namespace MCEControl {
         }
 
         private void checkBoxEnableActivityMonitor_CheckedChanged(object sender, EventArgs e) {
-            Settings.ActivityMonitorEnabled = checkBoxEnableActivityMonitor.Checked;
-            groupBoxActivityMonitor.Enabled = checkBoxEnableActivityMonitor.Checked;
+            Settings.ActivityMonitorEnabled = _checkBoxEnableActivityMonitor.Checked;
+            _groupBoxActivityMonitor.Enabled = _checkBoxEnableActivityMonitor.Checked;
             SettingsChanged();
         }
 
         private void textBoxActivityCommand_TextChanged(object sender, EventArgs e) {
-            if (textBoxActivityCommand.Text.Length > 0)
-                Settings.ActivityMonitorCommand = textBoxActivityCommand.Text;
+            if (_textBoxActivityCommand.Text.Length > 0)
+                Settings.ActivityMonitorCommand = _textBoxActivityCommand.Text;
             SettingsChanged();
         }
 
         private void textBoxDebounceTime_TextChanged(object sender, EventArgs e) {
-            if (int.TryParse(textBoxDebounceTime.Text, out var t))
+            if (int.TryParse(_textBoxDebounceTime.Text, out var t))
                 Settings.ActivityMonitorDebounceTime = t;
             SettingsChanged();
         }
         private void SettingsDialog_Load(object sender, EventArgs e) {
-            switch (defaultTab) {
+            switch (DefaultTab) {
                 case "General":
-                    tabcontrol.SelectedTab = tabGeneral;
+                    _tabcontrol.SelectedTab = _tabGeneral;
                     break;
 
                 case "Client":
-                    tabcontrol.SelectedTab = tabClient;
+                    _tabcontrol.SelectedTab = _tabClient;
                     break;
 
                 case "Server":
-                    tabcontrol.SelectedTab = _tabServer;
+                    _tabcontrol.SelectedTab = _tabServer;
                     break;
 
                 case "Serial":
-                    tabcontrol.SelectedTab = tabSerial;
+                    _tabcontrol.SelectedTab = _tabSerial;
                     break;
 
             }
         }
 
         private void comboBoxLogThresholds_SelectedIndexChanged(object sender, EventArgs e) {
-            Settings.TextBoxLogThreshold = comboBoxLogThresholds.SelectedItem.ToString();
+            Settings.TextBoxLogThreshold = _comboBoxLogThresholds.SelectedItem.ToString();
             SettingsChanged();
         }
 
         private void textBoxPacing_TextChanged(object sender, EventArgs e) {
-            if (int.TryParse(textBoxPacing.Text, out var t))
+            if (int.TryParse(_textBoxPacing.Text, out var t))
                 Settings.CommandPacing = t;
             SettingsChanged();
         }
@@ -1252,256 +1238,6 @@ namespace MCEControl {
         private void unlockDetectionRadio_CheckedChanged(object sender, EventArgs e) {
             Settings.UnlockDetection = _unlockDetection.Checked;
             SettingsChanged();
-        }
-    }
-
-
-    [System.AttributeUsage(System.AttributeTargets.Property)]
-    public class SafeForTelemetryAttribute : System.Attribute {
-    }
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "This is just settings info.")]
-    public class AppSettings : ICloneable {
-        public const string SettingsFileName = "MCEControl.settings";
-
-        // General
-        private bool autoStart;
-        private bool hideOnStartup;
-        private string textBoxLogThreshold = "INFO";
-
-        // Global
-        [XmlIgnore] public bool DisableInternalCommands;
-
-        // Client
-        private bool actAsClient;
-
-        // Server
-        private bool actAsServer = true;
-        private int clientDelayTime = 30000;
-        private String clientHost = "localhost";
-        private int clientPort = 5150;
-        private String closingCommand;
-        private int opacity = 100;
-        private int serverPort = 5150;
-        private String wakeupCommand;
-        private bool wakeupEnabled;
-        private String wakeupHost;
-        private int wakeupPort;
-        private bool actAsSerialServer = false;
-        private String serialServerPortName;
-        private int serialServerBaudRate;
-        private Parity serialServerParity;
-        private int serialServerDataBits;
-        private StopBits serialServerStopBits;
-        private Handshake serialServerHandshake;
-        private Point windowLocation;
-        private Size windowSize;
-        private bool showCommandWindow;
-        private bool activityMonitorEnabled = false;
-        private string activityMonitorCommand = "activity";
-        private Int32 activityMonitorDebounceTime = 10;
-        private int commandPacing = 0;
-
-        [SafeForTelemetryAttribute] 
-        public bool AutoStart { get => autoStart; set => autoStart = value; }
-        [SafeForTelemetryAttribute] 
-        public bool HideOnStartup { get => hideOnStartup; set => hideOnStartup = value; }
-        [SafeForTelemetryAttribute] 
-        public string TextBoxLogThreshold { get => textBoxLogThreshold; set => textBoxLogThreshold = value; }
-        [SafeForTelemetryAttribute] 
-        public bool ActAsClient { get => actAsClient; set => actAsClient = value; }
-        [SafeForTelemetryAttribute] 
-        public bool ActAsServer { get => actAsServer; set => actAsServer = value; }
-        [SafeForTelemetryAttribute] 
-        public int ClientDelayTime { get => clientDelayTime; set => clientDelayTime = value; }
-        [SafeForTelemetryAttribute]
-        public int CommandPacing { get => commandPacing; set => commandPacing = value; }
-
-        // [SafeForTelemetryAttribute] 
-        // TELEMETRY: Client host may contain PII, so it is not collected
-        public string ClientHost { get => clientHost; set => clientHost = value; }
-        [SafeForTelemetryAttribute] 
-        public int ClientPort { get => clientPort; set => clientPort = value; }
-        [SafeForTelemetryAttribute]
-        public string ClosingCommand { get => closingCommand; set => closingCommand = value; }
-        [SafeForTelemetryAttribute] 
-        public int Opacity { get => opacity; set => opacity = value; }
-        [SafeForTelemetryAttribute] 
-        public int ServerPort { get => serverPort; set => serverPort = value; }
-
-        // [SafeForTelemetryAttribute] 
-        // TELEMETRY: WakeupCommand can be set by user and thus may contain PII, so it is not collected
-        public string WakeupCommand { get => wakeupCommand; set => wakeupCommand = value; }
-        [SafeForTelemetryAttribute] 
-        public bool WakeupEnabled { get => wakeupEnabled; set => wakeupEnabled = value; }
-        [SafeForTelemetryAttribute] 
-        public string WakeupHost { get => wakeupHost; set => wakeupHost = value; }
-        [SafeForTelemetryAttribute] 
-        public int WakeupPort { get => wakeupPort; set => wakeupPort = value; }
-        [SafeForTelemetryAttribute] 
-        public bool ActAsSerialServer { get => actAsSerialServer; set => actAsSerialServer = value; }
-        [SafeForTelemetryAttribute] 
-        public string SerialServerPortName { get => serialServerPortName; set => serialServerPortName = value; }
-        [SafeForTelemetryAttribute] 
-        public int SerialServerBaudRate { get => serialServerBaudRate; set => serialServerBaudRate = value; }
-        [SafeForTelemetryAttribute] 
-        public Parity SerialServerParity { get => serialServerParity; set => serialServerParity = value; }
-        [SafeForTelemetryAttribute] 
-        public int SerialServerDataBits { get => serialServerDataBits; set => serialServerDataBits = value; }
-        [SafeForTelemetryAttribute] 
-        public StopBits SerialServerStopBits { get => serialServerStopBits; set => serialServerStopBits = value; }
-        [SafeForTelemetryAttribute] 
-        public Handshake SerialServerHandshake { get => serialServerHandshake; set => serialServerHandshake = value; }
-        [SafeForTelemetryAttribute] 
-        public Point WindowLocation { get => windowLocation; set => windowLocation = value; }
-        [SafeForTelemetryAttribute] 
-        public Size WindowSize { get => windowSize; set => windowSize = value; }
-        [SafeForTelemetryAttribute] 
-        public bool ShowCommandWindow { get => showCommandWindow; set => showCommandWindow = value; }
-        [SafeForTelemetryAttribute] 
-        public bool ActivityMonitorEnabled { get => activityMonitorEnabled; set => activityMonitorEnabled = value; }
-
-        // [SafeForTelemetryAttribute] 
-        // TELEMETRY: Activity Montior command can be changed by user, and thus may contain PII, so it is not collected
-        [SafeForTelemetryAttribute]
-        public string ActivityMonitorCommand { get => activityMonitorCommand; set => activityMonitorCommand = value; }
-        [SafeForTelemetryAttribute]
-        public int ActivityMonitorDebounceTime { get => activityMonitorDebounceTime; set => activityMonitorDebounceTime = value; }
-        [SafeForTelemetryAttribute] 
-        public bool UnlockDetection { get; set; }
-        [SafeForTelemetryAttribute]
-        public bool InputDetection { get; set; }
-
-
-        #region ICloneable Members
-
-        public object Clone() {
-            return MemberwiseClone();
-        }
-
-        #endregion
-
-        // Must have a default public constructor so XMLSerialization will work
-        // This class is NOT supposed to be creatable (use Deserialize to construct).
-        public AppSettings() {
-            SerialPort defaultPort = new SerialPort();
-            SerialServerPortName = defaultPort.PortName;
-            SerialServerBaudRate = defaultPort.BaudRate;
-            SerialServerParity = defaultPort.Parity;
-            SerialServerDataBits = defaultPort.DataBits;
-            SerialServerStopBits = defaultPort.StopBits;
-            SerialServerHandshake = defaultPort.Handshake;
-            defaultPort.Dispose();
-            UnlockDetection = true;
-            InputDetection = true;
-        }
-
-        // By default we want the settings file stored with the EXE
-        // This allows the app to be run with multiple instances with a settings
-        // file for each instance (each being in different directory).
-        // However, typical installs get put into to %PROGRAMFILES% which 
-        // is ACLd to allow only admin writes on Win7. 
-        public static String GetSettingsPath() {
-            String path = Application.StartupPath;
-            // If app was started from within ProgramFiles then use UserAppDataPath.
-            if (path.Contains(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles))) {
-                // Strip off the trailing version ("\\0.0.0.xxxx")
-                path = Application.UserAppDataPath.Substring(0,
-                    Application.UserAppDataPath.Length -
-                    (Application.ProductVersion.Length + 1));
-            }
-
-            return path;
-        }
-
-        public void Serialize() {
-            var settingsPath = GetSettingsPath();
-            var filePath = settingsPath + "\\" + SettingsFileName;
-            try {
-                var ser = new XmlSerializer(typeof (AppSettings));
-                var sw = new StreamWriter(filePath);
-                ser.Serialize(sw, this);
-                sw.Close();
-
-                Logger.Instance.Log4.Info("Settings: Wrote settings to " + filePath);
-            }
-            catch (Exception e) {
-                Logger.Instance.Log4.Info($"Settings: Settings file could not be written. {filePath} {e.Message}");
-                MessageBox.Show($"Settings file could not be written. {filePath} {e.Message}");
-            }
-        }
-
-        public static AppSettings Deserialize(String settingsFile) {
-            AppSettings settings = null;
-
-            var serializer = new XmlSerializer(typeof (AppSettings));
-            // A FileStream is needed to read the XML document.
-            FileStream fs = null;
-            XmlReader reader = null;
-            try {
-                fs = new FileStream(settingsFile, FileMode.Open, FileAccess.Read);
-                reader = new XmlTextReader(fs);
-                settings = (AppSettings) serializer.Deserialize(reader);
-
-                settings.DisableInternalCommands = Convert.ToBoolean(
-                    Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
-                                    "DisableInternalCommands", false), new NumberFormatInfo());
-                Logger.Instance.Log4.Info("Settings: Loaded settings from " + settingsFile);
-            }
-            catch (FileNotFoundException) {
-                // First time through, so create file with defaults
-                Logger.Instance.Log4.Info($"Settings: Creating settings file with defaults: {settingsFile}");
-                settings = new AppSettings();
-                settings.Serialize();
-
-                // even if it's first run, read global commands
-                settings.DisableInternalCommands = Convert.ToBoolean(
-                    Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
-                                    "DisableInternalCommands", false), new NumberFormatInfo());
-            }
-            catch (UnauthorizedAccessException e) {
-                Logger.Instance.Log4.Info($"Settings: Settings file could not be loaded. {e.Message}");
-                MessageBox.Show($"Settings file could not be loaded. {e.Message}");
-            }
-            finally {
-                if (reader != null) reader.Dispose();
-                if (fs != null) fs.Dispose();
-            }
-
-            // TELEMETRY: 
-            // what: Settings
-            // why: To understand what settings get changed and which dont
-            // how is PII protected: only settings clearly identified as not containing PII are collected
-            TelemetryService.Instance.TrackEvent("Settings", settings.GetTelemetryDictionary());
-
-            return settings;
-        }
-
-        /// <summary>
-        /// Returns a dictionary of settings, filtered by those that can't contain PII
-        /// TELEMETRY: 
-        /// what: Settings
-        /// why: To understand what settings get changed and which dont
-        /// how is PII protected: only settings clearly identified as not containing PII are collected
-        /// </summary>
-        /// <returns></returns>
-        public virtual IDictionary<string, string> GetTelemetryDictionary() {
-            var dictionary = new Dictionary<string, string>();
-            foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(this)) {
-                if (property.Attributes.Contains(new SafeForTelemetryAttribute())) {
-                    object value = property.GetValue(this);
-                    if (value != null) {
-                        if (property.PropertyType.IsSubclassOf(typeof(AppSettings))) {
-                            // Go deep
-                            var propDict = ((AppSettings)value).GetTelemetryDictionary();
-                            dictionary.Add(property.Name, JsonSerializer.Serialize(propDict, propDict.GetType()));
-                        }
-                        else
-                            dictionary.Add(property.Name, JsonSerializer.Serialize(value, value.GetType()));
-                    }
-                }
-            }
-            return dictionary;
         }
     }
 }

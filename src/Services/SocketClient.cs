@@ -56,16 +56,12 @@ namespace MCEControl {
 
         private void Dispose(bool disposing) {
             if (disposing) {
-                if (_bw != null) {
-                    _bw.CancelAsync();
-                    _bw.Dispose();
-                    //_bw = null;
-                }
-                if (_tcpClient != null) {
-                    _tcpClient.Close();
-                    _tcpClient.Dispose();
-                    //_tcpClient = null;
-                }
+                _bw?.CancelAsync();
+                _bw?.Dispose();
+                _bw = null;
+                _tcpClient?.Close();
+                _tcpClient?.Dispose();
+                _tcpClient = null;
             }
         }
 
@@ -88,12 +84,19 @@ namespace MCEControl {
             _bw.RunWorkerAsync();
         }
 
+        /// <summary>
+        /// Stops the client
+        /// </summary>
         public void Stop() {
             Dispose(true);
             SetStatus(ServiceStatus.Stopped);
         }
 
-        // Send text to remote connection
+        /// <summary>
+        ///  Send text to remote connection
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="replyContext"></param>
         public override void Send(string text, Reply replyContext = null) {
             base.Send(text, replyContext);
 
@@ -111,7 +114,6 @@ namespace MCEControl {
         }
 
         private void Connect() {
-
             IPEndPoint endPoint;
             try {
                 // GetHostEntry returns a list. We need to pick the IPv4 entry.
@@ -125,7 +127,7 @@ namespace MCEControl {
                 // TELEMETRY: Do not pass _host to SetStatus to avoid collecting PII
                 SetStatus(ServiceStatus.Started, $"{ipv4Addresses[0]}:{_port}");
 
-                _tcpClient.BeginConnect(endPoint.Address, _port, ar => {
+                _ = _tcpClient.BeginConnect(endPoint.Address, _port, ar => {
                     if (_tcpClient == null)
                         return;
                     try {
@@ -221,8 +223,7 @@ namespace MCEControl {
 
         #region Nested type: ClientReplyContext
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>")]
-        public class ClientReplyContext : Reply {
+        internal class ClientReplyContext : Reply {
             private readonly TcpClient _tcpClient;
             // Constructor which takes a Socket and a client number
             public ClientReplyContext(TcpClient tcpClient) {

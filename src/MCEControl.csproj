@@ -140,6 +140,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Commands\Command.cs" />
+    <Compile Include="Services\AppSettings.cs" />
     <Compile Include="Helpers\CommandFileWatcher.cs" />
     <Compile Include="Commands\Commands.cs" />
     <Compile Include="MainWindow.cs">

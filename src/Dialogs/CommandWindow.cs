@@ -23,10 +23,10 @@ using WindowsInput.Native;
 namespace MCEControl {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1501", Justification = "WinForms generated", Scope = "namespace")]
     public partial class CommandWindow : Form {
-        private readonly log4net.ILog log4;
+        private readonly log4net.ILog _log4;
 
         public CommandWindow() {
-            log4 = log4net.LogManager.GetLogger("MCEControl");
+            _log4 = log4net.LogManager.GetLogger("MCEControl");
             InitializeComponent();
             testRadio.Checked = true;
         }
@@ -67,7 +67,7 @@ namespace MCEControl {
             TelemetryService.Instance.TrackEvent("listCmds_DoubleClick");
 
             if (listCmds.SelectedItems.Count > 0 && testRadio.Checked) {
-                log4.Debug("listCmds_DoubleClick");
+                _log4.Debug("listCmds_DoubleClick");
                 textBoxSendCommand.Text = listCmds.SelectedItems[0].Text;
                 textBoxSendCommand.Select();
                 Send(textBoxSendCommand.Text);

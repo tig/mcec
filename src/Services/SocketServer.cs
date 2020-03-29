@@ -9,13 +9,10 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using log4net;
 
 namespace MCEControl {
     /// <summary>
@@ -53,10 +50,8 @@ namespace MCEControl {
                     socket.Close();
                 }
             }
-            if (_mainSocket != null) {
-                _mainSocket.Close();
-                _mainSocket = null;
-            }
+            _mainSocket?.Close();
+            _mainSocket = null;
         }
 
         //-----------------------------------------------------------
@@ -150,7 +145,7 @@ namespace MCEControl {
         private void BeginReceive(ServerReplyContext serverReplyContext) {
             Log4.Debug("SocketServer BeginReceive");
             try {
-                serverReplyContext.Socket.BeginReceive(serverReplyContext.DataBuffer, 0,
+                _ = serverReplyContext.Socket.BeginReceive(serverReplyContext.DataBuffer, 0,
                                     serverReplyContext.DataBuffer.Length,
                                     SocketFlags.None,
                                     OnDataReceived,
@@ -168,8 +163,7 @@ namespace MCEControl {
 
             // Remove the reference to the worker socket of the closed client
             // so that this object will get garbage collected
-            Socket socket;
-            _clientList.TryRemove(serverReplyContext.ClientNumber, out socket);
+            _ = _clientList.TryRemove(serverReplyContext.ClientNumber, out var socket);
             if (socket != null) {
                 Log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
                 Interlocked.Decrement(ref _clientCount);
@@ -311,7 +305,7 @@ namespace MCEControl {
                 // Make sure we have a valid socket before trying to use it
                 if ((clientSocket != null)) {
                     try {
-                        clientSocket.Send(Encoding.ASCII.GetBytes(cmd + "\r\n"));
+                        _ = clientSocket.Send(Encoding.ASCII.GetBytes(cmd + "\r\n"));
 
                         SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
                                          "Sent request " + cmd + " to wakeup host.");
@@ -346,8 +340,7 @@ namespace MCEControl {
 
             if (replyContext == null) {
                 foreach (var i in _clientList.Keys) {
-                    Socket client;
-                    if (_clientList.TryGetValue(i, out client)) {
+                    if (_clientList.TryGetValue(i, out var client)) {
                         Reply reply = new ServerReplyContext(this, client, i);
                         Send(text, reply);
                     }
@@ -370,10 +363,8 @@ namespace MCEControl {
             internal Socket Socket { get; set; }
             internal int ClientNumber { get; set; }
 
-
             // Buffer to store the data sent by the client
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "none")]
-            public byte[] DataBuffer = new byte[1024];
+            internal byte[] DataBuffer = new byte[1024];
 
             private readonly SocketServer _server;
 
@@ -394,7 +385,6 @@ namespace MCEControl {
                 _server.Send(text, this);
             }
         }
-
         #endregion
     }
 }

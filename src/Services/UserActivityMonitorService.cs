@@ -15,7 +15,7 @@ namespace MCEControl {
     // Uses a global Windows hook to detect keyboard or mouse activity
     // Based on this post: https://www.codeproject.com/Articles/7294/Processing-Global-Mouse-and-Keyboard-Hooks-in-C
 #pragma warning disable CA1724
-    public sealed class UserActivityMonitorService : IDisposable{
+    public sealed class UserActivityMonitorService : IDisposable {
         private System.DateTime LastTime;
 
         private static readonly Lazy<UserActivityMonitorService> lazy = new Lazy<UserActivityMonitorService>(() => new UserActivityMonitorService());
@@ -23,12 +23,12 @@ namespace MCEControl {
         }
 
         private static Gma.UserActivityMonitor.GlobalEventProvider _userActivityMonitor = null;
-        
+
         public static UserActivityMonitorService Instance => lazy.Value;
         public bool LogActivity { get; set; } = false;
         public string ActivityCmd { get; set; } = "activity";
         public int DebounceTime { get; set; } = 5;
-        public bool UnlockDetection { get; set; }        
+        public bool UnlockDetection { get; set; }
         public bool InputDetection { get; set; }
         /// <summary>
         /// Starts the Activity Monitor. 
@@ -108,7 +108,7 @@ namespace MCEControl {
                 // Desktop has been locked - Pretty good signal there's not going to be any activity
                 // Stop the timer
                 Logger.Instance.Log4.Info($"ActivityMonitor: Session Locked");
-                if (_timer != null) 
+                if (_timer != null)
                     _timer.Enabled = false;
             }
             else if (e.Reason == SessionSwitchReason.SessionUnlock) {
@@ -143,7 +143,7 @@ namespace MCEControl {
                     // what: the count of activity dectected
                     // why: to understand how frequently activity is detected
                     // how is PII protected: the frequency of activity is not PII
-                    TelemetryService.Instance.GetTelemetryClient().GetMetric($"activity Sent").TrackValue(1);
+                    TelemetryService.Instance.TelemetryClient.GetMetric($"activity Sent").TrackValue(1);
 
                     MainWindow.Instance.SendLine(ActivityCmd);
 
@@ -197,28 +197,13 @@ namespace MCEControl {
         void Dispose(bool disposing) {
             if (!disposedValue) {
                 if (disposing) {
-                    // TODO: dispose managed state (managed objects).
-                    if (_timer != null) {
-                        _timer.Dispose();
-                        _timer = null;
-                    }
+                    _timer?.Dispose();
+                    _timer = null;
                 }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
-
                 disposedValue = true;
             }
         }
 
-        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        // ~UserActivityMonitor()
-        // {
-        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-        //   Dispose(false);
-        // }
-
-        // This code added to correctly implement the disposable pattern.
         public void Dispose() {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);

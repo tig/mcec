@@ -35,11 +35,9 @@ namespace MCEControl {
         private void Dispose(bool disposing)
         {
             if (disposing) {
-                if (_serialPort != null)
-                    _serialPort.Close();
+                _serialPort?.Close();
                 _serialPort = null;
-                if (_readThread != null)
-                    _readThread.Abort();
+                _readThread?.Abort();
                 _readThread = null;
             }
         }

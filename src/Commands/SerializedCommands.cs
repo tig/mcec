@@ -48,21 +48,6 @@ namespace MCEControl {
         public SerializedCommands() {
         }
 
-        ///// <summary>
-        ///// Load commands from the .commands file embedded in the .exe resources.
-        ///// </summary>
-        ///// <returns></returns>
-        //public static SerializedCommands LoadBuiltInCommands() {
-        //    // Load the built-in pre-defined commands from an assembly resource
-        //    SerializedCommands cmds = Deserialize(Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.Builtin.commands"));
-        //    if (cmds == null) {
-        //        var msg = $"Error parsing built-in .commands resource.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
-        //        MessageBox.Show(msg, Application.ProductName);
-        //        Logger.Instance.Log4.Info($"Commands: {msg}");
-        //    }
-        //    return cmds;
-        //}
-
         /// <summary>
         /// Load any over-rides from the MCECommands.commands file.
         /// </summary>
@@ -84,24 +69,6 @@ namespace MCEControl {
             }
             catch (FileNotFoundException) {
                 Logger.Instance.Log4.Info($"Commands: {userCommandsFile} was not found");
-
-                //// If the user .commands file is not found, create it
-                //Stream uc = Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.commands");
-                //FileStream ucFS = null;
-                //try {
-                //    ucFS = new FileStream(userCommandsFile, FileMode.Create, FileAccess.ReadWrite);
-                //    uc.CopyTo(ucFS);
-                //}
-                //catch (Exception e) {
-                //    var msg = $"Could not create user-defined commands file ({userCommandsFile}) - {e.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
-                //    MessageBox.Show(msg, Application.ProductName);
-                //    Logger.Instance.Log4.Info($"Commands: {msg}");
-                //    Logger.DumpException(e);
-                //}
-                //finally {
-                //    if (uc != null) uc.Close();
-                //    if (ucFS != null) ucFS.Close();
-                //}
             }
             catch (Exception ex) {
                 var msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
@@ -112,7 +79,6 @@ namespace MCEControl {
             finally {
                 if (fs != null) fs.Close();
             }
-
             return cmds;
         }
 
@@ -138,10 +104,7 @@ namespace MCEControl {
             finally {
                 if (ucFS != null) ucFS.Close();
             }
-
         }
-
-
 
         /// <summary>
         /// Given an XML .commands stream, de-serializes, converting all element and key names to lowercase

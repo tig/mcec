@@ -31,10 +31,10 @@
             this._buttonOk = new System.Windows.Forms.Button();
             this._linkLabelKindelSystems = new System.Windows.Forms.LinkLabel();
             this._labelSummary = new System.Windows.Forms.Label();
-            this.iconMcec = new System.Windows.Forms.PictureBox();
+            this._iconMcec = new System.Windows.Forms.PictureBox();
             this._label1 = new System.Windows.Forms.Label();
-            this.labelVersion = new System.Windows.Forms.Label();
-            ((System.ComponentModel.ISupportInitialize)(this.iconMcec)).BeginInit();
+            this._labelVersion = new System.Windows.Forms.Label();
+            ((System.ComponentModel.ISupportInitialize)(this._iconMcec)).BeginInit();
             this.SuspendLayout();
             // 
             // _labelTitle
@@ -91,14 +91,14 @@
             // 
             // iconMcec
             // 
-            this.iconMcec.Image = ((System.Drawing.Image)(resources.GetObject("iconMcec.Image")));
-            this.iconMcec.InitialImage = null;
-            this.iconMcec.Location = new System.Drawing.Point(8, 16);
-            this.iconMcec.Name = "iconMcec";
-            this.iconMcec.Size = new System.Drawing.Size(192, 160);
-            this.iconMcec.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.iconMcec.TabIndex = 5;
-            this.iconMcec.TabStop = false;
+            this._iconMcec.Image = ((System.Drawing.Image)(resources.GetObject("iconMcec.Image")));
+            this._iconMcec.InitialImage = null;
+            this._iconMcec.Location = new System.Drawing.Point(8, 16);
+            this._iconMcec.Name = "iconMcec";
+            this._iconMcec.Size = new System.Drawing.Size(192, 160);
+            this._iconMcec.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this._iconMcec.TabIndex = 5;
+            this._iconMcec.TabStop = false;
             // 
             // _label1
             // 
@@ -114,12 +114,12 @@
             // 
             // labelVersion
             // 
-            this.labelVersion.AutoSize = true;
-            this.labelVersion.Location = new System.Drawing.Point(220, 64);
-            this.labelVersion.Name = "labelVersion";
-            this.labelVersion.Size = new System.Drawing.Size(78, 13);
-            this.labelVersion.TabIndex = 7;
-            this.labelVersion.Text = "Version a.b.c.d";
+            this._labelVersion.AutoSize = true;
+            this._labelVersion.Location = new System.Drawing.Point(220, 64);
+            this._labelVersion.Name = "labelVersion";
+            this._labelVersion.Size = new System.Drawing.Size(78, 13);
+            this._labelVersion.TabIndex = 7;
+            this._labelVersion.Text = "Version a.b.c.d";
             // 
             // About
             // 
@@ -130,9 +130,9 @@
             this.CancelButton = this._buttonOk;
             this.ClientSize = new System.Drawing.Size(507, 214);
             this.ControlBox = false;
-            this.Controls.Add(this.labelVersion);
+            this.Controls.Add(this._labelVersion);
             this.Controls.Add(this._label1);
-            this.Controls.Add(this.iconMcec);
+            this.Controls.Add(this._iconMcec);
             this.Controls.Add(this._labelSummary);
             this.Controls.Add(this._linkLabelKindelSystems);
             this.Controls.Add(this._buttonOk);
@@ -147,7 +147,7 @@
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "About";
-            ((System.ComponentModel.ISupportInitialize)(this.iconMcec)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this._iconMcec)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 

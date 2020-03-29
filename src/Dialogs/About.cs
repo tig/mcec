@@ -25,8 +25,8 @@ namespace MCEControl {
         private LinkLabel _linkLabelMceController;
         private LinkLabel _linkLabelKindelSystems;
         private Label _labelSummary;
-        private PictureBox iconMcec;
-        private Label labelVersion;
+        private PictureBox _iconMcec;
+        private Label _labelVersion;
         private Label _label1;
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace MCEControl {
             //_linkLabelKindelSystems.Font = Font;
             //_linkLabelMceController.Font = System.Drawing.SystemFonts.;
 
-            labelVersion.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
+            _labelVersion.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
         }
 
         private void ButtonOkClick(object sender, EventArgs e) => Close();

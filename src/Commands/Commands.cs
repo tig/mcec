@@ -12,12 +12,9 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace MCEControl {
-
     /// <summary>
     /// Holds all active Commands. Uses a hash-table for lookup. 
     /// Is the Invoker in the Commands pattern.

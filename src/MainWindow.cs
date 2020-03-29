@@ -19,25 +19,13 @@ using Microsoft.Win32.Security;
 namespace MCEControl {
     public partial class MainWindow : Form {
         // MainWindow is a singleton
-        private static readonly Lazy<MainWindow> lazy = new Lazy<MainWindow>(() => new MainWindow());
-        public static MainWindow Instance { get { return lazy.Value; } }
+        private static readonly Lazy<MainWindow> _lazy = new Lazy<MainWindow>(() => new MainWindow());
+        public static MainWindow Instance { get { return _lazy.Value; } }
 
-        // Persisted application settings
-        private AppSettings settings;
-
-        // Protocol objects
-        private SocketServer server;
-        public SocketServer Server { get { return server; } }
-
-        private SocketClient client;
-        public SocketClient Client { get { return client; } }
-        private SerialServer serialServer;
-        public SerialServer SerialServer { get { return serialServer; } }
-
-
-        // Commands
-        private Commands commands;
-        public Commands Invoker { get => commands; set => commands = value; }
+        public SocketServer Server { get; private set; }
+        public SocketClient Client { get; private set; }
+        public SerialServer SerialServer { get; private set; }
+        public Commands Invoker { get; set; }
 
         private CommandWindow cmdWindow;
 
@@ -46,7 +34,8 @@ namespace MCEControl {
         private bool shuttingDown;
 
         // Settings
-        public AppSettings Settings { get => settings; set => settings = value; }
+        public AppSettings Settings { get; set; }
+
         // If running from default install location (in Program Files) find the
         // .commands, .settings, and .log files in %appdata%. Otherwise find them in the 
         // directory MCEControl.exe was run from.
@@ -80,24 +69,22 @@ namespace MCEControl {
                 SendInputCommand.ShiftKey("lwin", false);
                 SendInputCommand.ShiftKey("rwin", false);
 
-                if (components != null) {
-                    components.Dispose();
+                components?.Dispose();
+
+                if (Server != null) {
+                    // remove our notification handler
+                    Server.Notifications -= serverSocketCallbackHandler;
+                    Server.Dispose();
+                }
+                if (Client != null) {
+                    // remove our notification handler
+                    Client.Notifications -= clientSocketNotificationHandler;
+                    Client.Dispose();
                 }
 
-                if (server != null) {
-                    // remove our notification handler
-                    server.Notifications -= serverSocketCallbackHandler;
-                    server.Dispose();
-                }
-                if (client != null) {
-                    // remove our notification handler
-                    client.Notifications -= clientSocketNotificationHandler;
-                    client.Dispose();
-                }
-
-                if (serialServer != null) {
-                    serialServer.Notifications -= HandleSerialServerNotifications;
-                    serialServer.Dispose();
+                if (SerialServer != null) {
+                    SerialServer.Notifications -= HandleSerialServerNotifications;
+                    SerialServer.Dispose();
                 }
             }
             base.Dispose(disposing);
@@ -259,11 +246,11 @@ namespace MCEControl {
         }
 
         private void StartServer() {
-            if (server == null) {
+            if (Server == null) {
                 Logger.Instance.Log4.Info("Server: Starting...");
-                server = new SocketServer();
-                server.Notifications += serverSocketCallbackHandler;
-                server.Start(Settings.ServerPort);
+                Server = new SocketServer();
+                Server.Notifications += serverSocketCallbackHandler;
+                Server.Start(Settings.ServerPort);
                 sendAwakeMenuItem.Enabled = Settings.WakeupEnabled;
             }
             else
@@ -271,28 +258,28 @@ namespace MCEControl {
         }
 
         private void StopServer() {
-            if (server != null) {
+            if (Server != null) {
                 Logger.Instance.Log4.Info("Server: Stopping...");
                 // remove our notification handler
-                server.Stop();
-                server = null;
+                Server.Stop();
+                Server = null;
                 sendAwakeMenuItem.Enabled = false;
             }
         }
 
         private void ToggleServer() {
-            if (server == null)
+            if (Server == null)
                 StartServer();
             else
                 StopServer();
         }
 
         private void StartSerialServer() {
-            if (serialServer == null) {
+            if (SerialServer == null) {
                 Logger.Instance.Log4.Info("Serial: Starting...");
-                serialServer = new SerialServer();
-                serialServer.Notifications += HandleSerialServerNotifications;
-                serialServer.Start(Settings.SerialServerPortName,
+                SerialServer = new SerialServer();
+                SerialServer.Notifications += HandleSerialServerNotifications;
+                SerialServer.Start(Settings.SerialServerPortName,
                     Settings.SerialServerBaudRate,
                     Settings.SerialServerParity,
                     Settings.SerialServerDataBits,
@@ -304,34 +291,34 @@ namespace MCEControl {
         }
 
         private void StopSerialServer() {
-            if (serialServer != null) {
+            if (SerialServer != null) {
                 Logger.Instance.Log4.Info("Serial: Stopping...");
                 // remove our notification handler
-                serialServer.Stop();
-                serialServer = null;
+                SerialServer.Stop();
+                SerialServer = null;
             }
         }
 
         private void StartClient(bool delay = false) {
-            if (client == null) {
+            if (Client == null) {
                 Logger.Instance.Log4.Info("Client: Starting...");
-                client = new SocketClient(Settings);
-                client.Notifications += clientSocketNotificationHandler;
-                client.Start(delay);
+                Client = new SocketClient(Settings);
+                Client.Notifications += clientSocketNotificationHandler;
+                Client.Start(delay);
             }
         }
 
         private void StopClient() {
-            if (client != null) {
+            if (Client != null) {
                 cmdWindow.Visible = false;
                 Logger.Instance.Log4.Info("Client: Stopping...");
-                client.Stop();
-                client = null;
+                Client.Stop();
+                Client = null;
             }
         }
 
         private void ToggleClient() {
-            if (client == null)
+            if (Client == null)
                 StartClient();
             else
                 StopClient();
@@ -397,13 +384,13 @@ namespace MCEControl {
         // Sends a line of text (adds a "\n" to end) to connected client and server
         public void SendLine(string v) {
             //Logger.Instance.Log4.Info($"Send: {v}");
-            if (client != null)
-                client.Send(v + "\n");
-            else if (server != null)
-                server.Send(v + "\n");
+            if (Client != null)
+                Client.Send(v + "\n");
+            else if (Server != null)
+                Server.Send(v + "\n");
 
-            if (serialServer != null)
-                serialServer.Send(v + "\n");
+            if (SerialServer != null)
+                SerialServer.Send(v + "\n");
         }
 
         private void SetStatus(string text) {
@@ -419,7 +406,7 @@ namespace MCEControl {
             if (statusStrip.InvokeRequired)
                 statusStrip.BeginInvoke((Action)(() => { SetServerStatus(status); }));
             else {
-                statusStripServer.Text = $"Server on port {settings.ServerPort}";
+                statusStripServer.Text = $"Server on port {Settings.ServerPort}";
                 switch (status) {
                     case ServiceStatus.Started:
                         statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
@@ -445,7 +432,7 @@ namespace MCEControl {
             if (statusStrip.InvokeRequired)
                 statusStrip.BeginInvoke((Action)(() => { SetClientStatus(status); }));
             else {
-                statusStripClient.Text = $"Client {settings.ClientHost}:{Settings.ClientPort}";
+                statusStripClient.Text = $"Client {Settings.ClientHost}:{Settings.ClientPort}";
                 switch (status) {
                     case ServiceStatus.Started:
                         statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
@@ -471,7 +458,7 @@ namespace MCEControl {
                 statusStrip.BeginInvoke((Action)(() => { SetSerialStatus(status); }));
             else {
                 // https://en.wikipedia.org/wiki/8-N-1
-                statusStripSerial.Text = $"Serial {settings.SerialServerBaudRate}/{settings.SerialServerPortName} {settings.SerialServerDataBits}-{settings.SerialServerParity}-{settings.SerialServerStopBits}-{settings.SerialServerHandshake}";
+                statusStripSerial.Text = $"Serial {Settings.SerialServerBaudRate}/{Settings.SerialServerPortName} {Settings.SerialServerDataBits}-{Settings.SerialServerParity}-{Settings.SerialServerStopBits}-{Settings.SerialServerHandshake}";
                 switch (status) {
                     case ServiceStatus.Started:
                         statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
@@ -574,7 +561,7 @@ namespace MCEControl {
                     s = $"Started on port {Settings.ServerPort}";
                     //SetStatus(s);
                     if (Settings.WakeupEnabled)
-                        server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
+                        Server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
                             Settings.WakeupPort);
                     break;
 
@@ -590,7 +577,7 @@ namespace MCEControl {
                     s = "Stopped";
                     //SetStatus("Client/Sever Not Active");
                     if (Settings.WakeupEnabled)
-                        server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost,
+                        Server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost,
                             Settings.WakeupPort);
                     break;
             }
@@ -737,7 +724,7 @@ namespace MCEControl {
         private void sendAwakeMenuItem_Click(object sender, EventArgs e) {
             TelemetryService.Instance.TrackEvent("sendAwakeMenuItem");
 
-            server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
+            Server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
         }
 
         private void commandsMenuItem_Click(object sender, EventArgs e) {

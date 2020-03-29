@@ -21,13 +21,11 @@ namespace MCEControl {
         public static TelemetryService Instance => _lazy.Value;
 
         public bool TelemetryEnabled { get; set; }
-        public Stopwatch RunTime { get => _runTime; set => _runTime = value; }
+        public Stopwatch RunTime { get; set; }
 
-        public TelemetryClient GetTelemetryClient() => _telemetry;
-        private TelemetryClient _telemetry;
-        TelemetryConfiguration _config = TelemetryConfiguration.CreateDefault();
+        public TelemetryClient TelemetryClient { get; private set; }
 
-        private Stopwatch _runTime;
+        private TelemetryConfiguration _config = TelemetryConfiguration.CreateDefault();
 
         public void Start(string appName, IDictionary<string, string> startProperties = null) {
             RunTime = System.Diagnostics.Stopwatch.StartNew();
@@ -48,18 +46,18 @@ namespace MCEControl {
             _config.TelemetryChannel.DeveloperMode = Debugger.IsAttached;
 #endif
 
-            _telemetry = new TelemetryClient(_config);
+            TelemetryClient = new TelemetryClient(_config);
 
-            _telemetry.Context.Component.Version = FileVersionInfo.GetVersionInfo(Assembly.GetAssembly(typeof(TelemetryService)).Location).FileVersion;
-            _telemetry.Context.Session.Id = Guid.NewGuid().ToString();
-            _telemetry.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
+            TelemetryClient.Context.Component.Version = FileVersionInfo.GetVersionInfo(Assembly.GetAssembly(typeof(TelemetryService)).Location).FileVersion;
+            TelemetryClient.Context.Session.Id = Guid.NewGuid().ToString();
+            TelemetryClient.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
             // Anonymyize user ID
             var h = SHA256.Create();
             h.Initialize();
             h.ComputeHash(Encoding.UTF8.GetBytes($"{Environment.UserName}/{Environment.MachineName}"));
-            _telemetry.Context.User.Id = Convert.ToBase64String(h.Hash);
+            TelemetryClient.Context.User.Id = Convert.ToBase64String(h.Hash);
             // See: https://stackoverflow.com/questions/42861344/how-to-overwrite-or-ignore-cloud-roleinstance-with-application-insights
-            _telemetry.Context.Cloud.RoleInstance = _telemetry.Context.User.Id;
+            TelemetryClient.Context.Cloud.RoleInstance = TelemetryClient.Context.User.Id;
 
             // TELEMETRY: 
             // what: application properties
@@ -71,7 +69,7 @@ namespace MCEControl {
             // Merged passed in properites
             startProperties.Concat(new Dictionary<string, string> {
                 ["app"] = appName,
-                ["version"] = _telemetry.Context.Component.Version,
+                ["version"] = TelemetryClient.Context.Component.Version,
                 ["os"] = Environment.OSVersion.ToString(),
                 ["arch"] = Environment.Is64BitProcess ? "x64" : "x86",
                 ["dotNetVersion"] = Environment.Version.ToString()
@@ -93,12 +91,12 @@ namespace MCEControl {
             Task.Delay(1000).Wait();
         }
         public void SetUser(string user) {
-            _telemetry.Context.User.AuthenticatedUserId = user;
+            TelemetryClient.Context.User.AuthenticatedUserId = user;
         }
 
         public void TrackEvent(string key, IDictionary<string, string> properties = null, IDictionary<string, double> metrics = null) {
-            if (TelemetryEnabled && _telemetry != null) {
-                _telemetry.TrackEvent(key, properties, metrics);
+            if (TelemetryEnabled && TelemetryClient != null) {
+                TelemetryClient.TrackEvent(key, properties, metrics);
             }
         }
 
@@ -106,15 +104,15 @@ namespace MCEControl {
             if (ex != null && log is true)
                 Logger.Instance.Log4.Debug($"Exception: {ex.Message}");
 
-            if (_telemetry != null && ex != null && TelemetryEnabled) {
+            if (TelemetryClient != null && ex != null && TelemetryEnabled) {
                 var telex = new Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry(ex);
-                _telemetry.TrackException(telex);
+                TelemetryClient.TrackException(telex);
                 Flush();
             }
         }
         internal void Flush() {
-            if (_telemetry != null)
-                _telemetry.Flush();
+            if (TelemetryClient != null)
+                TelemetryClient.Flush();
         }
     }
 }
