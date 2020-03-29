@@ -95,7 +95,6 @@ namespace MCEControl {
                     RollingFileAppender a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
                     a.File = value;
                     a.ActivateOptions();
-                    log4.Info($"Logger: Logging to {value}");
                 }
             }
         }
@@ -153,11 +152,11 @@ namespace MCEControl {
         public static void WriteExceptionInfo(Exception ex) {
             if (ex is null) throw new ArgumentNullException(nameof(ex));
             Logger.Instance.Log4.Debug($"--------- Exception Data ---------");
-            Logger.Instance.Log4.Debug($"Message: {ex.FullMessage()}");
+            Logger.Instance.Log4.Debug($"Message:        {ex.FullMessage()}");
             Logger.Instance.Log4.Debug($"Exception Type: {ex.GetType().FullName}");
-            Logger.Instance.Log4.Debug($"Source: {ex.Source}");
-            Logger.Instance.Log4.Debug($"StrackTrace: {ex.StackTrace}");
-            Logger.Instance.Log4.Debug($"TargetSite: {ex.TargetSite}");
+            Logger.Instance.Log4.Debug($"Source:         {ex.Source}");
+            Logger.Instance.Log4.Debug($"StrackTrace:    {ex.StackTrace}");
+            Logger.Instance.Log4.Debug($"TargetSite:     {ex.TargetSite}");
             Logger.Instance.Log4.Debug($"--------- Full Exception ---------");
             Logger.Instance.Log4.Debug($"{ex.ToString()}");
         }

@@ -269,7 +269,7 @@ namespace MCEControl {
                     break;
 
                 default:
-                    Logger.Instance.Log4.Info($"ShiftKey: No shift key specified.");
+                    Logger.Instance.Log4.Info($"ShiftKey: No shift key specified");
                     break;
             }
         }

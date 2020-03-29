@@ -59,8 +59,7 @@ namespace MCEControl {
             ShowInTaskbar = true;
 
             Program.CheckVersion();
-            if (TelemetryService.Instance.TelemetryEnabled)
-                Logger.Instance.Log4.Info("Telemetry is enabled.");
+            Logger.Instance.Log4.Info($"Telemetry: {(TelemetryService.Instance.TelemetryEnabled ? "Enabled": "Disabled")}");
 
             SetStatus("");
             sendAwakeMenuItem.Enabled = false;
@@ -74,6 +73,7 @@ namespace MCEControl {
             if (disposing) {
                 // When the app exits we need to un-shift any modify keys that might
                 // have been pressed or they'll still be stuck after exit
+                Logger.Instance.Log4.Debug("Ensuring shift key modifiers are reset...");
                 SendInputCommand.ShiftKey("shift", false);
                 SendInputCommand.ShiftKey("ctrl", false);
                 SendInputCommand.ShiftKey("alt", false);
@@ -173,12 +173,14 @@ namespace MCEControl {
                 notifyIcon.Visible = false;
             else {
                 cmdWindow.RefreshList();
-                Logger.Instance.Log4.Info($"{Invoker.Values.Cast<Command>().Count(cmd => (cmd.Enabled))} commands enabled ({Invoker.Values.Cast<Command>().Count(cmd => (!cmd.Enabled))} commands disabled).");
+                Logger.Instance.Log4.Info($"Commands: {Invoker.Values.Cast<Command>().Count(cmd => (cmd.Enabled))} " +
+                    $"commands enabled ({Invoker.Values.Cast<Command>().Count(cmd => (!cmd.Enabled))} commands disabled).");
             }
         }
 
         private void mainWindow_Closing(object sender, CancelEventArgs e) {
             if (!shuttingDown) {
+                Logger.Instance.Log4.Info("Hiding Main Window...");
                 // If we're NOT shutting down (the user hit the close button or pressed
                 // CTRL-F4) minimize to tray.
                 e.Cancel = true;
@@ -188,15 +190,13 @@ namespace MCEControl {
                 Hide();
             }
             else {
+                Logger.Instance.Log4.Info("Closing Main Window...");
                 // Save Commands
-                Logger.Instance.Log4.Info($@"Saving {Program.ConfigPath}MCEControl.commands...");
-
                 // Stop file system watcher
                 watcher.Dispose();
                 watcher = null;
 
                 Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
-                Logger.Instance.Log4.Info("Exiting...");
                 TelemetryService.Instance.Stop();
             }
         }
@@ -230,14 +230,12 @@ namespace MCEControl {
         }
 
         public void ShutDown() {
-
             if (this.InvokeRequired) {
-                Logger.Instance.Log4.Info("ShutDown InvokeRequired");
                 this.BeginInvoke((MethodInvoker)delegate () { ShutDown(); });
                 return;
             }
 
-            Logger.Instance.Log4.Info("ShutDown");
+            Logger.Instance.Log4.Info("Exiting app...");
             shuttingDown = true;
 
             Stop();
@@ -522,12 +520,12 @@ namespace MCEControl {
 
                 case ServiceNotification.ClientConnected:
                     Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                    s = $"Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint} connected.";
+                    s = $"Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint} connected";
                     break;
 
                 case ServiceNotification.ClientDisconnected:
                     Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                    s = $"Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint} has disconnected.";
+                    s = $"Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint} has disconnected";
                     break;
 
                 case ServiceNotification.Wakeup:
@@ -611,11 +609,11 @@ namespace MCEControl {
                     }
                     else if (status == ServiceStatus.Stopped) {
                         Logger.Instance.Log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Stopped");
-                        s = "Stopped.";
+                        s = "Stopped";
                     }
                     else if (status == ServiceStatus.Sleeping) {
                         Logger.Instance.Log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Sleeping");
-                        s = $"Waiting {(Settings.ClientDelayTime / 1000)} seconds to connect.";
+                        s = $"Waiting {(Settings.ClientDelayTime / 1000)} seconds to connect";
                     }
                     break;
 
@@ -656,7 +654,7 @@ namespace MCEControl {
                             break;
 
                         case ServiceStatus.Stopped:
-                            s = "SerialServer: Stopped.";
+                            s = "SerialServer: Stopped";
                             //SetStatus("Serial Server Not Active");
                             break;
                     }

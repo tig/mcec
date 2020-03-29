@@ -61,7 +61,7 @@ namespace MCEControl {
             // BUGBUG: If app is started with the session unlocked (which will be most of the time), the Session Unlocked Timer
             // does not start until a user input is detected. There is no documented way to detect whehter a session is unlocked.
             // This is not a big deal, but is a bug.
-            Logger.Instance.Log4.Info($"ActivityMonitor: Start - Debounce Time set to {_debounceTime} seconds.");
+            Logger.Instance.Log4.Info($"ActivityMonitor: Start - Debounce Time set to {_debounceTime} seconds");
 
             // TELEMETRY: 
             // what: when activity montioring is turned off
@@ -85,7 +85,7 @@ namespace MCEControl {
         }
 
         public static void Stop() {
-            Logger.Instance.Log4.Info($"ActivityMonitor: Stop.");
+            Logger.Instance.Log4.Info($"ActivityMonitor: Stop");
             // TELEMETRY: 
             // what: when activity montioring is turned off
             // why: to understand how user trun activity monitoring on and off
@@ -104,7 +104,7 @@ namespace MCEControl {
             if (e.Reason == SessionSwitchReason.SessionLock) {
                 // Desktop has been locked - Pretty good signal there's not going to be any activity
                 // Stop the timer
-                Logger.Instance.Log4.Info($"ActivityMonitor: Session Locked.");
+                Logger.Instance.Log4.Info($"ActivityMonitor: Session Locked");
                 if (_timer != null) 
                     _timer.Enabled = false;
             }
@@ -112,15 +112,15 @@ namespace MCEControl {
                 // Desktop has been Unlocked - this is a signal there's activity. 
                 // Start a repeating timer (using the same duration as debounce) 
 
-                Logger.Instance.Log4.Info($"ActivityMonitor: Session Unlocked.");
+                Logger.Instance.Log4.Info($"ActivityMonitor: Session Unlocked");
                 StartSessionUnlockedTimer();
                 _timer.Enabled = true;
             }
         }
 
         private void Timer_Tick(object sender, EventArgs e) {
-            //Logger.Instance.Log4.Info($"ActivityMonitor: Tick.");
-            this.Activity("Session is unlocked (tick).");
+            //Logger.Instance.Log4.Info($"ActivityMonitor: Tick");
+            this.Activity("Session is unlocked (tick)");
         }
 
         private void Activity(string logInfo) {

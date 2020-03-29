@@ -58,7 +58,7 @@ namespace MCEControl {
         }
 
         private void OnChanged(object source, FileSystemEventArgs e) {
-            Logger.Instance.Log4.Info($"Commands:{e.FullPath} changed.");
+            Logger.Instance.Log4.Info($"Commands:{e.FullPath} changed");
             TelemetryService.Instance.TrackEvent("Commands file change detected");
             OnChangedEvent();
         }

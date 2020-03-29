@@ -20,9 +20,10 @@ namespace MCEControl {
 
             // Start logging
             Logger.Instance.LogFile = $@"{ConfigPath}MCEControl.log";
-            Logger.Instance.Log4.Debug("Main");
+            Logger.Instance.Log4.Debug($"------ START: v{Application.ProductVersion} - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()} ------");
 
             TelemetryService.Instance.Start("MCE Controller");
+
             UpdateService.Instance.GotLatestVersion += Instance_GotLatestVersion;
 
             // TODO: Update to check for 4.7 or newer
@@ -34,6 +35,9 @@ namespace MCEControl {
             // Load AppSettings
             MainWindow.Instance.Settings = AppSettings.Deserialize($@"{ConfigPath}{AppSettings.SettingsFileName}");
             Application.Run(MainWindow.Instance);
+
+            UpdateService.Instance.GotLatestVersion += Instance_GotLatestVersion;
+            Logger.Instance.Log4.Debug($"------ END runtime: {TelemetryService.Instance.RunTime.Elapsed:g} ------");
         }
 
         internal static bool IsNet45OrNewer() {
@@ -54,7 +58,7 @@ namespace MCEControl {
         }
                     
         internal static void CheckVersion() {
-            Logger.Instance.Log4.Info($"MCE Controller Version: {Application.ProductVersion}");
+            Logger.Instance.Log4.Info($"MCE Controller v{Application.ProductVersion} - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()}");
             UpdateService.Instance.GetLatestStableVersionAsync().ConfigureAwait(false);
         }
 
@@ -69,10 +73,10 @@ namespace MCEControl {
             }
             else if (UpdateService.Instance.CompareVersions() > 0) {
                 Logger.Instance.Log4.Info(
-                    $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version}).");
+                    $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version})");
             }
             else {
-                Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller.");
+                Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller");
             }
         }
 
