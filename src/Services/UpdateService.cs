@@ -145,7 +145,7 @@ namespace MCEControl {
             };
             try {
                 p.Start();
-                p.WaitForInputIdle(1000);
+                //p.WaitForInputIdle(1000);
             } catch (Win32Exception we) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: {_tempFilename} failed to run with error: {we.Message}");
                 return;
