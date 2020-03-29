@@ -192,7 +192,7 @@ namespace MCEControl {
                 if (vkcode > VirtualKeyCode.HELP && vkcode < VirtualKeyCode.LWIN)
                     s = $"{Char.ToUpper((char)vkcode, CultureInfo.InvariantCulture)}";
                 else
-                    s = "vk_" + vkcode.ToString();
+                    s = "VK_" + vkcode.ToString();
                 if (Alt) s = "Alt-" + s;
                 if (Ctrl) s = "Ctrl-" + s;
                 if (Shift) s = "Shift-" + s;
