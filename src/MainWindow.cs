@@ -43,15 +43,15 @@ namespace MCEControl {
         public MainWindow() {
             InitializeComponent();
             Logger.Instance.LogTextBox = logTextBox;
+            logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, MainMenuStrip.Font.SizeInPoints - 1,
+                System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
 
             notifyIcon.Icon = Icon;
             ShowInTaskbar = true;
 
-            Program.CheckVersion();
-            Logger.Instance.Log4.Info($"Telemetry: {(TelemetryService.Instance.TelemetryEnabled ? "Enabled": "Disabled")}");
-
             SetStatus("");
             sendAwakeMenuItem.Enabled = false;
+            installLatestVersionMenuItem.Enabled = false;
         }
 
         /// <summary>
@@ -86,6 +86,8 @@ namespace MCEControl {
                     SerialServer.Notifications -= HandleSerialServerNotifications;
                     SerialServer.Dispose();
                 }
+
+                UpdateService.Instance.GotLatestVersion -= GotLatestVersionHandler;
             }
             base.Dispose(disposing);
         }
@@ -105,9 +107,26 @@ namespace MCEControl {
         }
 
         private void mainWindow_Load(object sender, EventArgs e) {
-            Logger.Instance.Log4.Info($"Logger: Logging to {Logger.Instance.LogFile}");
-            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Instance.Settings.TextBoxLogThreshold];
+            Logger.Instance.Log4.Info($"MCE Controller v{System.Windows.Forms.Application.ProductVersion}" +
+                $" - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")}" +
+                $" - .NET: {Environment.Version.ToString()}");
 
+            // Load AppSettings
+            Settings = AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
+
+            // Configure logging (some logging already happened).
+            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Instance.Settings.TextBoxLogThreshold];
+            Logger.Instance.Log4.Info($"Logger: Logging to {Logger.Instance.LogFile}");
+
+            // Telemetry
+            TelemetryService.Instance.Start("MCE Controller");
+            Logger.Instance.Log4.Info($"Telemetry: {(TelemetryService.Instance.TelemetryEnabled ? "Enabled" : "Disabled")}");
+
+            // Updates
+            UpdateService.Instance.GotLatestVersion += GotLatestVersionHandler;
+            UpdateService.Instance.CheckVersion();
+
+            // Commands
             if (cmdWindow == null)
                 cmdWindow = new CommandWindow();
 
@@ -121,8 +140,6 @@ namespace MCEControl {
                 Win32.PostMessage(Handle, (UInt32)WM.SYSCOMMAND, (UInt32)SC.CLOSE, 0);
             }
 
-            logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, MainMenuStrip.Font.SizeInPoints - 1,
-                System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             SystemEvents.UserPreferenceChanged += new UserPreferenceChangedEventHandler(SystemEvents_UserPreferenceChanged);
 
             // Location can not be changed in constructor, has to be done here
@@ -137,6 +154,13 @@ namespace MCEControl {
 
             SetStatus($"Version: {Application.ProductVersion}");
             Start();
+        }
+
+        private void GotLatestVersionHandler(object sender, Version e) {
+            if (cmdWindow.InvokeRequired)
+                cmdWindow.BeginInvoke((Action)(() => { GotLatestVersionHandler(sender, e); }));
+            else if (UpdateService.Instance.CompareVersions() < 0)
+                installLatestVersionMenuItem.Enabled = true;
         }
 
         private void CmdTable_CommandsChangedEvent(object sender, EventArgs e) {
@@ -753,7 +777,7 @@ namespace MCEControl {
         private void updatesMenuItem_Click(object sender, EventArgs e) {
             TelemetryService.Instance.TrackEvent("updatesMenuItem");
 
-            Program.CheckVersion();
+            UpdateService.Instance.StartUpgrade();
         }
 
         private void statusStripClient_Click(object sender, EventArgs e) {

@@ -20,7 +20,7 @@ namespace MCEControl
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripMenuItem docsMenuItem;
         private ToolStripSeparator toolStripSeparator3;
-        private ToolStripMenuItem checkUpdatesMenuItem;
+        private ToolStripMenuItem installLatestVersionMenuItem;
         private ToolStripSeparator toolStripSeparator4;
         private ToolStripMenuItem aboutMenuItem;
         private TextBoxExt logTextBox;
@@ -74,7 +74,7 @@ namespace MCEControl
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.docsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
-            this.checkUpdatesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.installLatestVersionMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.aboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.logTextBox = new MCEControl.TextBoxExt();
@@ -282,7 +282,7 @@ namespace MCEControl
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.docsMenuItem,
             this.toolStripSeparator3,
-            this.checkUpdatesMenuItem,
+            this.installLatestVersionMenuItem,
             this.toolStripSeparator4,
             this.aboutMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
@@ -292,31 +292,31 @@ namespace MCEControl
             // docsMenuItem
             // 
             this.docsMenuItem.Name = "docsMenuItem";
-            this.docsMenuItem.Size = new System.Drawing.Size(170, 22);
+            this.docsMenuItem.Size = new System.Drawing.Size(189, 22);
             this.docsMenuItem.Text = "&Documentation...";
             this.docsMenuItem.Click += new System.EventHandler(this.docsMenuItem_Click);
             // 
             // toolStripSeparator3
             // 
             this.toolStripSeparator3.Name = "toolStripSeparator3";
-            this.toolStripSeparator3.Size = new System.Drawing.Size(167, 6);
+            this.toolStripSeparator3.Size = new System.Drawing.Size(186, 6);
             // 
-            // checkUpdatesMenuItem
+            // installLatestVersionMenuItem
             // 
-            this.checkUpdatesMenuItem.Name = "checkUpdatesMenuItem";
-            this.checkUpdatesMenuItem.Size = new System.Drawing.Size(170, 22);
-            this.checkUpdatesMenuItem.Text = "&Check for updates";
-            this.checkUpdatesMenuItem.Click += new System.EventHandler(this.updatesMenuItem_Click);
+            this.installLatestVersionMenuItem.Name = "installLatestVersionMenuItem";
+            this.installLatestVersionMenuItem.Size = new System.Drawing.Size(189, 22);
+            this.installLatestVersionMenuItem.Text = "&Install Latest Version...";
+            this.installLatestVersionMenuItem.Click += new System.EventHandler(this.updatesMenuItem_Click);
             // 
             // toolStripSeparator4
             // 
             this.toolStripSeparator4.Name = "toolStripSeparator4";
-            this.toolStripSeparator4.Size = new System.Drawing.Size(167, 6);
+            this.toolStripSeparator4.Size = new System.Drawing.Size(186, 6);
             // 
             // aboutMenuItem
             // 
             this.aboutMenuItem.Name = "aboutMenuItem";
-            this.aboutMenuItem.Size = new System.Drawing.Size(170, 22);
+            this.aboutMenuItem.Size = new System.Drawing.Size(189, 22);
             this.aboutMenuItem.Text = "&About...";
             this.aboutMenuItem.Click += new System.EventHandler(this.aboutMenuItem_Click);
             // 

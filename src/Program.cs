@@ -17,14 +17,9 @@ namespace MCEControl {
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
-
             // Start logging
             Logger.Instance.LogFile = $@"{ConfigPath}MCEControl.log";
             Logger.Instance.Log4.Debug($"------ START: v{Application.ProductVersion} - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()} ------");
-
-            TelemetryService.Instance.Start("MCE Controller");
-
-            UpdateService.Instance.GotLatestVersion += Instance_GotLatestVersion;
 
             // TODO: Update to check for 4.7 or newer
             if (!IsNet45OrNewer()) {
@@ -32,11 +27,8 @@ namespace MCEControl {
                 return;
             }
 
-            // Load AppSettings
-            MainWindow.Instance.Settings = AppSettings.Deserialize($@"{ConfigPath}{AppSettings.SettingsFileName}");
             Application.Run(MainWindow.Instance);
 
-            UpdateService.Instance.GotLatestVersion += Instance_GotLatestVersion;
             Logger.Instance.Log4.Debug($"------ END runtime: {TelemetryService.Instance.RunTime.Elapsed:g} ------");
         }
 
@@ -58,33 +50,7 @@ namespace MCEControl {
             MessageBox.Show($"Unhandled Exception: {ex.Message}\n\n" +
                 $"See log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec", Application.ProductName);
         }
-                    
-        internal static void CheckVersion() {
-            Logger.Instance.Log4.Info($"MCE Controller v{Application.ProductVersion}" +
-                $" - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()}");
-            UpdateService.Instance.GetLatestStableVersionAsync().ConfigureAwait(false);
-        }
-
-        private static void Instance_GotLatestVersion(object sender, Version version) {
-            if (version == null && !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
-                Logger.Instance.Log4.Info(
-                    $"Could not access tig.github.io/mcec to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
-            }
-            else if (UpdateService.Instance.CompareVersions() < 0) {
-                Logger.Instance.Log4.Info("------------------------------------------------");
-
-                Logger.Instance.Log4.Info($"A newer version of MCE Controller ({version}) is available at");
-                Logger.Instance.Log4.Info($"   {UpdateService.Instance.DownloadUri}");
-                Logger.Instance.Log4.Info("------------------------------------------------");
-            }
-            else if (UpdateService.Instance.CompareVersions() > 0) {
-                Logger.Instance.Log4.Info(
-                    $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version})");
-            }
-            else {
-                Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller");
-            }
-        }
+ 
 
         internal static string ConfigPath {
             get {
