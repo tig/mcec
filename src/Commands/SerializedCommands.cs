@@ -70,7 +70,7 @@ namespace MCEControl {
             SerializedCommands cmds = null;
             FileStream fs = null;
             try {
-                Logger.Instance.Log4.Info($"Commands: Loading user-defined commands from {userCommandsFile}.");
+                Logger.Instance.Log4.Info($"Commands: Loading user-defined commands from {userCommandsFile}");
                 fs = new FileStream(userCommandsFile, FileMode.Open, FileAccess.Read);
                 cmds = Deserialize(fs);
 
@@ -83,7 +83,7 @@ namespace MCEControl {
                 }
             }
             catch (FileNotFoundException) {
-                Logger.Instance.Log4.Info($"Commands: {userCommandsFile} was not found.");
+                Logger.Instance.Log4.Info($"Commands: {userCommandsFile} was not found");
 
                 //// If the user .commands file is not found, create it
                 //Stream uc = Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.commands");

@@ -21,6 +21,7 @@ namespace MCEControl {
         public static TelemetryService Instance => _lazy.Value;
 
         public bool TelemetryEnabled { get; set; }
+        public Stopwatch RunTime { get => _runTime; set => _runTime = value; }
 
         public TelemetryClient GetTelemetryClient() => _telemetry;
         private TelemetryClient _telemetry;
@@ -29,7 +30,7 @@ namespace MCEControl {
         private Stopwatch _runTime;
 
         public void Start(string appName, IDictionary<string, string> startProperties = null) {
-            _runTime = System.Diagnostics.Stopwatch.StartNew();
+            RunTime = System.Diagnostics.Stopwatch.StartNew();
 
             var val = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller", "Telemetry", 0);
             TelemetryEnabled = (val != null && val.ToString() == "1") ? true : false;
@@ -84,7 +85,7 @@ namespace MCEControl {
             // why: to understand how long the app stays running
             // how is PII protected: the time the app runs is not PII
             TrackEvent("Application Stopped", metrics: new Dictionary<string, double>
-                {{"runTime", _runTime.Elapsed.TotalMilliseconds}});
+                {{"runTime", RunTime.Elapsed.TotalMilliseconds}});
 
             // before exit, flush the remaining data
             Flush();

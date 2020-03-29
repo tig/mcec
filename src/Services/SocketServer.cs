@@ -281,11 +281,11 @@ namespace MCEControl {
         public void SendAwakeCommand(String cmd, String host, int port) {
             Log4.Debug("SocketServer SendAwakeCommand");
             if (String.IsNullOrEmpty(host)) {
-                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "No wakeup host specified.");
+                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "No wakeup host specified");
                 return;
             }
             if (port == 0) {
-                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "Invalid port.");
+                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "Invalid port");
                 return;
             }
             try {

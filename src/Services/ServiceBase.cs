@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using log4net;
 
 namespace MCEControl {
@@ -74,7 +75,7 @@ namespace MCEControl {
         public virtual void Send(string text, Reply replyContext = null) {
             if (text == null) throw new ArgumentNullException(nameof(text));
 
-            Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending \"{text}\"");
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending \"{Regex.Escape(text)}\"");
 
             // TELEMETRY: 
             // what: the number of commands of each type (key) sent

@@ -59,14 +59,14 @@ namespace MCEControl {
 
             foreach (Command cmd in SendMessageCommand.BuiltInCommands)
                 commands.Add(cmd);
-            Logger.Instance.Log4.Info($"{commands.GetType().Name}: {commands.Count} built-in commands defined.");
+            Logger.Instance.Log4.Info($"{commands.GetType().Name}: {commands.Count} built-in commands defined");
 
             // Load the .commands file that's built in as an EXE resource
             // SerializedCommands serializedCmds;
             //serializedCmds = SerializedCommands.LoadBuiltInCommands();
             //foreach (Command cmd in serializedCmds.commandArray)
             //    commands.Add(cmd);
-            //Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded from built-in .commands resource.");
+            //Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded from built-in .commands resource");
 
             return commands;
         }
@@ -98,7 +98,7 @@ namespace MCEControl {
                         cmd.UserDefined = true;
                     commands.Add(cmd);
                 }
-                Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded.");
+                Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded");
             }
 
             // TELEMETRY: 
@@ -113,6 +113,7 @@ namespace MCEControl {
         }
 
         internal void Save(string userCommandsFile) {
+            Logger.Instance.Log4.Info($@"Commands: Saving {Program.ConfigPath}MCEControl.commands...");
             var sc = new SerializedCommands();
 
             var values = Values.Cast<Command>().ToArray();

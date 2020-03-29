@@ -1401,7 +1401,7 @@ namespace MCEControl {
             }
             catch (FileNotFoundException) {
                 // First time through, so create file with defaults
-                Logger.Instance.Log4.Info("Settings: Creating default settings file.");
+                Logger.Instance.Log4.Info($"Settings: Creating settings file with defaults: {settingsFile}");
                 settings = new AppSettings();
                 settings.Serialize();
 

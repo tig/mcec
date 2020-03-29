@@ -73,7 +73,7 @@ namespace MCEControl {
 
                     case "shutdown-hybrid":
                         // Shutdown.exe does not suppport timeout on /h (apparently)
-                        Shutdown($"/h /c \"MCE Controller Forced Hybrid SHutdown\"");
+                        Shutdown($"/h /c \"MCE Controller Forced Hybrid Shutdown\"");
                         break;
 
                     case "poweroff":
@@ -103,7 +103,7 @@ namespace MCEControl {
         }
 
         public static void Shutdown(string shutdownArgs) {
-            var proc = System.Diagnostics.Process.Start("ShutDown", shutdownArgs);
+            var proc = System.Diagnostics.Process.Start("shutdown", shutdownArgs);
             proc.WaitForExit(1000);
             if (proc.ExitCode != 0x0)
                 throw new System.ComponentModel.Win32Exception(proc.ExitCode);

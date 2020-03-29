@@ -59,12 +59,12 @@ namespace MCEControl {
                 if (_bw != null) {
                     _bw.CancelAsync();
                     _bw.Dispose();
-                    _bw = null;
+                    //_bw = null;
                 }
                 if (_tcpClient != null) {
                     _tcpClient.Close();
                     _tcpClient.Dispose();
-                    _tcpClient = null;
+                    //_tcpClient = null;
                 }
             }
         }
@@ -119,7 +119,7 @@ namespace MCEControl {
                 var ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
 
                 if (ipv4Addresses.Length == 0)
-                    throw new IOException($"{_host}:{_port} didn't resolve to a valid address.");
+                    throw new IOException($"{_host}:{_port} didn't resolve to a valid address");
 
                 endPoint = new IPEndPoint(ipv4Addresses[0], _port);
                 // TELEMETRY: Do not pass _host to SetStatus to avoid collecting PII
@@ -139,6 +139,7 @@ namespace MCEControl {
                             CurrentStatus == ServiceStatus.Connected &&
                             _tcpClient != null &&
                             _tcpClient.Connected) {
+                            // TODO: Move exception handling around this
                             int input = _tcpClient.GetStream().ReadByte();
                             switch (input) {
                                 case (byte)'\r':
@@ -162,16 +163,15 @@ namespace MCEControl {
                         }
                     }
                     catch (SocketException e) {
-                        Log4.Debug($"SocketClient SocketException: {e.GetType().Name}: {e.Message}");
+                        Log4.Debug($"SocketClient: {e.GetType().Name}: {e.Message}");
                         CatchSocketException(e);
                     }
                     catch (IOException e) {
-                        Log4.Debug($"SocketClient IOException: {e.GetType().Name}: {e.Message}");
                         if (e.InnerException is SocketException sockExcept) {
                             CatchSocketException(sockExcept);
                         }
                         else {
-                            Error($"SocketClient IOException: {e.GetType().Name}: {e.Message}");
+                            Error($"SocketClient: {e.GetType().Name}: {e.Message}");
                         }
                     }
                     catch (Exception e) {
@@ -187,14 +187,14 @@ namespace MCEControl {
                 }, null);
             }
             catch (SocketException e) {
-                Log4.Debug($"SocketClient.Client SocketException: {e.GetType().Name}: {e.Message}");
+                Log4.Debug($"SocketClient: (BeginConnect) {e.GetType().Name}: {e.Message}");
                 CatchSocketException(e);
                 if (_tcpClient != null) _tcpClient.Close();
                 return;
             }
             catch (Exception e) {
-                Log4.Debug($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
-                Error($"SocketClient.Client Generic Exception: {e.GetType().Name}: {e.Message}");
+                Log4.Debug($"SocketClient: (BeginConnect){e.GetType().Name}: {e.Message}");
+                Error($"SocketClient: (BeginConnect) Generic Exception: {e.GetType().Name}: {e.Message}");
                 if (_tcpClient != null) _tcpClient.Close();
                 return;
             }
