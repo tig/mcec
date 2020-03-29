@@ -16,11 +16,6 @@ namespace MCEControl {
     // Based on this post: https://www.codeproject.com/Articles/7294/Processing-Global-Mouse-and-Keyboard-Hooks-in-C
 #pragma warning disable CA1724
     public sealed class UserActivityMonitorService : IDisposable{
-    
-        private bool _logActivity = false;    // log mouse/keyboard events to MCEC window
-        private int _debounceTime = 5;       // Only send activity notification at most every DebounceTime seconds
-        private readonly string _activityCmd = "activity";
-
         private System.DateTime LastTime;
 
         private static readonly Lazy<UserActivityMonitorService> lazy = new Lazy<UserActivityMonitorService>(() => new UserActivityMonitorService());
@@ -30,38 +25,46 @@ namespace MCEControl {
         private static Gma.UserActivityMonitor.GlobalEventProvider _userActivityMonitor = null;
         
         public static UserActivityMonitorService Instance => lazy.Value;
-        public bool LogActivity { get => _logActivity; set => _logActivity = value; }
-           
+        public bool LogActivity { get; set; } = false;
+        public string ActivityCmd { get; set; } = "activity";
+        public int DebounceTime { get; set; } = 5;
+        public bool UnlockDetection { get; set; }        
+        public bool InputDetection { get; set; }
         /// <summary>
         /// Starts the Activity Monitor. 
         /// </summary>
         /// <param name="debounceTime">Specifies the maximum frequency at which activity messages will be sent in seconds.</param>
-        public void Start(int debounceTime) {
+        public void Start() {
             if (_userActivityMonitor != null)
                 _userActivityMonitor = null;
 
             LastTime = DateTime.Now;
 
-            _userActivityMonitor = new Gma.UserActivityMonitor.GlobalEventProvider();
-            _userActivityMonitor.MouseMove += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseMove);
-            _userActivityMonitor.MouseClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseClick);
-            _userActivityMonitor.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.HookManager_KeyPress);
-            _userActivityMonitor.KeyDown += new System.Windows.Forms.KeyEventHandler(this.HookManager_KeyDown);
-            _userActivityMonitor.MouseDown += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDown);
-            _userActivityMonitor.MouseUp += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseUp);
-            _userActivityMonitor.KeyUp += new System.Windows.Forms.KeyEventHandler(this.HookManager_KeyUp);
-            _userActivityMonitor.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDoubleClick);
+            if (InputDetection) {
+                _userActivityMonitor = new Gma.UserActivityMonitor.GlobalEventProvider();
+                _userActivityMonitor.MouseMove += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseMove);
+                _userActivityMonitor.MouseClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseClick);
+                _userActivityMonitor.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.HookManager_KeyPress);
+                _userActivityMonitor.KeyDown += new System.Windows.Forms.KeyEventHandler(this.HookManager_KeyDown);
+                _userActivityMonitor.MouseDown += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDown);
+                _userActivityMonitor.MouseUp += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseUp);
+                _userActivityMonitor.KeyUp += new System.Windows.Forms.KeyEventHandler(this.HookManager_KeyUp);
+                _userActivityMonitor.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDoubleClick);
+            }
 
-            this._debounceTime = debounceTime;
-
-            StartSessionUnlockedTimer();
+            if (UnlockDetection)
+                StartSessionUnlockedTimer();
 
             Microsoft.Win32.SystemEvents.SessionSwitch += new Microsoft.Win32.SessionSwitchEventHandler(SystemEvents_SessionSwitch);
 
             // BUGBUG: If app is started with the session unlocked (which will be most of the time), the Session Unlocked Timer
             // does not start until a user input is detected. There is no documented way to detect whehter a session is unlocked.
             // This is not a big deal, but is a bug.
-            Logger.Instance.Log4.Info($"ActivityMonitor: Start - Debounce Time set to {_debounceTime} seconds");
+            Logger.Instance.Log4.Info($"ActivityMonitor: Start");
+            Logger.Instance.Log4.Info($"ActivityMonitor: Keyboard/mouse input detection: {InputDetection}");
+            Logger.Instance.Log4.Info($"ActivityMonitor: Desktop unlock detection: {UnlockDetection}");
+            Logger.Instance.Log4.Info($"ActivityMonitor: Command: {ActivityCmd}");
+            Logger.Instance.Log4.Info($"ActivityMonitor: Debounce Time: {DebounceTime} seconds");
 
             // TELEMETRY: 
             // what: when activity montioring is turned off
@@ -81,7 +84,7 @@ namespace MCEControl {
             }
             _timer = new Timer();
             _timer.Tick += Timer_Tick;
-            _timer.Interval = this._debounceTime * 1000;
+            _timer.Interval = this.DebounceTime * 1000;
         }
 
         public static void Stop() {
@@ -129,12 +132,12 @@ namespace MCEControl {
             if (LogActivity)
                 Logger.Instance.Log4.Info($"ActivityMonitor: {logInfo}");
 
-            if (LastTime.AddSeconds(_debounceTime) <= DateTime.Now) {
+            if (LastTime.AddSeconds(DebounceTime) <= DateTime.Now) {
                 Logger.Instance.Log4.Info($"ActivityMonitor: User Activity Dectected");
                 if ((MainWindow.Instance.Client != null && MainWindow.Instance.Client.CurrentStatus == ServiceStatus.Connected) ||
                     (MainWindow.Instance.Server != null && MainWindow.Instance.Server.CurrentStatus == ServiceStatus.Connected) ||
                     (MainWindow.Instance.SerialServer != null && MainWindow.Instance.SerialServer.CurrentStatus == ServiceStatus.Connected)) {
-                    Logger.Instance.Log4.Info("ActivityMonitor: Sending " + _activityCmd);
+                    Logger.Instance.Log4.Info("ActivityMonitor: Sending " + ActivityCmd);
 
                     // TELEMETRY: 
                     // what: the count of activity dectected
@@ -142,7 +145,7 @@ namespace MCEControl {
                     // how is PII protected: the frequency of activity is not PII
                     TelemetryService.Instance.GetTelemetryClient().GetMetric($"activity Sent").TrackValue(1);
 
-                    MainWindow.Instance.SendLine(_activityCmd);
+                    MainWindow.Instance.SendLine(ActivityCmd);
 
                     // Enable desktop-locked/unlocked timer (desktop is clearly unlocked!)
                     _timer.Enabled = true;

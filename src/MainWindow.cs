@@ -214,8 +214,14 @@ namespace MCEControl {
             if (Settings.ActAsClient)
                 StartClient();
 
-            if (Settings.ActivityMonitorEnabled)
-                UserActivityMonitorService.Instance.Start(Settings.ActivityMonitorDebounceTime);
+            if (Settings.ActivityMonitorEnabled) {
+                UserActivityMonitorService.Instance.DebounceTime = Settings.ActivityMonitorDebounceTime;
+                UserActivityMonitorService.Instance.ActivityCmd = Settings.ActivityMonitorCommand;
+                UserActivityMonitorService.Instance.InputDetection = Settings.InputDetection;
+                UserActivityMonitorService.Instance.UnlockDetection = Settings.UnlockDetection;
+                UserActivityMonitorService.Instance.LogActivity = false;
+                UserActivityMonitorService.Instance.Start();
+            }
         }
 
         private void Stop() {
