@@ -76,7 +76,8 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
   * .commands file is now generated via code instead of a resource.
   * .commands file is saved by app when it exits. Previously MCE Controller only _read_ the file.
   * Legacy command files will be converted when encountered. A message box will pop explaining. ALL commands which were defined in the file when read will be set to Enabled=true. Highly recommended users review all commands and disable commands that are not explicitly used.
-* Version 2.1.2 (March xx, 2020) -
+* Version 2.1.2 (March 29, 2020) -
   * Added Activity Monitor settings to enable/disable  mouse/keyboard input either/or desktop unlock. 
   * FIXED: Activity Monitor command was not actually persisting in settings.
-  * 
+  * Minor bug fixes & code cleanup
+  
