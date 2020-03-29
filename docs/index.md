@@ -4,16 +4,6 @@ By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) -- Cop
 
 ![MCE Controller](mainwindow.png)
 
-## Download
-
-**[Download and Install the Latest Version](https://github.com/tig/mcec/releases)**
-
-## Documentation
-
-**[Full MCE Controller Documentation](documentation.md)**
-
-## Overview
-
 **MCE Controller** provides robust remote control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCE Controller** to control a Windows PC.
 
 Almost any action a user can perform on Windows can be invoked remotely from another device on the network. This includes key presses (e.g. Alt-Tab, or Win-S), mouse movements, and Window management actions (e.g. maximize window or set a window to the foreground)
@@ -21,6 +11,10 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
 **MCE Controller** works great with any remote control system that supports TCP/IP or RS-232 connections. Examples include [**Control4**](https://www.control4.com/), [**iRule**](http://www.iruleathome.com/), [**Crestron**](http://www.crestron.com/), and [**Premise Home Control**](http://cocoontech.com/forums/forum/51-premise-home-control/)
 
 **[Full MCE Controller Documentation](documentation.md)**
+
+## Download & Install
+
+**[Download and Install the Latest Version](https://github.com/tig/mcec/releases)**
 
 ## Version History
 
@@ -76,7 +70,9 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
   * .commands file is now generated via code instead of a resource.
   * .commands file is saved by app when it exits. Previously MCE Controller only _read_ the file.
   * Legacy command files will be converted when encountered. A message box will pop explaining. ALL commands which were defined in the file when read will be set to Enabled=true. Highly recommended users review all commands and disable commands that are not explicitly used.
-* Version 2.1.2 (March xx, 2020) -
+* Version 2.2.2 (March 29, 2020) -
   * Added Activity Monitor settings to enable/disable  mouse/keyboard input either/or desktop unlock. 
   * FIXED: Activity Monitor command was not actually persisting in settings.
-  * 
+  * Minor bug fixes & code cleanup
+* Version 2.2.3 (March 29, 2020) -
+  * Added ability to download and install new versions directly from within app.

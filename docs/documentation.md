@@ -6,6 +6,8 @@ By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
 ![MCE Controller](mainwindow.png)
 
+**[Download and Install the Latest Version Here](https://github.com/tig/mcec/releases)**
+
 ## Overview
 
 **MCE Controller** (MCEC) provides robust remote control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for *Commands*. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCEC** to control a Windows PC.
@@ -51,6 +53,7 @@ By default **MCEC** supports over 250 built-in commands for controlling a Window
 * The `User Activity Monitor` feature will send a command to the home automation system when a user is using the PC (moving the mouse or typing).
 * Automatically checks to see if newer versions are available.
 * Logs diagnostics information to a file.
+* Detects new version and makes it easy to install them from the `Help` menu.
 
 ## Installation
 
@@ -58,7 +61,11 @@ Important Note: **MCE Controller** requires the .NET Framework 4.7+. Install .NE
 
 **MCEC** V2 was developed for Windows 10. It has not been tested on older versions of Windows. Submit an [Issue](https://github.com/tig/mcec/issues) if you have a specific version of Windows you'd like supported.
 
-To install, simply run `MCEController Setup.exe`. You can un-install **MCEC** via add/remove programs.
+To install, go here:
+
+**[Download and Install the Latest Version](https://github.com/tig/mcec/releases)**
+
+ You can un-install **MCEC** via add/remove programs.
 
 If `Telemetry` is checked, usage information will be sent to a telemetry service to enable improvements based on usage data. All telemetry data is anonymized, and all instances of where usage information is generated can be found by searching the source code for `TrackEvent`. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables telemetry and `0` disables it).
 
