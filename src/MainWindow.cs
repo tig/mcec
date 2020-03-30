@@ -130,10 +130,10 @@ namespace MCEControl {
             if (cmdWindow == null)
                 cmdWindow = new CommandWindow();
 
+            LoadCommands();
             // watch .command file for changes
             watcher = new CommandFileWatcher($@"{Program.ConfigPath}MCEControl.commands");
             watcher.ChangedEvent += (o, a) => CmdTable_CommandsChangedEvent(o, a);
-            LoadCommands();
 
             if (Settings.HideOnStartup) {
                 Opacity = 0;

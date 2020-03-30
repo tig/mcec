@@ -70,8 +70,15 @@ namespace MCEControl {
                     var msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\nDisable any commands that are not used using the Commands window.";
                     MessageBox.Show(msg, Application.ProductName);
                     Logger.Instance.Log4.Info($"Commands: {msg}");
+                    cmds.Version = Application.ProductVersion;
                     cmds.commandArray = cmds.commandArray.Select(c => { c.Enabled = true; return c; }).ToArray();
                 }
+
+                // If this was written by an older version, re-write it to update it
+                if (!string.IsNullOrEmpty(cmds.Version) && (new Version(Application.ProductVersion).CompareTo(new Version(cmds.Version))) > 0) {
+                    Logger.Instance.Log4.Info($"Commands: Upgrading .commands file from v{cmds.Version}");
+                    SaveCommands(userCommandsFile, cmds);
+                } 
             }
             catch (FileNotFoundException) {
                 Logger.Instance.Log4.Info($"Commands: {userCommandsFile} was not found");
