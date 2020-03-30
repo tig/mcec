@@ -4,7 +4,6 @@ Copyright © 2020 [Kindel Systems](http://www.kindel.com), LLC. Licensed under t
 
 By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
 
-![MCE Controller](mainwindow.png)
 
 **[Download and Install the Latest Version Here](https://github.com/tig/mcec/releases)**
 
