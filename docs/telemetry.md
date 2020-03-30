@@ -2,9 +2,9 @@
 
 MCE Controller includes functionality to collect Telemetry Data, which is a term to denote data about how the software is used or performing. Telemetry Data is collected through a “phone home” mechanism built into the software itself. 
 
-The MCE Controller installer provides end users an option to opt-in to share statistical data with the developers of the software.
+The MCE Controller installer provides  users an option to opt-in to share statistical data with the developers of the software.
 
-(Screen shot here)
+[Installer Screenshot](telemetry_optin.png)
 
 ## Frequently Asked Questions
 
@@ -12,7 +12,7 @@ The MCE Controller installer provides end users an option to opt-in to share sta
 
 First, here's what is explicitly NOT collected:
 
-* No user names and IDs
+* User names and IDs
 * Machine names and IDs
 * File and directory names
 * Network host names

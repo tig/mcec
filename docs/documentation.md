@@ -69,6 +69,8 @@ To install, go here:
 
 If `Telemetry` is checked, usage information will be sent to a telemetry service to enable improvements based on usage data. All telemetry data is anonymized, and all instances of where usage information is generated can be found by searching the source code for `TrackEvent`. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables telemetry and `0` disables it).
 
+[This page details how telemetry is collected](telemetry.md).
+
 ## Running
 
 When **MCE Controller** runs, it defaults to showing itself. If you close the main MCE Controller window the app will minimize to an icon in the taskbar. Double clicking on the taskbar icon will cause the window to show itself again.
