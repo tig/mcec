@@ -151,13 +151,13 @@
   <data name="CommandsFileXmlComments" xml:space="preserve">
     <value>
 
-MCE Controller Commands File - Copyright 2020 Kindel Sytems, LLC.
+MCE Controller Commands File - Copyright Kindel Sytems, LLC.
 
 This file must be named MCEControl.commands and must be placed  in the same directory as the MCEControl.exe file.
 
-Modify this file to extend/change the commands MCE Controller supports. This file can be modified while MCE Controller is running; it will re-load the file when changes are directed.
+Modify this file to extend/change the commands MCE Controller supports. This file can be modified while MCE Controller is running; it will re-load the file when changes are detected.
 
-See the documentation at https://tig.github.com/tig/mcec for details on the commands supported by MCE Controller.
+See the documentation at https://tig.github.io/mcec for details on the commands supported by MCE Controller.
 
 </value>
   </data>
