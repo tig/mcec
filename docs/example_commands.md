@@ -1,4 +1,4 @@
-# MCE Controller Commands
+# Example MCE Controller Commands
 
 Here's a bunch of example commands users have defined and posted. They may serve as inspiration or guidance...
 
