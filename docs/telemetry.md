@@ -4,7 +4,7 @@ MCE Controller includes functionality to collect Telemetry Data, which is a term
 
 The MCE Controller installer provides  users an option to opt-in to share statistical data with the developers of the software.
 
-[Installer Screenshot](telemetry_optin.png)
+![Installer Screenshot](telemetry_optin.png)
 
 ## Frequently Asked Questions
 
