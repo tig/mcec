@@ -47,19 +47,13 @@ By default **MCEC** supports over 250 built-in commands for controlling a Window
 
 ## Installation
 
-Important Note: **MCE Controller** requires the .NET Framework 4.7+. Install .NET Frameworks from [http://www.microsoft.com/net](http://www.microsoft.com/net) .
+**MCEC** V2 was developed for Windows 10. It has not been tested on older versions of Windows. Submit an [Issue](https://github.com/tig/mcec/issues) to request a specific version of Windows to be supported.
 
-**MCEC** V2 was developed for Windows 10. It has not been tested on older versions of Windows. Submit an [Issue](https://github.com/tig/mcec/issues) if you have a specific version of Windows you'd like supported.
+To install, go here: **[Download and Install the Latest Version](https://github.com/tig/mcec/releases)**
 
-To install, go here:
+If `Collect Telemetry` is checked during setup, usage information will be sent to a telemetry service to enable improvements. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables and `0` disables). See [this page](telemetry.md) for details on what telemetry is collected and how it is used.
 
-**[Download and Install the Latest Version](https://github.com/tig/mcec/releases)**
-
- You can un-install **MCEC** via add/remove programs.
-
-If `Telemetry` is checked, usage information will be sent to a telemetry service to enable improvements based on usage data. All telemetry data is anonymized, and all instances of where usage information is generated can be found by searching the source code for `TrackEvent`. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables telemetry and `0` disables it).
-
-[This page details how telemetry is collected](telemetry.md).
+Un-install **MCEC** via add/remove programs.
 
 ## Running
 
@@ -72,11 +66,11 @@ To have **MCEC** start automatically do the following:
 1. Create a Windows shortcut to `MCEControl.exe` (found in `C:\Program Files (x86)\Kindel Systems\MCE Controller` by default).
 2. Put the shortcut file into the Windows Startup Folder (`C:\Users\[User Name]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup`).
 
-Run multiple instances of **MCEC** by simply copying the contents of the isntallation directory to another directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
+Run multiple instances of **MCEC** by simply copying the contents of the installation directory to another directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
 
 ## Closing
 
-Use the `File.Exit` menu to shut down the app. 
+Use the `File.Exit` menu to shut down the app.
 
 ## Settings
 
