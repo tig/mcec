@@ -12,6 +12,10 @@
     vertical-align: middle;
   }
 
+  body{
+    background-color: #fff7ed;
+  }
+
   code, pre {
     font-family: "Cascadia Code", "Lucida Console", Terminal, monospace;
     color: #000;
@@ -21,7 +25,19 @@
   a{
     color: #da4e00;
   }
+
   header {
-    background-color: #da4e00;
+    background-color: #c05a24;
     border: 1px solid #943a08;
   }
+
+  header li {
+    border: unset;
+    background: linear-gradient(to top, #444 0%, #232323 100%);
+    box-shadow: inset 0px 1px 1px 0 #444;
+}
+
+
+
+
+
