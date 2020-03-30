@@ -12,6 +12,8 @@
     vertical-align: middle;
   }
 
-body {
-    font: "Cascadia Code";
-    }
+  code, pre {
+    font-family: "Cascadia Code", "Lucida Console", Terminal, monospace;
+    color: #000;
+    font-size: 12px;
+  }
