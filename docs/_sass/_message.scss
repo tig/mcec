@@ -1,0 +1,88 @@
+// Messages
+
+// Example message box
+// <p class="message-yellow"><small><b>Warning!</b> This is a sentence inside of a message box.</small></p>
+
+// Example with close button
+// <p class="message-yellow"><span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+// <small><b>Warning!</b> This is a sentence inside of a message box.</small></p>
+
+.message {
+  margin-bottom: 15px;
+  padding: 12px;
+  color: #fff;
+  background-color: #454545;
+  border-left: .3rem solid #bebebe;
+
+  
+@media (prefers-color-scheme: dark) {
+  color: #fff;
+  background-color: #282828;
+  border-left: .3rem solid #595959;
+  }
+}
+
+.green {
+  margin-bottom: 15px;
+  padding: 12px;
+  color: #fff;
+  background-color: $message-green;
+  border-left: .3rem solid #93d080;
+}
+
+.yellow {
+  margin-bottom: 15px;
+  padding: 12px;
+  color: #fff;
+  background-color: $message-yellow;
+  border-left: .3rem solid #fdcb61;
+}
+
+.orange {
+  margin-bottom: 15px;
+  padding: 12px;
+  color: #fff;
+  background-color: $message-orange;
+  border-left: .3rem solid #f9ac6b;
+}
+
+.red {
+  margin-bottom: 15px;
+  padding: 12px;
+  color: #fff;
+  background-color: $message-red;
+  border-left: .3rem solid #e86c71;
+}
+
+.purple {
+  margin-bottom: 15px;
+  padding: 12px;
+  color: #fff;
+  background-color: $message-purple;
+  border-left: .3rem solid #bf61c0;
+}
+
+.blue {
+  margin-bottom: 15px;
+  padding: 12px;
+  color: #fff;
+  background-color: $message-blue;
+  border-left: .3rem solid #2bc2ff;
+}
+
+/* The close button */
+.closebtn {
+  margin-left: 15px;
+  color: white;
+  font-weight: bold;
+  float: right;
+  font-size: 22px;
+  line-height: 27px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+/* When moving the mouse over the close button */
+.closebtn:hover {
+  color: black;
+}

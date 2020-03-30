@@ -1,0 +1,193 @@
+// Typography
+
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: .5rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-rendering: optimizeLegibility;
+  color: $midnight-header-light;
+  position: relative;
+  
+  @media (prefers-color-scheme: dark) {
+    color: $midnight-header-dark;
+	}
+}
+
+h2::before,h4::before,h5::before,h6::before {
+    content: "#";
+    color: $midnight-accent-light;
+    left: -1.2em;
+    top: 0;
+	position: absolute;
+    
+  @media (prefers-color-scheme: dark) {
+    color: $midnight-accent-dark;
+	}
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+h2 {
+  margin-top: 1rem;
+  font-size: 1.5rem;
+}
+
+h3 {
+  margin-top: 1.5rem;
+  font-size: 1.25rem;
+}
+
+h4, h5, h6 {
+  margin-top: 1rem;
+  font-size: 1rem;
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+ul, ol, dl {
+  margin-top: 0;
+}
+
+dt {
+  font-weight: bold;
+}
+
+dd {
+  margin-bottom: .5rem;
+}
+
+hr {
+  position: relative;
+  margin: 1.5rem 0;
+  border: 0;
+  border-top: 1px solid #d4d4d4;
+  border-bottom: 1px solid #d4d4d4;
+  
+@media (prefers-color-scheme: dark) {
+  border-top: 1px solid #333333;
+  border-bottom: 1px solid #333333;
+  }
+}
+
+abbr {
+  font-size: 85%;
+  font-weight: bold;
+  opacity: .5;
+  color: $midnight-text-color;
+  text-transform: uppercase;
+
+@media (prefers-color-scheme: dark) {
+  color: $midnight-text-color-dark;
+  }
+
+  &[title] {
+    cursor: help;
+    border-bottom: 1px dotted #e5e5e5;
+  }
+}
+
+span.link-arrow {
+	color: #989898;
+
+@media (prefers-color-scheme: dark) {
+    color: #989898;
+	}
+}
+
+blockquote {
+  width: 100%;
+  padding:.25em 90px .25em 25px;
+  margin: 30px auto;
+  font-style: italic;
+  position: relative;
+  opacity: .7;
+  border-left: 3px solid #d4d4d4;
+  
+  @media (prefers-color-scheme: dark) {
+    border-left: 3px solid #333333;
+	}
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  @media (min-width: 30em) {
+    padding-right: 5rem;
+    padding-left: 1.25rem;
+  }
+}
+
+figure {
+  margin: 0;
+}
+
+mark {
+    background: #cefce8;
+    color: $midnight-text-color;
+	padding: 2px 2px;
+	
+  @media (prefers-color-scheme: dark) {
+    background: #0fb47c;
+    color: $midnight-text-color-dark;
+    }
+}
+
+// Footnote number within body text
+a[href^="#fn:"] {
+  display: inline-block;
+  position: relative;
+  font-weight: bold;
+  min-width: 35px;
+  margin: 0 0.1em 0 0.2em;
+  text-align: center;
+  background: #eee;
+  color: $midnight-accent-light;
+  border: 1px solid #eee;
+  border-radius: 1em;
+  vertical-align: middle;
+  
+@media (prefers-color-scheme: dark) {
+    color: $midnight-accent-dark;
+	background: #2c2c2c;
+	border: 1px solid #2c2c2c;
+	}
+}
+
+// Back to footnote link
+a[href^="#fnref:"] {
+  display: inline-block;
+  margin-left: .1rem;
+  font-weight: bold;
+  padding: 0.1em 0.1em 0.1em;
+}
+
+// List of footnotes
+.footnotes {
+    margin-top: 2rem;
+    font-size: 80%;
+
+:target {
+	padding: 5px;
+    background: #eee;
+    border: solid 1px $midnight-accent-light;
+
+@media (prefers-color-scheme: dark) {
+	background: #2c2c2c;
+	border: solid 1px $midnight-accent-dark;
+	}
+  }
+}
+
+// Custom type
+//
+// Extend paragraphs with `.lead` for larger introductory text.
+
+.lead {
+  font-size: 1.25rem;
+  font-weight: 300;
+}
