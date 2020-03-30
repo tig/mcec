@@ -1,14 +1,5 @@
 # **MCE Controller Documentation**
 
-Copyright © 2020 [Kindel Systems](http://www.kindel.com), LLC. Licensed under the [MIT License](https://github.com/tig/mcec/blob/master/license.md).
-
-By Charlie Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel))
-
-
-**[Download and Install the Latest Version Here](https://github.com/tig/mcec/releases)**
-
-## Overview
-
 **MCE Controller** (MCEC) provides robust remote control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for *Commands*. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCEC** to control a Windows PC.
 
 For example:

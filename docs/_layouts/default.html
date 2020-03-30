@@ -21,21 +21,10 @@
         <p class="header">{{ site.description | default: site.github.project_tagline }}</p>
 
         <ul>
-          {% if site.show_downloads %}
-            <li class="download"><a class="buttons" href="{{ site.github.install_url }}">Install</a></li>
-          {% endif %}
+          <li><a class="buttons download" href="{{ site.github.install_url }}">Install</a></li>
           <li><a class="buttons github" href="{{ site.github.repository_url }}">View On GitHub</a></li>
         </ul>
-
-        {% if site.github.is_project_page %}
-          <p class="header">This project is maintained by <a class="header name" href="{{ site.github.owner_url }}">{{ site.github.owner_name }}</a></p>
-        {% endif %}
-
-        {% if site.github.is_user_page %}
-          <ul>
-            <li><a class="buttons github" href="{{ site.github.owner_url }}">GitHub Profile</a></li>
-          </ul>
-        {% endif %}
+        <p class="header">This project is maintained by <a class="header name" href="{{ site.github.owner_url }}">Charlie Kindel aka Tig</a> (<a class="header name" href ="http://www.twitter.com/ckindel">@ckindel on Twitter)</a></p>
       </header>
 
       <section>
@@ -43,7 +32,7 @@
       </section>
 
       <footer>
-        <!-- <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a></small></p> -->
+         <p><small>Copyright © 2020 <a class="header name" href="http://www.kindel.com">Kindel Systems, LLC.</a>) and licensed under the <a href="https://github.com/tig/mcec/blob/master/license.md">MIT License</a>).</small></p> 
       </footer>
     </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->
