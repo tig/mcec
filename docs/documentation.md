@@ -1,4 +1,4 @@
-# **MCE Controller V2 Documentation**
+# **MCE Controller Documentation**
 
 Copyright © 2020 [Kindel Systems](http://www.kindel.com), LLC. Licensed under the [MIT License](https://github.com/tig/mcec/blob/master/license.md).
 
