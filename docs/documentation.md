@@ -244,12 +244,14 @@ The following describes the Built-In commands:
 
 Any Windows virtual key code is supported by default. The form of the commands are `VK_<key name>`. For example you can send **MCE Controller** any of the following commands and the corresponding key press will be simulated.
 
+```
 VK_ESCAPE
 VK_LWIN
 VK_VOLUME_MUTE
 VK_VOLUME_UP
 VK_MEDIA_PLAY_PAUSE
 VK_F1
+```
 
 To send a keystroke that includes a shift modifier (e.g. `Win-D` or `Ctrl-G`) define a custom `SendInput` command as described below.
 
