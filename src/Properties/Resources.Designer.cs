@@ -70,6 +70,25 @@ namespace MCEControl.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to 
+        ///
+        ///MCE Controller Commands File - Copyright 2020 Kindel Sytems, LLC.
+        ///
+        ///This file must be named MCEControl.commands and must be placed  in the same directory as the MCEControl.exe file.
+        ///
+        ///Modify this file to extend/change the commands MCE Controller supports. This file can be modified while MCE Controller is running; it will re-load the file when changes are directed.
+        ///
+        ///See the documentation at https://tig.github.com/tig/mcec for details on the commands supported by MCE Controller.
+        ///
+        ///.
+        /// </summary>
+        internal static string CommandsFileXmlComments {
+            get {
+                return ResourceManager.GetString("CommandsFileXmlComments", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to &quot;MCE Controller requires .NET Framework 4.7 or newer.\r\n\r\nDownload and install from http://www.microsoft.com/net/&quot;.
         /// </summary>
         internal static string Error_RequiresDotNetVersion {

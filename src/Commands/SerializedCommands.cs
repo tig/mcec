@@ -17,17 +17,25 @@ using System.Xml.Serialization;
 using System.Xml.Xsl;
 
 namespace MCEControl {
+
     /// <summary>
     /// Serialzes to/from XML (.commands files)
     /// IMPORTANT! Do not change the namespace or you will break existing installations 
     /// </summary>
+    /// 
+    
     [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "mcecontroller")]
     public class SerializedCommands {
+#pragma warning disable CA3075 // Insecure DTD processing in XML
+        // XmlComments - https://stackoverflow.com/a/46497304/297526
+        [XmlAnyElement(Name = "XmlComment", Namespace ="mcecontroller", Order = 0)]
+        public XmlComment XmlComment { get => new XmlDocument().CreateComment(Properties.Resources.CommandsFileXmlComments); set { } }
+
 #pragma warning disable CA1051 // Do not declare visible instance fields
         [XmlAttribute("version")]
         public string Version;
 
-        [XmlArray("commands")]
+        [XmlArray("commands", Order = 1)]
         [XmlArrayItem("chars", typeof(CharsCommand))]
         [XmlArrayItem("startprocess", typeof(StartProcessCommand))]
         [XmlArrayItem("sendinput", typeof(SendInputCommand))]

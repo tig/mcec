@@ -1,4 +1,5 @@
-﻿<xsl:stylesheet version="1.0"
+﻿<!-- https://stackoverflow.com/questions/9334771/case-insensitive-xml-parser-in-c-sharp-->
+<xsl:stylesheet version="1.0"
  xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:output omit-xml-declaration="no" indent="yes"/>
   <xsl:strip-space elements="*"/>
@@ -11,6 +12,8 @@
 
   <xsl:template match="node()|@*">
     <xsl:copy>
+      <!-- https://stackoverflow.com/questions/9334771/case-insensitive-xml-parser-in-c-sharp/9335670?noredirect=1#comment107758821_9335670 -->
+      <xsl:copy-of select="namespace::*"/>
       <xsl:apply-templates select="node()|@*"/>
     </xsl:copy>
   </xsl:template>
@@ -18,6 +21,8 @@
   <xsl:template match="*[name()=local-name()]" priority="2">
     <xsl:element name="{translate(name(), $vUpper, $vLower)}"
      namespace="{namespace-uri()}">
+      <!-- https://stackoverflow.com/questions/9334771/case-insensitive-xml-parser-in-c-sharp/9335670?noredirect=1#comment107758821_9335670 -->
+      <xsl:copy-of select="namespace::*"/>
       <xsl:apply-templates select="node()|@*"/>
     </xsl:element>
   </xsl:template>
@@ -26,6 +31,8 @@
     <xsl:element name=
    "{substring-before(name(), ':')}:{translate(local-name(), $vUpper, $vLower)}"
      namespace="{namespace-uri()}">
+      <!-- https://stackoverflow.com/questions/9334771/case-insensitive-xml-parser-in-c-sharp/9335670?noredirect=1#comment107758821_9335670 -->
+      <xsl:copy-of select="namespace::*"/>
       <xsl:apply-templates select="node()|@*"/>
     </xsl:element>
   </xsl:template>
