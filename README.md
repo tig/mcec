@@ -12,4 +12,7 @@ MCE Controller provides robust remote control a Windows HTPC (or any PC) over th
 * [Download & Install](https://github.com/tig/mcec/releases)
 * [Documentation](https://tig.github.io/mcec/documentation.html)
 * [Charlie's Blog Posts on MCE Controller](http://ceklog.kindel.com/category/passions/homeautomation/mce-controller/)
+
+# Integrations
 * [Control4 User Activity Driver](https://github.com/tig/User_Activity)
+* [Control4.MceControllerDriver](https://github.com/garrynewman/Control4.MceControllerDriver)
