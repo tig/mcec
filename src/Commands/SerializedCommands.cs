@@ -22,8 +22,6 @@ namespace MCEControl {
     /// Serialzes to/from XML (.commands files)
     /// IMPORTANT! Do not change the namespace or you will break existing installations 
     /// </summary>
-    /// 
-    
     [XmlType(Namespace = "http://www.kindel.com/products/mcecontroller", TypeName = "mcecontroller")]
     public class SerializedCommands {
 #pragma warning disable CA3075 // Insecure DTD processing in XML

@@ -1,4 +1,4 @@
-# **MCE Controller Documentation**
+# MCE Controller Documentation
 
 **MCE Controller** (MCEC) provides robust remote control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for *Commands*. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCEC** to control a Windows PC.
 
@@ -322,13 +322,15 @@ Note deleting a built-in command from the `.commands` file will not remove it pe
 
 Some of the built-in commands are obviously just examples.
 
+[See more examples here.](example_commands.md)
+
 #### File Format
 
 The file format is XML and must include the headers. `Commands` are defined within the `<commands>` element.
 
 ```xml
 <?xml version="1.0"?>
-<mcecontroller xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="2.2.1.159">
+<mcecontroller xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.2.1.159">
   <commands xmlns="http://www.kindel.com/products/mcecontroller">
     ...
   </commands>
@@ -361,26 +363,12 @@ Do not make commands a single character or it will interfere with the ability to
 
 *Commands* support chaining by nesting elements. The nexted commands will be executed after the started application starts processing windows messages.
 
-For example, the following launches Notepad, types some text, maximizes it, and then shows the About box. The example is written to be intentionally complex.
+For example, the following launches Notepad, waits 1 second and then types some text.
 
 ```xml
 <StartProcess Cmd="notepad" File="notepad.exe" >
-    <Pause Args="100"/>
+    <Pause Args="1000"/>
     <Chars Cmd="test" Args="this is a test." />
-    <SendInput vk="VK_RETURN"/>
-        <Pause Args="100"/>
-    <SendInput vk="VK_RIGHT" Shift="true" Win="true"/>
-        <Pause Args="100"/>
-    <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" />
-    <SendInput vk="VK_RETURN">
-    <Chars Args="Second "/>
-    <Chars Args="line..">
-        <SendInput vk="h" Alt="true"/>
-        <SendInput vk="a" Alt="false">
-        <SendInput vk="VK_ESCAPE"/>
-        </SendInput>
-    </Chars>
-    </SendInput>
 </StartProcess>
 ```
 
