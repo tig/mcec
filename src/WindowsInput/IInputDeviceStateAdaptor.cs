@@ -1,12 +1,10 @@
 ﻿using WindowsInput.Native;
 
-namespace WindowsInput
-{
+namespace WindowsInput {
     /// <summary>
     /// The contract for a service that interprets the state of input devices.
     /// </summary>
-    public interface IInputDeviceStateAdaptor
-    {
+    public interface IInputDeviceStateAdaptor {
         /// <summary>
         /// Determines whether the specified key is up or down.
         /// </summary>

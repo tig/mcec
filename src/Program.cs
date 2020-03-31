@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -50,14 +48,14 @@ namespace MCEControl {
             MessageBox.Show($"Unhandled Exception: {ex.Message}\n\n" +
                 $"See log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec", Application.ProductName);
         }
- 
+
 
         internal static string ConfigPath {
             get {
                 // Get dir of mcecontrol.exe
-                string path = AppDomain.CurrentDomain.BaseDirectory;
-                string programfiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-                string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                var path = AppDomain.CurrentDomain.BaseDirectory;
+                var programfiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                var appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
                 // is this in Program Files?
                 if (path.Contains(programfiles)) {

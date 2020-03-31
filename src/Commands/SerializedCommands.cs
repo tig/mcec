@@ -26,8 +26,10 @@ namespace MCEControl {
     public class SerializedCommands {
 #pragma warning disable CA3075 // Insecure DTD processing in XML
         // XmlComments - https://stackoverflow.com/a/46497304/297526
-        [XmlAnyElement(Name = "XmlComment", Namespace ="mcecontroller", Order = 0)]
+        [XmlAnyElement(Name = "XmlComment", Namespace = "mcecontroller", Order = 0)]
+#pragma warning disable CA1822 // Member XmlComment does not access instance data and can be marked as static
         public XmlComment XmlComment { get => new XmlDocument().CreateComment(Properties.Resources.CommandsFileXmlComments); set { } }
+#pragma warning enable CA1822
 
 #pragma warning disable CA1051 // Do not declare visible instance fields
         [XmlAttribute("version")]
@@ -78,7 +80,7 @@ namespace MCEControl {
                 if (!string.IsNullOrEmpty(cmds.Version) && (new Version(Application.ProductVersion).CompareTo(new Version(cmds.Version))) > 0) {
                     Logger.Instance.Log4.Info($"Commands: Upgrading .commands file from v{cmds.Version}");
                     SaveCommands(userCommandsFile, cmds);
-                } 
+                }
             }
             catch (FileNotFoundException) {
                 Logger.Instance.Log4.Info($"Commands: {userCommandsFile} was not found");

@@ -1,13 +1,11 @@
 ﻿using System;
 using WindowsInput.Native;
 
-namespace WindowsInput
-{
+namespace WindowsInput {
     /// <summary>
     /// An implementation of <see cref="IInputDeviceStateAdaptor"/> for Windows by calling the native <see cref="NativeMethods.GetKeyState"/> and <see cref="NativeMethods.GetAsyncKeyState"/> methods.
     /// </summary>
-    public class WindowsInputDeviceStateAdaptor : IInputDeviceStateAdaptor
-    {
+    public class WindowsInputDeviceStateAdaptor : IInputDeviceStateAdaptor {
 
         /// <summary>
         /// Determines whether the specified key is up or down by calling the GetKeyState function. (See: http://msdn.microsoft.com/en-us/library/ms646301(VS.85).aspx)
@@ -30,9 +28,8 @@ namespace WindowsInput
         /// 
         /// These left- and right-distinguishing constants are available to an application only through the GetKeyboardState, SetKeyboardState, GetAsyncKeyState, GetKeyState, and MapVirtualKey functions. 
         /// </remarks>
-        public bool IsKeyDown(VirtualKeyCode keyCode)
-        {
-            Int16 result = NativeMethods.GetKeyState((UInt16)keyCode);
+        public bool IsKeyDown(VirtualKeyCode keyCode) {
+            var result = NativeMethods.GetKeyState((UInt16)keyCode);
             return (result < 0);
         }
 
@@ -57,8 +54,7 @@ namespace WindowsInput
         /// 
         /// These left- and right-distinguishing constants are available to an application only through the GetKeyboardState, SetKeyboardState, GetAsyncKeyState, GetKeyState, and MapVirtualKey functions. 
         /// </remarks>
-        public bool IsKeyUp(VirtualKeyCode keyCode)
-        {
+        public bool IsKeyUp(VirtualKeyCode keyCode) {
             return !IsKeyDown(keyCode);
         }
 
@@ -89,8 +85,7 @@ namespace WindowsInput
         /// 
         /// These left- and right-distinguishing constants are only available when you call the GetKeyboardState, SetKeyboardState, GetAsyncKeyState, GetKeyState, and MapVirtualKey functions. 
         /// </remarks>
-        public bool IsHardwareKeyDown(VirtualKeyCode keyCode)
-        {
+        public bool IsHardwareKeyDown(VirtualKeyCode keyCode) {
             var result = NativeMethods.GetAsyncKeyState((UInt16)keyCode);
             return (result < 0);
         }
@@ -122,8 +117,7 @@ namespace WindowsInput
         /// 
         /// These left- and right-distinguishing constants are only available when you call the GetKeyboardState, SetKeyboardState, GetAsyncKeyState, GetKeyState, and MapVirtualKey functions. 
         /// </remarks>
-        public bool IsHardwareKeyUp(VirtualKeyCode keyCode)
-        {
+        public bool IsHardwareKeyUp(VirtualKeyCode keyCode) {
             return !IsHardwareKeyDown(keyCode);
         }
 
@@ -148,9 +142,8 @@ namespace WindowsInput
         /// 
         /// These left- and right-distinguishing constants are available to an application only through the GetKeyboardState, SetKeyboardState, GetAsyncKeyState, GetKeyState, and MapVirtualKey functions. 
         /// </remarks>
-        public bool IsTogglingKeyInEffect(VirtualKeyCode keyCode)
-        {
-            Int16 result = NativeMethods.GetKeyState((UInt16)keyCode);
+        public bool IsTogglingKeyInEffect(VirtualKeyCode keyCode) {
+            var result = NativeMethods.GetKeyState((UInt16)keyCode);
             return (result & 0x01) == 0x01;
         }
     }

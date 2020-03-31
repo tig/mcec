@@ -3,13 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using WindowsInput.Native;
 
-namespace WindowsInput
-{
+namespace WindowsInput {
     /// <summary>
     /// A helper class for building a list of <see cref="INPUT"/> messages ready to be sent to the native Windows API.
     /// </summary>
-    internal class InputBuilder : IEnumerable<INPUT>
-    {
+    internal class InputBuilder : IEnumerable<INPUT> {
         /// <summary>
         /// The internal list of <see cref="INPUT"/> messages being built by this instance.
         /// </summary>
@@ -18,8 +16,7 @@ namespace WindowsInput
         /// <summary>
         /// Initializes a new instance of the <see cref="InputBuilder"/> class.
         /// </summary>
-        public InputBuilder()
-        {
+        public InputBuilder() {
             _inputList = new List<INPUT>();
         }
 
@@ -27,8 +24,7 @@ namespace WindowsInput
         /// Returns the list of <see cref="INPUT"/> messages as a <see cref="System.Array"/> of <see cref="INPUT"/> messages.
         /// </summary>
         /// <returns>The <see cref="System.Array"/> of <see cref="INPUT"/> messages.</returns>
-        public INPUT[] ToArray()
-        {
+        public INPUT[] ToArray() {
             return _inputList.ToArray();
         }
 
@@ -39,8 +35,7 @@ namespace WindowsInput
         /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the list of <see cref="INPUT"/> messages.
         /// </returns>
         /// <filterpriority>1</filterpriority>
-        public IEnumerator<INPUT> GetEnumerator()
-        {
+        public IEnumerator<INPUT> GetEnumerator() {
             return _inputList.GetEnumerator();
         }
 
@@ -51,8 +46,7 @@ namespace WindowsInput
         /// An <see cref="T:System.Collections.IEnumerator"/> object that can be used to iterate through the list of <see cref="INPUT"/> messages.
         /// </returns>
         /// <filterpriority>2</filterpriority>
-        IEnumerator IEnumerable.GetEnumerator()
-        {
+        IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
         }
 
@@ -60,10 +54,8 @@ namespace WindowsInput
         /// Gets the <see cref="INPUT"/> at the specified position.
         /// </summary>
         /// <value>The <see cref="INPUT"/> message at the specified position.</value>
-        public INPUT this[int position]
-        {
-            get
-            {
+        public INPUT this[int position] {
+            get {
                 return _inputList[position];
             }
         }
@@ -73,8 +65,7 @@ namespace WindowsInput
         /// </summary>
         /// <param name="keyCode">The <see cref="VirtualKeyCode"/>.</param>
         /// <returns>This <see cref="InputBuilder"/> instance.</returns>
-        public InputBuilder AddKeyDown(VirtualKeyCode keyCode)
-        {
+        public InputBuilder AddKeyDown(VirtualKeyCode keyCode) {
             var down = new INPUT();
             down.Type = (UInt32)InputType.Keyboard;
             down.Data.Keyboard = new KEYBDINPUT();
@@ -93,8 +84,7 @@ namespace WindowsInput
         /// </summary>
         /// <param name="keyCode">The <see cref="VirtualKeyCode"/>.</param>
         /// <returns>This <see cref="InputBuilder"/> instance.</returns>
-        public InputBuilder AddKeyUp(VirtualKeyCode keyCode)
-        {
+        public InputBuilder AddKeyUp(VirtualKeyCode keyCode) {
             var up = new INPUT();
             up.Type = (UInt32)InputType.Keyboard;
             up.Data.Keyboard = new KEYBDINPUT();
@@ -113,8 +103,7 @@ namespace WindowsInput
         /// </summary>
         /// <param name="keyCode">The <see cref="VirtualKeyCode"/>.</param>
         /// <returns>This <see cref="InputBuilder"/> instance.</returns>
-        public InputBuilder AddKeyPress(VirtualKeyCode keyCode)
-        {
+        public InputBuilder AddKeyPress(VirtualKeyCode keyCode) {
             AddKeyDown(keyCode);
             AddKeyUp(keyCode);
             return this;
@@ -125,8 +114,7 @@ namespace WindowsInput
         /// </summary>
         /// <param name="character">The <see cref="System.Char"/> to be added to the list of <see cref="INPUT"/> messages.</param>
         /// <returns>This <see cref="InputBuilder"/> instance.</returns>
-        public InputBuilder AddCharacter(char character)
-        {
+        public InputBuilder AddCharacter(char character) {
             UInt16 scanCode = character;
 
             var down = new INPUT();
@@ -150,8 +138,7 @@ namespace WindowsInput
             // Handle extended keys:
             // If the scan code is preceded by a prefix byte that has the value 0xE0 (224),
             // we need to include the KEYEVENTF_EXTENDEDKEY flag in the Flags property. 
-            if ((scanCode & 0xFF00) == 0xE000)
-            {
+            if ((scanCode & 0xFF00) == 0xE000) {
                 down.Data.Keyboard.Flags |= (UInt32)KeyboardFlag.ExtendedKey;
                 up.Data.Keyboard.Flags |= (UInt32)KeyboardFlag.ExtendedKey;
             }
@@ -166,10 +153,8 @@ namespace WindowsInput
         /// </summary>
         /// <param name="characters">The characters to add.</param>
         /// <returns>This <see cref="InputBuilder"/> instance.</returns>
-        public InputBuilder AddCharacters(IEnumerable<char> characters)
-        {
-            foreach (var character in characters)
-            {
+        public InputBuilder AddCharacters(IEnumerable<char> characters) {
+            foreach (var character in characters) {
                 AddCharacter(character);
             }
             return this;
@@ -180,15 +165,13 @@ namespace WindowsInput
         /// </summary>
         /// <param name="characters">The string of <see cref="char"/> to add.</param>
         /// <returns>This <see cref="InputBuilder"/> instance.</returns>
-        public InputBuilder AddCharacters(string characters)
-        {
+        public InputBuilder AddCharacters(string characters) {
             return AddCharacters(characters.ToCharArray());
         }
 
         #region Mouse
 
-        public InputBuilder AddRelativeMouseMovement(int x, int y)
-        {
+        public InputBuilder AddRelativeMouseMovement(int x, int y) {
             var movement = new INPUT();
             movement.Type = (UInt32)InputType.Mouse;
             movement.Data.Mouse.Flags = (UInt32)MouseFlag.Move;
@@ -200,8 +183,7 @@ namespace WindowsInput
             return this;
         }
 
-        public InputBuilder AddAbsoluteMouseMovement(int absoluteX, int absoluteY)
-        {
+        public InputBuilder AddAbsoluteMouseMovement(int absoluteX, int absoluteY) {
             var movement = new INPUT();
             movement.Type = (UInt32)InputType.Mouse;
             movement.Data.Mouse.Flags = (UInt32)(MouseFlag.Move | MouseFlag.Absolute);
@@ -213,8 +195,7 @@ namespace WindowsInput
             return this;
         }
 
-        public InputBuilder AddAbsoluteMouseMovementOnVirtualDesktop(int absoluteX, int absoluteY)
-        {
+        public InputBuilder AddAbsoluteMouseMovementOnVirtualDesktop(int absoluteX, int absoluteY) {
             var movement = new INPUT();
             movement.Type = (UInt32)InputType.Mouse;
             movement.Data.Mouse.Flags = (UInt32)(MouseFlag.Move | MouseFlag.Absolute | MouseFlag.VirtualDesk);
@@ -226,8 +207,7 @@ namespace WindowsInput
             return this;
         }
 
-        public InputBuilder AddMouseButtonDown(MouseButton button)
-        {
+        public InputBuilder AddMouseButtonDown(MouseButton button) {
             var buttonDown = new INPUT();
             buttonDown.Type = (UInt32)InputType.Mouse;
             buttonDown.Data.Mouse.Flags = (UInt32)button.ToMouseButtonDownFlag();
@@ -237,8 +217,7 @@ namespace WindowsInput
             return this;
         }
 
-        public InputBuilder AddMouseXButtonDown(int xButtonId)
-        {
+        public InputBuilder AddMouseXButtonDown(int xButtonId) {
             var buttonDown = new INPUT();
             buttonDown.Type = (UInt32)InputType.Mouse;
             buttonDown.Data.Mouse.Flags = (UInt32)MouseFlag.XDown;
@@ -248,8 +227,7 @@ namespace WindowsInput
             return this;
         }
 
-        public InputBuilder AddMouseButtonUp(MouseButton button)
-        {
+        public InputBuilder AddMouseButtonUp(MouseButton button) {
             var buttonUp = new INPUT();
             buttonUp.Type = (UInt32)InputType.Mouse;
             buttonUp.Data.Mouse.Flags = (UInt32)button.ToMouseButtonUpFlag();
@@ -258,8 +236,7 @@ namespace WindowsInput
             return this;
         }
 
-        public InputBuilder AddMouseXButtonUp(int xButtonId)
-        {
+        public InputBuilder AddMouseXButtonUp(int xButtonId) {
             var buttonUp = new INPUT();
             buttonUp.Type = (UInt32)InputType.Mouse;
             buttonUp.Data.Mouse.Flags = (UInt32)MouseFlag.XUp;
@@ -269,45 +246,39 @@ namespace WindowsInput
             return this;
         }
 
-        public InputBuilder AddMouseButtonClick(MouseButton button)
-        {
+        public InputBuilder AddMouseButtonClick(MouseButton button) {
             return AddMouseButtonDown(button).AddMouseButtonUp(button);
         }
 
-        public InputBuilder AddMouseXButtonClick(int xButtonId)
-        {
+        public InputBuilder AddMouseXButtonClick(int xButtonId) {
             return AddMouseXButtonDown(xButtonId).AddMouseXButtonUp(xButtonId);
         }
 
-        public InputBuilder AddMouseButtonDoubleClick(MouseButton button)
-        {
+        public InputBuilder AddMouseButtonDoubleClick(MouseButton button) {
             return AddMouseButtonClick(button).AddMouseButtonClick(button);
         }
 
-        public InputBuilder AddMouseXButtonDoubleClick(int xButtonId)
-        {
+        public InputBuilder AddMouseXButtonDoubleClick(int xButtonId) {
             return AddMouseXButtonClick(xButtonId).AddMouseXButtonClick(xButtonId);
         }
 
-        public InputBuilder AddMouseVerticalWheelScroll(int scrollAmount)
-        {
+        public InputBuilder AddMouseVerticalWheelScroll(int scrollAmount) {
             var scroll = new INPUT();
-            scroll.Type = (UInt32) InputType.Mouse;
-            scroll.Data.Mouse.Flags = (UInt32) MouseFlag.VerticalWheel;
-            scroll.Data.Mouse.MouseData = (UInt32) scrollAmount;
-            
+            scroll.Type = (UInt32)InputType.Mouse;
+            scroll.Data.Mouse.Flags = (UInt32)MouseFlag.VerticalWheel;
+            scroll.Data.Mouse.MouseData = (UInt32)scrollAmount;
+
             _inputList.Add(scroll);
 
             return this;
         }
 
-        public InputBuilder AddMouseHorizontalWheelScroll(int scrollAmount)
-        {
+        public InputBuilder AddMouseHorizontalWheelScroll(int scrollAmount) {
             var scroll = new INPUT();
-            scroll.Type = (UInt32) InputType.Mouse;
-            scroll.Data.Mouse.Flags = (UInt32) MouseFlag.HorizontalWheel;
-            scroll.Data.Mouse.MouseData = (UInt32) scrollAmount;
-            
+            scroll.Type = (UInt32)InputType.Mouse;
+            scroll.Data.Mouse.Flags = (UInt32)MouseFlag.HorizontalWheel;
+            scroll.Data.Mouse.MouseData = (UInt32)scrollAmount;
+
             _inputList.Add(scroll);
 
             return this;

@@ -8,12 +8,7 @@
 //    http://sourceforge.net/projects/mcecontroller/
 //-------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace MCEControl {
     /// <summary>
@@ -25,7 +20,7 @@ namespace MCEControl {
         public const string CmdPrefix = "pause:";
 
         public static new List<PauseCommand> BuiltInCommands {
-            get => new List<PauseCommand>() { 
+            get => new List<PauseCommand>() {
                 new PauseCommand { Cmd = $"{CmdPrefix}" } // Commands that use form of "cmd:" must define a blank version
             };
         }

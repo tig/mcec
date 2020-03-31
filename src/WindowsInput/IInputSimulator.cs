@@ -1,10 +1,8 @@
-﻿namespace WindowsInput
-{
+﻿namespace WindowsInput {
     /// <summary>
     /// The contract for a service that simulates Keyboard and Mouse input and Hardware Input Device state detection for the Windows Platform.
     /// </summary>
-    public interface IInputSimulator
-    {
+    public interface IInputSimulator {
         /// <summary>
         /// Gets the <see cref="IKeyboardSimulator"/> instance for simulating Keyboard input.
         /// </summary>

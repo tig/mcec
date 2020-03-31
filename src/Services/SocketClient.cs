@@ -7,15 +7,12 @@
 // Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using log4net;
 using MCEControl.Properties;
 
 namespace MCEControl {
@@ -103,7 +100,7 @@ namespace MCEControl {
             if (text is null) throw new ArgumentNullException(nameof(text));
             if (_tcpClient == null || !_tcpClient.Connected || _bw.CancellationPending) return;
             try {
-                byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
+                var buf = System.Text.ASCIIEncoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
                 _tcpClient.GetStream().Write(buf, 0, buf.Length);
             }
             catch (IOException ioe) {
@@ -135,14 +132,14 @@ namespace MCEControl {
                         _tcpClient.EndConnect(ar);
                         Log4.Debug($"Client Back from EndConnect: { _host}:{ _port}");
                         SetStatus(ServiceStatus.Connected, $"{_host}:{_port}");
-                        StringBuilder sb = new StringBuilder();
+                        var sb = new StringBuilder();
                         while (_bw != null &&
                             !_bw.CancellationPending &&
                             CurrentStatus == ServiceStatus.Connected &&
                             _tcpClient != null &&
                             _tcpClient.Connected) {
                             // TODO: Move exception handling around this
-                            int input = _tcpClient.GetStream().ReadByte();
+                            var input = _tcpClient.GetStream().ReadByte();
                             switch (input) {
                                 case (byte)'\r':
                                 case (byte)'\n':
@@ -211,7 +208,7 @@ namespace MCEControl {
                     break;
 
                 default:
-                    string s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
+                    var s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
                     if (s == null)
                         Error($"{e.Message} ({e.ErrorCode})");
                     else {
@@ -235,7 +232,7 @@ namespace MCEControl {
 
                 if (!_tcpClient.Connected) return;
 
-                byte[] buf = System.Text.Encoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
+                var buf = System.Text.Encoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
                 _tcpClient.GetStream().Write(buf, 0, buf.Length);
             }
         }

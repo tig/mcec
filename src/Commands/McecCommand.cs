@@ -66,7 +66,7 @@ namespace MCEControl {
                     try {
                         replyBuilder.Append(Environment.NewLine);
                         var orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
-                        foreach (string key in orderedKeys) {
+                        foreach (var key in orderedKeys) {
                             cmd = (Command)MainWindow.Instance.Invoker[key];
                             var item = new ListViewItem(cmd.Cmd);
                             match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
@@ -81,7 +81,7 @@ namespace MCEControl {
 
                 // Return the current date/time of the PC
                 case "time":
-                    DateTime dt = DateTime.Now;
+                    var dt = DateTime.Now;
                     replyBuilder.AppendFormat("{0}", DateTime.Now);
                     break;
             }

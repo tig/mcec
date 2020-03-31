@@ -27,7 +27,7 @@ namespace MCEControl {
         /// </summary>
         /// <returns></returns>
         private static Commands CreateBuiltIns() {
-            Commands commands = new Commands();
+            var commands = new Commands();
 
             // Add the built-ins defined in the Command-derived classes
             foreach (Command cmd in McecCommand.BuiltInCommands)
@@ -51,7 +51,7 @@ namespace MCEControl {
             foreach (Command cmd in StartProcessCommand.BuiltInCommands)
                 commands.Add(cmd);
 
-            foreach (Command cmd in SetForegroundWindowCommand.BuiltInCommands)
+            foreach (var cmd in SetForegroundWindowCommand.BuiltInCommands)
                 commands.Add(cmd);
 
             foreach (Command cmd in SendMessageCommand.BuiltInCommands)
@@ -74,7 +74,7 @@ namespace MCEControl {
         /// <param name="disableInternalCommands">If true, internal commands will not be added to created instance.</param>
         /// <returns></returns>
         public static Commands Create(string userCommandsFile, bool disableInternalCommands) {
-            Commands commands = new Commands();
+            var commands = new Commands();
             SerializedCommands serializedCmds;
 
             // Add the built-ins that are defiend in the `Command`-derived classes
@@ -84,12 +84,12 @@ namespace MCEControl {
                     commands.Add(cmd);
             }
 
-            int nBuiltIn = commands.Count;
+            var nBuiltIn = commands.Count;
 
             // Load external .commands file. 
             serializedCmds = SerializedCommands.LoadCommands(userCommandsFile);
             if (serializedCmds != null && serializedCmds.commandArray != null) {
-                foreach (Command cmd in serializedCmds.commandArray) {
+                foreach (var cmd in serializedCmds.commandArray) {
                     // TELEMETRY: Mark user defined commands as such so they don't get collected
                     if (!commands.ContainsKey(cmd.Cmd))
                         cmd.UserDefined = true;
@@ -141,12 +141,12 @@ namespace MCEControl {
         public void Enqueue(Reply reply, String cmdString) {
             if (cmdString == null) throw new ArgumentNullException(nameof(cmdString));
             string cmd;
-            string args = "";
+            var args = "";
 
             // parse cmd and args (eg. char vs "shutdown" vs "mouse:<action>[,<parameter>,<parameter>]"
             // and "mouse:<action>[,<parameter>,<parameter>]"
             // These commands are handled internally as Cmd="cmd:" Args="<args>"
-            Match match = Regex.Match(cmdString, @"(\w+:)(.+)");
+            var match = Regex.Match(cmdString, @"(\w+:)(.+)");
             if (match.Success) {
                 cmd = match.Groups[1].Value;
                 args = match.Groups[2].Value;
@@ -159,14 +159,14 @@ namespace MCEControl {
             // TODO: Implement ignoreInternalCommands?
 
             if (cmdString.Length == 1 && ((Command)this["chars:"]).Enabled) {
-                var charsCmd = new CharsCommand() { Args = cmdString, Enabled =true, Reply = reply };
+                var charsCmd = new CharsCommand() { Args = cmdString, Enabled = true, Reply = reply };
                 executeQueue.Enqueue(charsCmd);
             }
             else {
                 // See if we know about this Command - case insensitive
                 if (this[cmd.ToLowerInvariant()] != null) {
                     // Always create a clone for enqueing (so Reply context can be independent)
-                    Command clone = (Command)((Command)this[cmd.ToLowerInvariant()]).Clone(reply);
+                    var clone = (Command)((Command)this[cmd.ToLowerInvariant()]).Clone(reply);
 
                     // This supports commands of the form 'chars:args'; these
                     // commands do not need to originate in CommandTable

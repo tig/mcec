@@ -206,8 +206,8 @@ namespace MCEControl {
             // 
             // tabcontrol
             // 
-            this._tabcontrol.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this._tabcontrol.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this._tabcontrol.Controls.Add(this._tabGeneral);
             this._tabcontrol.Controls.Add(this._tabClient);
@@ -941,7 +941,7 @@ namespace MCEControl {
             InitializeComponent();
 
             // Clone the settings object
-            Settings = (AppSettings) settings.Clone();
+            Settings = (AppSettings)settings.Clone();
 
             // Handle General tab setup
             _checkBoxHideOnStartup.Checked = Settings.HideOnStartup;
@@ -969,16 +969,16 @@ namespace MCEControl {
             _comboBoxDataBits.SelectedItem = $"{Settings.SerialServerDataBits}";
             // For the enum types, we cheat and rely on knowledge of what the enum 
             // values are. The combo boxes are pre-filled with in-order strings.
-            _comboBoxParity.SelectedIndex = (int) Settings.SerialServerParity;
-            _comboBoxStopBits.SelectedIndex = (int) Settings.SerialServerStopBits - 1; // None (0) is not allowed
-            _comboBoxHandshake.SelectedIndex = (int) Settings.SerialServerHandshake;
+            _comboBoxParity.SelectedIndex = (int)Settings.SerialServerParity;
+            _comboBoxStopBits.SelectedIndex = (int)Settings.SerialServerStopBits - 1; // None (0) is not allowed
+            _comboBoxHandshake.SelectedIndex = (int)Settings.SerialServerHandshake;
 
             _clientGroup.Enabled = _checkBoxEnableClient.Checked;
             _wakeupGroup.Enabled = _checkBoxEnableWakeup.Checked;
             _serverGroup.Enabled = _checkBoxEnableServer.Checked;
             _serialServerGroup.Enabled = _checkBoxEnableSerialServer.Checked;
 
-            
+
             _groupBoxActivityMonitor.Enabled = _checkBoxEnableActivityMonitor.Checked = Settings.ActivityMonitorEnabled;
             _unlockDetection.Checked = Settings.UnlockDetection;
             _inputDetection.Checked = Settings.InputDetection;
@@ -1029,8 +1029,8 @@ namespace MCEControl {
 
             if (_checkBoxEnableActivityMonitor.Checked) {
                 if (!int.TryParse(_textBoxDebounceTime.Text, out var t)) t = 0;
-                _buttonOk.Enabled = !(String.IsNullOrEmpty(_textBoxActivityCommand.Text) || 
-                                    String.IsNullOrEmpty(_textBoxDebounceTime.Text) || 
+                _buttonOk.Enabled = !(String.IsNullOrEmpty(_textBoxActivityCommand.Text) ||
+                                    String.IsNullOrEmpty(_textBoxDebounceTime.Text) ||
                                     (t == 0));
                 return;
             }
@@ -1155,7 +1155,7 @@ namespace MCEControl {
 
         private void ComboBoxParitySelectedIndexChanged(object sender, EventArgs e) {
             if (_comboBoxParity.SelectedItem != null) {
-                Settings.SerialServerParity = (Parity) _comboBoxParity.SelectedIndex;
+                Settings.SerialServerParity = (Parity)_comboBoxParity.SelectedIndex;
                 SettingsChanged();
             }
         }
@@ -1169,14 +1169,14 @@ namespace MCEControl {
         private void ComboBoxStopBitsSelectedIndexChanged(object sender, EventArgs e) {
             if (_comboBoxStopBits.SelectedItem != null) {
                 // Add one because None is invalid and is not included in the combo box
-                Settings.SerialServerStopBits = (StopBits) _comboBoxStopBits.SelectedIndex + 1;
+                Settings.SerialServerStopBits = (StopBits)_comboBoxStopBits.SelectedIndex + 1;
                 SettingsChanged();
             }
         }
 
         private void ComboBoxHandshakeSelectedIndexChanged(object sender, EventArgs e) {
             if (_comboBoxHandshake.SelectedItem != null) {
-                Settings.SerialServerHandshake = (Handshake) _comboBoxHandshake.SelectedIndex;
+                Settings.SerialServerHandshake = (Handshake)_comboBoxHandshake.SelectedIndex;
                 SettingsChanged();
             }
         }

@@ -42,16 +42,16 @@ namespace MCEControl {
         public TextBoxExt LogTextBox {
             get {
                 if (log4 != null) {
-                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                    TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
+                    var hierarchy = (Hierarchy)LogManager.GetRepository();
+                    var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     return a.LogTextBox;
                 }
                 else return null;
             }
             set {
                 if (log4 != null) {
-                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                    TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
+                    var hierarchy = (Hierarchy)LogManager.GetRepository();
+                    var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     a.LogTextBox = value;
                     a.ActivateOptions();
                 }
@@ -61,16 +61,16 @@ namespace MCEControl {
         public Level TextBoxThreshold {
             get {
                 if (log4 != null) {
-                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                    TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
+                    var hierarchy = (Hierarchy)LogManager.GetRepository();
+                    var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     return a.Threshold;
                 }
                 else return Level.Debug;
             }
             set {
                 if (log4 != null) {
-                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                    TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
+                    var hierarchy = (Hierarchy)LogManager.GetRepository();
+                    var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     if (a != null) {
                         a.Threshold = value;
                         a.ActivateOptions();
@@ -83,16 +83,16 @@ namespace MCEControl {
         public string LogFile {
             get {
                 if (log4 != null) {
-                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                    RollingFileAppender a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
+                    var hierarchy = (Hierarchy)LogManager.GetRepository();
+                    var a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
                     return a.File;
                 }
                 else return "MCEControl.log"; // default
             }
             set {
                 if (log4 != null) {
-                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                    RollingFileAppender a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
+                    var hierarchy = (Hierarchy)LogManager.GetRepository();
+                    var a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
                     a.File = value;
                     a.ActivateOptions();
                 }
@@ -107,10 +107,10 @@ namespace MCEControl {
             patternLayout.ConversionPattern = "%date %-5level - %message%newline";
             patternLayout.ActivateOptions();
 
-            Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+            var hierarchy = (Hierarchy)LogManager.GetRepository();
 
             // Log to file
-            RollingFileAppender roller = new RollingFileAppender {
+            var roller = new RollingFileAppender {
                 Name = "File",
                 AppendToFile = true,
                 Layout = patternLayout,
@@ -123,7 +123,7 @@ namespace MCEControl {
             roller.ActivateOptions();
             hierarchy.Root.AddAppender(roller);
 
-            TextBoxAppender textbox = new TextBoxAppender {
+            var textbox = new TextBoxAppender {
                 Name = "TextBox",
                 Layout = patternLayout,
                 LogTextBox = LogTextBox,

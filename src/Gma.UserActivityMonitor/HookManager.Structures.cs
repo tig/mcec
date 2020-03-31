@@ -70,8 +70,7 @@ namespace Gma.UserActivityMonitor {
         /// http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/windowsuserinterface/windowing/hooks/hookreference/hookstructures/cwpstruct.asp
         /// </remarks>
         [StructLayout(LayoutKind.Sequential)]
-        private struct KeyboardHookStruct
-        {
+        private struct KeyboardHookStruct {
             /// <summary>
             /// Specifies a virtual-key code. The code must be a value in the range 1 to 254. 
             /// </summary>

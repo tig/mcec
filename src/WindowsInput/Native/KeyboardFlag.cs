@@ -1,7 +1,6 @@
 ﻿using System;
 
-namespace WindowsInput.Native
-{
+namespace WindowsInput.Native {
 #pragma warning disable
     /// <summary>
     /// Specifies various aspects of a keystroke. This member can be certain combinations of the following values.

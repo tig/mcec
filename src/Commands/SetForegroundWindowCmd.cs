@@ -12,9 +12,6 @@ using System.Xml.Serialization;
 using Microsoft.Win32.Security;
 
 namespace MCEControl {
-    using HWND = IntPtr;
-    using DWORD = UInt32;
-
     /// <summary>
     /// Summary description for SetForegroundWindowCommand.
     /// </summary>
@@ -54,7 +51,7 @@ namespace MCEControl {
             }
             catch (Exception e) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Failed for {ClassName} with error: {e.Message}");
-                return false; 
+                return false;
             }
             return true;
         }

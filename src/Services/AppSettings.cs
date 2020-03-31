@@ -86,13 +86,13 @@ namespace MCEControl {
         public StopBits SerialServerStopBits { get; set; }
         [SafeForTelemetryAttribute]
         public Handshake SerialServerHandshake { get; set; }
-        [SafeForTelemetryAttribute] 
+        [SafeForTelemetryAttribute]
         public Point WindowLocation { get; set; }
-        [SafeForTelemetryAttribute] 
+        [SafeForTelemetryAttribute]
         public Size WindowSize { get; set; }
-        [SafeForTelemetryAttribute] 
+        [SafeForTelemetryAttribute]
         public bool ShowCommandWindow { get; set; }
-        [SafeForTelemetryAttribute] 
+        [SafeForTelemetryAttribute]
         public bool ActivityMonitorEnabled { get; set; }
 
         // [SafeForTelemetryAttribute] 
@@ -101,7 +101,7 @@ namespace MCEControl {
         public string ActivityMonitorCommand { get; set; } = "activity";
         [SafeForTelemetryAttribute]
         public int ActivityMonitorDebounceTime { get; set; } = 10;
-        [SafeForTelemetryAttribute] 
+        [SafeForTelemetryAttribute]
         public bool UnlockDetection { get; set; }
         [SafeForTelemetryAttribute]
         public bool InputDetection { get; set; }
@@ -118,7 +118,7 @@ namespace MCEControl {
         // Must have a default public constructor so XMLSerialization will work
         // This class is NOT supposed to be creatable (use Deserialize to construct).
         public AppSettings() {
-            SerialPort defaultPort = new SerialPort();
+            var defaultPort = new SerialPort();
             SerialServerPortName = defaultPort.PortName;
             SerialServerBaudRate = defaultPort.BaudRate;
             SerialServerParity = defaultPort.Parity;
@@ -136,7 +136,7 @@ namespace MCEControl {
         // However, typical installs get put into to %PROGRAMFILES% which 
         // is ACLd to allow only admin writes on Win7. 
         public static String GetSettingsPath() {
-            String path = Application.StartupPath;
+            var path = Application.StartupPath;
             // If app was started from within ProgramFiles then use UserAppDataPath.
             if (path.Contains(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles))) {
                 // Strip off the trailing version ("\\0.0.0.xxxx")
@@ -152,7 +152,7 @@ namespace MCEControl {
             var settingsPath = GetSettingsPath();
             var filePath = settingsPath + "\\" + SettingsFileName;
             try {
-                var ser = new XmlSerializer(typeof (AppSettings));
+                var ser = new XmlSerializer(typeof(AppSettings));
                 var sw = new StreamWriter(filePath);
                 ser.Serialize(sw, this);
                 sw.Close();
@@ -168,14 +168,14 @@ namespace MCEControl {
         public static AppSettings Deserialize(String settingsFile) {
             AppSettings settings = null;
 
-            var serializer = new XmlSerializer(typeof (AppSettings));
+            var serializer = new XmlSerializer(typeof(AppSettings));
             // A FileStream is needed to read the XML document.
             FileStream fs = null;
             XmlReader reader = null;
             try {
                 fs = new FileStream(settingsFile, FileMode.Open, FileAccess.Read);
                 reader = new XmlTextReader(fs);
-                settings = (AppSettings) serializer.Deserialize(reader);
+                settings = (AppSettings)serializer.Deserialize(reader);
 
                 settings.DisableInternalCommands = Convert.ToBoolean(
                     Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
@@ -223,7 +223,7 @@ namespace MCEControl {
             var dictionary = new Dictionary<string, string>();
             foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(this)) {
                 if (property.Attributes.Contains(new SafeForTelemetryAttribute())) {
-                    object value = property.GetValue(this);
+                    var value = property.GetValue(this);
                     if (value != null) {
                         if (property.PropertyType.IsSubclassOf(typeof(AppSettings))) {
                             // Go deep

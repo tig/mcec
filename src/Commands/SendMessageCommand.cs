@@ -15,7 +15,6 @@ using System.Xml.Serialization;
 using Microsoft.Win32.Security;
 
 namespace MCEControl {
-    using HWND = IntPtr;
     using DWORD = UInt32;
 
     /// <summary>
@@ -43,7 +42,7 @@ namespace MCEControl {
                   new SendMessageCommand() { Cmd = "screensaver", Msg=274, wParam=61760, lParam=0 },
                   new SendMessageCommand() { Cmd = "monitoroff", Msg=274, wParam=61808, lParam=2 },
                   new SendMessageCommand() { Cmd = "monitoron", Msg=274, wParam=61808, lParam=-1 }
-            }; 
+            };
         }
 
         public SendMessageCommand() {

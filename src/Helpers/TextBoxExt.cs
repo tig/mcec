@@ -45,7 +45,7 @@ namespace MCEControl {
                 return;
             }
 
-            string txt = this.Text;
+            var txt = this.Text;
             int cursor = 0, ixOf = 0, brkLength = 0, brkCount = 0;
 
             while (brkCount < count) {
@@ -71,12 +71,12 @@ namespace MCEControl {
                 length = 0;
                 return -1;
             }
-            int ub = str.Length - 1;
+            var ub = str.Length - 1;
             int intchr;
             if (startIndex > ub) {
                 throw new ArgumentOutOfRangeException();
             }
-            for (int i = startIndex; i <= ub; i++) {
+            for (var i = startIndex; i <= ub; i++) {
                 intchr = str[i];
                 if (intchr == 0x0D) {
                     if (i < ub && str[i + 1] == 0x0A) {

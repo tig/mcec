@@ -1,20 +1,15 @@
 ﻿using WindowsInput.Native;
 
-namespace WindowsInput
-{
-    internal enum MouseButton
-    {
+namespace WindowsInput {
+    internal enum MouseButton {
         LeftButton,
         MiddleButton,
         RightButton,
     }
 
-    internal static class MouseButtonExtensions
-    {
-        internal static MouseFlag ToMouseButtonDownFlag(this MouseButton button)
-        {
-            switch (button)
-            {
+    internal static class MouseButtonExtensions {
+        internal static MouseFlag ToMouseButtonDownFlag(this MouseButton button) {
+            switch (button) {
                 case MouseButton.LeftButton:
                     return MouseFlag.LeftDown;
 
@@ -29,10 +24,8 @@ namespace WindowsInput
             }
         }
 
-        internal static MouseFlag ToMouseButtonUpFlag(this MouseButton button)
-        {
-            switch (button)
-            {
+        internal static MouseFlag ToMouseButtonUpFlag(this MouseButton button) {
+            switch (button) {
                 case MouseButton.LeftButton:
                     return MouseFlag.LeftUp;
 

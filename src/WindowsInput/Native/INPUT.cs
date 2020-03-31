@@ -1,7 +1,6 @@
 ﻿using System;
 
-namespace WindowsInput.Native
-{
+namespace WindowsInput.Native {
 #pragma warning disable 649, CA1815, CA1051, CA1724, CS3003
     /// <summary>
     /// The INPUT structure is used by SendInput to store information for synthesizing input events such as keystrokes, mouse movement, and mouse clicks. (see: http://msdn.microsoft.com/en-us/library/ms646270(VS.85).aspx)
@@ -11,8 +10,7 @@ namespace WindowsInput.Native
     /// This structure contains information identical to that used in the parameter list of the keybd_event or mouse_event function.
     /// Windows 2000/XP: INPUT_KEYBOARD supports nonkeyboard input methods, such as handwriting recognition or voice recognition, as if it were text input by using the KEYEVENTF_UNICODE flag. For more information, see the remarks section of KEYBDINPUT.
     /// </remarks>
-    public struct INPUT
-    {
+    public struct INPUT {
         /// <summary>
         /// Specifies the type of the input event. This member can be one of the following values. 
         /// <see cref="InputType.Mouse"/> - The event is a mouse event. Use the mi structure of the union.

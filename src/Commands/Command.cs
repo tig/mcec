@@ -53,7 +53,7 @@ namespace MCEControl {
         [XmlElement(typeof(Command))]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
         public List<Command> EmbeddedCommands { get; set; }
-        
+
         [XmlAttribute("args")]
         public virtual string Args { get; set; }
 
@@ -71,7 +71,7 @@ namespace MCEControl {
         public abstract ICommand Clone(Reply reply);
 
         public virtual Command Clone(Reply reply, Command clone) {
-            if (clone is null) 
+            if (clone is null)
                 throw new ArgumentNullException(nameof(clone));
 
             clone.Reply = reply;
@@ -80,8 +80,8 @@ namespace MCEControl {
             clone.Args = this.Args;
             if (this.EmbeddedCommands != null) {
                 clone.EmbeddedCommands = new List<Command>();
-                foreach (Command next in this.EmbeddedCommands) {
-                    Command eClone = (Command)next.Clone(reply);
+                foreach (var next in this.EmbeddedCommands) {
+                    var eClone = (Command)next.Clone(reply);
                     clone.Enabled = Enabled;
                     clone.EmbeddedCommands.Add(eClone);
                 }

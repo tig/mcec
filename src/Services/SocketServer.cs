@@ -203,14 +203,14 @@ namespace MCEControl {
                 // _currentCommand contains the current command we are parsing out and 
                 // _currentIndex is the index into it
                 //int n = 0;
-                for (int i = 0; i < iRx; i++) {
-                    byte b = clientContext.DataBuffer[i];
+                for (var i = 0; i < iRx; i++) {
+                    var b = clientContext.DataBuffer[i];
                     switch (b) {
                         case (byte)TelnetVerbs.IAC:
                             // interpret as a command
                             i++;
                             if (i < iRx) {
-                                byte verb = clientContext.DataBuffer[i];
+                                var verb = clientContext.DataBuffer[i];
                                 switch (verb) {
                                     case (int)TelnetVerbs.IAC:
                                         //literal IAC = 255 escaped, so append char 255 to string
@@ -222,7 +222,7 @@ namespace MCEControl {
                                     case (int)TelnetVerbs.WONT:
                                         // reply to all commands with "WONT", unless it is SGA (suppres go ahead)
                                         i++;
-                                        byte inputoption = clientContext.DataBuffer[i];
+                                        var inputoption = clientContext.DataBuffer[i];
                                         if (i < iRx) {
                                             clientContext.Socket.Send(new[] { (byte)TelnetVerbs.IAC });
                                             if (inputoption == (int)TelnetOptions.SGA)

@@ -7,18 +7,10 @@
 // Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Microsoft.Win32.Security;
-using WindowsInput.Native;
 
 namespace MCEControl {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1501", Justification = "WinForms generated", Scope = "namespace")]
@@ -30,7 +22,7 @@ namespace MCEControl {
             InitializeComponent();
             testRadio.Checked = true;
         }
-        
+
         private void CommandWindow_Load(object sender, EventArgs e) {
             Icon = MainWindow.Instance.Icon;
         }
@@ -55,7 +47,7 @@ namespace MCEControl {
 
             textBoxSendCommand.Select();
             Task.Run(() => {
-                foreach (string line in textBoxSendCommand.Lines)
+                foreach (var line in textBoxSendCommand.Lines)
                     Send(line);
             });
         }
@@ -83,13 +75,13 @@ namespace MCEControl {
             RefreshList();
         }
 
-        public void RefreshList() { 
+        public void RefreshList() {
             listCmds.Items.Clear();
             var orderedCmds = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
-            foreach (string command in orderedCmds) {
-                Command cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(command.ToLowerInvariant(), StringComparison.Ordinal));
+            foreach (var command in orderedCmds) {
+                var cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(command.ToLowerInvariant(), StringComparison.Ordinal));
                 var item = new ListViewItem(cmd.Cmd);
-                Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
+                var match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                 item.SubItems.Add(match.Groups[1].Value);
                 item.SubItems.Add(cmd.ToString());
                 item.Checked = cmd.Enabled;
@@ -106,7 +98,7 @@ namespace MCEControl {
         }
 
         private void listCmds_ItemChecked(object sender, ItemCheckedEventArgs e) {
-            Command cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(e.Item.SubItems[0].Text.ToLowerInvariant(), StringComparison.Ordinal)); 
+            var cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(e.Item.SubItems[0].Text.ToLowerInvariant(), StringComparison.Ordinal));
             cmd.Enabled = e.Item.Checked;
             saveChangesBtn.Enabled = true;
         }

@@ -7,8 +7,7 @@ namespace Gma.UserActivityMonitor {
     /// This class monitors all mouse activities globally (also outside of the application) 
     /// and provides appropriate events.
     /// </summary>
-    public static partial class HookManager
-    {
+    public static partial class HookManager {
         //################################################################
         #region Mouse events
 
@@ -17,16 +16,13 @@ namespace Gma.UserActivityMonitor {
         /// <summary>
         /// Occurs when the mouse pointer is moved. 
         /// </summary>
-        public static event MouseEventHandler MouseMove
-        {
-            add
-            {
+        public static event MouseEventHandler MouseMove {
+            add {
                 EnsureSubscribedToGlobalMouseEvents();
                 s_MouseMove += value;
             }
 
-            remove
-            {
+            remove {
                 s_MouseMove -= value;
                 TryUnsubscribeFromGlobalMouseEvents();
             }
@@ -41,16 +37,13 @@ namespace Gma.UserActivityMonitor {
         /// This event provides extended arguments of type <see cref="MouseEventArgs"/> enabling you to 
         /// supress further processing of mouse movement in other applications.
         /// </remarks>
-        public static event EventHandler<MouseEventExtArgs> MouseMoveExt
-        {
-            add
-            {
+        public static event EventHandler<MouseEventExtArgs> MouseMoveExt {
+            add {
                 EnsureSubscribedToGlobalMouseEvents();
                 s_MouseMoveExt += value;
             }
 
-            remove
-            {
+            remove {
 
                 s_MouseMoveExt -= value;
                 TryUnsubscribeFromGlobalMouseEvents();
@@ -62,15 +55,12 @@ namespace Gma.UserActivityMonitor {
         /// <summary>
         /// Occurs when a click was performed by the mouse. 
         /// </summary>
-        public static event MouseEventHandler MouseClick
-        {
-            add
-            {
+        public static event MouseEventHandler MouseClick {
+            add {
                 EnsureSubscribedToGlobalMouseEvents();
                 s_MouseClick += value;
             }
-            remove
-            {
+            remove {
                 s_MouseClick -= value;
                 TryUnsubscribeFromGlobalMouseEvents();
             }
@@ -85,15 +75,12 @@ namespace Gma.UserActivityMonitor {
         /// This event provides extended arguments of type <see cref="MouseEventArgs"/> enabling you to 
         /// supress further processing of mouse click in other applications.
         /// </remarks>
-        public static event EventHandler<MouseEventExtArgs> MouseClickExt
-        {
-            add
-            {
+        public static event EventHandler<MouseEventExtArgs> MouseClickExt {
+            add {
                 EnsureSubscribedToGlobalMouseEvents();
                 s_MouseClickExt += value;
             }
-            remove
-            {
+            remove {
                 s_MouseClickExt -= value;
                 TryUnsubscribeFromGlobalMouseEvents();
             }
@@ -104,15 +91,12 @@ namespace Gma.UserActivityMonitor {
         /// <summary>
         /// Occurs when the mouse a mouse button is pressed. 
         /// </summary>
-        public static event MouseEventHandler  MouseDown
-        {
-            add 
-            { 
+        public static event MouseEventHandler MouseDown {
+            add {
                 EnsureSubscribedToGlobalMouseEvents();
                 s_MouseDown += value;
             }
-            remove
-            {
+            remove {
                 s_MouseDown -= value;
                 TryUnsubscribeFromGlobalMouseEvents();
             }
@@ -123,15 +107,12 @@ namespace Gma.UserActivityMonitor {
         /// <summary>
         /// Occurs when a mouse button is released. 
         /// </summary>
-        public static event MouseEventHandler MouseUp
-        {
-            add
-            {
+        public static event MouseEventHandler MouseUp {
+            add {
                 EnsureSubscribedToGlobalMouseEvents();
                 s_MouseUp += value;
             }
-            remove
-            {
+            remove {
                 s_MouseUp -= value;
                 TryUnsubscribeFromGlobalMouseEvents();
             }
@@ -142,15 +123,12 @@ namespace Gma.UserActivityMonitor {
         /// <summary>
         /// Occurs when the mouse wheel moves. 
         /// </summary>
-        public static event MouseEventHandler MouseWheel
-        {
-            add
-            {
+        public static event MouseEventHandler MouseWheel {
+            add {
                 EnsureSubscribedToGlobalMouseEvents();
                 s_MouseWheel += value;
             }
-            remove
-            {
+            remove {
                 s_MouseWheel -= value;
                 TryUnsubscribeFromGlobalMouseEvents();
             }
@@ -167,16 +145,12 @@ namespace Gma.UserActivityMonitor {
         /// <summary>
         /// Occurs when a double clicked was performed by the mouse. 
         /// </summary>
-        public static event MouseEventHandler MouseDoubleClick
-        {
-            add
-            {
+        public static event MouseEventHandler MouseDoubleClick {
+            add {
                 EnsureSubscribedToGlobalMouseEvents();
-                if (s_MouseDoubleClick == null)
-                {
+                if (s_MouseDoubleClick == null) {
                     //We create a timer to monitor interval between two clicks
-                    s_DoubleClickTimer = new Timer
-                    {
+                    s_DoubleClickTimer = new Timer {
                         //This interval will be set to the value we retrive from windows. This is a windows setting from contro planel.
                         Interval = GetDoubleClickTime(),
                         //We do not start timer yet. It will be start when the click occures.
@@ -189,10 +163,8 @@ namespace Gma.UserActivityMonitor {
                 }
                 s_MouseDoubleClick += value;
             }
-            remove
-            {
-                if (s_MouseDoubleClick != null)
-                {
+            remove {
+                if (s_MouseDoubleClick != null) {
                     s_MouseDoubleClick -= value;
 #pragma warning disable CA1508 // Avoid dead conditional code
                     if (s_MouseDoubleClick == null)
@@ -214,8 +186,7 @@ namespace Gma.UserActivityMonitor {
         //The timer to monitor time interval between two clicks.
         private static Timer s_DoubleClickTimer;
 
-        private static void DoubleClickTimeElapsed(object sender, EventArgs e)
-        {
+        private static void DoubleClickTimeElapsed(object sender, EventArgs e) {
             //Timer is alapsed and no second click ocuured
             s_DoubleClickTimer.Enabled = false;
             s_PrevClickedButton = MouseButtons.None;
@@ -227,15 +198,12 @@ namespace Gma.UserActivityMonitor {
         /// </summary>
         /// <param name="sender">Is always null</param>
         /// <param name="e">Some information about click heppened.</param>
-        private static void OnMouseUp(object sender, MouseEventArgs e)
-        {
+        private static void OnMouseUp(object sender, MouseEventArgs e) {
             //This should not heppen
-            if (e.Clicks < 1) { return;}
+            if (e.Clicks < 1) { return; }
             //If the secon click heppened on the same button
-            if (e.Button.Equals(s_PrevClickedButton))
-            {
-                if (s_MouseDoubleClick!=null)
-                {
+            if (e.Button.Equals(s_PrevClickedButton)) {
+                if (s_MouseDoubleClick != null) {
                     //Fire double click
                     s_MouseDoubleClick.Invoke(null, e);
                 }
@@ -243,8 +211,7 @@ namespace Gma.UserActivityMonitor {
                 s_DoubleClickTimer.Enabled = false;
                 s_PrevClickedButton = MouseButtons.None;
             }
-            else
-            {
+            else {
                 //If it was the firts click start the timer
                 s_DoubleClickTimer.Enabled = true;
                 s_PrevClickedButton = e.Button;
@@ -272,15 +239,12 @@ namespace Gma.UserActivityMonitor {
         ///To handle keyboard events only in your application and not enable other applications to receive keyboard events, 
         /// set the KeyPressEventArgs.Handled property in your form's KeyPress event-handling method to <b>true</b>. 
         /// </remarks>
-        public static event KeyPressEventHandler KeyPress
-        {
-            add
-            {
+        public static event KeyPressEventHandler KeyPress {
+            add {
                 EnsureSubscribedToGlobalKeyboardEvents();
                 s_KeyPress += value;
             }
-            remove
-            {
+            remove {
                 s_KeyPress -= value;
                 TryUnsubscribeFromGlobalKeyboardEvents();
             }
@@ -291,15 +255,12 @@ namespace Gma.UserActivityMonitor {
         /// <summary>
         /// Occurs when a key is released. 
         /// </summary>
-        public static event KeyEventHandler KeyUp
-        {
-            add
-            {
+        public static event KeyEventHandler KeyUp {
+            add {
                 EnsureSubscribedToGlobalKeyboardEvents();
                 s_KeyUp += value;
             }
-            remove
-            {
+            remove {
                 s_KeyUp -= value;
                 TryUnsubscribeFromGlobalKeyboardEvents();
             }
@@ -310,15 +271,12 @@ namespace Gma.UserActivityMonitor {
         /// <summary>
         /// Occurs when a key is preseed. 
         /// </summary>
-        public static event KeyEventHandler KeyDown
-        {
-            add
-            {
+        public static event KeyEventHandler KeyDown {
+            add {
                 EnsureSubscribedToGlobalKeyboardEvents();
                 s_KeyDown += value;
             }
-            remove
-            {
+            remove {
                 s_KeyDown -= value;
                 TryUnsubscribeFromGlobalKeyboardEvents();
             }

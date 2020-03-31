@@ -10,10 +10,9 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Ports;
 using System.Text;
 using System.Threading;
-using System.IO.Ports;
-using System.Collections.Generic;
 
 namespace MCEControl {
     /// <summary>
@@ -29,11 +28,10 @@ namespace MCEControl {
         }
         #endregion
 
-        private Thread _readThread ;
+        private Thread _readThread;
         private SerialPort _serialPort;
 
-        private void Dispose(bool disposing)
-        {
+        private void Dispose(bool disposing) {
             if (disposing) {
                 _serialPort?.Close();
                 _serialPort = null;
@@ -53,12 +51,12 @@ namespace MCEControl {
             Debug.Assert(_readThread == null);
 
             _serialPort = new SerialPort {
-                PortName = portName, 
-                BaudRate = baudRate, 
-                Parity = parity, 
-                DataBits = dataBits, 
+                PortName = portName,
+                BaudRate = baudRate,
+                Parity = parity,
+                DataBits = dataBits,
                 StopBits = stopBits,
-                Handshake = handshake, 
+                Handshake = handshake,
                 ReadTimeout = 500
             };
 
@@ -82,7 +80,7 @@ namespace MCEControl {
             }
             catch (Exception e) {
                 Error(e.Message);
-                Stop();              
+                Stop();
             }
         }
 
@@ -97,9 +95,8 @@ namespace MCEControl {
         public string GetSettingsDisplayString() {
             if (_serialPort == null)
                 return "";
-            String p = "";
-            switch (_serialPort.Parity)
-            {
+            var p = "";
+            switch (_serialPort.Parity) {
                 case Parity.Space:
                     p = "S";
                     break;
@@ -114,9 +111,8 @@ namespace MCEControl {
                     break;
             }
 
-            String sbits = "";
-            switch (_serialPort.StopBits)
-            {
+            var sbits = "";
+            switch (_serialPort.StopBits) {
                 case StopBits.OnePointFive:
                     sbits = "1.5";
                     break;
@@ -128,9 +124,8 @@ namespace MCEControl {
                     break;
             }
 
-            String hand = "";
-            switch (_serialPort.Handshake)
-            {
+            var hand = "";
+            switch (_serialPort.Handshake) {
                 case Handshake.RequestToSend:
                     hand = "Hardware";
                     break;
@@ -148,22 +143,18 @@ namespace MCEControl {
             return $"{_serialPort.PortName} {_serialPort.BaudRate} baud {p}{_serialPort.DataBits}{sbits} {hand}";
         }
 
-        private void Read()
-        {
+        private void Read() {
             Log4.Debug($"Serial Read thread starting: {GetSettingsDisplayString()}");
-            StringBuilder sb = new StringBuilder();
-            while (true)
-            {
-                try
-                {
+            var sb = new StringBuilder();
+            while (true) {
+                try {
                     if (_serialPort == null) {
                         Log4.Debug("_serialPort is null in Read()");
                         break;
                     }
-                    char c = (char)_serialPort.ReadChar();
-                    if (c == '\r' || c == '\n' || c == '\0')
-                    {
-                        string cmd = sb.ToString();
+                    var c = (char)_serialPort.ReadChar();
+                    if (c == '\r' || c == '\n' || c == '\0') {
+                        var cmd = sb.ToString();
                         sb.Length = 0;
                         if (cmd.Length > 0)
                             SendNotification(ServiceNotification.ReceivedData,
@@ -178,7 +169,7 @@ namespace MCEControl {
                     Log4.Debug("SerialServer: TimeoutException");
                 }
                 catch (IOException ioe) {
-                    Log4.Debug("SerialServer: IOException: "+ ioe.Message);
+                    Log4.Debug("SerialServer: IOException: " + ioe.Message);
                 }
                 catch (Exception e) {
                     Log4.Debug("SerialServer: Exception: " + e.Message);
@@ -194,7 +185,7 @@ namespace MCEControl {
 
             if (_serialPort != null && _serialPort.IsOpen)
                 _serialPort.Write(text);
-            
+
             // TODO: Implement notifications
             //if (_mainSocket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
             //    SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());

@@ -52,10 +52,10 @@ namespace MCEControl {
                     if (v.StartsWith("v", StringComparison.InvariantCultureIgnoreCase))
                         v = v.Substring(1, v.Length - 1);
 
-                    string[] parts = v.Split('.');
+                    var parts = v.Split('.');
 
                     // Get 4 elements which excludes any .alpha or .beta
-                    string version = string.Join(".", parts, 0, 4);
+                    var version = string.Join(".", parts, 0, 4);
 
                     if (version != null) {
                         LatestStableVersion = new Version(version);
@@ -111,7 +111,7 @@ namespace MCEControl {
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Downloading {DownloadUri.AbsoluteUri} to {_tempFilename}...");
 
             Task.Run(() => {
-                WebClient client = new WebClient();
+                var client = new WebClient();
                 client.DownloadDataCompleted += Client_DownloadDataCompleted;
                 client.DownloadProgressChanged += Client_DownloadProgressChanged;
                 client.DownloadDataAsync(DownloadUri);
@@ -120,7 +120,7 @@ namespace MCEControl {
         }
 
         private void Client_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e) {
-            if (e.ProgressPercentage %33 == 0)
+            if (e.ProgressPercentage % 33 == 0)
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Download progress...");
         }
 
@@ -133,7 +133,7 @@ namespace MCEControl {
                 }
             }
             finally {
-                
+
             }
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Download complete");
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Exiting and running installer ({_tempFilename})...");
@@ -146,7 +146,8 @@ namespace MCEControl {
             try {
                 p.Start();
                 //p.WaitForInputIdle(1000);
-            } catch (Win32Exception we) {
+            }
+            catch (Win32Exception we) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: {_tempFilename} failed to run with error: {we.Message}");
             }
             Process.Start(ReleasePageUri.AbsoluteUri);

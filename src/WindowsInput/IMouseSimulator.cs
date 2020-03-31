@@ -1,10 +1,8 @@
-﻿namespace WindowsInput
-{
+﻿namespace WindowsInput {
     /// <summary>
     /// The service contract for a mouse simulator for the Windows platform.
     /// </summary>
-    public interface IMouseSimulator
-    {
+    public interface IMouseSimulator {
         /// <summary>
         /// Simulates mouse movement by the specified distance measured as a delta from the current mouse location in pixels.
         /// </summary>

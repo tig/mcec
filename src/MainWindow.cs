@@ -515,7 +515,7 @@ namespace MCEControl {
 
         private void HandleSocketServerNotification(ServiceNotification notification, ServiceStatus status,
             SocketServer.ServerReplyContext serverReplyContext, String msg) {
-            String s = "";
+            var s = "";
 
             switch (notification) {
                 case ServiceNotification.ReceivedData:
@@ -579,7 +579,7 @@ namespace MCEControl {
 
         private void HandleSocketServerStatusChange(ServiceStatus status) {
             SetServerStatus(status);
-            String s = "";
+            var s = "";
             switch (status) {
                 case ServiceStatus.Started:
                     s = $"Started on port {Settings.ServerPort}";

@@ -10,10 +10,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Xml.Serialization;
 using WindowsInput;
-using WindowsInput.Native;
 
 namespace MCEControl {
     /// <summary>
@@ -61,7 +58,7 @@ namespace MCEControl {
 
             var sim = new InputSimulator();
             // Format is "mouse:<action>[,<parameters>]
-            string[] param = Args.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            var param = Args.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             if (param.Length == 0) return true;
 
             switch (param[0]) {
@@ -97,7 +94,7 @@ namespace MCEControl {
         }
 
         private static int GetIntOrZero(String[] s, int index) {
-            int val = 0;
+            var val = 0;
             if (index < s.Length) {
                 if (!int.TryParse(s[index], out val))
                     return 0;

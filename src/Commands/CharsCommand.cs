@@ -8,14 +8,9 @@
 //    http://sourceforge.net/projects/mcecontroller/
 //-------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text.RegularExpressions;
-using System.Xml.Serialization;
 using WindowsInput;
-using WindowsInput.Native;
-using MCEControl;
 
 namespace MCEControl {
     /// <summary>
@@ -26,7 +21,7 @@ namespace MCEControl {
 
         public static new List<CharsCommand> BuiltInCommands {
             get => new List<CharsCommand>() {
-                new CharsCommand { Cmd = $"{CmdPrefix}" } 
+                new CharsCommand { Cmd = $"{CmdPrefix}" }
             };
         }
 

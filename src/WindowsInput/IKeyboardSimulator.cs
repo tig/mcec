@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using WindowsInput.Native;
 
-namespace WindowsInput
-{
+namespace WindowsInput {
     /// <summary>
     /// The service contract for a keyboard simulator for the Windows platform.
     /// </summary>
-    public interface IKeyboardSimulator
-    {
+    public interface IKeyboardSimulator {
         /// <summary>
         /// Simulates the key down gesture for the specified key.
         /// </summary>
