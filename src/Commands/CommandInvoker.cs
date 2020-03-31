@@ -19,15 +19,15 @@ namespace MCEControl {
     /// Holds all active Commands. Uses a hash-table for lookup. 
     /// Is the Invoker in the Commands pattern.
     /// </summary>
-    public class Commands : Hashtable {
+    public class CommandInvoker : Hashtable {
         private ConcurrentQueue<ICommand> executeQueue = new ConcurrentQueue<ICommand>();
 
         /// <summary>
         /// Creaates a `Commands` instance of default & built-in commands. 
         /// </summary>
         /// <returns></returns>
-        private static Commands CreateBuiltIns() {
-            var commands = new Commands();
+        private static CommandInvoker CreateBuiltIns() {
+            var commands = new CommandInvoker();
 
             // Add the built-ins defined in the Command-derived classes
             foreach (Command cmd in McecCommand.BuiltInCommands) {
@@ -83,8 +83,8 @@ namespace MCEControl {
         /// <param name="userCommandsFile">Path to MCEControl.commands file.</param>
         /// <param name="disableInternalCommands">If true, internal commands will not be added to created instance.</param>
         /// <returns></returns>
-        public static Commands Create(string userCommandsFile, bool disableInternalCommands) {
-            var commands = new Commands();
+        public static CommandInvoker Create(string userCommandsFile, bool disableInternalCommands) {
+            var commands = new CommandInvoker();
             SerializedCommands serializedCmds;
 
             // Add the built-ins that are defiend in the `Command`-derived classes

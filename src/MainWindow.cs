@@ -25,7 +25,7 @@ namespace MCEControl {
         public SocketServer Server { get; private set; }
         public SocketClient Client { get; private set; }
         public SerialServer SerialServer { get; private set; }
-        public Commands Invoker { get; set; }
+        public CommandInvoker Invoker { get; set; }
 
         private CommandWindow cmdWindow;
 
@@ -183,7 +183,7 @@ namespace MCEControl {
                 // Invoker.Dispose();
             }
 
-            Invoker = Commands.Create($@"{Program.ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
+            Invoker = CommandInvoker.Create($@"{Program.ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
             if (Invoker == null) {
                 notifyIcon.Visible = false;
             }
