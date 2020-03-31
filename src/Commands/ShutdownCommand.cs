@@ -47,7 +47,10 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override bool Execute() {
-            if (!base.Execute()) return false;
+            if (!base.Execute()) {
+                return false;
+            }
+
             try {
                 Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: Executing {ToString()}");
                 switch (Type.ToLowerInvariant()) {
@@ -105,8 +108,9 @@ namespace MCEControl {
         public static void Shutdown(string shutdownArgs) {
             var proc = System.Diagnostics.Process.Start("shutdown", shutdownArgs);
             proc.WaitForExit(1000);
-            if (proc.ExitCode != 0x0)
+            if (proc.ExitCode != 0x0) {
                 throw new System.ComponentModel.Win32Exception(proc.ExitCode);
+            }
         }
     }
 }

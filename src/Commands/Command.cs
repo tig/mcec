@@ -71,8 +71,9 @@ namespace MCEControl {
         public abstract ICommand Clone(Reply reply);
 
         public virtual Command Clone(Reply reply, Command clone) {
-            if (clone is null)
+            if (clone is null) {
                 throw new ArgumentNullException(nameof(clone));
+            }
 
             clone.Reply = reply;
 

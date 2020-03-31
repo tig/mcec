@@ -29,7 +29,10 @@ namespace MCEControl {
         private readonly int _clientDelayTime;
 
         public SocketClient(AppSettings settings) {
-            if (settings is null) throw new ArgumentNullException(nameof(settings));
+            if (settings is null) {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
             _port = settings.ClientPort;
             _host = settings.ClientHost;
             _clientDelayTime = settings.ClientDelayTime;
@@ -74,8 +77,10 @@ namespace MCEControl {
                     SetStatus(ServiceStatus.Sleeping);
                     Thread.Sleep(_clientDelayTime);
                 }
-                if (_bw == null || _bw.CancellationPending || _tcpClient == null)
+                if (_bw == null || _bw.CancellationPending || _tcpClient == null) {
                     return;
+                }
+
                 Connect();
             };
             _bw.RunWorkerAsync();
@@ -97,8 +102,14 @@ namespace MCEControl {
         public override void Send(string text, Reply replyContext = null) {
             base.Send(text, replyContext);
 
-            if (text is null) throw new ArgumentNullException(nameof(text));
-            if (_tcpClient == null || !_tcpClient.Connected || _bw.CancellationPending) return;
+            if (text is null) {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            if (_tcpClient == null || !_tcpClient.Connected || _bw.CancellationPending) {
+                return;
+            }
+
             try {
                 var buf = System.Text.ASCIIEncoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
                 _tcpClient.GetStream().Write(buf, 0, buf.Length);
@@ -117,16 +128,19 @@ namespace MCEControl {
                 // TODO: Support ipv6
                 var ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
 
-                if (ipv4Addresses.Length == 0)
+                if (ipv4Addresses.Length == 0) {
                     throw new IOException($"{_host}:{_port} didn't resolve to a valid address");
+                }
 
                 endPoint = new IPEndPoint(ipv4Addresses[0], _port);
                 // TELEMETRY: Do not pass _host to SetStatus to avoid collecting PII
                 SetStatus(ServiceStatus.Started, $"{ipv4Addresses[0]}:{_port}");
 
                 _ = _tcpClient.BeginConnect(endPoint.Address, _port, ar => {
-                    if (_tcpClient == null)
+                    if (_tcpClient == null) {
                         return;
+                    }
+
                     try {
                         Log4.Debug($"Client BeginConnect: { _host}:{ _port}");
                         _tcpClient.EndConnect(ar);
@@ -188,13 +202,19 @@ namespace MCEControl {
             catch (SocketException e) {
                 Log4.Debug($"SocketClient: (BeginConnect) {e.GetType().Name}: {e.Message}");
                 CatchSocketException(e);
-                if (_tcpClient != null) _tcpClient.Close();
+                if (_tcpClient != null) {
+                    _tcpClient.Close();
+                }
+
                 return;
             }
             catch (Exception e) {
                 Log4.Debug($"SocketClient: (BeginConnect){e.GetType().Name}: {e.Message}");
                 Error($"SocketClient: (BeginConnect) Generic Exception: {e.GetType().Name}: {e.Message}");
-                if (_tcpClient != null) _tcpClient.Close();
+                if (_tcpClient != null) {
+                    _tcpClient.Close();
+                }
+
                 return;
             }
 
@@ -209,8 +229,9 @@ namespace MCEControl {
 
                 default:
                     var s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
-                    if (s == null)
+                    if (s == null) {
                         Error($"{e.Message} ({e.ErrorCode})");
+                    }
                     else {
                         Error($"{e.Message}. {s} ({e.ErrorCode})");
                     }
@@ -228,9 +249,13 @@ namespace MCEControl {
             }
 
             public override void Write(String text) {
-                if (text is null) throw new ArgumentNullException(nameof(text));
+                if (text is null) {
+                    throw new ArgumentNullException(nameof(text));
+                }
 
-                if (!_tcpClient.Connected) return;
+                if (!_tcpClient.Connected) {
+                    return;
+                }
 
                 var buf = System.Text.Encoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
                 _tcpClient.GetStream().Write(buf, 0, buf.Length);

@@ -31,15 +31,19 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override bool Execute() {
-            if (!base.Execute()) return false;
+            if (!base.Execute()) {
+                return false;
+            }
 
             string text;
             // if command came in as a literal "chars:foo" command use args
             // otherwise, use the Chars property
-            if (!string.IsNullOrEmpty(Args))
+            if (!string.IsNullOrEmpty(Args)) {
                 text = Regex.Unescape(Args);
-            else
+            }
+            else {
                 text = "";
+            }
 
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Typing {text.Length} chars: {text}");
             new InputSimulator().Keyboard.TextEntry(text);

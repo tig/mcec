@@ -19,9 +19,10 @@ namespace WindowsInput {
         /// <param name="messageDispatcher">The <see cref="IInputMessageDispatcher"/> to use for dispatching <see cref="INPUT"/> messages.</param>
         /// <exception cref="InvalidOperationException">If null is passed as the <paramref name="messageDispatcher"/>.</exception>
         public MouseSimulator(IInputMessageDispatcher messageDispatcher) {
-            if (messageDispatcher == null)
+            if (messageDispatcher == null) {
                 throw new InvalidOperationException(
                     $"The {typeof(MouseSimulator).Name} cannot operate with a null {typeof(IInputMessageDispatcher).Name}. Please provide a valid {typeof(IInputMessageDispatcher).Name} instance to use for dispatching {typeof(INPUT).Name} messages.");
+            }
 
             _messageDispatcher = messageDispatcher;
         }
@@ -39,7 +40,10 @@ namespace WindowsInput {
         /// <param name="inputList">The <see cref="System.Array"/> of <see cref="INPUT"/> messages to send.</param>
         /// <returns>The number of successful messages that were sent.</returns>
         private int SendSimulatedInput(INPUT[] inputList) {
-            if (inputList == null || inputList.Length == 0) return -1;
+            if (inputList == null || inputList.Length == 0) {
+                return -1;
+            }
+
             return (int)_messageDispatcher.DispatchInput(inputList);
         }
 

@@ -45,8 +45,10 @@ namespace menelabs.core {
         public virtual bool IsDuplicate(object obj) {
 #pragma warning restore CA1720 // Identifier contains type name
             var delayedEvent = obj as DelayedEvent;
-            if (delayedEvent == null)
+            if (delayedEvent == null) {
                 return false; // this is not null so they are different
+            }
+
             var eO1 = _args;
             var reO1 = _args as RenamedEventArgs;
             var eO2 = delayedEvent._args;
@@ -247,40 +249,45 @@ namespace menelabs.core {
         /// </summary>
         /// <param name="e">A System.IO.FileSystemEventArgs that contains the event data.</param>
         protected void OnChanged(FileSystemEventArgs e) {
-            if (Changed != null)
+            if (Changed != null) {
                 Changed(this, e);
+            }
         }
         /// <summary>
         /// Raises the System.IO.FileSystemWatcher.Created event.
         /// </summary>
         /// <param name="e">A System.IO.FileSystemEventArgs that contains the event data.</param>
         protected void OnCreated(FileSystemEventArgs e) {
-            if (Created != null)
+            if (Created != null) {
                 Created(this, e);
+            }
         }
         /// <summary>
         /// Raises the System.IO.FileSystemWatcher.Deleted event.
         /// </summary>
         /// <param name="e">A System.IO.FileSystemEventArgs that contains the event data.</param>
         protected void OnDeleted(FileSystemEventArgs e) {
-            if (Deleted != null)
+            if (Deleted != null) {
                 Deleted(this, e);
+            }
         }
         /// <summary>
         /// Raises the System.IO.FileSystemWatcher.Error event.
         /// </summary>
         /// <param name="e">An System.IO.ErrorEventArgs that contains the event data.</param>
         protected void OnError(ErrorEventArgs e) {
-            if (Error != null)
+            if (Error != null) {
                 Error(this, e);
+            }
         }
         /// <summary>
         /// Raises the System.IO.FileSystemWatcher.Renamed event.
         /// </summary>
         /// <param name="e">A System.IO.RenamedEventArgs that contains the event data.</param>
         protected void OnRenamed(RenamedEventArgs e) {
-            if (Renamed != null)
+            if (Renamed != null) {
                 Renamed(this, e);
+            }
         }
         /// <summary>
         /// A synchronous method that returns a structure that contains specific information on the change that occurred, given the type of change you want to monitor.
@@ -321,10 +328,13 @@ namespace menelabs.core {
         }
 
         private void Uninitialize() {
-            if (_fileSystemWatcher != null)
+            if (_fileSystemWatcher != null) {
                 _fileSystemWatcher.Dispose();
-            if (_serverTimer != null)
+            }
+
+            if (_serverTimer != null) {
                 _serverTimer.Dispose();
+            }
         }
 
         private void FileSystemEventHandler(object sender, FileSystemEventArgs e) {
@@ -375,7 +385,9 @@ namespace menelabs.core {
                                         raiseEvent = false;
                                     }
                                     finally {
-                                        if (stream != null) stream.Close();
+                                        if (stream != null) {
+                                            stream.Close();
+                                        }
                                     }
                                 }
 

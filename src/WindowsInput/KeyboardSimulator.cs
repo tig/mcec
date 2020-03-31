@@ -19,9 +19,10 @@ namespace WindowsInput {
         /// <param name="messageDispatcher">The <see cref="IInputMessageDispatcher"/> to use for dispatching <see cref="INPUT"/> messages.</param>
         /// <exception cref="InvalidOperationException">If null is passed as the <paramref name="messageDispatcher"/>.</exception>
         public KeyboardSimulator(IInputMessageDispatcher messageDispatcher) {
-            if (messageDispatcher == null)
+            if (messageDispatcher == null) {
                 throw new InvalidOperationException(
                     $"The {typeof(KeyboardSimulator).Name} cannot operate with a null {typeof(IInputMessageDispatcher).Name}. Please provide a valid {typeof(IInputMessageDispatcher).Name} instance to use for dispatching {typeof(INPUT).Name} messages.");
+            }
 
             _messageDispatcher = messageDispatcher;
         }
@@ -39,7 +40,10 @@ namespace WindowsInput {
         /// <param name="inputList">The <see cref="System.Array"/> of <see cref="INPUT"/> messages to send.</param>
         /// <returns>The number of successful messages that were sent.</returns>
         private int SendSimulatedInput(INPUT[] inputList) {
-            if (inputList == null || inputList.Length == 0) return -1;
+            if (inputList == null || inputList.Length == 0) {
+                return -1;
+            }
+
             return (int)_messageDispatcher.DispatchInput(inputList);
         }
 
@@ -101,9 +105,14 @@ namespace WindowsInput {
         /// <param name="keyCode">The key to simulate</param>
         public void ModifiedKeyStroke(IEnumerable<VirtualKeyCode> modifierKeyCodes, VirtualKeyCode keyCode) {
             var builder = new InputBuilder();
-            if (modifierKeyCodes != null) modifierKeyCodes.ToList().ForEach(x => builder.AddKeyDown(x));
+            if (modifierKeyCodes != null) {
+                modifierKeyCodes.ToList().ForEach(x => builder.AddKeyDown(x));
+            }
+
             builder.AddKeyPress(keyCode);
-            if (modifierKeyCodes != null) modifierKeyCodes.Reverse().ToList().ForEach(x => builder.AddKeyUp(x));
+            if (modifierKeyCodes != null) {
+                modifierKeyCodes.Reverse().ToList().ForEach(x => builder.AddKeyUp(x));
+            }
 
             SendSimulatedInput(builder.ToArray());
         }
@@ -117,7 +126,10 @@ namespace WindowsInput {
         public void ModifiedKeyStroke(VirtualKeyCode modifierKey, IEnumerable<VirtualKeyCode> keyCodes) {
             var builder = new InputBuilder();
             builder.AddKeyDown(modifierKey);
-            if (keyCodes != null) keyCodes.ToList().ForEach(x => builder.AddKeyPress(x));
+            if (keyCodes != null) {
+                keyCodes.ToList().ForEach(x => builder.AddKeyPress(x));
+            }
+
             builder.AddKeyUp(modifierKey);
 
             SendSimulatedInput(builder.ToArray());
@@ -131,9 +143,17 @@ namespace WindowsInput {
         /// <param name="keyCodes">The list of keys to simulate</param>
         public void ModifiedKeyStroke(IEnumerable<VirtualKeyCode> modifierKeyCodes, IEnumerable<VirtualKeyCode> keyCodes) {
             var builder = new InputBuilder();
-            if (modifierKeyCodes != null) modifierKeyCodes.ToList().ForEach(x => builder.AddKeyUp(x));
-            if (keyCodes != null) keyCodes.ToList().ForEach(x => builder.AddKeyPress(x));
-            if (modifierKeyCodes != null) modifierKeyCodes.Reverse().ToList().ForEach(x => builder.AddKeyUp(x));
+            if (modifierKeyCodes != null) {
+                modifierKeyCodes.ToList().ForEach(x => builder.AddKeyUp(x));
+            }
+
+            if (keyCodes != null) {
+                keyCodes.ToList().ForEach(x => builder.AddKeyPress(x));
+            }
+
+            if (modifierKeyCodes != null) {
+                modifierKeyCodes.Reverse().ToList().ForEach(x => builder.AddKeyUp(x));
+            }
 
             SendSimulatedInput(builder.ToArray());
         }
@@ -147,8 +167,9 @@ namespace WindowsInput {
                 throw new ArgumentNullException(nameof(text));
             }
 
-            if (text.Length > UInt32.MaxValue / 2)
+            if (text.Length > UInt32.MaxValue / 2) {
                 throw new ArgumentException($"The text parameter is too long. It must be less than {UInt32.MaxValue / 2} characters.", nameof(text));
+            }
 
             //var chars = UTF8Encoding.Unicode.GetBytes(text);
 

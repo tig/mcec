@@ -17,8 +17,9 @@ namespace Microsoft.Win32.Security {
         // Only called from the custom marshaler
         //
         internal void Parse(IntPtr pSecAttr) {
-            if (pSecAttr == IntPtr.Zero)
+            if (pSecAttr == IntPtr.Zero) {
                 throw new ArgumentException("Can't parse a NULL struct", "pSecAttr");
+            }
 
             var attrs = (SECURITY_ATTRIBUTES)
                 new MemoryMarshaler(pSecAttr).ParseStruct(typeof(SECURITY_ATTRIBUTES));
@@ -28,8 +29,9 @@ namespace Microsoft.Win32.Security {
             if (attrs.lpSecurityDescriptor != IntPtr.Zero) {
                 // Create a new SecDesc only if we don't already have one or
                 // if the one we have hasn't the same ptr to unmanged memory 
-                if (_secDesc == null || _secDesc.Ptr != attrs.lpSecurityDescriptor)
+                if (_secDesc == null || _secDesc.Ptr != attrs.lpSecurityDescriptor) {
                     _secDesc = new SecurityDescriptor(attrs.lpSecurityDescriptor);
+                }
             }
         }
         //

@@ -198,8 +198,13 @@ namespace MCEControl {
                 MessageBox.Show($"Settings file could not be loaded. {e.Message}");
             }
             finally {
-                if (reader != null) reader.Dispose();
-                if (fs != null) fs.Dispose();
+                if (reader != null) {
+                    reader.Dispose();
+                }
+
+                if (fs != null) {
+                    fs.Dispose();
+                }
             }
 
             // TELEMETRY: 
@@ -230,8 +235,9 @@ namespace MCEControl {
                             var propDict = ((AppSettings)value).GetTelemetryDictionary();
                             dictionary.Add(property.Name, JsonSerializer.Serialize(propDict, propDict.GetType()));
                         }
-                        else
+                        else {
                             dictionary.Add(property.Name, JsonSerializer.Serialize(value, value.GetType()));
+                        }
                     }
                 }
             }

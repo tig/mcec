@@ -332,7 +332,10 @@ namespace Gma.UserActivityMonitor {
                               inBuffer,
                               MyKeyboardHookStruct.Flags) == 1) {
                         var key = (char)inBuffer[0];
-                        if ((isDownCapslock ^ isDownShift) && Char.IsLetter(key)) key = Char.ToUpper(key, CultureInfo.InvariantCulture);
+                        if ((isDownCapslock ^ isDownShift) && Char.IsLetter(key)) {
+                            key = Char.ToUpper(key, CultureInfo.InvariantCulture);
+                        }
+
                         var e = new KeyPressEventArgs(key);
                         s_KeyPress.Invoke(null, e);
                         handled = handled || e.Handled;
@@ -350,8 +353,9 @@ namespace Gma.UserActivityMonitor {
             }
 
             //if event handled in application do not handoff to other listeners
-            if (handled)
+            if (handled) {
                 return -1;
+            }
 
             //forward to other application
             return CallNextHookEx(s_KeyboardHookHandle, nCode, wParam, lParam);

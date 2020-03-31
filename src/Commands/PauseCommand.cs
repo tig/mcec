@@ -35,9 +35,11 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override bool Execute() {
-            if (!base.Execute()) return false;
-            int time;
-            if (int.TryParse(Args, out time)) {
+            if (!base.Execute()) {
+                return false;
+            }
+
+            if (int.TryParse(Args, out var time)) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Pausing {time}ms");
                 // TODO: Is this the smartest way to do this?
                 System.Threading.Thread.Sleep(time);

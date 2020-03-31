@@ -41,10 +41,17 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override bool Execute() {
-            if (!base.Execute()) return false;
+            if (!base.Execute()) {
+                return false;
+            }
 
-            if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
-            if (this.Args is null) throw new InvalidOperationException("Args property cannot be null.");
+            if (this.Reply is null) {
+                throw new InvalidOperationException("Reply property cannot be null.");
+            }
+
+            if (this.Args is null) {
+                throw new InvalidOperationException("Args property cannot be null.");
+            }
 
             var replyBuilder = new StringBuilder();
             switch (Args.ToLowerInvariant()) {

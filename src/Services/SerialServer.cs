@@ -44,8 +44,9 @@ namespace MCEControl {
         // Control functions (Start, Stop, etc...)
         //-----------------------------------------------------------
         public void Start(String portName, int baudRate, Parity parity, int dataBits, StopBits stopBits, Handshake handshake) {
-            if (_serialPort != null || _readThread != null)
+            if (_serialPort != null || _readThread != null) {
                 Stop();
+            }
 
             Debug.Assert(_serialPort == null);
             Debug.Assert(_readThread == null);
@@ -93,8 +94,10 @@ namespace MCEControl {
 
         // Returns a string with serial settings, e.g. "COM1 9600 baud N81 Xon/Xoff"
         public string GetSettingsDisplayString() {
-            if (_serialPort == null)
+            if (_serialPort == null) {
                 return "";
+            }
+
             var p = "";
             switch (_serialPort.Parity) {
                 case Parity.Space:
@@ -156,14 +159,16 @@ namespace MCEControl {
                     if (c == '\r' || c == '\n' || c == '\0') {
                         var cmd = sb.ToString();
                         sb.Length = 0;
-                        if (cmd.Length > 0)
+                        if (cmd.Length > 0) {
                             SendNotification(ServiceNotification.ReceivedData,
                                             CurrentStatus,
                                             new SerialReplyContext(_serialPort),
                                             cmd);
+                        }
                     }
-                    else sb.Append(c);
-
+                    else {
+                        sb.Append(c);
+                    }
                 }
                 catch (TimeoutException) {
                     Log4.Debug("SerialServer: TimeoutException");
@@ -183,8 +188,9 @@ namespace MCEControl {
         public override void Send(string text, Reply replyContext = null) {
             base.Send(text, replyContext);
 
-            if (_serialPort != null && _serialPort.IsOpen)
+            if (_serialPort != null && _serialPort.IsOpen) {
                 _serialPort.Write(text);
+            }
 
             // TODO: Implement notifications
             //if (_mainSocket.Send(Encoding.UTF8.GetBytes(text)) > 0) {

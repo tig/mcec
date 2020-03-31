@@ -30,32 +30,42 @@ namespace MCEControl {
             var commands = new Commands();
 
             // Add the built-ins defined in the Command-derived classes
-            foreach (Command cmd in McecCommand.BuiltInCommands)
+            foreach (Command cmd in McecCommand.BuiltInCommands) {
                 commands.Add(cmd);
+            }
 
-            foreach (Command cmd in MouseCommand.BuiltInCommands)
+            foreach (Command cmd in MouseCommand.BuiltInCommands) {
                 commands.Add(cmd);
+            }
 
-            foreach (Command cmd in ShutdownCommand.BuiltInCommands)
+            foreach (Command cmd in ShutdownCommand.BuiltInCommands) {
                 commands.Add(cmd);
+            }
 
-            foreach (Command cmd in CharsCommand.BuiltInCommands)
+            foreach (Command cmd in CharsCommand.BuiltInCommands) {
                 commands.Add(cmd);
+            }
 
-            foreach (Command cmd in SendInputCommand.BuiltInCommands)
+            foreach (Command cmd in SendInputCommand.BuiltInCommands) {
                 commands.Add(cmd);
+            }
 
-            foreach (Command cmd in PauseCommand.BuiltInCommands)
+            foreach (Command cmd in PauseCommand.BuiltInCommands) {
                 commands.Add(cmd);
+            }
 
-            foreach (Command cmd in StartProcessCommand.BuiltInCommands)
+            foreach (Command cmd in StartProcessCommand.BuiltInCommands) {
                 commands.Add(cmd);
+            }
 
-            foreach (var cmd in SetForegroundWindowCommand.BuiltInCommands)
+            foreach (var cmd in SetForegroundWindowCommand.BuiltInCommands) {
                 commands.Add(cmd);
+            }
 
-            foreach (Command cmd in SendMessageCommand.BuiltInCommands)
+            foreach (Command cmd in SendMessageCommand.BuiltInCommands) {
                 commands.Add(cmd);
+            }
+
             Logger.Instance.Log4.Info($"{commands.GetType().Name}: {commands.Count} built-in commands defined");
 
             // Load the .commands file that's built in as an EXE resource
@@ -80,8 +90,9 @@ namespace MCEControl {
             // Add the built-ins that are defiend in the `Command`-derived classes
             // SECURITY: `Enabled` is set to `false` for all of these.
             if (!disableInternalCommands) {
-                foreach (var cmd in CreateBuiltIns().Values.Cast<Command>())
+                foreach (var cmd in CreateBuiltIns().Values.Cast<Command>()) {
                     commands.Add(cmd);
+                }
             }
 
             var nBuiltIn = commands.Count;
@@ -91,8 +102,10 @@ namespace MCEControl {
             if (serializedCmds != null && serializedCmds.commandArray != null) {
                 foreach (var cmd in serializedCmds.commandArray) {
                     // TELEMETRY: Mark user defined commands as such so they don't get collected
-                    if (!commands.ContainsKey(cmd.Cmd))
+                    if (!commands.ContainsKey(cmd.Cmd)) {
                         cmd.UserDefined = true;
+                    }
+
                     commands.Add(cmd);
                 }
                 Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded");
@@ -128,9 +141,13 @@ namespace MCEControl {
                     this.Remove(cmd.Cmd.ToLowerInvariant());
                 }
                 this.Add(cmd.Cmd.ToLowerInvariant(), (ICommand)cmd);
-                if (log) Logger.Instance.Log4.Info($"{this.GetType().Name}: Command added: {cmd.Cmd}");
+                if (log) {
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Command added: {cmd.Cmd}");
+                }
             }
-            else Logger.Instance.Log4.Info($"{this.GetType().Name}: Error parsing command: {cmd.ToString()}");
+            else {
+                Logger.Instance.Log4.Info($"{this.GetType().Name}: Error parsing command: {cmd.ToString()}");
+            }
         }
 
         /// <summary>
@@ -139,7 +156,10 @@ namespace MCEControl {
         /// <param name="reply">Reply context</param>
         /// <param name="cmdString">The command string that was received</param>
         public void Enqueue(Reply reply, String cmdString) {
-            if (cmdString == null) throw new ArgumentNullException(nameof(cmdString));
+            if (cmdString == null) {
+                throw new ArgumentNullException(nameof(cmdString));
+            }
+
             string cmd;
             var args = "";
 
@@ -170,13 +190,15 @@ namespace MCEControl {
 
                     // This supports commands of the form 'chars:args'; these
                     // commands do not need to originate in CommandTable
-                    if (string.IsNullOrEmpty(clone.Args))
+                    if (string.IsNullOrEmpty(clone.Args)) {
                         clone.Args = args;
+                    }
 
                     EnqueueCommand(clone);
                 }
-                else
+                else {
                     Logger.Instance.Log4.Info($"{this.GetType().Name}: Unknown command: {cmdString}");
+                }
             }
         }
 
@@ -186,9 +208,13 @@ namespace MCEControl {
         /// <param name="cmd">Command to enqueue</param>
         internal void EnqueueCommand(ICommand cmd) {
             executeQueue.Enqueue(cmd);
-            if (((Command)cmd).EmbeddedCommands is null) return;
-            foreach (var embedded in ((Command)cmd).EmbeddedCommands)
+            if (((Command)cmd).EmbeddedCommands is null) {
+                return;
+            }
+
+            foreach (var embedded in ((Command)cmd).EmbeddedCommands) {
                 EnqueueCommand(embedded);
+            }
         }
 
 
@@ -196,10 +222,9 @@ namespace MCEControl {
         /// Pulls the next Commeand off the queue and executes it
         /// </summary>
         internal void ExecuteNext() {
-            ICommand icmd;
             // TODO: This is simple and just dequeues and executes anything on the queue
             // needs to be smarter? Will this block incoming?
-            while (executeQueue.TryDequeue(out icmd)) {
+            while (executeQueue.TryDequeue(out var icmd)) {
                 ((Command)icmd).Execute();
                 System.Threading.Thread.Sleep(MainWindow.Instance.Settings.CommandPacing);
             }

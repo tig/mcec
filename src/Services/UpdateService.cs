@@ -49,8 +49,9 @@ namespace MCEControl {
 
                     var v = release.TagName;
                     // Remove leading "v" (v2.0.0.1000.alpha)
-                    if (v.StartsWith("v", StringComparison.InvariantCultureIgnoreCase))
+                    if (v.StartsWith("v", StringComparison.InvariantCultureIgnoreCase)) {
                         v = v.Substring(1, v.Length - 1);
+                    }
 
                     var parts = v.Split('.');
 
@@ -62,9 +63,9 @@ namespace MCEControl {
                         ReleasePageUri = new Uri($@"https://github.com/tig/mcec/releases/tag/v{v}");
                         DownloadUri = new Uri(release.Assets[0].BrowserDownloadUrl);
                     }
-                    else
+                    else {
                         ErrorMessage = "Could not parse version data.";
-
+                    }
                 }
                 catch (Exception e) {
                     ErrorMessage = $"({ReleasePageUri}) {e.Message}";
@@ -120,8 +121,9 @@ namespace MCEControl {
         }
 
         private void Client_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e) {
-            if (e.ProgressPercentage % 33 == 0)
+            if (e.ProgressPercentage % 33 == 0) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Download progress...");
+            }
         }
 
         private void Client_DownloadDataCompleted(object sender, DownloadDataCompletedEventArgs e) {

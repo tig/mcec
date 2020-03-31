@@ -18,29 +18,35 @@ namespace Microsoft.Win32.Security {
             // allowed inherit object aces
 
             // inherited aces are always "greater" than non-inherited aces
-            if (lhs.IsInherited && !rhs.IsInherited)
+            if (lhs.IsInherited && !rhs.IsInherited) {
                 return 1;
+            }
 
-            if (!lhs.IsInherited && rhs.IsInherited)
+            if (!lhs.IsInherited && rhs.IsInherited) {
                 return -1;
+            }
 
             // if the aces are *both* either inherited or non-inherited, continue...
 
             // allowed aces are always "greater" than denied aces (subject to above)
-            if (lhs.IsAllowed && !rhs.IsAllowed)
+            if (lhs.IsAllowed && !rhs.IsAllowed) {
                 return 1;
+            }
 
-            if (!lhs.IsAllowed && rhs.IsAllowed)
+            if (!lhs.IsAllowed && rhs.IsAllowed) {
                 return -1;
+            }
 
             // if the aces are *both* either allowed or denied, continue...
 
             // object aces are always "greater" than non-object aces (subject to above)
-            if (lhs.IsObjectAce && !rhs.IsObjectAce)
+            if (lhs.IsObjectAce && !rhs.IsObjectAce) {
                 return 1;
+            }
 
-            if (!lhs.IsObjectAce && rhs.IsObjectAce)
+            if (!lhs.IsObjectAce && rhs.IsObjectAce) {
                 return -1;
+            }
 
             // aces are "equal" (e.g., both are access denied inherited object aces)
             return 0;
@@ -74,8 +80,9 @@ namespace Microsoft.Win32.Security {
             // 1. h * 3 + 1 < nCount
             // 2. (h - 1) is exactly divisible by 3
             var h = 1;
-            while (h * 3 + 1 < nCount)
+            while (h * 3 + 1 < nCount) {
                 h = 3 * h + 1;
+            }
 
             while (h > 0) {
                 for (var i = h - 1; i < nCount; i++) {

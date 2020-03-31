@@ -92,7 +92,9 @@ namespace MCEControl {
                 Logger.DumpException(ex);
             }
             finally {
-                if (fs != null) fs.Close();
+                if (fs != null) {
+                    fs.Close();
+                }
             }
             return cmds;
         }
@@ -101,7 +103,9 @@ namespace MCEControl {
         /// Creates .commands file
         /// </summary>
         static public void SaveCommands(string userCommandsFile, SerializedCommands commands) {
-            if (commands == null) throw new ArgumentNullException(nameof(commands));
+            if (commands == null) {
+                throw new ArgumentNullException(nameof(commands));
+            }
             // TODO: Emit comments: https://stackoverflow.com/questions/7385921/how-to-write-a-comment-to-an-xml-file-when-using-the-xmlserializer
 
             FileStream ucFS = null;
@@ -117,7 +121,9 @@ namespace MCEControl {
                 Logger.DumpException(e);
             }
             finally {
-                if (ucFS != null) ucFS.Close();
+                if (ucFS != null) {
+                    ucFS.Close();
+                }
             }
         }
 
@@ -158,10 +164,21 @@ namespace MCEControl {
                 Logger.DumpException(ex);
             }
             finally {
-                if (xmlReader != null) xmlReader.Dispose();
-                if (xsltReader != null) xsltReader.Dispose();
-                if (lcWriter != null) lcWriter.Dispose();
-                if (lcReader != null) lcReader.Dispose();
+                if (xmlReader != null) {
+                    xmlReader.Dispose();
+                }
+
+                if (xsltReader != null) {
+                    xsltReader.Dispose();
+                }
+
+                if (lcWriter != null) {
+                    lcWriter.Dispose();
+                }
+
+                if (lcReader != null) {
+                    lcReader.Dispose();
+                }
             }
             return cmds;
         }

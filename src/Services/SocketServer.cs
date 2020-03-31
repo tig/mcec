@@ -41,10 +41,12 @@ namespace MCEControl {
 
         private void Dispose(bool disposing) {
             Log4.Debug("SocketServer disposing...");
-            if (!disposing) return;
+            if (!disposing) {
+                return;
+            }
+
             foreach (var i in _clientList.Keys) {
-                Socket socket;
-                _clientList.TryRemove(i, out socket);
+                _clientList.TryRemove(i, out var socket);
                 if (socket != null) {
                     Log4.Debug("Closing Socket #" + i);
                     socket.Close();
@@ -91,7 +93,10 @@ namespace MCEControl {
         private void OnClientConnect(IAsyncResult async) {
             Log4.Debug("SocketServer OnClientConnect");
 
-            if (_mainSocket == null) return;
+            if (_mainSocket == null) {
+                return;
+            }
+
             ServerReplyContext serverReplyContext = null;
             try {
                 // Here we complete/end the BeginAccept() asynchronous call
@@ -159,7 +164,9 @@ namespace MCEControl {
 
         private void CloseSocket(ServerReplyContext serverReplyContext) {
             Log4.Debug("SocketServer CloseSocket");
-            if (serverReplyContext == null) return;
+            if (serverReplyContext == null) {
+                return;
+            }
 
             // Remove the reference to the worker socket of the closed client
             // so that this object will get garbage collected
@@ -188,13 +195,15 @@ namespace MCEControl {
         // detects any client writing of data on the stream
         private void OnDataReceived(IAsyncResult async) {
             var clientContext = (ServerReplyContext)async.AsyncState;
-            if (_mainSocket == null || !clientContext.Socket.Connected) return;
+            if (_mainSocket == null || !clientContext.Socket.Connected) {
+                return;
+            }
+
             try {
                 // Complete the BeginReceive() asynchronous call by EndReceive() method
                 // which will return the number of characters written to the stream 
                 // by the client
-                SocketError err;
-                var iRx = clientContext.Socket.EndReceive(async, out err);
+                var iRx = clientContext.Socket.EndReceive(async, out var err);
                 if (err != SocketError.Success || iRx == 0) {
                     CloseSocket(clientContext);
                     return;
@@ -225,14 +234,17 @@ namespace MCEControl {
                                         var inputoption = clientContext.DataBuffer[i];
                                         if (i < iRx) {
                                             clientContext.Socket.Send(new[] { (byte)TelnetVerbs.IAC });
-                                            if (inputoption == (int)TelnetOptions.SGA)
+                                            if (inputoption == (int)TelnetOptions.SGA) {
                                                 clientContext.Socket.Send(new[]{verb == (int) TelnetVerbs.DO
                                                                         ? (byte) TelnetVerbs.WILL
                                                                         : (byte) TelnetVerbs.DO});
-                                            else
+                                            }
+                                            else {
                                                 clientContext.Socket.Send(new[]{verb == (int) TelnetVerbs.DO
                                                                         ? (byte) TelnetVerbs.WONT
                                                                         : (byte) TelnetVerbs.DONT});
+                                            }
+
                                             clientContext.Socket.Send(new[] { inputoption });
                                         }
                                         break;
@@ -333,10 +345,14 @@ namespace MCEControl {
         public override void Send(string text, Reply replyContext = null) {
             base.Send(text, replyContext);
 
-            if (text is null) throw new ArgumentNullException(nameof(text));
+            if (text is null) {
+                throw new ArgumentNullException(nameof(text));
+            }
+
             if (CurrentStatus != ServiceStatus.Connected ||
-                _mainSocket == null)
+                _mainSocket == null) {
                 return;
+            }
 
             if (replyContext == null) {
                 foreach (var i in _clientList.Keys) {

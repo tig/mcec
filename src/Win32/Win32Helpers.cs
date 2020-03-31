@@ -40,24 +40,31 @@ namespace Microsoft.Win32.Security {
             }
 
             try {
-                if (ptrOwnerSid != IntPtr.Zero)
+                if (ptrOwnerSid != IntPtr.Zero) {
                     sidOwner = new Sid(ptrOwnerSid);
+                }
 
-                if (ptrGroupSid != IntPtr.Zero)
+                if (ptrGroupSid != IntPtr.Zero) {
                     sidGroup = new Sid(ptrGroupSid);
+                }
 
-                if (ptrDacl != IntPtr.Zero)
+                if (ptrDacl != IntPtr.Zero) {
                     dacl = new Dacl(ptrDacl);
+                }
 
-                if (ptrSacl != IntPtr.Zero)
+                if (ptrSacl != IntPtr.Zero) {
                     sacl = new Sacl(ptrSacl);
+                }
 
-                if (ptrSecDesc != IntPtr.Zero)
+                if (ptrSecDesc != IntPtr.Zero) {
                     secDesc = new SecurityDescriptor(ptrSecDesc, true);
+                }
             }
             catch {
-                if (ptrSecDesc != IntPtr.Zero)
+                if (ptrSecDesc != IntPtr.Zero) {
                     Win32.LocalFree(ptrSecDesc);
+                }
+
                 throw;
             }
         }
@@ -91,24 +98,31 @@ namespace Microsoft.Win32.Security {
             }
 
             try {
-                if (ptrOwnerSid != IntPtr.Zero)
+                if (ptrOwnerSid != IntPtr.Zero) {
                     sidOwner = new Sid(ptrOwnerSid);
+                }
 
-                if (ptrGroupSid != IntPtr.Zero)
+                if (ptrGroupSid != IntPtr.Zero) {
                     sidGroup = new Sid(ptrGroupSid);
+                }
 
-                if (ptrDacl != IntPtr.Zero)
+                if (ptrDacl != IntPtr.Zero) {
                     dacl = new Dacl(ptrDacl);
+                }
 
-                if (ptrSacl != IntPtr.Zero)
+                if (ptrSacl != IntPtr.Zero) {
                     sacl = new Sacl(ptrSacl);
+                }
 
-                if (ptrSecDesc != IntPtr.Zero)
+                if (ptrSecDesc != IntPtr.Zero) {
                     secDesc = new SecurityDescriptor(ptrSecDesc, true);
+                }
             }
             catch {
-                if (ptrSecDesc != IntPtr.Zero)
+                if (ptrSecDesc != IntPtr.Zero) {
                     Win32.LocalFree(ptrSecDesc);
+                }
+
                 throw;
             }
         }

@@ -63,8 +63,9 @@ namespace MCEControl {
             // what: application properties
             // why: to track versions in use, OS support, and .NET versions
             // how is PII protected: none of this is PII
-            if (startProperties == null)
+            if (startProperties == null) {
                 startProperties = new Dictionary<string, string>();
+            }
 
             // Merged passed in properites
             startProperties.Concat(new Dictionary<string, string> {
@@ -101,8 +102,9 @@ namespace MCEControl {
         }
 
         public void TrackException(Exception ex, bool log = false) {
-            if (ex != null && log is true)
+            if (ex != null && log is true) {
                 Logger.Instance.Log4.Debug($"Exception: {ex.Message}");
+            }
 
             if (TelemetryClient != null && ex != null && TelemetryEnabled) {
                 var telex = new Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry(ex);
@@ -111,8 +113,9 @@ namespace MCEControl {
             }
         }
         internal void Flush() {
-            if (TelemetryClient != null)
+            if (TelemetryClient != null) {
                 TelemetryClient.Flush();
+            }
         }
     }
 }

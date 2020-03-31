@@ -69,7 +69,9 @@ namespace MCEControl {
         public ServiceStatus CurrentStatus { get; set; }
 
         public virtual void Send(string text, Reply replyContext = null) {
-            if (text == null) throw new ArgumentNullException(nameof(text));
+            if (text == null) {
+                throw new ArgumentNullException(nameof(text));
+            }
 
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending \"{Regex.Escape(text)}\"");
 

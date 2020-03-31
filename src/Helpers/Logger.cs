@@ -46,7 +46,9 @@ namespace MCEControl {
                     var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     return a.LogTextBox;
                 }
-                else return null;
+                else {
+                    return null;
+                }
             }
             set {
                 if (log4 != null) {
@@ -65,7 +67,9 @@ namespace MCEControl {
                     var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     return a.Threshold;
                 }
-                else return Level.Debug;
+                else {
+                    return Level.Debug;
+                }
             }
             set {
                 if (log4 != null) {
@@ -87,7 +91,9 @@ namespace MCEControl {
                     var a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
                     return a.File;
                 }
-                else return "MCEControl.log"; // default
+                else {
+                    return "MCEControl.log"; // default
+                }
             }
             set {
                 if (log4 != null) {
@@ -145,12 +151,18 @@ namespace MCEControl {
             Log4 = log4net.LogManager.GetLogger("MCEControl");
         }
         public static void DumpException(Exception ex) {
-            if (ex is null) throw new ArgumentNullException(nameof(ex));
+            if (ex is null) {
+                throw new ArgumentNullException(nameof(ex));
+            }
+
             WriteExceptionInfo(ex);
         }
 
         public static void WriteExceptionInfo(Exception ex) {
-            if (ex is null) throw new ArgumentNullException(nameof(ex));
+            if (ex is null) {
+                throw new ArgumentNullException(nameof(ex));
+            }
+
             Logger.Instance.Log4.Debug($"--------- Exception Data ---------");
             Logger.Instance.Log4.Debug($"Message:        {ex.FullMessage()}");
             Logger.Instance.Log4.Debug($"Exception Type: {ex.GetType().FullName}");
@@ -167,12 +179,20 @@ namespace MCEControl {
     /// </summary>
     public static class ExtensionMethods {
         public static string FullMessage(this Exception ex) {
-            if (ex is null) throw new ArgumentNullException(nameof(ex));
+            if (ex is null) {
+                throw new ArgumentNullException(nameof(ex));
+            }
 
-            if (ex is AggregateException aex) return aex.InnerExceptions.Aggregate("[ ", (total, next) => $"{total}[{next.FullMessage()}] ") + "]";
+            if (ex is AggregateException aex) {
+                return aex.InnerExceptions.Aggregate("[ ", (total, next) => $"{total}[{next.FullMessage()}] ") + "]";
+            }
+
             var msg = ex.Message.Replace(", see inner exception.", "").Trim();
             var innerMsg = ex.InnerException?.FullMessage();
-            if (innerMsg is object && innerMsg != msg) msg = $"{msg} \n[ {innerMsg} ]";
+            if (innerMsg is object && innerMsg != msg) {
+                msg = $"{msg} \n[ {innerMsg} ]";
+            }
+
             return msg;
         }
     }
@@ -185,7 +205,9 @@ namespace MCEControl {
             get => logTextBox;
             set {
                 logTextBox = value;
-                if (value == null) return;
+                if (value == null) {
+                    return;
+                }
 
                 // Set max # of chars. Given logfile logging there's no need to let a machine 
                 // page memory if MCE Controller has been runnnig long time
@@ -193,8 +215,9 @@ namespace MCEControl {
 
                 value.TextChanged += new System.EventHandler(this.LogTextChanged);
                 var frm = value.FindForm();
-                if (frm != null)
+                if (frm != null) {
                     frm.FormClosed += delegate { Close(); };
+                }
             }
         }
 
@@ -219,13 +242,16 @@ namespace MCEControl {
             try {
 
                 //Debug.Assert(LogTextBox != null);
-                if (LogTextBox == null)
+                if (LogTextBox == null) {
                     return;
+                }
 
                 lock (lockObj) {
                     // Can only update the log in the main window when on the UI thread
                     if (LogTextBox.InvokeRequired)  // (Instance.InvokeRequired || logTextBox.InvokeRequired)
+{
                         LogTextBox.BeginInvoke((Action)(() => { LogTextBox.AppendText(RenderLoggingEvent(loggingEvent)); }));
+                    }
                     else {
                         LogTextBox.AppendText(RenderLoggingEvent(loggingEvent));
                     }

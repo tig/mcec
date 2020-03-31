@@ -47,8 +47,9 @@ namespace MCEControl {
 
             textBoxSendCommand.Select();
             Task.Run(() => {
-                foreach (var line in textBoxSendCommand.Lines)
+                foreach (var line in textBoxSendCommand.Lines) {
                     Send(line);
+                }
             });
         }
 
@@ -71,7 +72,10 @@ namespace MCEControl {
         }
 
         private void CommandWindow_VisibleChanged(object sender, EventArgs e) {
-            if (!Visible) return;
+            if (!Visible) {
+                return;
+            }
+
             RefreshList();
         }
 

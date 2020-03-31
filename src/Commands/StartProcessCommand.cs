@@ -100,8 +100,13 @@ namespace MCEControl {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Process is long lived")]
         // ICommand:Execute
         public override bool Execute() {
-            if (!base.Execute()) return false;
-            if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
+            if (!base.Execute()) {
+                return false;
+            }
+
+            if (this.Reply is null) {
+                throw new InvalidOperationException("Reply property cannot be null.");
+            }
 
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Starting process: {ToString()}");
             if (File != null) {
@@ -116,7 +121,7 @@ namespace MCEControl {
 
                 // TODO: Make delay smarter
                 p.Start();
-                if (EmbeddedCommands != null && EmbeddedCommands.Count > 0)
+                if (EmbeddedCommands != null && EmbeddedCommands.Count > 0) {
                     try {
                         p.WaitForInputIdle(1000); // TODO: Make this settable
                     }
@@ -124,6 +129,7 @@ namespace MCEControl {
                         Logger.Instance.Log4.Info($"{this.GetType().Name}: {e.Message}");
                         return false;
                     }
+                }
             }
             return true;
         }

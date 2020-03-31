@@ -33,7 +33,10 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override bool Execute() {
-            if (!base.Execute()) return false;
+            if (!base.Execute()) {
+                return false;
+            }
+
             try {
                 if (ClassName != null) {
                     var procs = Process.GetProcessesByName(ClassName);

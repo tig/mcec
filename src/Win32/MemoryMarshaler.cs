@@ -22,8 +22,10 @@ namespace Microsoft.Win32.Security {
         }
         public object ParseStruct(System.Type type, bool moveOffset) {
             var o = Marshal.PtrToStructure(_ptr, type);
-            if (moveOffset)
+            if (moveOffset) {
                 Advance(Marshal.SizeOf(type));
+            }
+
             return o;
         }
         public byte ParseUInt8() {

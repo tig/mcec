@@ -52,14 +52,24 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override bool Execute() {
-            if (!base.Execute()) return false;
-            if (this.Reply is null) throw new InvalidOperationException("Reply property cannot be null.");
-            if (this.Args is null) throw new InvalidOperationException("Args property cannot be null.");
+            if (!base.Execute()) {
+                return false;
+            }
+
+            if (this.Reply is null) {
+                throw new InvalidOperationException("Reply property cannot be null.");
+            }
+
+            if (this.Args is null) {
+                throw new InvalidOperationException("Args property cannot be null.");
+            }
 
             var sim = new InputSimulator();
             // Format is "mouse:<action>[,<parameters>]
             var param = Args.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-            if (param.Length == 0) return true;
+            if (param.Length == 0) {
+                return true;
+            }
 
             switch (param[0]) {
                 case "lbc": sim.Mouse.LeftButtonClick(); break;
@@ -96,8 +106,9 @@ namespace MCEControl {
         private static int GetIntOrZero(String[] s, int index) {
             var val = 0;
             if (index < s.Length) {
-                if (!int.TryParse(s[index], out val))
+                if (!int.TryParse(s[index], out val)) {
                     return 0;
+                }
             }
             return val;
         }

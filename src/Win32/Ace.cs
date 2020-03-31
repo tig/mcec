@@ -51,10 +51,13 @@ namespace Microsoft.Win32.Security {
         protected Sid _sid;
 
         protected void BaseInit(AceType type, int size, AceFlags flags, Sid sid, AccessType accessType) {
-            if (size >= ushort.MaxValue)
+            if (size >= ushort.MaxValue) {
                 throw new ArgumentException("Ace size is limited to an 16-bit integer", "size");
-            if (size <= ACE_HEADER.SizeOf)
+            }
+
+            if (size <= ACE_HEADER.SizeOf) {
                 throw new ArgumentException("Ace size must be at least the size of an ACE_HEADER", "size");
+            }
 
             _header.AceType = type;
             _header.AceSize = (ushort)size;
@@ -82,9 +85,10 @@ namespace Microsoft.Win32.Security {
                 throw new InvalidOperationException(msg);
             }
 
-            if (_sid == null)
+            if (_sid == null) {
                 throw new InvalidOperationException(
                     "Invariant of Ace is not verified: sid member is null");
+            }
         }
         public AceType Type {
             get {

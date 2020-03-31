@@ -106,10 +106,12 @@ namespace MCEControl {
             // Populate default VK_ codes
             foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
                 string s;
-                if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN)
+                if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN) {
                     s = vk.ToString();  // already have VK_
-                else
+                }
+                else {
                     s = "VK_" + vk.ToString();
+                }
 
                 _builtins.Add(new SendInputCommand(s, false, false, false, false));
             }
@@ -141,7 +143,9 @@ namespace MCEControl {
 
         // ICommand:Execute
         public override bool Execute() {
-            if (!base.Execute()) return false;
+            if (!base.Execute()) {
+                return false;
+            }
 
             // Forms:
             // Vk = "VK_..." - Simulates keypress of VK_...
@@ -149,7 +153,6 @@ namespace MCEControl {
             // Vk = "<char>" - Simulates keypress of keycode for <char>
 
             try {
-                VirtualKeyCode vkcode;
 
                 // Deal with shiftdown/up: commands
                 // TODO: Break this out to a separate command
@@ -168,14 +171,13 @@ namespace MCEControl {
                 }
 
                 if (!Vk.StartsWith("vk_", StringComparison.InvariantCultureIgnoreCase) ||
-                    (!Enum.TryParse(Vk.ToLowerInvariant(), true, out vkcode) &&
+                    (!Enum.TryParse(Vk.ToLowerInvariant(), true, out VirtualKeyCode vkcode) &&
                      !Enum.TryParse(Vk.ToLowerInvariant().Substring(3), true, out vkcode))) {
                     // Not a VK_ string
                     // Hex?
-                    ushort num;
                     if ((!Vk.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase) ||
                          !ushort.TryParse(Vk.Substring(2), NumberStyles.HexNumber,
-                                          CultureInfo.InvariantCulture.NumberFormat, out num)) &&
+                                          CultureInfo.InvariantCulture.NumberFormat, out var num)) &&
                          !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
                                          out num)) {
 
@@ -189,14 +191,28 @@ namespace MCEControl {
 
                 string s;
                 // it's 
-                if (vkcode > VirtualKeyCode.HELP && vkcode < VirtualKeyCode.LWIN)
+                if (vkcode > VirtualKeyCode.HELP && vkcode < VirtualKeyCode.LWIN) {
                     s = $"{Char.ToUpper((char)vkcode, CultureInfo.InvariantCulture)}";
-                else
+                }
+                else {
                     s = "VK_" + vkcode.ToString();
-                if (Alt) s = "Alt-" + s;
-                if (Ctrl) s = "Ctrl-" + s;
-                if (Shift) s = "Shift-" + s;
-                if (Win) s = "Win-" + s;
+                }
+
+                if (Alt) {
+                    s = "Alt-" + s;
+                }
+
+                if (Ctrl) {
+                    s = "Ctrl-" + s;
+                }
+
+                if (Shift) {
+                    s = "Shift-" + s;
+                }
+
+                if (Win) {
+                    s = "Win-" + s;
+                }
 
                 Logger.Instance.Log4.Info($"{this.GetType().Name} {ToString()} ({s}) (0x{(ushort)vkcode:x2})");
 
@@ -244,28 +260,53 @@ namespace MCEControl {
             var sim = new InputSimulator();
             switch (key) {
                 case "shift":
-                    if (down) sim.Keyboard.KeyDown(VirtualKeyCode.SHIFT);
-                    else sim.Keyboard.KeyUp(VirtualKeyCode.SHIFT);
+                    if (down) {
+                        sim.Keyboard.KeyDown(VirtualKeyCode.SHIFT);
+                    }
+                    else {
+                        sim.Keyboard.KeyUp(VirtualKeyCode.SHIFT);
+                    }
+
                     break;
 
                 case "ctrl":
-                    if (down) sim.Keyboard.KeyDown(VirtualKeyCode.CONTROL);
-                    else sim.Keyboard.KeyUp(VirtualKeyCode.CONTROL);
+                    if (down) {
+                        sim.Keyboard.KeyDown(VirtualKeyCode.CONTROL);
+                    }
+                    else {
+                        sim.Keyboard.KeyUp(VirtualKeyCode.CONTROL);
+                    }
+
                     break;
 
                 case "alt":
-                    if (down) sim.Keyboard.KeyDown(VirtualKeyCode.MENU);
-                    else sim.Keyboard.KeyUp(VirtualKeyCode.MENU);
+                    if (down) {
+                        sim.Keyboard.KeyDown(VirtualKeyCode.MENU);
+                    }
+                    else {
+                        sim.Keyboard.KeyUp(VirtualKeyCode.MENU);
+                    }
+
                     break;
 
                 case "lwin":
-                    if (down) sim.Keyboard.KeyDown(VirtualKeyCode.LWIN);
-                    else sim.Keyboard.KeyUp(VirtualKeyCode.LWIN);
+                    if (down) {
+                        sim.Keyboard.KeyDown(VirtualKeyCode.LWIN);
+                    }
+                    else {
+                        sim.Keyboard.KeyUp(VirtualKeyCode.LWIN);
+                    }
+
                     break;
 
                 case "rwin":
-                    if (down) sim.Keyboard.KeyDown(VirtualKeyCode.RWIN);
-                    else sim.Keyboard.KeyUp(VirtualKeyCode.RWIN);
+                    if (down) {
+                        sim.Keyboard.KeyDown(VirtualKeyCode.RWIN);
+                    }
+                    else {
+                        sim.Keyboard.KeyUp(VirtualKeyCode.RWIN);
+                    }
+
                     break;
 
                 default:

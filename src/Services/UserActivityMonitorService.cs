@@ -35,8 +35,9 @@ namespace MCEControl {
         /// </summary>
         /// <param name="debounceTime">Specifies the maximum frequency at which activity messages will be sent in seconds.</param>
         public void Start() {
-            if (_userActivityMonitor != null)
+            if (_userActivityMonitor != null) {
                 _userActivityMonitor = null;
+            }
 
             LastTime = DateTime.Now;
 
@@ -52,8 +53,9 @@ namespace MCEControl {
                 _userActivityMonitor.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDoubleClick);
             }
 
-            if (UnlockDetection)
+            if (UnlockDetection) {
                 StartSessionUnlockedTimer();
+            }
 
             Microsoft.Win32.SystemEvents.SessionSwitch += new Microsoft.Win32.SessionSwitchEventHandler(SystemEvents_SessionSwitch);
 
@@ -108,8 +110,9 @@ namespace MCEControl {
                 // Desktop has been locked - Pretty good signal there's not going to be any activity
                 // Stop the timer
                 Logger.Instance.Log4.Info($"ActivityMonitor: Session Locked");
-                if (_timer != null)
+                if (_timer != null) {
                     _timer.Enabled = false;
+                }
             }
             else if (e.Reason == SessionSwitchReason.SessionUnlock) {
                 // Desktop has been Unlocked - this is a signal there's activity. 
@@ -127,10 +130,13 @@ namespace MCEControl {
         }
 
         private void Activity(string logInfo) {
-            if (_userActivityMonitor == null) return;
+            if (_userActivityMonitor == null) {
+                return;
+            }
 
-            if (LogActivity)
+            if (LogActivity) {
                 Logger.Instance.Log4.Info($"ActivityMonitor: {logInfo}");
+            }
 
             if (LastTime.AddSeconds(DebounceTime) <= DateTime.Now) {
                 Logger.Instance.Log4.Info($"ActivityMonitor: User Activity Dectected");
