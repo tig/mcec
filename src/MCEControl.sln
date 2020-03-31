@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\Installer\version.txt = ..\Installer\version.txt
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCEControl.xUnit", "..\tests\MCEControl.xUnit\MCEControl.xUnit.csproj", "{802C3D76-90A7-4247-8EA9-2FB75811B97A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +24,10 @@ Global
 		{9489CAA5-2568-4ED5-A9AA-F5941CC608EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9489CAA5-2568-4ED5-A9AA-F5941CC608EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9489CAA5-2568-4ED5-A9AA-F5941CC608EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{802C3D76-90A7-4247-8EA9-2FB75811B97A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{802C3D76-90A7-4247-8EA9-2FB75811B97A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{802C3D76-90A7-4247-8EA9-2FB75811B97A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{802C3D76-90A7-4247-8EA9-2FB75811B97A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

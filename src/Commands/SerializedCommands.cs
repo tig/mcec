@@ -29,7 +29,7 @@ namespace MCEControl {
         [XmlAnyElement(Name = "XmlComment", Namespace = "mcecontroller", Order = 0)]
 #pragma warning disable CA1822 // Member XmlComment does not access instance data and can be marked as static
         public XmlComment XmlComment { get => new XmlDocument().CreateComment(Properties.Resources.CommandsFileXmlComments); set { } }
-#pragma warning enable CA1822
+#pragma warning restore CA1822
 
 #pragma warning disable CA1051 // Do not declare visible instance fields
         [XmlAttribute("version")]

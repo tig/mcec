@@ -130,26 +130,30 @@ namespace MCEControl {
             InputDetection = true;
         }
 
-        // By default we want the settings file stored with the EXE
-        // This allows the app to be run with multiple instances with a settings
-        // file for each instance (each being in different directory).
-        // However, typical installs get put into to %PROGRAMFILES% which 
-        // is ACLd to allow only admin writes on Win7. 
-        public static String GetSettingsPath() {
-            var path = Application.StartupPath;
+
+        /// <summary>
+        /// By default we want the settings file stored with the EXE
+        /// This allows the app to be run with multiple instances with a settings
+        /// file for each instance (each being in different directory).
+        /// However, typical installs get put into to %PROGRAMFILES% which 
+        /// is ACLd to allow only admin writes on Win7.         /// </summary>
+        /// <param name="startupPath">Path to where exe was started from (aka Applciation.StartupPath)</param>
+        /// <returns>Path to where Settings & Log Files should be</returns>
+        public static String GetSettingsPath(string startupPath) {
+            if (string.IsNullOrWhiteSpace(startupPath)) {
+                throw new ArgumentException("startupPath must be specified", nameof(startupPath));
+            }
             // If app was started from within ProgramFiles then use UserAppDataPath.
-            if (path.Contains(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles))) {
-                // Strip off the trailing version ("\\0.0.0.xxxx")
-                path = Application.UserAppDataPath.Substring(0,
-                    Application.UserAppDataPath.Length -
-                    (Application.ProductVersion.Length + 1));
+            if (startupPath.Contains(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles))) {
+                // Strip off the trailing version ("\0.0.0.xxxx")
+                startupPath = Application.UserAppDataPath.Substring(0, Application.UserAppDataPath.Length - (Application.ProductVersion.Length + 1));
             }
 
-            return path;
+            return startupPath;
         }
 
         public void Serialize() {
-            var settingsPath = GetSettingsPath();
+            var settingsPath = GetSettingsPath(Application.StartupPath);
             var filePath = settingsPath + "\\" + SettingsFileName;
             try {
                 var ser = new XmlSerializer(typeof(AppSettings));
