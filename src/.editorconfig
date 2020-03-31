@@ -116,6 +116,8 @@ csharp_space_between_method_call_empty_parameter_list_parentheses = false
 # Wrapping preferences
 csharp_preserve_single_line_statements = true
 csharp_preserve_single_line_blocks = true
+
+file_header_template = Copyright © Kindel Systems, LLC - http://www.kindel.com - charlie@kindel.com\nPublished under the MIT License - Source on GitHub: https://github.com/tig/mcec
 ###############################
 # VB Coding Conventions       #
 ###############################

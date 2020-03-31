@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright © Kindel Systems, LLC - http://www.kindel.com - charlie@kindel.com
+// Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
+
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;

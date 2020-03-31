@@ -1,11 +1,5 @@
-﻿//-------------------------------------------------------------------
-// Copyright © 2019 Kindel Systems, LLC
-// http://www.kindel.com
-// charlie@kindel.com
-// 
-// Published under the MIT License.
-// Source on GitHub: https://github.com/tig/mcec  
-//-------------------------------------------------------------------
+﻿// Copyright © Kindel Systems, LLC - http://www.kindel.com - charlie@kindel.com
+// Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
 using System.Diagnostics;
@@ -1062,7 +1056,7 @@ namespace MCEControl {
         }
 
         private void ButtonOkClick(object sender, EventArgs e) {
-            Settings.Serialize();
+            Settings.Serialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
             DialogResult = DialogResult.OK;
             Close();
         }

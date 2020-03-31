@@ -1,0 +1,324 @@
+<?xml version="1.0"?>
+<mcecontroller xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.2.4.40">
+  <!--
+
+MCE Controller Commands File - Copyright Kindel Sytems, LLC.
+
+This file must be named MCEControl.commands and must be placed  in the same directory as the MCEControl.exe file.
+
+Modify this file to extend/change the commands MCE Controller supports. This file can be modified while MCE Controller is running; it will re-load the file when changes are detected.
+
+See the documentation at https://tig.github.io/mcec for details on the commands supported by MCE Controller.
+
+-->
+  <commands xmlns="http://www.kindel.com/products/mcecontroller">
+    <shutdown cmd="abort" enabled="false" type="abort" timeout="30" />
+    <sendinput cmd="atlesc" enabled="false" alt="true" ctrl="false" shift="false" win="false" vk="VK_ESCAPE" />
+    <sendinput cmd="back" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="8" />
+    <sendinput cmd="cc" enabled="false" alt="false" ctrl="true" shift="true" win="false" vk="67" />
+    <sendinput cmd="ch-" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="189" />
+    <sendinput cmd="ch+" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="187" />
+    <chars cmd="chars:" enabled="false" />
+    <sendinput cmd="close" enabled="false" alt="true" ctrl="false" shift="false" win="false" vk="115" />
+    <startprocess cmd="code" enabled="false" file="code" />
+    <sendinput cmd="ctrl-F1" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="0x70" />
+    <sendinput cmd="ctrl-x" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="VK_X" />
+    <sendinput cmd="delete" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="46" />
+    <sendinput cmd="desktop" enabled="false" alt="false" ctrl="false" shift="false" win="true" vk="VK_D" />
+    <sendinput cmd="down" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="40" />
+    <sendinput cmd="dvdaudio" enabled="false" alt="false" ctrl="true" shift="true" win="false" vk="65" />
+    <sendinput cmd="dvdmenu" enabled="false" alt="false" ctrl="true" shift="true" win="false" vk="77" />
+    <sendinput cmd="dvdsubtitle" enabled="false" alt="false" ctrl="true" shift="true" win="false" vk="85" />
+    <sendinput cmd="end" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="35" />
+    <sendinput cmd="enter" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="13" />
+    <sendinput cmd="escape" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="27" />
+    <sendinput cmd="execute" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="43" />
+    <sendinput cmd="fwd" enabled="false" alt="false" ctrl="true" shift="true" win="false" vk="70" />
+    <sendinput cmd="greenbutton" enabled="false" alt="true" ctrl="false" shift="false" win="true" vk="13" />
+    <sendinput cmd="guide" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="71" />
+    <sendinput cmd="help" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="47" />
+    <shutdown cmd="hibernate" enabled="false" type="hibernate" timeout="30" />
+    <sendinput cmd="home" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="36" />
+    <sendinput cmd="insert" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="45" />
+    <sendinput cmd="left" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="37" />
+    <sendinput cmd="livetv" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="84" />
+    <shutdown cmd="logoff" enabled="false" type="logoff" timeout="30" />
+    <sendmessage cmd="maximize" enabled="false" msg="274" lparam="0" wparam="61488" />
+    <mceccommand cmd="mcec:" enabled="false" />
+    <mceccommand cmd="mcec:cmds" enabled="false" />
+    <mceccommand cmd="mcec:exit" enabled="false" />
+    <mceccommand cmd="mcec:time" enabled="false" />
+    <mceccommand cmd="mcec:ver" enabled="false" />
+    <sendmessage cmd="monitoroff" enabled="false" msg="274" lparam="2" wparam="61808" />
+    <sendmessage cmd="monitoron" enabled="false" msg="274" lparam="-1" wparam="61808" />
+    <sendinput cmd="moreinfo" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="68" />
+    <mouse cmd="mouse:" enabled="false" />
+    <mouse cmd="mouse:hs,x" enabled="false" />
+    <mouse cmd="mouse:lbc" enabled="false" />
+    <mouse cmd="mouse:lbd" enabled="false" />
+    <mouse cmd="mouse:lbdc" enabled="false" />
+    <mouse cmd="mouse:lbu" enabled="false" />
+    <mouse cmd="mouse:mm,x,y" enabled="false" />
+    <mouse cmd="mouse:mt,x,y" enabled="false" />
+    <mouse cmd="mouse:rbc" enabled="false" />
+    <mouse cmd="mouse:rbd" enabled="false" />
+    <mouse cmd="mouse:rbdc" enabled="false" />
+    <mouse cmd="mouse:rbu" enabled="false" />
+    <mouse cmd="mouse:vs,y" enabled="false" />
+    <mouse cmd="mouse:xbc,3" enabled="false" />
+    <mouse cmd="mouse:xbcd,3" enabled="false" />
+    <mouse cmd="mouse:xbd,3" enabled="false" />
+    <mouse cmd="mouse:xbu,3" enabled="false" />
+    <sendinput cmd="mute" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_VOLUME_MUTE" />
+    <sendinput cmd="mymusic" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="77" />
+    <sendinput cmd="mypictures" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="73" />
+    <sendinput cmd="mytv" enabled="false" alt="false" ctrl="true" shift="true" win="false" vk="84" />
+    <sendinput cmd="myvideos" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="69" />
+    <startprocess cmd="netflix" enabled="false" file="shell:AppsFolder\4DF9E0F8.Netflix_mcm4njqhnhss8!Netflix.App" />
+    <sendinput cmd="next" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="34" />
+    <sendinput cmd="ok" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="13" />
+    <sendinput cmd="pause" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MEDIA_PLAY_PAUSE" />
+    <pause cmd="pause:" enabled="false" />
+    <sendinput cmd="play" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MEDIA_PLAY_PAUSE" />
+    <shutdown cmd="poweroff" enabled="false" type="poweroff" timeout="30" />
+    <sendinput cmd="print" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="42" />
+    <sendinput cmd="prior" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="8" />
+    <sendinput cmd="record" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="82" />
+    <sendinput cmd="recordedtv" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="79" />
+    <shutdown cmd="restart" enabled="false" type="restart" timeout="30" />
+    <shutdown cmd="restart-g" enabled="false" type="restart-g" timeout="30" />
+    <sendinput cmd="rew" enabled="false" alt="false" ctrl="true" shift="true" win="false" vk="66" />
+    <sendinput cmd="right" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="39" />
+    <sendinput cmd="run" enabled="false" alt="false" ctrl="false" shift="false" win="true" vk="VK_R" />
+    <sendmessage cmd="screensaver" enabled="false" msg="274" lparam="0" wparam="61760" />
+    <sendinput cmd="select" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="41" />
+    <sendinput cmd="shiftdown:" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="shiftdown:" />
+    <sendinput cmd="shiftup:" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="shiftup:" />
+    <shutdown cmd="shutdown" enabled="false" type="shutdown" timeout="30" />
+    <shutdown cmd="shutdown-hybrid" enabled="false" type="shutdown-hybrid" timeout="30" />
+    <sendinput cmd="skipback" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="66" />
+    <sendinput cmd="skipfwd" enabled="false" alt="false" ctrl="true" shift="false" win="false" vk="70" />
+    <sendinput cmd="snapshot" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="44" />
+    <shutdown cmd="standby" enabled="false" type="standby" timeout="30" />
+    <sendinput cmd="stop" enabled="false" alt="false" ctrl="true" shift="true" win="false" vk="83" />
+    <sendinput cmd="tab" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="9" />
+    <startprocess cmd="tada" enabled="false" file="C:\Windows\Media\tada.wav" verb="Open" />
+    <startprocess cmd="term" enabled="false" file="shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" />
+    <sendinput cmd="Tile Left" enabled="false" alt="false" ctrl="false" shift="false" win="true" vk="37" />
+    <sendinput cmd="Tile Right" enabled="false" alt="false" ctrl="false" shift="false" win="true" vk="39" />
+    <startprocess cmd="type_into_notepad" enabled="false" file="notepad.exe">
+      <pause args="100" enabled="true" />
+      <chars args="this is a test typed into Notepad." enabled="true" />
+      <sendinput enabled="true" alt="false" ctrl="false" shift="false" win="false" vk="VK_RETURN" />
+      <sendinput enabled="true" alt="false" ctrl="false" shift="true" win="true" vk="VK_RIGHT" />
+      <sendmessage enabled="true" msg="274" lparam="0" wparam="61488" />
+      <chars args="Second " enabled="true" />
+      <chars args="line..." enabled="true">
+        <pause args="250" enabled="true" />
+        <sendinput enabled="true" alt="true" ctrl="false" shift="false" win="false" vk="h" />
+        <sendinput enabled="true" alt="false" ctrl="false" shift="false" win="false" vk="a" />
+      </chars>
+    </startprocess>
+    <sendinput cmd="up" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="38" />
+    <sendinput cmd="VK_0" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_0" />
+    <sendinput cmd="VK_1" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_1" />
+    <sendinput cmd="VK_2" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_2" />
+    <sendinput cmd="VK_3" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_3" />
+    <sendinput cmd="VK_4" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_4" />
+    <sendinput cmd="VK_5" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_5" />
+    <sendinput cmd="VK_6" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_6" />
+    <sendinput cmd="VK_7" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_7" />
+    <sendinput cmd="VK_8" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_8" />
+    <sendinput cmd="VK_9" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_9" />
+    <sendinput cmd="VK_A" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_A" />
+    <sendinput cmd="VK_ACCEPT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_ACCEPT" />
+    <sendinput cmd="VK_ADD" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_ADD" />
+    <sendinput cmd="VK_APPS" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_APPS" />
+    <sendinput cmd="VK_ATTN" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_ATTN" />
+    <sendinput cmd="VK_B" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_B" />
+    <sendinput cmd="VK_BACK" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_BACK" />
+    <sendinput cmd="VK_BROWSER_BACK" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_BROWSER_BACK" />
+    <sendinput cmd="VK_BROWSER_FAVORITES" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_BROWSER_FAVORITES" />
+    <sendinput cmd="VK_BROWSER_FORWARD" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_BROWSER_FORWARD" />
+    <sendinput cmd="VK_BROWSER_HOME" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_BROWSER_HOME" />
+    <sendinput cmd="VK_BROWSER_REFRESH" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_BROWSER_REFRESH" />
+    <sendinput cmd="VK_BROWSER_SEARCH" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_BROWSER_SEARCH" />
+    <sendinput cmd="VK_BROWSER_STOP" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_BROWSER_STOP" />
+    <sendinput cmd="VK_C" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_C" />
+    <sendinput cmd="VK_CANCEL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_CANCEL" />
+    <sendinput cmd="VK_CAPITAL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_CAPITAL" />
+    <sendinput cmd="VK_CLEAR" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_CLEAR" />
+    <sendinput cmd="VK_CONTROL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_CONTROL" />
+    <sendinput cmd="VK_CONVERT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_CONVERT" />
+    <sendinput cmd="VK_CRSEL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_CRSEL" />
+    <sendinput cmd="VK_D" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_D" />
+    <sendinput cmd="VK_DECIMAL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_DECIMAL" />
+    <sendinput cmd="VK_DELETE" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_DELETE" />
+    <sendinput cmd="VK_DIVIDE" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_DIVIDE" />
+    <sendinput cmd="VK_DOWN" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_DOWN" />
+    <sendinput cmd="VK_E" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_E" />
+    <sendinput cmd="VK_END" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_END" />
+    <sendinput cmd="VK_EREOF" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_EREOF" />
+    <sendinput cmd="VK_ESCAPE" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_ESCAPE" />
+    <sendinput cmd="VK_EXECUTE" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_EXECUTE" />
+    <sendinput cmd="VK_EXSEL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_EXSEL" />
+    <sendinput cmd="VK_F" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F" />
+    <sendinput cmd="VK_F1" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F1" />
+    <sendinput cmd="VK_F10" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F10" />
+    <sendinput cmd="VK_F11" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F11" />
+    <sendinput cmd="VK_F12" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F12" />
+    <sendinput cmd="VK_F13" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F13" />
+    <sendinput cmd="VK_F14" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F14" />
+    <sendinput cmd="VK_F15" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F15" />
+    <sendinput cmd="VK_F16" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F16" />
+    <sendinput cmd="VK_F17" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F17" />
+    <sendinput cmd="VK_F18" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F18" />
+    <sendinput cmd="VK_F19" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F19" />
+    <sendinput cmd="VK_F2" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F2" />
+    <sendinput cmd="VK_F20" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F20" />
+    <sendinput cmd="VK_F21" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F21" />
+    <sendinput cmd="VK_F22" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F22" />
+    <sendinput cmd="VK_F23" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F23" />
+    <sendinput cmd="VK_F24" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F24" />
+    <sendinput cmd="VK_F3" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F3" />
+    <sendinput cmd="VK_F4" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F4" />
+    <sendinput cmd="VK_F5" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F5" />
+    <sendinput cmd="VK_F6" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F6" />
+    <sendinput cmd="VK_F7" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F7" />
+    <sendinput cmd="VK_F8" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F8" />
+    <sendinput cmd="VK_F9" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_F9" />
+    <sendinput cmd="VK_FINAL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_FINAL" />
+    <sendinput cmd="VK_G" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_G" />
+    <sendinput cmd="VK_H" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_H" />
+    <sendinput cmd="VK_HELP" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_HELP" />
+    <sendinput cmd="VK_HOME" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_HOME" />
+    <sendinput cmd="VK_I" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_I" />
+    <sendinput cmd="VK_ICO_00" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_ICO_00" />
+    <sendinput cmd="VK_ICO_CLEAR" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_ICO_CLEAR" />
+    <sendinput cmd="VK_ICO_HELP" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_ICO_HELP" />
+    <sendinput cmd="VK_INSERT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_INSERT" />
+    <sendinput cmd="VK_J" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_J" />
+    <sendinput cmd="VK_JUNJA" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_JUNJA" />
+    <sendinput cmd="VK_K" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_K" />
+    <sendinput cmd="VK_KANA" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_KANA" />
+    <sendinput cmd="VK_KANJI" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_KANJI" />
+    <sendinput cmd="VK_L" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_L" />
+    <sendinput cmd="VK_LAUNCH_APP1" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LAUNCH_APP1" />
+    <sendinput cmd="VK_LAUNCH_APP2" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LAUNCH_APP2" />
+    <sendinput cmd="VK_LAUNCH_MAIL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LAUNCH_MAIL" />
+    <sendinput cmd="VK_LAUNCH_MEDIA_SELECT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LAUNCH_MEDIA_SELECT" />
+    <sendinput cmd="VK_LBUTTON" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LBUTTON" />
+    <sendinput cmd="VK_LCONTROL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LCONTROL" />
+    <sendinput cmd="VK_LEFT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LEFT" />
+    <sendinput cmd="VK_LMENU" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LMENU" />
+    <sendinput cmd="VK_LSHIFT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LSHIFT" />
+    <sendinput cmd="VK_LWIN" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LWIN" />
+    <sendinput cmd="VK_M" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_M" />
+    <sendinput cmd="VK_MBUTTON" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MBUTTON" />
+    <sendinput cmd="VK_MEDIA_NEXT_TRACK" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MEDIA_NEXT_TRACK" />
+    <sendinput cmd="VK_MEDIA_PLAY_PAUSE" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MEDIA_PLAY_PAUSE" />
+    <sendinput cmd="VK_MEDIA_PREV_TRACK" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MEDIA_PREV_TRACK" />
+    <sendinput cmd="VK_MEDIA_STOP" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MEDIA_STOP" />
+    <sendinput cmd="VK_MENU" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MENU" />
+    <sendinput cmd="VK_MODECHANGE" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MODECHANGE" />
+    <sendinput cmd="VK_MULTIPLY" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_MULTIPLY" />
+    <sendinput cmd="VK_N" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_N" />
+    <sendinput cmd="VK_NEXT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NEXT" />
+    <sendinput cmd="VK_NONAME" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NONAME" />
+    <sendinput cmd="VK_NONCONVERT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NONCONVERT" />
+    <sendinput cmd="VK_NUMLOCK" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMLOCK" />
+    <sendinput cmd="VK_NUMPAD0" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD0" />
+    <sendinput cmd="VK_NUMPAD1" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD1" />
+    <sendinput cmd="VK_NUMPAD2" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD2" />
+    <sendinput cmd="VK_NUMPAD3" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD3" />
+    <sendinput cmd="VK_NUMPAD4" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD4" />
+    <sendinput cmd="VK_NUMPAD5" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD5" />
+    <sendinput cmd="VK_NUMPAD6" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD6" />
+    <sendinput cmd="VK_NUMPAD7" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD7" />
+    <sendinput cmd="VK_NUMPAD8" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD8" />
+    <sendinput cmd="VK_NUMPAD9" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_NUMPAD9" />
+    <sendinput cmd="VK_O" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_O" />
+    <sendinput cmd="VK_OEM_1" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_1" />
+    <sendinput cmd="VK_OEM_102" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_102" />
+    <sendinput cmd="VK_OEM_2" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_2" />
+    <sendinput cmd="VK_OEM_3" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_3" />
+    <sendinput cmd="VK_OEM_4" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_4" />
+    <sendinput cmd="VK_OEM_5" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_5" />
+    <sendinput cmd="VK_OEM_6" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_6" />
+    <sendinput cmd="VK_OEM_7" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_7" />
+    <sendinput cmd="VK_OEM_8" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_8" />
+    <sendinput cmd="VK_OEM_ATTN" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_ATTN" />
+    <sendinput cmd="VK_OEM_AUTO" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_AUTO" />
+    <sendinput cmd="VK_OEM_AX" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_AX" />
+    <sendinput cmd="VK_OEM_BACKTAB" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_BACKTAB" />
+    <sendinput cmd="VK_OEM_CLEAR" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_CLEAR" />
+    <sendinput cmd="VK_OEM_COMMA" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_COMMA" />
+    <sendinput cmd="VK_OEM_COPY" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_COPY" />
+    <sendinput cmd="VK_OEM_CUSEL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_CUSEL" />
+    <sendinput cmd="VK_OEM_ENLW" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_ENLW" />
+    <sendinput cmd="VK_OEM_FINISH" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_FINISH" />
+    <sendinput cmd="VK_OEM_FJ_LOYA" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_FJ_LOYA" />
+    <sendinput cmd="VK_OEM_FJ_MASSHOU" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_FJ_MASSHOU" />
+    <sendinput cmd="VK_OEM_FJ_ROYA" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_FJ_ROYA" />
+    <sendinput cmd="VK_OEM_FJ_TOUROKU" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_FJ_TOUROKU" />
+    <sendinput cmd="VK_OEM_JUMP" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_JUMP" />
+    <sendinput cmd="VK_OEM_MINUS" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_MINUS" />
+    <sendinput cmd="VK_OEM_NEC_EQUAL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_NEC_EQUAL" />
+    <sendinput cmd="VK_OEM_PA1" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_PA1" />
+    <sendinput cmd="VK_OEM_PA2" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_PA2" />
+    <sendinput cmd="VK_OEM_PA3" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_PA3" />
+    <sendinput cmd="VK_OEM_PERIOD" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_PERIOD" />
+    <sendinput cmd="VK_OEM_PLUS" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_PLUS" />
+    <sendinput cmd="VK_OEM_RESET" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_RESET" />
+    <sendinput cmd="VK_OEM_WSCTRL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_OEM_WSCTRL" />
+    <sendinput cmd="VK_P" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_P" />
+    <sendinput cmd="VK_PA1" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_PA1" />
+    <sendinput cmd="VK_PACKET" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_PACKET" />
+    <sendinput cmd="VK_PAUSE" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_PAUSE" />
+    <sendinput cmd="VK_PLAY" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_PLAY" />
+    <sendinput cmd="VK_PRINT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_PRINT" />
+    <sendinput cmd="VK_PRIOR" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_PRIOR" />
+    <sendinput cmd="VK_PROCESSKEY" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_PROCESSKEY" />
+    <sendinput cmd="VK_Q" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_Q" />
+    <sendinput cmd="VK_R" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_R" />
+    <sendinput cmd="VK_RBUTTON" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_RBUTTON" />
+    <sendinput cmd="VK_RCONTROL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_RCONTROL" />
+    <sendinput cmd="VK_RETURN" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_RETURN" />
+    <sendinput cmd="VK_RIGHT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_RIGHT" />
+    <sendinput cmd="VK_RMENU" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_RMENU" />
+    <sendinput cmd="VK_RSHIFT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_RSHIFT" />
+    <sendinput cmd="VK_RWIN" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_RWIN" />
+    <sendinput cmd="VK_S" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_S" />
+    <sendinput cmd="VK_SCROLL" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_SCROLL" />
+    <sendinput cmd="VK_SELECT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_SELECT" />
+    <sendinput cmd="VK_SEPARATOR" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_SEPARATOR" />
+    <sendinput cmd="VK_SHIFT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_SHIFT" />
+    <sendinput cmd="VK_SLEEP" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_SLEEP" />
+    <sendinput cmd="VK_SNAPSHOT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_SNAPSHOT" />
+    <sendinput cmd="VK_SPACE" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_SPACE" />
+    <sendinput cmd="VK_SUBTRACT" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_SUBTRACT" />
+    <sendinput cmd="VK_T" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_T" />
+    <sendinput cmd="VK_TAB" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_TAB" />
+    <sendinput cmd="VK_U" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_U" />
+    <sendinput cmd="VK_UP" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_UP" />
+    <sendinput cmd="VK_V" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_V" />
+    <sendinput cmd="VK_VOLUME_DOWN" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_VOLUME_DOWN" />
+    <sendinput cmd="VK_VOLUME_MUTE" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_VOLUME_MUTE" />
+    <sendinput cmd="VK_VOLUME_UP" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_VOLUME_UP" />
+    <sendinput cmd="VK_W" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_W" />
+    <sendinput cmd="VK_X" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_X" />
+    <sendinput cmd="VK_XBUTTON1" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_XBUTTON1" />
+    <sendinput cmd="VK_XBUTTON2" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_XBUTTON2" />
+    <sendinput cmd="VK_Y" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_Y" />
+    <sendinput cmd="VK_Z" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_Z" />
+    <sendinput cmd="VK_ZOOM" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_ZOOM" />
+    <sendinput cmd="vol-" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_VOLUME_DOWN" />
+    <sendinput cmd="vol+" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_VOLUME_UP" />
+    <sendinput cmd="Windows Desktop" enabled="false" alt="false" ctrl="false" shift="false" win="true" vk="VK_D" />
+    <sendinput cmd="Windows Explorer" enabled="false" alt="false" ctrl="false" shift="false" win="true" vk="VK_E" />
+    <sendinput cmd="winkey" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="VK_LWIN" />
+    <sendinput cmd="winsearch" enabled="false" alt="false" ctrl="false" shift="false" win="true" vk="VK_Q" />
+    <sendinput cmd="wintab" enabled="false" alt="false" ctrl="false" shift="false" win="true" vk="VK_TAB" />
+    <sendinput cmd="zoom" enabled="false" alt="false" ctrl="false" shift="false" win="false" vk="90" />
+  </commands>
+</mcecontroller>

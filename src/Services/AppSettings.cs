@@ -1,11 +1,5 @@
-﻿//-------------------------------------------------------------------
-// Copyright © 2019 Kindel Systems, LLC
-// http://www.kindel.com
-// charlie@kindel.com
-// 
-// Published under the MIT License.
-// Source on GitHub: https://github.com/tig/mcec  
-//-------------------------------------------------------------------
+﻿// Copyright © Kindel Systems, LLC - http://www.kindel.com - charlie@kindel.com
+// Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
 using System.Collections.Generic;
@@ -97,7 +91,6 @@ namespace MCEControl {
 
         // [SafeForTelemetryAttribute] 
         // TELEMETRY: Activity Montior command can be changed by user, and thus may contain PII, so it is not collected
-        [SafeForTelemetryAttribute]
         public string ActivityMonitorCommand { get; set; } = "activity";
         [SafeForTelemetryAttribute]
         public int ActivityMonitorDebounceTime { get; set; } = 10;
@@ -152,23 +145,29 @@ namespace MCEControl {
             return startupPath;
         }
 
-        public void Serialize() {
-            var settingsPath = GetSettingsPath(Application.StartupPath);
-            var filePath = settingsPath + "\\" + SettingsFileName;
+        /// <summary>
+        /// Serializes settings to XML
+        /// </summary>
+        /// <param name="settingsFile">full path to settings file</param>
+        public void Serialize(string settingsFile) {
             try {
                 var ser = new XmlSerializer(typeof(AppSettings));
-                var sw = new StreamWriter(filePath);
+                var sw = new StreamWriter(settingsFile);
                 ser.Serialize(sw, this);
                 sw.Close();
 
-                Logger.Instance.Log4.Info("Settings: Wrote settings to " + filePath);
+                Logger.Instance.Log4.Info("Settings: Wrote settings to " + settingsFile);
             }
             catch (Exception e) {
-                Logger.Instance.Log4.Info($"Settings: Settings file could not be written. {filePath} {e.Message}");
-                MessageBox.Show($"Settings file could not be written. {filePath} {e.Message}");
+                Logger.Instance.Log4.Info($"Settings: Settings file could not be written. {settingsFile} {e.Message}");
+                MessageBox.Show($"Settings file could not be written. {settingsFile} {e.Message}");
             }
         }
 
+        /// <summary>
+        /// DeSerializes settings from XML
+        /// </summary>
+        /// <param name="settingsFile">full path to settings file</param>
         public static AppSettings Deserialize(String settingsFile) {
             AppSettings settings = null;
 
@@ -190,7 +189,7 @@ namespace MCEControl {
                 // First time through, so create file with defaults
                 Logger.Instance.Log4.Info($"Settings: Creating settings file with defaults: {settingsFile}");
                 settings = new AppSettings();
-                settings.Serialize();
+                settings.Serialize(settingsFile);
 
                 // even if it's first run, read global commands
                 settings.DisableInternalCommands = Convert.ToBoolean(

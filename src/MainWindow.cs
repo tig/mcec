@@ -272,7 +272,7 @@ namespace MCEControl {
             // Save the window size/location
             Settings.WindowLocation = Location;
             Settings.WindowSize = Size;
-            Settings.Serialize();
+            Settings.Serialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
 
             Close();
             Application.Exit();
