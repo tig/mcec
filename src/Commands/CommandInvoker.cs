@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Octokit;
 
 namespace MCEControl {
     /// <summary>
@@ -58,7 +59,7 @@ namespace MCEControl {
         /// <param name="userCommandsFile">Path to MCEControl.commands file.</param>
         /// <param name="disableInternalCommands">If true, internal commands will not be added to created instance.</param>
         /// <returns></returns>
-        public static CommandInvoker Create(string userCommandsFile, bool disableInternalCommands) {
+        public static CommandInvoker Create(string userCommandsFile, string currentVersion, bool disableInternalCommands) {
             CommandInvoker commands = null ;
             SerializedCommands serializedCmds;
 
@@ -66,7 +67,7 @@ namespace MCEControl {
             var nBuiltIn = commands.Count;
 
             // Load external .commands file. 
-            serializedCmds = SerializedCommands.LoadCommands(userCommandsFile);
+            serializedCmds = SerializedCommands.LoadCommands(userCommandsFile, currentVersion);
             if (serializedCmds != null && serializedCmds.commandArray != null) {
                 foreach (var cmd in serializedCmds.commandArray) {
                     // TELEMETRY: Mark user defined commands as such so they don't get collected
@@ -99,7 +100,7 @@ namespace MCEControl {
             // Sort 
             sc.commandArray = values.OrderBy(c => c.Cmd).ToArray();
 
-            SerializedCommands.SaveCommands(userCommandsFile, sc);
+            SerializedCommands.SaveCommands(userCommandsFile, sc, System.Windows.Forms.Application.ProductVersion);
         }
 
         // Adds a command to the hashtable. Optionally logs. Ensures case insenstiitivy. 

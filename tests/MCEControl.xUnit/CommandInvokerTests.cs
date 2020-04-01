@@ -55,7 +55,7 @@ namespace MCEControl.xUnit
             var tempCommandsFile = Path.GetTempFileName();
             File.Delete(tempCommandsFile);
 
-            var commands = CommandInvoker.Create(tempCommandsFile, false);
+            var commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
             Assert.NotEmpty(commands);
         }
 
@@ -65,10 +65,58 @@ namespace MCEControl.xUnit
             var tempCommandsFile = Path.GetTempFileName();
             File.Delete(tempCommandsFile);
 
-            var commands = CommandInvoker.Create(tempCommandsFile, false);
+            var commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
 
             Assert.Empty(commands.Values.Cast<Command>().Where(cmd => cmd.Enabled));
         }
 
+        /// <summary>
+        /// Test create where there were user-defined new commands
+        /// </summary>
+        [Fact]
+        public void Create_RetainUserNewCommand_Test()
+        {
+            var userCommandsFile = Path.GetTempFileName();
+            File.Delete(userCommandsFile);
+            var userCommands = new SerializedCommands()
+            {
+                // Version = ...,
+                commandArray = new Command[]
+                {
+                    new SendMessageCommand("class", "window", 0, 0, 0) { Cmd = "userCmd" }
+                }
+            };
+            SerializedCommands.SaveCommands(userCommandsFile, userCommands, "0.0.0.0");
+
+            var commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
+
+            Assert.NotEmpty(commands.Values.Cast<Command>().Where(cmd => cmd.Cmd.Equals("userCmd")));
+        }
+
+        /// <summary>
+        /// Test create where there were user-defined changes to builtin commands
+        /// </summary>
+        [Fact]
+        public void Create_RetainUserModifiedCommand_Test()
+        {
+            var userCommandsFile = Path.GetTempFileName();
+            File.Delete(userCommandsFile);
+            var userCommands = new SerializedCommands()
+            {
+                // Version = ...,
+                commandArray = new Command[]
+                {
+                  // Change both File (from "code" to "codez" and) and add Verb
+                  new StartProcessCommand() { Cmd = "code", File ="codez", Verb="print" },
+                }
+            };
+            SerializedCommands.SaveCommands(userCommandsFile, userCommands, "0.0.0.0");
+
+            var commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
+
+            var codeCmd = (StartProcessCommand)commands["code"];
+            Assert.Equal("codez", codeCmd.File);
+            Assert.Equal("print", codeCmd.Verb);
+        }
     }
 }

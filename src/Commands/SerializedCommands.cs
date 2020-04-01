@@ -57,9 +57,14 @@ namespace MCEControl {
         }
 
         /// <summary>
-        /// Load any over-rides from the MCECommands.commands file.
+        /// Loads commands from an XML file. If `Version` attribute in file is missing, upgrade the file, 
+        /// setting Enabled=true for all. If `Version` attribute is older, the file will be re-written
+        /// with new schema (and Version #).
         /// </summary>
-        static public SerializedCommands LoadCommands(string userCommandsFile) {
+        /// <param name="userCommandsFile"></param>
+        /// <param name="currentVersion">Version of running app</param>
+        /// <returns></returns>
+        static public SerializedCommands LoadCommands(string userCommandsFile, string currentVersion) {
             SerializedCommands cmds = null;
             FileStream fs = null;
             try {
@@ -72,14 +77,14 @@ namespace MCEControl {
                     var msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\nDisable any commands that are not used using the Commands window.";
                     MessageBox.Show(msg, Application.ProductName);
                     Logger.Instance.Log4.Info($"CommandInvoker: {msg}");
-                    cmds.Version = Application.ProductVersion;
+                    cmds.Version = currentVersion;
                     cmds.commandArray = cmds.commandArray.Select(c => { c.Enabled = true; return c; }).ToArray();
                 }
 
                 // If this was written by an older version, re-write it to update it
-                if (!string.IsNullOrEmpty(cmds.Version) && (new Version(Application.ProductVersion).CompareTo(new Version(cmds.Version))) > 0) {
+                if (!string.IsNullOrEmpty(cmds.Version) && (new Version(currentVersion).CompareTo(new Version(cmds.Version))) > 0) {
                     Logger.Instance.Log4.Info($"CommandInvoker: Upgrading .commands file from v{cmds.Version}");
-                    SaveCommands(userCommandsFile, cmds);
+                    SaveCommands(userCommandsFile, cmds, currentVersion);
                 }
             }
             catch (FileNotFoundException) {
@@ -87,7 +92,7 @@ namespace MCEControl {
             }
             catch (Exception ex) {
                 var msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
-                MessageBox.Show(msg, Application.ProductName);
+                MessageBox.Show(msg, currentVersion);
                 Logger.Instance.Log4.Info($"CommandInvoker: {msg}");
                 Logger.DumpException(ex);
             }
@@ -100,9 +105,11 @@ namespace MCEControl {
         }
 
         /// <summary>
-        /// Creates .commands file
+        /// Saves .commands XML file
         /// </summary>
-        static public void SaveCommands(string userCommandsFile, SerializedCommands commands) {
+        /// <param name="userCommandsFile">path to file to save to</param>
+        /// <param name="commands">commands to serialize</param>
+        static public void SaveCommands(string userCommandsFile, SerializedCommands commands, string currentVersion) {
             if (commands == null) {
                 throw new ArgumentNullException(nameof(commands));
             }
@@ -110,12 +117,15 @@ namespace MCEControl {
 
             FileStream ucFS = null;
             try {
-                commands.Version = Application.ProductVersion;
+                commands.Version = currentVersion;
                 ucFS = new FileStream(userCommandsFile, FileMode.Create, FileAccess.ReadWrite);
                 new XmlSerializer(typeof(SerializedCommands)).Serialize(ucFS, commands);
             }
             catch (Exception e) {
-                var msg = $"Could not create commands file ({userCommandsFile}) - {e.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
+                // TODO: Move MessageBox out of here into MainWindow
+                var msg = $"Could not create commands file ({userCommandsFile}) - {e.Message}.\n\n" +
+                    $"See log file for details: {Logger.Instance.LogFile}\n\n" +
+                    $"For help, open an issue at github.com/tig/mcec";
                 MessageBox.Show(msg, Application.ProductName);
                 Logger.Instance.Log4.Info($"CommandInvoker: {msg}");
                 Logger.DumpException(e);

@@ -86,7 +86,6 @@ namespace MCEControl {
             return CurrentVersion.CompareTo(LatestStableVersion);
         }
 
-
         private void GotLatestVersionHandler(object sender, Version version) {
             if (version == null && !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
                 Logger.Instance.Log4.Info(

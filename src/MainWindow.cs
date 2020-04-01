@@ -183,7 +183,7 @@ namespace MCEControl {
                 // Invoker.Dispose();
             }
 
-            Invoker = CommandInvoker.Create($@"{Program.ConfigPath}MCEControl.commands", Settings.DisableInternalCommands);
+            Invoker = CommandInvoker.Create($@"{Program.ConfigPath}MCEControl.commands", Application.ProductVersion, Settings.DisableInternalCommands);
             if (Invoker == null) {
                 notifyIcon.Visible = false;
             }
