@@ -189,7 +189,7 @@ namespace MCEControl {
             }
             else {
                 cmdWindow.RefreshList();
-                Logger.Instance.Log4.Info($"Commands: {Invoker.Values.Cast<Command>().Count(cmd => (cmd.Enabled))} " +
+                Logger.Instance.Log4.Info($"CommandInvoker: {Invoker.Values.Cast<Command>().Count(cmd => (cmd.Enabled))} " +
                     $"commands enabled ({Invoker.Values.Cast<Command>().Count(cmd => (!cmd.Enabled))} commands disabled).");
             }
         }

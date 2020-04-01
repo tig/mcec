@@ -33,7 +33,7 @@ namespace MCEControl {
         [XmlAttribute("shift")] public bool Shift { get => shift; set => shift = value; }
         [XmlAttribute("win")] public bool Win { get => win; set => win = value; }
         [XmlAttribute("vk")] public string Vk { get => vk; set => vk = value; }
-        private static List<SendInputCommand> _builtins = new List<SendInputCommand>() {
+        private static List<Command> _builtins = new List<Command>() {
                 new SendInputCommand($"shiftdown:", false, false, false, false),
                 new SendInputCommand($"shiftup:", false, false, false, false),
                 new SendInputCommand() { Cmd = "atlesc", vk = "VK_ESCAPE", Alt = true },
@@ -90,7 +90,6 @@ namespace MCEControl {
                 new SendInputCommand() { Cmd="insert", vk="45", Shift=false, Ctrl=false, Alt=false },
                 new SendInputCommand() { Cmd="select", vk="41", Shift=false, Ctrl=false, Alt=false },
                 new SendInputCommand() { Cmd="moreinfo", vk="68", Shift=false, Ctrl=true, Alt=false },
-                new SendInputCommand() { Cmd="close", vk="115", Shift=false, Ctrl=false, Alt=true },
                 new SendInputCommand() { Cmd="next", vk="34", Shift=false, Ctrl=false, Alt=false },
                 new SendInputCommand() { Cmd="ok", vk="13", Shift=false, Ctrl=false, Alt=false },
                 new SendInputCommand() { Cmd="print", vk="42", Shift=false, Ctrl=false, Alt=false },
@@ -98,7 +97,7 @@ namespace MCEControl {
                 new SendInputCommand() { Cmd="snapshot", vk="44", Shift=false, Ctrl=false, Alt=false },
                 new SendInputCommand() { Cmd="zoom", vk="90", Shift=false, Ctrl=false, Alt=false },
             };
-        public static new List<SendInputCommand> BuiltInCommands {
+        public static new List<Command> BuiltInCommands {
             get => _builtins;
         }
 
@@ -112,7 +111,6 @@ namespace MCEControl {
                 else {
                     s = "VK_" + vk.ToString();
                 }
-
                 _builtins.Add(new SendInputCommand(s, false, false, false, false));
             }
         }

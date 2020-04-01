@@ -63,7 +63,7 @@ namespace MCEControl {
             SerializedCommands cmds = null;
             FileStream fs = null;
             try {
-                Logger.Instance.Log4.Info($"Commands: Loading user-defined commands from {userCommandsFile}");
+                Logger.Instance.Log4.Info($"CommandInvoker: Loading user-defined commands from {userCommandsFile}");
                 fs = new FileStream(userCommandsFile, FileMode.Open, FileAccess.Read);
                 cmds = Deserialize(fs);
 
@@ -71,24 +71,24 @@ namespace MCEControl {
                 if (string.IsNullOrEmpty(cmds.Version)) {
                     var msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\nDisable any commands that are not used using the Commands window.";
                     MessageBox.Show(msg, Application.ProductName);
-                    Logger.Instance.Log4.Info($"Commands: {msg}");
+                    Logger.Instance.Log4.Info($"CommandInvoker: {msg}");
                     cmds.Version = Application.ProductVersion;
                     cmds.commandArray = cmds.commandArray.Select(c => { c.Enabled = true; return c; }).ToArray();
                 }
 
                 // If this was written by an older version, re-write it to update it
                 if (!string.IsNullOrEmpty(cmds.Version) && (new Version(Application.ProductVersion).CompareTo(new Version(cmds.Version))) > 0) {
-                    Logger.Instance.Log4.Info($"Commands: Upgrading .commands file from v{cmds.Version}");
+                    Logger.Instance.Log4.Info($"CommandInvoker: Upgrading .commands file from v{cmds.Version}");
                     SaveCommands(userCommandsFile, cmds);
                 }
             }
             catch (FileNotFoundException) {
-                Logger.Instance.Log4.Info($"Commands: {userCommandsFile} was not found");
+                Logger.Instance.Log4.Info($"CommandInvoker: {userCommandsFile} was not found");
             }
             catch (Exception ex) {
                 var msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
                 MessageBox.Show(msg, Application.ProductName);
-                Logger.Instance.Log4.Info($"Commands: {msg}");
+                Logger.Instance.Log4.Info($"CommandInvoker: {msg}");
                 Logger.DumpException(ex);
             }
             finally {
@@ -117,7 +117,7 @@ namespace MCEControl {
             catch (Exception e) {
                 var msg = $"Could not create commands file ({userCommandsFile}) - {e.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
                 MessageBox.Show(msg, Application.ProductName);
-                Logger.Instance.Log4.Info($"Commands: {msg}");
+                Logger.Instance.Log4.Info($"CommandInvoker: {msg}");
                 Logger.DumpException(e);
             }
             finally {
@@ -156,11 +156,11 @@ namespace MCEControl {
                 cmds = (SerializedCommands)new XmlSerializer(typeof(SerializedCommands)).Deserialize(lcReader);
             }
             catch (InvalidOperationException ex) {
-                Logger.Instance.Log4.Info($"Commands: No commands loaded. Error parsing .commands XML. {ex.FullMessage()}");
+                Logger.Instance.Log4.Info($"CommandInvoker: No commands loaded. Error parsing .commands XML. {ex.FullMessage()}");
                 Logger.DumpException(ex);
             }
             catch (Exception ex) {
-                Logger.Instance.Log4.Info($"Commands: Error parsing .commands XML. {ex.Message}");
+                Logger.Instance.Log4.Info($"CommandInvoker: Error parsing .commands XML. {ex.Message}");
                 Logger.DumpException(ex);
             }
             finally {

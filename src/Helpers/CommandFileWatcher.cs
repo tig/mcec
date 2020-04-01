@@ -48,20 +48,20 @@ namespace MCEControl {
 
             // Begin watching.
             watcher.EnableRaisingEvents = true;
-            Logger.Instance.Log4.Info($"Commands: Watching {watcher.Path}\\{watcher.Filter} for changes.");
+            Logger.Instance.Log4.Info($"CommandInvoker: Watching {watcher.Path}\\{watcher.Filter} for changes.");
             return watcher;
 
         }
 
         private void OnChanged(object source, FileSystemEventArgs e) {
-            Logger.Instance.Log4.Info($"Commands:{e.FullPath} changed");
+            Logger.Instance.Log4.Info($"CommandInvoker:{e.FullPath} changed");
             TelemetryService.Instance.TrackEvent("Commands file change detected");
             OnChangedEvent();
         }
 
         private void OnRenamed(object source, RenamedEventArgs e) {
             // Specify what is done when a file is renamed.
-            Logger.Instance.Log4.Info($"Commands:{e.OldFullPath} renamed to {e.FullPath}");
+            Logger.Instance.Log4.Info($"CommandInvoker:{e.OldFullPath} renamed to {e.FullPath}");
         }
 
         #region IDisposable Support

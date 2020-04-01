@@ -36,8 +36,8 @@ namespace MCEControl {
         [XmlAttribute("windowname")]
         public String WindowName { get; set; }
 
-        public static new List<SendMessageCommand> BuiltInCommands {
-            get => new List<SendMessageCommand>() {
+        public static new List<Command> BuiltInCommands {
+            get => new List<Command>() {
                   new SendMessageCommand() { Cmd = "maximize", Msg=274, wParam=61488, lParam=0 },
                   new SendMessageCommand() { Cmd = "screensaver", Msg=274, wParam=61760, lParam=0 },
                   new SendMessageCommand() { Cmd = "monitoroff", Msg=274, wParam=61808, lParam=2 },

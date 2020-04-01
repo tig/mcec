@@ -19,10 +19,9 @@ namespace MCEControl {
     public class MouseCommand : Command {
         public const string CmdPrefix = "mouse:";
 
-        public static new List<MouseCommand> BuiltInCommands {
-            get => new List<MouseCommand>() {
+        public static new List<Command> BuiltInCommands {
+            get => new List<Command>() {
                 new MouseCommand{ Cmd = $"{CmdPrefix }" },  // Commands that use form of "cmd:" must define a blank version
-                new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }lbdc" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }lbd" },

@@ -19,9 +19,9 @@ namespace MCEControl {
     public class CharsCommand : Command {
         public const string CmdPrefix = "chars:";
 
-        public static new List<CharsCommand> BuiltInCommands {
-            get => new List<CharsCommand>() {
-                new CharsCommand { Cmd = $"{CmdPrefix}" }
+        public static new List<Command> BuiltInCommands {
+            get => new List<Command>() {
+                new CharsCommand { Cmd = $"{CmdPrefix}" },
             };
         }
 

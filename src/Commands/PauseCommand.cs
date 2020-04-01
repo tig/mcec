@@ -19,8 +19,8 @@ namespace MCEControl {
     public class PauseCommand : Command {
         public const string CmdPrefix = "pause:";
 
-        public static new List<PauseCommand> BuiltInCommands {
-            get => new List<PauseCommand>() {
+        public static new List<Command> BuiltInCommands {
+            get => new List<Command>() {
                 new PauseCommand { Cmd = $"{CmdPrefix}" } // Commands that use form of "cmd:" must define a blank version
             };
         }

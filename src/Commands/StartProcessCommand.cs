@@ -23,8 +23,8 @@ namespace MCEControl {
         private String verb;
         [XmlAttribute("verb")] public string Verb { get => verb; set => verb = value; }
 
-        public static new List<StartProcessCommand> BuiltInCommands {
-            get => new List<StartProcessCommand>() {
+        public static new List<Command> BuiltInCommands {
+            get => new List<Command>() {
                   new StartProcessCommand() { Cmd = "code", File ="code" },
                   new StartProcessCommand() { Cmd = "tada", File=@"C:\Windows\Media\tada.wav", Verb="Open"  },
                   new StartProcessCommand() { Cmd = "term", File=@"shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" },
@@ -71,8 +71,6 @@ namespace MCEControl {
                   }
             };
         }
-
-
 
         public StartProcessCommand() {
         }

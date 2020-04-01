@@ -12,6 +12,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -114,6 +116,18 @@ namespace MCEControl {
             // how is PII protected: the name of the command, key, is not user definable
             TelemetryService.Instance.TelemetryClient.GetMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed").TrackValue(1);
             return true;
+        }
+
+        /// <summary>
+        /// https://stackoverflow.com/questions/5411694/get-all-inherited-classes-of-an-abstract-class
+        /// </summary>
+        public static ICollection<Command> GetDerivedClassesCollection() {
+            List<Command> objects = new List<Command>();
+            foreach (Type type in typeof(Command).Assembly.GetTypes()
+                .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(Command)))) {
+                objects.Add((Command)Activator.CreateInstance(type));
+            }
+            return objects;
         }
     }
 }

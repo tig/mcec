@@ -12,6 +12,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace MCEControl {
@@ -19,62 +20,36 @@ namespace MCEControl {
     /// Holds all active Commands. Uses a hash-table for lookup. 
     /// Is the Invoker in the Commands pattern.
     /// </summary>
+#pragma warning disable CA1010 // Collections should implement generic interface
+#pragma warning disable CA1710 // Identifiers should have correct suffix
     public class CommandInvoker : Hashtable {
+#pragma warning restore CA1710 // Identifiers should have correct suffix
+#pragma warning restore CA1010 // Collections should implement generic interface
         private ConcurrentQueue<ICommand> executeQueue = new ConcurrentQueue<ICommand>();
 
         /// <summary>
         /// Creaates a `Commands` instance of default & built-in commands. 
         /// </summary>
         /// <returns></returns>
-        private static CommandInvoker CreateBuiltIns() {
+        private static CommandInvoker CreateBuiltIns(bool disableInternalCommands = false) {
             var commands = new CommandInvoker();
 
+            // Add the built-ins that are defiend in the `Command`-derived classes
+            // SECURITY: Note, by default `Enabled` is set to `false` for all of these.
+            if (disableInternalCommands)
+                return commands;
+
             // Add the built-ins defined in the Command-derived classes
-            foreach (Command cmd in McecCommand.BuiltInCommands) {
-                commands.Add(cmd);
+            foreach (var cmdType in Command.GetDerivedClassesCollection()) {
+                var propertyInfo = cmdType.GetType().GetProperty("BuiltInCommands", BindingFlags.Public | BindingFlags.Static);
+                if (propertyInfo != null) {
+                    // Use the PropertyInfo to retrieve the value from the type by not passing in an instance
+                    foreach (var builtinCmd in (List<Command>)propertyInfo.GetValue(null, null)) {
+                        commands.Add(builtinCmd);
+                    }
+                }
             }
-
-            foreach (Command cmd in MouseCommand.BuiltInCommands) {
-                commands.Add(cmd);
-            }
-
-            foreach (Command cmd in ShutdownCommand.BuiltInCommands) {
-                commands.Add(cmd);
-            }
-
-            foreach (Command cmd in CharsCommand.BuiltInCommands) {
-                commands.Add(cmd);
-            }
-
-            foreach (Command cmd in SendInputCommand.BuiltInCommands) {
-                commands.Add(cmd);
-            }
-
-            foreach (Command cmd in PauseCommand.BuiltInCommands) {
-                commands.Add(cmd);
-            }
-
-            foreach (Command cmd in StartProcessCommand.BuiltInCommands) {
-                commands.Add(cmd);
-            }
-
-            foreach (var cmd in SetForegroundWindowCommand.BuiltInCommands) {
-                commands.Add(cmd);
-            }
-
-            foreach (Command cmd in SendMessageCommand.BuiltInCommands) {
-                commands.Add(cmd);
-            }
-
             Logger.Instance.Log4.Info($"{commands.GetType().Name}: {commands.Count} built-in commands defined");
-
-            // Load the .commands file that's built in as an EXE resource
-            // SerializedCommands serializedCmds;
-            //serializedCmds = SerializedCommands.LoadBuiltInCommands();
-            //foreach (Command cmd in serializedCmds.commandArray)
-            //    commands.Add(cmd);
-            //Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded from built-in .commands resource");
-
             return commands;
         }
         /// <summary>
@@ -84,17 +59,10 @@ namespace MCEControl {
         /// <param name="disableInternalCommands">If true, internal commands will not be added to created instance.</param>
         /// <returns></returns>
         public static CommandInvoker Create(string userCommandsFile, bool disableInternalCommands) {
-            var commands = new CommandInvoker();
+            CommandInvoker commands = null ;
             SerializedCommands serializedCmds;
 
-            // Add the built-ins that are defiend in the `Command`-derived classes
-            // SECURITY: `Enabled` is set to `false` for all of these.
-            if (!disableInternalCommands) {
-                foreach (var cmd in CreateBuiltIns().Values.Cast<Command>()) {
-                    commands.Add(cmd);
-                }
-            }
-
+            commands = CreateBuiltIns(disableInternalCommands);
             var nBuiltIn = commands.Count;
 
             // Load external .commands file. 
@@ -123,7 +91,7 @@ namespace MCEControl {
         }
 
         internal void Save(string userCommandsFile) {
-            Logger.Instance.Log4.Info($@"Commands: Saving {Program.ConfigPath}MCEControl.commands...");
+            Logger.Instance.Log4.Info($@"{GetType().Name}: Saving {Program.ConfigPath}MCEControl.commands...");
             var sc = new SerializedCommands();
 
             var values = Values.Cast<Command>().ToArray();
@@ -229,6 +197,5 @@ namespace MCEControl {
                 System.Threading.Thread.Sleep(MainWindow.Instance.Settings.CommandPacing);
             }
         }
-
     }
 }
