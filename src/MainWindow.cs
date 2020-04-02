@@ -27,8 +27,8 @@ namespace MCEControl {
         public SocketClient Client { get; private set; }
         public SerialServer SerialServer { get; private set; }
         public CommandInvoker Invoker { get; set; }
-
         private CommandWindow cmdWindow;
+        private CommandFileWatcher watcher;
 
         // Indicates whether user hit the close box (minimize)
         // or the app is exiting
@@ -36,10 +36,6 @@ namespace MCEControl {
 
         // Settings
         public AppSettings Settings { get; set; }
-
-        // If running from default install location (in Program Files) find the
-        // .commands, .settings, and .log files in %appdata%. Otherwise find them in the 
-        // directory MCEControl.exe was run from.
 
         public MainWindow() {
             InitializeComponent();
@@ -158,7 +154,6 @@ namespace MCEControl {
             Start();
         }
 
-
         private void UpdateService_GotLatestVersion(object sender, Version version) {
             if (InvokeRequired) {
                 BeginInvoke((Action)(() => { UpdateService_GotLatestVersion(sender, version); }));
@@ -177,7 +172,8 @@ namespace MCEControl {
                     Logger.Instance.Log4.Info($"   Use the \"Help.Install Latest Version\" menu to upgrade");
                     Logger.Instance.Log4.Info("------------------------------------------------");
 
-                    UpdateDialog.Instance.ShowDialog(this);
+                    if (!Settings.DisableUpdatePopup)
+                        UpdateDialog.Instance.ShowDialog(this);
                 }
                 else if (UpdateService.Instance.CompareVersions() > 0) {
                     Logger.Instance.Log4.Info(
@@ -198,8 +194,6 @@ namespace MCEControl {
                 LoadCommands();
             }
         }
-
-        private CommandFileWatcher watcher;
 
         private void LoadCommands() {
             if (Invoker != null) {
