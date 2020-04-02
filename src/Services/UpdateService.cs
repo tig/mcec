@@ -5,8 +5,10 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using Octokit;
 
 namespace MCEControl {
@@ -14,7 +16,13 @@ namespace MCEControl {
         private static readonly Lazy<UpdateService> _lazy = new Lazy<UpdateService>(() => new UpdateService());
 
         public UpdateService() {
-            GotLatestVersion += GotLatestVersionHandler;
+            LatestStableVersion = new Version(0, 0);
+
+            // Every ~24 hours check for a new version again
+            Timer t = new Timer();
+            t.Interval = 24 * 60 * 60 * 1000;
+            t.Tick += (sender, args) => OnCheckForUpdates();
+            t.Start();
         }
 
         public static UpdateService Instance => _lazy.Value;
@@ -23,7 +31,10 @@ namespace MCEControl {
         public event EventHandler<Version> GotLatestVersion;
         protected void OnGotLatestVersion(Version v) => GotLatestVersion?.Invoke(this, v);
 
-        public String ErrorMessage { get; private set; }
+        public event EventHandler CheckForUpdates;
+        protected void OnCheckForUpdates() => CheckForUpdates?.Invoke(this, null);
+
+        public string ErrorMessage { get; private set; }
         public static Version CurrentVersion {
             get { return new Version(System.Windows.Forms.Application.ProductVersion); }
         }
@@ -41,33 +52,28 @@ namespace MCEControl {
         }
 
         private async Task GetLatestStableVersionAsync() {
-            ReleasePageUri = new Uri("https://github.com/tig/winprint/releases");
+            ReleasePageUri = new Uri("https://github.com/tig/mcec/releases");
             using (var client = new WebClient()) {
                 try {
                     var github = new GitHubClient(new Octokit.ProductHeaderValue("tig-mcec"));
-                    var release = await github.Repository.Release.GetLatest("tig", "mcec").ConfigureAwait(false);
+                    var allReleases = await github.Repository.Release.GetAll("tig", "mcec").ConfigureAwait(false);
+
+                    // Get all releases and pre-releases
 #if DEBUG
-                    Logger.Instance.Log4.Debug($"The latest release is tagged at {release.TagName} and is named {release.Name}. Download Url: {release.Assets[0].BrowserDownloadUrl}");
+                    var releases = allReleases.Where(r => r.Prerelease).OrderByDescending(r => new Version(r.TagName.Replace('v', ' '))).ToArray();
+#else
+                    var releases = allReleases.Where(r => !r.Prerelease).OrderByDescending(r => new Version(r.TagName.Replace('v', ' '))).ToArray();
 #endif
+                    //Log.Debug("Releases {releases}", JsonSerializer.Serialize(releases, options: new JsonSerializerOptions() { WriteIndented = true }));
+                    if (releases.Length > 0) {
+                        Logger.Instance.Log4.Debug("The latest release is tagged at {releases[0].TagName} and is named {releases[0].Name}. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
 
-                    var v = release.TagName;
-                    // Remove leading "v" (v2.0.0.1000.alpha)
-                    if (v.StartsWith("v", StringComparison.InvariantCultureIgnoreCase)) {
-                        v = v.Substring(1, v.Length - 1);
-                    }
-
-                    var parts = v.Split('.');
-
-                    // Get 4 elements which excludes any .alpha or .beta
-                    var version = string.Join(".", parts, 0, 4);
-
-                    if (version != null) {
-                        LatestStableVersion = new Version(version);
-                        ReleasePageUri = new Uri($@"https://github.com/tig/mcec/releases/tag/v{v}");
-                        DownloadUri = new Uri(release.Assets[0].BrowserDownloadUrl);
+                        LatestStableVersion = new Version(releases[0].TagName.Replace('v', ' '));
+                        ReleasePageUri = new Uri(releases[0].HtmlUrl);
+                        DownloadUri = new Uri(releases[0].Assets[0].BrowserDownloadUrl);
                     }
                     else {
-                        ErrorMessage = "Could not parse version data.";
+                        ErrorMessage = "No release found.";
                     }
                 }
                 catch (Exception e) {
@@ -75,7 +81,6 @@ namespace MCEControl {
                     TelemetryService.Instance.TrackException(e);
                 }
             }
-
             OnGotLatestVersion(LatestStableVersion);
         }
 
@@ -84,28 +89,6 @@ namespace MCEControl {
         // < 0 - A newer version available
         public int CompareVersions() {
             return CurrentVersion.CompareTo(LatestStableVersion);
-        }
-
-        private void GotLatestVersionHandler(object sender, Version version) {
-            if (version == null && !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
-                Logger.Instance.Log4.Info(
-                    $"Could not access tig.github.io/mcec to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
-            }
-            else if (CompareVersions() < 0) {
-                Logger.Instance.Log4.Info("------------------------------------------------");
-
-                Logger.Instance.Log4.Info($"A newer version of MCE Controller ({version}) is available at");
-                Logger.Instance.Log4.Info($"   {UpdateService.Instance.ReleasePageUri}");
-                Logger.Instance.Log4.Info($"   Use the \"Help.Install Latest Version\" menu to upgrade");
-                Logger.Instance.Log4.Info("------------------------------------------------");
-            }
-            else if (CompareVersions() > 0) {
-                Logger.Instance.Log4.Info(
-                    $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version})");
-            }
-            else {
-                Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller");
-            }
         }
 
         internal void StartUpgrade() {
@@ -154,7 +137,6 @@ namespace MCEControl {
             catch (Win32Exception we) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: {_tempFilename} failed to run with error: {we.Message}");
             }
-            Process.Start(ReleasePageUri.AbsoluteUri);
             MainWindow.Instance.BeginInvoke((Action)(() => { MainWindow.Instance.ShutDown(); }));
         }
     }

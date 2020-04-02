@@ -358,6 +358,7 @@ namespace MCEControl
             this.HelpButtonClicked += new System.ComponentModel.CancelEventHandler(this.docsMenuItem_Click);
             this.Closing += new System.ComponentModel.CancelEventHandler(this.mainWindow_Closing);
             this.Load += new System.EventHandler(this.mainWindow_Load);
+            this.VisibleChanged += new System.EventHandler(this.MainWindow_VisibleChanged);
             this.Layout += new System.Windows.Forms.LayoutEventHandler(this.MainWindow_Layout);
             this.statusStrip.ResumeLayout(false);
             this.statusStrip.PerformLayout();

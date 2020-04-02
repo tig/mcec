@@ -99,6 +99,10 @@ namespace MCEControl {
         [SafeForTelemetryAttribute]
         public bool InputDetection { get; set; }
 
+        [SafeForTelemetryAttribute]
+        public bool DisableUpdatePopup { get; set; }
+
+
 
         #region ICloneable Members
 

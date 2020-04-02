@@ -13,6 +13,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using log4net;
+using MCEControl.Dialogs;
 using Microsoft.Win32;
 using Microsoft.Win32.Security;
 
@@ -87,7 +88,7 @@ namespace MCEControl {
                     SerialServer.Dispose();
                 }
 
-                UpdateService.Instance.GotLatestVersion -= GotLatestVersionHandler;
+                UpdateService.Instance.GotLatestVersion -= UpdateService_GotLatestVersion;
             }
             base.Dispose(disposing);
         }
@@ -123,7 +124,7 @@ namespace MCEControl {
             Logger.Instance.Log4.Info($"Telemetry: {(TelemetryService.Instance.TelemetryEnabled ? "Enabled" : "Disabled")}");
 
             // Updates
-            UpdateService.Instance.GotLatestVersion += GotLatestVersionHandler;
+            UpdateService.Instance.GotLatestVersion += UpdateService_GotLatestVersion;
             UpdateService.Instance.CheckVersion();
 
             // Commands
@@ -157,12 +158,34 @@ namespace MCEControl {
             Start();
         }
 
-        private void GotLatestVersionHandler(object sender, Version e) {
-            if (cmdWindow.InvokeRequired) {
-                cmdWindow.BeginInvoke((Action)(() => { GotLatestVersionHandler(sender, e); }));
+
+        private void UpdateService_GotLatestVersion(object sender, Version version) {
+            if (InvokeRequired) {
+                BeginInvoke((Action)(() => { UpdateService_GotLatestVersion(sender, version); }));
             }
-            else if (UpdateService.Instance.CompareVersions() < 0) {
-                installLatestVersionMenuItem.Enabled = true;
+            else {
+                if (version == null && !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
+                    Logger.Instance.Log4.Info(
+                        $"Could not access tig.github.io/mcec to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
+                }
+                else if (UpdateService.Instance.CompareVersions() < 0) {
+                    installLatestVersionMenuItem.Enabled = true;
+                    Logger.Instance.Log4.Info("------------------------------------------------");
+
+                    Logger.Instance.Log4.Info($"A newer version of MCE Controller ({version}) is available at");
+                    Logger.Instance.Log4.Info($"   {UpdateService.Instance.ReleasePageUri}");
+                    Logger.Instance.Log4.Info($"   Use the \"Help.Install Latest Version\" menu to upgrade");
+                    Logger.Instance.Log4.Info("------------------------------------------------");
+
+                    UpdateDialog.Instance.ShowDialog(this);
+                }
+                else if (UpdateService.Instance.CompareVersions() > 0) {
+                    Logger.Instance.Log4.Info(
+                        $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version})");
+                }
+                else {
+                    Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller");
+                }
             }
         }
 
@@ -809,8 +832,7 @@ namespace MCEControl {
 
         private void updatesMenuItem_Click(object sender, EventArgs e) {
             TelemetryService.Instance.TrackEvent("updatesMenuItem");
-
-            UpdateService.Instance.StartUpgrade();
+            UpdateDialog.Instance.ShowDialog(this);
         }
 
         private void statusStripClient_Click(object sender, EventArgs e) {
@@ -850,6 +872,9 @@ namespace MCEControl {
 
         private void SystemEvents_UserPreferenceChanged(object sender, EventArgs e) {
             logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, menuStrip.Font.SizeInPoints - 1, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+        }
+
+        private void MainWindow_VisibleChanged(object sender, EventArgs e) {
         }
     }
 }

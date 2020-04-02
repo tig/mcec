@@ -140,6 +140,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Commands\Command.cs" />
+    <Compile Include="Dialogs\UpdateDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Dialogs\UpdateDialog.Designer.cs">
+      <DependentUpon>UpdateDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Services\AppSettings.cs" />
     <Compile Include="Helpers\CommandFileWatcher.cs" />
     <Compile Include="Commands\CommandInvoker.cs" />
@@ -328,6 +334,9 @@
     </Content>
     <EmbeddedResource Include="Dialogs\About.resx">
       <DependentUpon>About.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Dialogs\UpdateDialog.resx">
+      <DependentUpon>UpdateDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainWindow.resx">
       <DependentUpon>MainWindow.cs</DependentUpon>
