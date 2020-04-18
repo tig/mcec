@@ -119,10 +119,6 @@ namespace MCEControl {
             TelemetryService.Instance.Start("MCE Controller");
             Logger.Instance.Log4.Info($"Telemetry: {(TelemetryService.Instance.TelemetryEnabled ? "Enabled" : "Disabled")}");
 
-            // Updates
-            UpdateService.Instance.GotLatestVersion += UpdateService_GotLatestVersion;
-            UpdateService.Instance.CheckVersion();
-
             // Commands
             if (cmdWindow == null) {
                 cmdWindow = new CommandWindow();
@@ -151,6 +147,11 @@ namespace MCEControl {
             }
 
             SetStatus($"Version: {Application.ProductVersion}");
+
+            // Updates - UpdateService.Instance.CheckVersion() is called from VisibleChanged
+
+            UpdateService.Instance.GotLatestVersion += UpdateService_GotLatestVersion;
+
             Start();
         }
 
@@ -820,7 +821,7 @@ namespace MCEControl {
 
         private void MenuItemEditCommands_Click(object sender, EventArgs e) {
             TelemetryService.Instance.TrackEvent("MenuItemEditCommands");
-
+    
             Process.Start(Program.ConfigPath);
         }
 
@@ -869,6 +870,8 @@ namespace MCEControl {
         }
 
         private void MainWindow_VisibleChanged(object sender, EventArgs e) {
+            if (Visible)
+                UpdateService.Instance.CheckVersion();
         }
     }
 }

@@ -45,6 +45,8 @@ namespace MCEControl {
             //_linkLabelMceController.Font = System.Drawing.SystemFonts.;
 
             _labelVersion.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
+
+            UpdateService.Instance.CheckVersion();
         }
 
         private void ButtonOkClick(object sender, EventArgs e) => Close();
