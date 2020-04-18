@@ -10,6 +10,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Xml.Serialization;
 using WindowsInput;
@@ -168,27 +169,36 @@ namespace MCEControl {
                     }
                 }
 
-                if (!Vk.StartsWith("vk_", StringComparison.InvariantCultureIgnoreCase) ||
-                    (!Enum.TryParse(Vk.ToLowerInvariant(), true, out VirtualKeyCode vkcode) &&
-                     !Enum.TryParse(Vk.ToLowerInvariant().Substring(3), true, out vkcode))) {
-                    // Not a VK_ string
-                    // Hex?
-                    if ((!Vk.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase) ||
-                         !ushort.TryParse(Vk.Substring(2), NumberStyles.HexNumber,
-                                          CultureInfo.InvariantCulture.NumberFormat, out var num)) &&
-                         !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
-                                         out num)) {
+                VirtualKeyCode vkcode = 0;
+                if (Vk.Length == 1) {
+                    // Deal with <SendInput Vk="x"/> - Vk includes an explicit 'x' char.
+                    // ASCII of x 0x78. ASCII of X is 0x58. VK_X = 0x58m. Thus convert to
+                    // upper-case.
+                    vkcode = (VirtualKeyCode)Vk.ToUpperInvariant().ToCharArray()[0];
+                }
+                else {
+                    if (!Vk.StartsWith("vk_", StringComparison.InvariantCultureIgnoreCase) ||
+                        (!Enum.TryParse(Vk.ToLowerInvariant(), true, out vkcode) &&
+                         !Enum.TryParse(Vk.ToLowerInvariant().Substring(3), true, out vkcode))) {
+                        // It's not a VK_ string. Is it Hex?
+                        if ((!Vk.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase) ||
+                             !ushort.TryParse(Vk.Substring(2), NumberStyles.HexNumber,
+                                              CultureInfo.InvariantCulture.NumberFormat, out var num)) &&
+                             !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
+                                             out num)) {
 
-                        // Deal with <SendInput Vk="x"/> - Vk includes an explicit 'x' char.
-                        // ASCII of x 0x78. ASCII of X is 0x58. VK_X = 0x58m. Thus convert to
-                        // upper-case.
-                        num = Vk.ToUpperInvariant().ToCharArray()[0];
+                            // Not Hex. This is an error. Log it, but use the first char
+                            // (backwards compat).
+                            Logger.Instance.Log4.Info($"{this.GetType().Name} Unsupported VK value: {Vk}");
+
+                            num = Vk.ToUpperInvariant().ToCharArray()[0];
+                        }
+                        vkcode = (VirtualKeyCode)num;
                     }
-                    vkcode = (VirtualKeyCode)num;
                 }
 
                 string s;
-                // it's 
+                // it's a single char; convert to upper case
                 if (vkcode > VirtualKeyCode.HELP && vkcode < VirtualKeyCode.LWIN) {
                     s = $"{Char.ToUpper((char)vkcode, CultureInfo.InvariantCulture)}";
                 }

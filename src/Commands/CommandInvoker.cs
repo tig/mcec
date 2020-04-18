@@ -148,8 +148,12 @@ namespace MCEControl {
             // TODO: Implement ignoreInternalCommands?
 
             if (cmdString.Length == 1 && ((Command)this["chars:"]).Enabled) {
-                var charsCmd = new CharsCommand() { Args = cmdString, Enabled = true, Reply = reply };
-                executeQueue.Enqueue(charsCmd);
+                // Sending a single character is equivalent to a single key press of a key on the keyboard. 
+                // For example sending a will result in the A key being pressed. 
+                // 1 will result in the 1 key being pressed. There is no difference between sending a and A. 
+                // Use shiftdown:/shiftup: to simulate the pressing of the shift, control, alt, and windows keys.
+                var siCmd = new SendInputCommand() { Vk = cmdString, Enabled = true, Reply = reply };
+                executeQueue.Enqueue(siCmd);
             }
             else {
                 // See if we know about this Command - case insensitive
