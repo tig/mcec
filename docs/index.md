@@ -49,7 +49,7 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
   * Improved logging.
 * Version 2.0.4 (October 11, 2019) - Fixed bug where Server was not sending commands back to client.
 * Version 2.1.0 (October 25, 2019) - Lots of updates
-  * Commands defined in `MCECommands.command` now *really* override any built-ins. 
+  * Commands defined in `MCECommands.command` now *really* override any built-ins.
   * Reverted the set of built-in commands to include tons of defaults.
   * Key and Attribute names (e.g. `<sendinput>` or `Shift=`) in MCECommands.commands` are no longer case senstive.
   * Default pacing for commands is settable. See `General` settings tab. Default is 0. Specify in ms.
@@ -58,19 +58,21 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
   * Command window now supports sending multiple lines (scripts)
   * All `<Commands>` in `MCEControl.commands` can now be nested. This makes it easy to create compound commands (scripts).
   * Added `Chars` Command. Useful in nested commands.
-* Version 2.2.0 (March 24, 2020) - 
+* Version 2.2.0 (March 24, 2020) -
   * Activity Monitor will now send activity messages every `Debounce Time` seconds whenever the Windows desktop/session is unlocked.
-  * Added telemetry and modified Setup to support opt-in/out. 
+  * Added telemetry and modified Setup to support opt-in/out.
   * Update/version checker now checks against Github Releases in the `tig/mcec` respository.
-* Version 2.2.1 (March 28, 2020) - 
+* Version 2.2.1 (March 28, 2020) -
   * Commands Window now has ability to enable/disable commands in addition to test them.
   * Commands are now disabled by default (set Enabled property to true to enable). This was done to reduce the surface area MCE Controller exposes by default.
   * .commands file is now generated via code instead of a resource.
   * .commands file is saved by app when it exits. Previously MCE Controller only _read_ the file.
   * Legacy command files will be converted when encountered. A message box will pop explaining. ALL commands which were defined in the file when read will be set to Enabled=true. Highly recommended users review all commands and disable commands that are not explicitly used.
 * Version 2.2.2 (March 29, 2020) -
-  * Added Activity Monitor settings to enable/disable  mouse/keyboard input either/or desktop unlock. 
+  * Added Activity Monitor settings to enable/disable  mouse/keyboard input either/or desktop unlock.
   * FIXED: Activity Monitor command was not actually persisting in settings.
   * Minor bug fixes & code cleanup
 * Version 2.2.3 (March 29, 2020) -
   * Added ability to download and install new versions directly from within app.
+* Version 2.2.4 (April 18, 2020) -
+  * Fixed #12 - shiftup/down does not seem to be working correctly.

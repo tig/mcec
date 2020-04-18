@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 using WindowsInput;
 using WindowsInput.Native;
@@ -187,11 +188,10 @@ namespace MCEControl {
                              !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
                                              out num)) {
 
-                            // Not Hex. This is an error. Log it, but use the first char
-                            // (backwards compat).
-                            Logger.Instance.Log4.Info($"{this.GetType().Name} Unsupported VK value: {Vk}");
-
-                            num = Vk.ToUpperInvariant().ToCharArray()[0];
+                            // Not Hex. How about a Unicode escape? If this regex fails to match, the first 
+                            // char of Vk will be used. 
+                            Regex rx = new Regex(@"\\[uU]([0-9A-F]{4})");
+                            num = rx.Replace(Vk, match => ((char)Int32.Parse(match.Value.Substring(2), NumberStyles.HexNumber)).ToString()).ToUpperInvariant().ToCharArray()[0];
                         }
                         vkcode = (VirtualKeyCode)num;
                     }

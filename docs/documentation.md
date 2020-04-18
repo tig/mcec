@@ -4,7 +4,7 @@
 
 For example:
 
-* The command `netflix` will cause the Netflix application to start. 
+* The command `netflix` will cause the Netflix application to start.
 * The command `maximize` will cause the current window to be maximized on the display. This is equivalent to choosing the "Maximize" button on the window's window menu.
 * The command `chars:Hello World!` will cause the text "Hello World" to be typed, as though it were typed on the keyboard.
 * The command `VK_MEDIA_NEXT_TRACK` will cause the currently running media player app (Spotify, Windows Media Player, etc...) to jump to the next media track, just as if the user had pressed th "next track" key on the keyboard.
@@ -36,10 +36,10 @@ By default **MCEC** supports over 250 built-in commands for controlling a Window
 
 * Can act as a TCP/IP client. Specify a `host` (as a `hostname` or `IP address`) and `port` to connect to. The host can then send commands back on the TCP/IP connection for MCE Controller to act on.
 * Can act as a TCP/IP server. Specify a 'port' for it to listen on and any TCP/IP client can connect and send commands. The Server supports any number of simultaneous clients. The Telnet protocol is supported.
-* Can act as a Serial server listening on RS-232 COM port. 
+* Can act as a Serial server listening on RS-232 COM port.
 * Supports running multiple instances.
 * Can start minimized as a taskbar icon. This can be changed in Settings...
-* Has a built-in test mode that makes it easy to test commands. 
+* Has a built-in test mode that makes it easy to test commands.
 * The `User Activity Monitor` feature will send a command to the home automation system when a user is using the PC (moving the mouse or typing).
 * Automatically checks to see if newer versions are available.
 * Logs diagnostics information to a file.
@@ -153,7 +153,7 @@ The built-in TCP/IP client can send commands to another instance of **MCE Contro
 By default **MCEC** is configured such the following will configure "test mode".
 
 1. Open the Settings dialog from the `File.Settings...` menu.
-2. Click on the Client tab and check the `Act as Client` check-box. 
+2. Click on the Client tab and check the `Act as Client` check-box.
 3. Enter `localhost` in the `Host` edit box.
 4. Click on the Server tab and check the `Act as Server` check-box
 5. Hit `Ok`
@@ -224,7 +224,7 @@ The following command types are supported by **MCE Controller**:
 
 The following describes the Built-In commands:
 
-#### Windows Virtual Key Code Commands
+#### Commands for Simulating Keyboard Input
 
 Any Windows virtual key code is supported by default. The form of the commands are `VK_<key name>`. For example you can send **MCE Controller** any of the following commands and the corresponding key press will be simulated.
 
@@ -237,21 +237,27 @@ VK_MEDIA_PLAY_PAUSE
 VK_F1
 ```
 
-To send a keystroke that includes a shift modifier (e.g. `Win-D` or `Ctrl-G`) define a custom `SendInput` command as described below.
-
 A list of all Window's virtual key codes can be found here: [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx)
 
-#### Character Commands
+Anytime **MCE Controller** receives `chars:` plus some text, it simulates the typing of that text on the keyboard. The syntax of the command is `chars:*` where '*'' represents one or more characters. This is equivalent to typing those characters on the keyboard. E.g. `chars:3` will cause the number 3 to be typed as though the user had pressed the 3 key on the keyboard. `chars:Hello` will be just like the user pressed the following keys:
 
-Sending a single character is equivalent to a single key press of a key on the keyboard. For example sending `a` will result in the A key being pressed. `1` will result in the `1` key being pressed. There is no difference between sending `a` and `A`. Use `shiftdown:/shiftup:` to simulate the pressing of the shift, control, alt, and windows keys.
+```
+Shift key down
+h
+Shift key up
+e
+l
+l
+o
+```
 
-Note: the `chars:` command must be enabled for single character commands to work.
-
-Anytime **MCE Controller** receives `chars:` plus some text, it simulates the typing of that text on the keyboard. The syntax of the command is `chars:*` where '*'' represents one or more characters. This is equivalent to typing those characters on the keyboard. E.g. `chars:3` will cause the number 3 to be typed as though the user had pressed the 3 key on the keyboard. `chars:Hello` will cause `Hello` to be typed.
+Sending a single character without the `chars:` command (e.g. just `c`) is equivalent to a `SendInput` command defined as `<SendInput Cmd="cmdname" Vk="c" />` (see below). In other words, sending a single character is the same as a single key press of a key on the keyboard. For example sending `a` will result in the A key being pressed. `1` will result in the `1` key being pressed. There is no difference between sending `a` and `A`. Use `shiftdown:/shiftup:` to simulate the pressing of the shift, control, alt, and windows keys.
 
 Unicode (and other escaped character sequences are supported). `chars:\u20AC` will cause the € character to be input into the foreground window on the machine **MCEC** is running on.
 
-#### Keyboard Commands
+Note: the `chars:` command must be enabled for single character commands to work.
+
+#### Simulating Shift, Control, Alt, and the Windows keys
 
 To simulate a key down event for one of the modifiers keys (shift, control, alt, and the Windows key) send a `shiftdown:` or `shiftup:` command. The syntax is:
 
@@ -261,7 +267,7 @@ and
 
     shiftup:[shift|ctrl|alt|lwin|rwin]
 
-For example, to simulate the typing of 'Test!' send the following commands:
+For example, to simulate the typing of 'Test!' send the following lines:
 
     shiftdown:shift
     t
@@ -271,8 +277,9 @@ For example, to simulate the typing of 'Test!' send the following commands:
     t
     shiftdown:shift
     1
+    shiftup:shift
 
-(Although, using a `chars:` command would probably work better in most cases).
+This would do the same thing as if `chars:Test!` were sent.
 
 This scheme can be used as an alternative way of sending ctrl-, alt-, and win- keystrokes. For example to simulate ctrl-s:
 
@@ -280,7 +287,7 @@ This scheme can be used as an alternative way of sending ctrl-, alt-, and win- k
     s
     shiftup:ctrl
 
-#### mouse: Commands
+#### Mouse Commands
 
 With `Mouse` commands it is possible to build a remote control that acts like a mouse (I built a test app for Windows Phone 7 that enables WP7 to work like a touchpad; contact me if you are interested in it).
 
@@ -316,7 +323,7 @@ Values returned by commands in **MCEC** are of the format `command=value` where 
 
 ### Defining Your Own Commands
 
-**MCE Controller** provides almost 300 built-in commands. The first time MCE Controller runs, it creates an `MCEControl.commands` file including all built-in commands (with `Enabled="false"` set on ALL of them). After running MCEController once, you can You can override or augment this set by editing the `MCEControl.commands` file and (Use the `Commands.Open commands folder...` menu to find the file location on your machine. 
+**MCE Controller** provides almost 300 built-in commands. The first time MCE Controller runs, it creates an `MCEControl.commands` file including all built-in commands (with `Enabled="false"` set on ALL of them). After running MCEController once, you can You can override or augment this set by editing the `MCEControl.commands` file and (Use the `Commands.Open commands folder...` menu to find the file location on your machine.
 
 Note deleting a built-in command from the `.commands` file will not remove it permanently. Anytime **MCEC* saves the file built-in commands will be re-added; however, `Enabled="false"` will be set which is functionally equivalent to deleting them.
 
@@ -339,15 +346,16 @@ The file format is XML and must include the headers. `Commands` are defined with
 
 Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1).
 
-`MCEControl.commands` supports defining the following types of commands. 
+`MCEControl.commands` supports defining the following types of commands.
 
-* `SendInput`
-* `SendMessage`
-* `StartProcess`
-* `Shutdown`
-* `SetForegroundWindow`
-* `Chars`
-* `Pause`
+* `Chars` - Simulates text input.
+* `Mcec` - MCE Controller control.
+* `Pause` - Delays.
+* `SendInput` - Simulates keyboard input.
+* `SendMessage` - Sends Windows messages.
+* `SetForegroundWindow` - Brings a Window to the foreground, enabling control.
+* `Shutdown` - Commands for rebooting, suspending, and shutting down the computer.
+* `StartProcess` - Start other programs.
 
 The form of a Command definition is:
 
@@ -376,7 +384,7 @@ For example, the following launches Notepad, waits 1 second and then types some 
 
 #### SendInput Commands
 
-`SendInput` commands send keystrokes. Any combination of shift, ctrl, alt, and left/right Windows keys can be used with any "virtual key code". See the `winuser.h` file in the Windows SDK or [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx) for a definition of all standard `VK_` codes. `SendInput` commands understand single characters (e.g. `x`), key codes in hex (e.g. `0x2a`) or decimal format, or as a `VK_` name. The Windows `SendInput()` API is used send keystrokes. Keystrokes go to the foreground window.
+`SendInput` commands simulate keyboard key-presses. Any combination of shift, ctrl, alt, and left/right Windows keys can be used with any "virtual key code". See the `winuser.h` file in the Windows SDK or [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx) for a definition of all standard `VK_` codes. `SendInput` commands understand single characters (e.g. `x` or `\u0020`), key codes in hex (e.g. `0x2a`) or decimal format, or as a `VK_` name. Under the covers, the Windows `SendInput()` API is used send keystrokes. Keystrokes always go to the foreground window.
 
 For example, the following causes a **Ctrl-P** to be sent to the foreground window, and if that window is Media Center, the My Pictures page appears:
 
@@ -391,9 +399,18 @@ This example causes a Windows-X to be simulated, which causes the Windows 10 "ex
 <SendInput Cmd="winx" vk="VK_X" Win="true"/>
 ```
 
+The below illustrate how single character commands (see below) are implemented. Each of these does precisely the same thing as if **MCE Controller* received a space (` `) character (assuming `chars:` command was enabled, of course):
+
+```xml
+<SendInput Cmd="space" vk="VK_SPACE" Enabled="true"/>
+<SendInput Cmd="space" vk=" " Enabled="true"/>
+<SendInput Cmd="space" vk="\u0020" Enabled="true"/>
+<SendInput Cmd="space" vk="0x20" Enabled="true"/>
+```
+
 #### SendMessage Commands
 
-`SendMessage` commands are just that. They cause a Windows message to be sent using the `SendMessage()` API to the foreground window if no class name is specified, or to a particular window if that window’s class is specified. `Msg`, `wParam`, and `lParam` must be specified in decimal (**not hex!**).
+`SendMessage` commands cause a Windows message to be sent using the `SendMessage()` API to the foreground window if no class name is specified, or to a particular window if that window’s class is specified. `Msg`, `wParam`, and `lParam` must be specified in decimal (**not hex!**).
 
 For example, the following is equivalent to sending a `WM_SYSCOMMAND` with the `SC_MAXIMIZE` flag, causing the window with the class name of `ehshell` to be maximized (`WM_SYSCOMMAND == 247` and `SC_MAXIMIZE == 61488`):
 
@@ -450,7 +467,7 @@ For example, the following makes Media Center the foreground Window (assuming Me
 
 #### Chars Commands
 
-The `Chars` command is how the `chars:` commands get processed. `<Chars Cmd="foo" Arg="bar"/>` defines `foo` such that if **MCEC** receives `foo` it will type `bar` just as it had received `chars:bar`.
+The `Chars` command  is how the `chars:` commands get processed. `<Chars Cmd="foo" Arg="bar"/>` defines `foo` such that if **MCEC** receives `foo` it will type `bar` just as it had received `chars:bar`.
 
 #### Pause Commands
 
