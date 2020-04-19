@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Octokit;
@@ -53,20 +54,22 @@ namespace MCEControl {
 
         private async Task GetLatestStableVersionAsync() {
             ReleasePageUri = new Uri("https://github.com/tig/mcec/releases");
+            Logger.Instance.Log4.Debug("Checking for new release...");
             using (var client = new WebClient()) {
                 try {
                     var github = new GitHubClient(new Octokit.ProductHeaderValue("tig-mcec"));
                     var allReleases = await github.Repository.Release.GetAll("tig", "mcec").ConfigureAwait(false);
+                    //Logger.Instance.Log4.Debug($"allReleases {JsonSerializer.Serialize(allReleases, options: new JsonSerializerOptions() { WriteIndented = true })}");
 
                     // Get all releases and pre-releases
 #if DEBUG
-                    var releases = allReleases.Where(r => r.Prerelease).OrderByDescending(r => new Version(r.TagName.Replace('v', ' '))).ToArray();
+                    var releases = allReleases.Where(r => r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
 #else
-                    var releases = allReleases.Where(r => !r.Prerelease).OrderByDescending(r => new Version(r.TagName.Replace('v', ' '))).ToArray();
+                    var releases = allReleases.Where(r => !r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
 #endif
-                    //Log.Debug("Releases {releases}", JsonSerializer.Serialize(releases, options: new JsonSerializerOptions() { WriteIndented = true }));
+                    //Logger.Instance.Log4.Debug($"Releases {JsonSerializer.Serialize(releases, options: new JsonSerializerOptions() { WriteIndented = true })}");
                     if (releases.Length > 0) {
-                        Logger.Instance.Log4.Debug("The latest release is tagged at {releases[0].TagName} and is named {releases[0].Name}. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
+                        Logger.Instance.Log4.Info("The latest release is tagged at {releases[0].TagName} and is named {releases[0].Name}. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
 
                         LatestStableVersion = new Version(releases[0].TagName.Replace('v', ' '));
                         ReleasePageUri = new Uri(releases[0].HtmlUrl);
@@ -78,6 +81,7 @@ namespace MCEControl {
                 }
                 catch (Exception e) {
                     ErrorMessage = $"({ReleasePageUri}) {e.Message}";
+                    Logger.Instance.Log4.Debug(ErrorMessage);
                     TelemetryService.Instance.TrackException(e);
                 }
             }
