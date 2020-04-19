@@ -169,13 +169,13 @@ The `Commands Window` shows a list of all *Commands* **MCE Controller** is confi
 
 The example in the screenshot above will start the movie Blade Runner playing on Netflix (if the Netflix app is installed from the Windows Store).
 
-Try this as a quick test:
+Try this as a quick test (the 2nd line is a space (` `)):
 
     shiftdown:lwin
     x
     shiftup:lwin
 
-This will cause the Win-X menu to pop up.
+This will cause the Windows Quick Link Menu to pop up just like a user typed `Win-X`.
 
 Turn on the `Activity Monitor` while in test mode and you'll see events in the log for when activity is detected.
 
@@ -250,6 +250,8 @@ l
 l
 o
 ```
+
+The string that follows `chars:` can include *character escapes*. This enables sending unprintable characters. E.g. `chars:\\` sends `\` and `chars:\u263A` sends `☺` and `chars:\f` sends a form feed character. The set of character escapes supported is documented [here](https://docs.microsoft.com/en-us/dotnet/standard/base-types/character-escapes-in-regular-expressions).
 
 Sending a single character without the `chars:` command (e.g. just `c`) is equivalent to a `SendInput` command defined as `<SendInput Cmd="cmdname" Vk="c" />` (see below). In other words, sending a single character is the same as a single key press of a key on the keyboard. For example sending `a` will result in the A key being pressed. `1` will result in the `1` key being pressed. There is no difference between sending `a` and `A`. Use `shiftdown:/shiftup:` to simulate the pressing of the shift, control, alt, and windows keys.
 
@@ -369,7 +371,7 @@ Do not make commands a single character or it will interfere with the ability to
 
 #### Nesting
 
-*Commands* support chaining by nesting elements. The nexted commands will be executed after the started application starts processing windows messages.
+*Commands* support chaining by nesting elements. The nested commands will be executed after the started application starts processing windows messages.
 
 For example, the following launches Notepad, waits 1 second and then types some text.
 
