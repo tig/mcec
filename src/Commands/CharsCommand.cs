@@ -46,6 +46,11 @@ namespace MCEControl {
             }
 
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Typing {text.Length} chars: {text}");
+
+            // TODO: Change this such that it treats each char of `text` as a keydown/keyup
+            // pair vs how `TextEntry()` currently works. See Issue #14.
+            // OR, implement a new command, keyboard: where Keyboard.KeyPress(vk) is used for
+            // each character.
             new InputSimulator().Keyboard.TextEntry(text);
             return true;
         }

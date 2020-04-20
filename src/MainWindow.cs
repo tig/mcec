@@ -166,12 +166,8 @@ namespace MCEControl {
                 }
                 else if (UpdateService.Instance.CompareVersions() < 0) {
                     installLatestVersionMenuItem.Enabled = true;
-                    Logger.Instance.Log4.Info("------------------------------------------------");
-
                     Logger.Instance.Log4.Info($"A newer version of MCE Controller ({version}) is available at");
                     Logger.Instance.Log4.Info($"   {UpdateService.Instance.ReleasePageUri}");
-                    Logger.Instance.Log4.Info($"   Use the \"Help.Install Latest Version\" menu to upgrade");
-                    Logger.Instance.Log4.Info("------------------------------------------------");
 
                     if (!Settings.DisableUpdatePopup)
                         UpdateDialog.Instance.ShowDialog(this);

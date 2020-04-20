@@ -69,7 +69,11 @@ namespace MCEControl {
 #endif
                     //Logger.Instance.Log4.Debug($"Releases {JsonSerializer.Serialize(releases, options: new JsonSerializerOptions() { WriteIndented = true })}");
                     if (releases.Length > 0) {
-                        ///Logger.Instance.Log4.Info("The latest release is tagged at {releases[0].TagName} and is named {releases[0].Name}. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
+#if DEBUG
+                        Logger.Instance.Log4.Info($"The latest PRE-RELEASE is tagged at {releases[0].TagName} and is named {releases[0].Name}. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
+#else
+                        Logger.Instance.Log4.Debug($"The latest release is tagged at {releases[0].TagName} and is named {releases[0].Name}. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
+#endif
 
                         LatestStableVersion = new Version(releases[0].TagName.Replace('v', ' '));
                         ReleasePageUri = new Uri(releases[0].HtmlUrl);
