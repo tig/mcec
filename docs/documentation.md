@@ -214,7 +214,7 @@ The following command types are supported by **MCE Controller**:
 * **Chars** - Sends text.
 * **Mouse** - Sends mouse movement and button actions.
 * **Pause** - Pauses after a command before another is exectued (in milliseconds).
-* **Built-In** - Single characters, `VK_` codes, `chars:`, `shiftdown:`, `shiftup:,` and `mcec:.`
+* **Built-In** - Single characters, `VK_` codes, `chars:`, `shiftdown:`, `shiftup:`, `pause:`, and `mcec:.`
 
 ### Built-in Commands
 
@@ -252,6 +252,8 @@ o
 ```
 
 The string that follows `chars:` can include *character escapes*. This enables sending unprintable characters. E.g. `chars:\\` sends `\` and `chars:\u263A` sends `☺` and `chars:\f` sends a form feed character. The set of character escapes supported is documented [here](https://docs.microsoft.com/en-us/dotnet/standard/base-types/character-escapes-in-regular-expressions).
+
+Note, how `chars:` behaves relative to the state of `shift`, `alt`, `ctrl`, and `win` keys is dependent on which modifier key is used and the application that is in the foreground. Specifically, `shift` is ignored and for the other modifier keys, the behavior is app dependent. Using `<SendInput/>` commands is recommended for fine-grain control of behavior that depends on modifier keys. See [Issue #14](https://github.com/tig/mcec/issues/14) for more details.
 
 Sending a single character without the `chars:` command (e.g. just `c`) is equivalent to a `SendInput` command defined as `<SendInput Cmd="cmdname" Vk="c" />` (see below). In other words, sending a single character is the same as a single key press of a key on the keyboard. For example sending `a` will result in the A key being pressed. `1` will result in the `1` key being pressed. There is no difference between sending `a` and `A`. Use `shiftdown:/shiftup:` to simulate the pressing of the shift, control, alt, and windows keys.
 
