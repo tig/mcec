@@ -461,13 +461,20 @@ The supported shutdown commands are self-explanatory.
 
 #### SetForgroundWindow Commands
 
-The `SetForegroundWindow` command sets the specified window (using the window’s class name) to the foreground.
+The `SetForegroundWindow` command sets the specified process's main window to the foreground.
 
-For example, the following makes Media Center the foreground Window (assuming Media Center is running):
+For example, eiter of the following makes Notepad the foreground Window (assuming Notepad is running):
 
 ```xml
-<SetForegroundWindow Cmd="mce_activate" ClassName="ehshell"/>
+<SetForegroundWindow Cmd="activatenotepad" AppName="Notepad"/>
+<SetForegroundWindow Cmd="activatenotepad" ClassName="Notepad"/>
 ```
+
+`AppName` is the "friendly process name" of an app. This is the name shown in *Properties* dialog for items listed in the *Details* tab of *Windows Task Manager.*
+
+**MCEC** uses the Windows `GetProcessesByName` API which returns a list of all instances of an app with the given process name. **MCE** picks the first process in the list that has a main window.
+
+Note, the argument `ClassName` is mis-named and preserved for backwards compatibility. It is a hold-over when *MCEC* worked on older versions of Windows that enabled setting any window to the foreground. Starting with Windows Vista it is no longer possible for one app to set arbitrary windows of another app to the foreground.
 
 #### Chars Commands
 

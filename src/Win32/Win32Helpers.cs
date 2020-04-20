@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Microsoft.Win32.Security {
     using HANDLE = System.IntPtr;

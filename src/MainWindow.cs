@@ -11,7 +11,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
+using Gma.UserActivityMonitor;
 using log4net;
 using MCEControl.Dialogs;
 using Microsoft.Win32;
@@ -107,6 +109,11 @@ namespace MCEControl {
             Logger.Instance.Log4.Info($"MCE Controller v{System.Windows.Forms.Application.ProductVersion}" +
                 $" - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")}" +
                 $" - .NET: {Environment.Version.ToString()}");
+
+            var hWnd = WindowsInput.Native.NativeMethods.FindWindow(null, this.Text);
+            var sb = new StringBuilder(256);
+            WindowsInput.Native.NativeMethods.GetClassName(hWnd, sb, 256);
+            Logger.Instance.Log4.Info($"Window Class - {sb}");
 
             // Load AppSettings
             Settings = AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
