@@ -12,38 +12,61 @@
     vertical-align: middle;
   }
 
-  body{
+body{
     background-color: #fff7ed;
-  }
+    font-size: 11pt;
+}
 
-  code, pre {
+pre {
+    border: 1px solid #ffd1b4;
+    padding: 4px 12px;
+    border-radius: 4px;
+    overflow: auto;
+    overflow-y: hidden;
+    margin-bottom: 20px;
+    line-height: 1.5em;
+}
+
+code {
     font-family: "Cascadia Code", "Lucida Console", Terminal, monospace;
+    font-size: 10pt;
     color: #000;
-    font-size: 12px;
-  }
+    background: #ffe8d1;
+    border: 1px solid #ffd1b4;
+    border-radius: 2px;
+    padding: 0px 2px;
+}
 
-  a{
+pre code {
+    border: unset;
+}
+
+.highlight {
+    background: #ffe8d1;
+}
+
+a{
     color: #da4e00;
-  }
+}
 
-  a.document {
+a.document {
     background: url(../images/document.png) no-repeat 1px;
-  }
+}
 
-  header {
+header {
     background-color: #c05a24;
     border: 1px solid #943a08;
-  }
+}
 
-  header li {
+header li {
     border: unset;
     background: linear-gradient(to top, #444 0%, #232323 100%);
     box-shadow: inset 0px 1px 1px 0 #444;
- }
+}
 
- header img{
+header img{
    border: none;
- }
+}
 
 
 
