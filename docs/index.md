@@ -75,3 +75,4 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
 * Version 2.2.3 (March 29, 2020) - Added ability to download and install new versions directly from within app.
 * Version 2.2.4 (April 18, 2020) - Fixed #12 - shiftup/down does not seem to be working correctly.
 * Version 2.2.5 (April 19, 2020) - Fixed `<SetForeGroundWindow/>` to work even if an app has multiple processes running. Fixed related documentation. Added example to .commands.
+* Version 2.2.6 (April 22, 2020) - Implemented Mouse Middle Button support (mouse:mbc, mbd, ...). Documentation was previously incorrect regarding mouse:xbm.
