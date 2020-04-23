@@ -65,6 +65,26 @@
         void RightButtonDoubleClick();
 
         /// <summary>
+        /// Simulates a mouse middle button down gesture.
+        /// </summary>
+        void MiddleButtonDown();
+
+        /// <summary>
+        /// Simulates a mouse middle button up gesture.
+        /// </summary>
+        void MiddleButtonUp();
+
+        /// <summary>
+        /// Simulates a mouse middle button click gesture.
+        /// </summary>
+        void MiddleButtonClick();
+
+        /// <summary>
+        /// Simulates a mouse middle button double-click gesture.
+        /// </summary>
+        void MiddleButtonDoubleClick();
+
+        /// <summary>
         /// Simulates a mouse X button down gesture.
         /// </summary>
         /// <param name="buttonId">The button id.</param>

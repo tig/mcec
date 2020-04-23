@@ -55,10 +55,11 @@
             this.listCmds.FullRowSelect = true;
             this.listCmds.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this.listCmds.HideSelection = false;
-            this.listCmds.Location = new System.Drawing.Point(12, 55);
+            this.listCmds.Location = new System.Drawing.Point(18, 85);
+            this.listCmds.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.listCmds.MultiSelect = false;
             this.listCmds.Name = "listCmds";
-            this.listCmds.Size = new System.Drawing.Size(508, 388);
+            this.listCmds.Size = new System.Drawing.Size(760, 595);
             this.listCmds.TabIndex = 6;
             this.listCmds.UseCompatibleStateImageBehavior = false;
             this.listCmds.View = System.Windows.Forms.View.Details;
@@ -85,9 +86,10 @@
             // 
             this.labelSendAnyChars.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.labelSendAnyChars.AutoSize = true;
-            this.labelSendAnyChars.Location = new System.Drawing.Point(535, 55);
+            this.labelSendAnyChars.Location = new System.Drawing.Point(802, 85);
+            this.labelSendAnyChars.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelSendAnyChars.Name = "labelSendAnyChars";
-            this.labelSendAnyChars.Size = new System.Drawing.Size(119, 13);
+            this.labelSendAnyChars.Size = new System.Drawing.Size(178, 20);
             this.labelSendAnyChars.TabIndex = 7;
             this.labelSendAnyChars.Text = "Send  list of commands:";
             // 
@@ -95,23 +97,26 @@
             // 
             this.textBoxSendCommand.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxSendCommand.Location = new System.Drawing.Point(538, 71);
+            this.textBoxSendCommand.Location = new System.Drawing.Point(807, 109);
+            this.textBoxSendCommand.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.textBoxSendCommand.Multiline = true;
             this.textBoxSendCommand.Name = "textBoxSendCommand";
             this.textBoxSendCommand.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBoxSendCommand.Size = new System.Drawing.Size(226, 372);
+            this.textBoxSendCommand.Size = new System.Drawing.Size(337, 570);
             this.textBoxSendCommand.TabIndex = 8;
             // 
             // buttonSend
             // 
             this.buttonSend.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonSend.Location = new System.Drawing.Point(680, 449);
-            this.buttonSend.MaximumSize = new System.Drawing.Size(84, 23);
-            this.buttonSend.MinimumSize = new System.Drawing.Size(84, 23);
+            this.buttonSend.DialogResult = System.Windows.Forms.DialogResult.OK;
+            this.buttonSend.Location = new System.Drawing.Point(1020, 691);
+            this.buttonSend.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.buttonSend.MaximumSize = new System.Drawing.Size(126, 35);
+            this.buttonSend.MinimumSize = new System.Drawing.Size(126, 35);
             this.buttonSend.Name = "buttonSend";
-            this.buttonSend.Size = new System.Drawing.Size(84, 23);
+            this.buttonSend.Size = new System.Drawing.Size(126, 35);
             this.buttonSend.TabIndex = 9;
-            this.buttonSend.Text = "Send";
+            this.buttonSend.Text = "&Send";
             this.buttonSend.UseVisualStyleBackColor = true;
             this.buttonSend.Click += new System.EventHandler(this.buttonSend_Click);
             // 
@@ -120,9 +125,10 @@
             this.saveChangesBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.saveChangesBtn.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.saveChangesBtn.Enabled = false;
-            this.saveChangesBtn.Location = new System.Drawing.Point(299, 449);
+            this.saveChangesBtn.Location = new System.Drawing.Point(448, 691);
+            this.saveChangesBtn.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.saveChangesBtn.Name = "saveChangesBtn";
-            this.saveChangesBtn.Size = new System.Drawing.Size(221, 23);
+            this.saveChangesBtn.Size = new System.Drawing.Size(332, 35);
             this.saveChangesBtn.TabIndex = 10;
             this.saveChangesBtn.Text = "Save MCECommands.commands file";
             this.saveChangesBtn.UseVisualStyleBackColor = true;
@@ -131,9 +137,10 @@
             // testRadio
             // 
             this.testRadio.AutoSize = true;
-            this.testRadio.Location = new System.Drawing.Point(13, 13);
+            this.testRadio.Location = new System.Drawing.Point(20, 20);
+            this.testRadio.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.testRadio.Name = "testRadio";
-            this.testRadio.Size = new System.Drawing.Size(244, 17);
+            this.testRadio.Size = new System.Drawing.Size(362, 24);
             this.testRadio.TabIndex = 11;
             this.testRadio.TabStop = true;
             this.testRadio.Text = "&Test Sending Commands (doule-click to send).";
@@ -143,9 +150,10 @@
             // editRadio
             // 
             this.editRadio.AutoSize = true;
-            this.editRadio.Location = new System.Drawing.Point(13, 32);
+            this.editRadio.Location = new System.Drawing.Point(20, 49);
+            this.editRadio.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.editRadio.Name = "editRadio";
-            this.editRadio.Size = new System.Drawing.Size(153, 17);
+            this.editRadio.Size = new System.Drawing.Size(226, 24);
             this.editRadio.TabIndex = 11;
             this.editRadio.TabStop = true;
             this.editRadio.Text = "&Enable/Disable Commands";
@@ -153,9 +161,9 @@
             // 
             // CommandWindow
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(776, 484);
+            this.ClientSize = new System.Drawing.Size(1164, 745);
             this.Controls.Add(this.editRadio);
             this.Controls.Add(this.testRadio);
             this.Controls.Add(this.saveChangesBtn);
@@ -163,6 +171,7 @@
             this.Controls.Add(this.textBoxSendCommand);
             this.Controls.Add(this.labelSendAnyChars);
             this.Controls.Add(this.listCmds);
+            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "CommandWindow";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.Text = "Commands";

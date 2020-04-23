@@ -30,10 +30,14 @@ namespace MCEControl {
                 new MouseCommand{ Cmd = $"{CmdPrefix }rbdc" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }rbd" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }rbu" },
-                new MouseCommand{ Cmd = $"{CmdPrefix }xbc,3" },
-                new MouseCommand{ Cmd = $"{CmdPrefix }xbcd,3" },
-                new MouseCommand{ Cmd = $"{CmdPrefix }xbd,3" },
-                new MouseCommand{ Cmd = $"{CmdPrefix }xbu,3" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }mbc" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }mbdc" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }mbd" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }mbu" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }xbc,n" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }xbcd,n" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }xbd,n" },
+                new MouseCommand{ Cmd = $"{CmdPrefix }xbu,n" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }mm,x,y" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }mt,x,y" },
                 new MouseCommand{ Cmd = $"{CmdPrefix }hs,x" },
@@ -70,22 +74,89 @@ namespace MCEControl {
                 return true;
             }
 
+            int mb = 0;
+
             switch (param[0]) {
-                case "lbc": sim.Mouse.LeftButtonClick(); break;
-                case "lbdc": sim.Mouse.LeftButtonDoubleClick(); break;
-                case "lbd": sim.Mouse.LeftButtonDown(); break;
-                case "lbu": sim.Mouse.LeftButtonUp(); break;
+                case "lbc":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Left Button Click");
+                    sim.Mouse.LeftButtonClick();
+                    break;
 
-                case "rbc": sim.Mouse.RightButtonClick(); break;
-                case "rbdc": sim.Mouse.RightButtonDoubleClick(); break;
-                case "rbd": sim.Mouse.RightButtonDown(); break;
-                case "rbu": sim.Mouse.RightButtonUp(); break;
+                case "lbdc":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Left Button Double Click");
+                    sim.Mouse.LeftButtonDoubleClick();
+                    break;
 
-                // "mouse:xbc,3" - Mouse button 3 click
-                case "xbc": sim.Mouse.XButtonClick(GetIntOrZero(param, 1)); break;
-                case "xbdc": sim.Mouse.XButtonDoubleClick(GetIntOrZero(param, 1)); break;
-                case "xbd": sim.Mouse.XButtonDown(GetIntOrZero(param, 1)); break;
-                case "xbu": sim.Mouse.XButtonUp(GetIntOrZero(param, 1)); break;
+                case "lbd":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Left Button Down");
+                    sim.Mouse.LeftButtonDown();
+                    break;
+
+                case "lbu":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Left Button Up");
+                    sim.Mouse.LeftButtonUp();
+                    break;
+
+                case "rbc":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Right Button Click");
+                    sim.Mouse.RightButtonClick();
+                    break;
+                case "rbdc":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Right Button Double Click");
+                    sim.Mouse.RightButtonDoubleClick();
+                    break;
+                case "rbd":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Right Button Down");
+                    sim.Mouse.RightButtonDown();
+                    break;
+                case "rbu":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Right Button Up");
+                    sim.Mouse.RightButtonUp();
+                    break;
+
+                case "mbc":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Middle Button Click");
+                    sim.Mouse.MiddleButtonClick();
+                    break;
+
+                case "mbdc":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Middle Button Double Click");
+                    sim.Mouse.MiddleButtonDoubleClick();
+                    break;
+
+                case "mbd":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Middle Button Down");
+                    sim.Mouse.MiddleButtonDown();
+                    break;
+                case "mbu":
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Middle Button Up");
+                    sim.Mouse.MiddleButtonUp();
+                    break;
+
+                // "mouse:xbc,3" - Mouse X button 3 click
+                case "xbc":
+                    mb = GetIntOrZero(param, 1);
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: XButton {mb} click");
+                    sim.Mouse.XButtonClick(mb);
+                    break;
+
+                case "xbdc":
+                    mb = GetIntOrZero(param, 1);
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: XButton {mb} doubleclick");
+                    sim.Mouse.XButtonDoubleClick(mb);
+                    break;
+
+                case "xbd":
+                    mb = GetIntOrZero(param, 1);
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: XButton {mb} down");
+                    sim.Mouse.XButtonDown(mb);
+                    break;
+
+                case "xbu":
+                    mb = GetIntOrZero(param, 1);
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Xbutton {mb} up");
+                    sim.Mouse.XButtonUp(mb);
+                    break;
 
                 // "mouse:mb,15,20" - Move mouse 15 in X direction, and 20 in Y direction
                 case "mm": sim.Mouse.MoveMouseBy(GetIntOrZero(param, 1), GetIntOrZero(param, 2)); break;

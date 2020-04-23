@@ -134,7 +134,40 @@ namespace WindowsInput {
         }
 
         /// <summary>
-        /// Simulates a mouse right button double-click gesture.
+        /// Simulates a mouse middle button down gesture.
+        /// </summary>
+        public void MiddleButtonDown() {
+            var inputList = new InputBuilder().AddMouseButtonDown(MouseButton.MiddleButton).ToArray();
+            SendSimulatedInput(inputList);
+        }
+
+        /// <summary>
+        /// Simulates a mouse middle button up gesture.
+        /// </summary>
+        public void MiddleButtonUp() {
+            var inputList = new InputBuilder().AddMouseButtonUp(MouseButton.MiddleButton).ToArray();
+            SendSimulatedInput(inputList);
+        }
+
+        /// <summary>
+        /// Simulates a mouse middle button click gesture.
+        /// </summary>
+        public void MiddleButtonClick() {
+            var inputList = new InputBuilder().AddMouseButtonClick(MouseButton.MiddleButton).ToArray();
+            SendSimulatedInput(inputList);
+        }
+
+        /// <summary>
+        /// Simulates a mouse middle button double-click gesture.
+        /// </summary>
+        public void MiddleButtonDoubleClick() {
+            var inputList = new InputBuilder().AddMouseButtonDoubleClick(MouseButton.MiddleButton).ToArray();
+            SendSimulatedInput(inputList);
+        }
+
+
+        /// <summary>
+        /// Simulates a mouse middle button double-click gesture.
         /// </summary>
         public void RightButtonDoubleClick() {
             var inputList = new InputBuilder().AddMouseButtonDoubleClick(MouseButton.RightButton).ToArray();
