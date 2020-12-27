@@ -259,7 +259,7 @@ namespace MCEControl {
                 UserActivityMonitorService.Instance.ActivityCmd = Settings.ActivityMonitorCommand;
                 UserActivityMonitorService.Instance.InputDetection = Settings.InputDetection;
                 UserActivityMonitorService.Instance.UnlockDetection = Settings.UnlockDetection;
-                UserActivityMonitorService.Instance.LogActivity = false;
+                UserActivityMonitorService.Instance.LogActivity = Settings.LogUserActivity;
                 UserActivityMonitorService.Instance.Start();
             }
         }
@@ -269,7 +269,7 @@ namespace MCEControl {
                 this.BeginInvoke((MethodInvoker)delegate () { Stop(); });
             }
             else {
-                UserActivityMonitorService.Stop();
+                UserActivityMonitorService.Instance.Stop();
                 StopClient();
                 StopServer();
                 StopSerialServer();

@@ -7,6 +7,7 @@
 // Source on GitHub: https://github.com/tig/mcec  
 //-------------------------------------------------------------------
 using System;
+using System.Diagnostics;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
@@ -23,9 +24,10 @@ namespace MCEControl {
         }
 
         private static Gma.UserActivityMonitor.GlobalEventProvider _userActivityMonitor = null;
+        private Timer _timer = null;
 
         public static UserActivityMonitorService Instance => lazy.Value;
-        public bool LogActivity { get; set; } = false;
+        public bool LogActivity { get; set; }
         public string ActivityCmd { get; set; } = "activity";
         public int DebounceTime { get; set; } = 5;
         public bool UnlockDetection { get; set; }
@@ -35,13 +37,10 @@ namespace MCEControl {
         /// </summary>
         /// <param name="debounceTime">Specifies the maximum frequency at which activity messages will be sent in seconds.</param>
         public void Start() {
-            if (_userActivityMonitor != null) {
-                _userActivityMonitor = null;
-            }
-
             LastTime = DateTime.Now;
 
             if (InputDetection) {
+                Debug.Assert(_userActivityMonitor == null);
                 _userActivityMonitor = new Gma.UserActivityMonitor.GlobalEventProvider();
                 _userActivityMonitor.MouseMove += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseMove);
                 _userActivityMonitor.MouseClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseClick);
@@ -54,13 +53,13 @@ namespace MCEControl {
             }
 
             if (UnlockDetection) {
+                Microsoft.Win32.SystemEvents.SessionSwitch += new Microsoft.Win32.SessionSwitchEventHandler(SystemEvents_SessionSwitch);
                 StartSessionUnlockedTimer();
             }
 
-            Microsoft.Win32.SystemEvents.SessionSwitch += new Microsoft.Win32.SessionSwitchEventHandler(SystemEvents_SessionSwitch);
-
             // BUGBUG: If app is started with the session unlocked (which will be most of the time), the Session Unlocked Timer
-            // does not start until a user input is detected. There is no documented way to detect whehter a session is unlocked.
+            // does not start until a user input is detected (See Activity() below).
+            // There is no documented way to detect whehter a session is unlocked.
             // This is not a big deal, but is a bug.
             Logger.Instance.Log4.Info($"ActivityMonitor: Start");
             Logger.Instance.Log4.Info($"ActivityMonitor: Keyboard/mouse input detection: {InputDetection}");
@@ -79,17 +78,20 @@ namespace MCEControl {
         /// 
         /// </summary>
         private void StartSessionUnlockedTimer() {
-            if (_timer != null) {
-                _timer.Stop();
-                _timer.Dispose();
-                _timer = null;
-            }
+            Debug.Assert(_timer == null);
             _timer = new Timer();
             _timer.Tick += Timer_Tick;
             _timer.Interval = this.DebounceTime * 1000;
         }
 
-        public static void Stop() {
+        private void StopSessionUnlockTimer() {
+            Debug.Assert(_timer != null);
+            _timer.Stop();
+            _timer.Dispose();
+            _timer = null;
+        }
+
+        public void Stop() {
             Logger.Instance.Log4.Info($"ActivityMonitor: Stop");
             // TELEMETRY: 
             // what: when activity montioring is turned off
@@ -101,99 +103,99 @@ namespace MCEControl {
                 _userActivityMonitor.Dispose();
                 _userActivityMonitor = null;
             }
+
+            if (UnlockDetection) {
+                StopSessionUnlockTimer();
+                Microsoft.Win32.SystemEvents.SessionSwitch -= new Microsoft.Win32.SessionSwitchEventHandler(SystemEvents_SessionSwitch);
+            }
         }
 
-        private Timer _timer = null;
-
         private void SystemEvents_SessionSwitch(object sender, Microsoft.Win32.SessionSwitchEventArgs e) {
+            if (!UnlockDetection) return;
+
             if (e.Reason == SessionSwitchReason.SessionLock) {
                 // Desktop has been locked - Pretty good signal there's not going to be any activity
                 // Stop the timer
                 Logger.Instance.Log4.Info($"ActivityMonitor: Session Locked");
-                if (_timer != null) {
-                    _timer.Enabled = false;
-                }
-            }
+                Debug.Assert(_timer != null);
+                _timer.Enabled = false;
+                StopSessionUnlockTimer();            }
             else if (e.Reason == SessionSwitchReason.SessionUnlock) {
                 // Desktop has been Unlocked - this is a signal there's activity. 
-                // Start a repeating timer (using the same duration as debounce) 
-
+                // Start a repeating timer (using the same duration as debounce + 1 second) 
                 Logger.Instance.Log4.Info($"ActivityMonitor: Session Unlocked");
                 StartSessionUnlockedTimer();
                 _timer.Enabled = true;
+                Timer_Tick(null, null);
             }
         }
 
         private void Timer_Tick(object sender, EventArgs e) {
             //Logger.Instance.Log4.Info($"ActivityMonitor: Tick");
-            this.Activity("Session is unlocked (tick)");
+            this.Activity("Session is unlocked");
         }
 
-        private void Activity(string logInfo) {
+        private void Activity(string source, string moreInfo = "") {
             if (_userActivityMonitor == null) {
                 return;
             }
 
-            if (LogActivity) {
-                Logger.Instance.Log4.Info($"ActivityMonitor: {logInfo}");
+            // Enable desktop-locked/unlocked timer (desktop is clearly unlocked!)
+            if (UnlockDetection && _timer != null) {
+                _timer.Enabled = true;
             }
 
             if (LastTime.AddSeconds(DebounceTime) <= DateTime.Now) {
-                Logger.Instance.Log4.Info($"ActivityMonitor: User Activity Dectected");
-                if ((MainWindow.Instance.Client != null && MainWindow.Instance.Client.CurrentStatus == ServiceStatus.Connected) ||
-                    (MainWindow.Instance.Server != null && MainWindow.Instance.Server.CurrentStatus == ServiceStatus.Connected) ||
-                    (MainWindow.Instance.SerialServer != null && MainWindow.Instance.SerialServer.CurrentStatus == ServiceStatus.Connected)) {
+                // Only log/trigger if outside of debounce time
+                Logger.Instance.Log4.Info($@"ActivityMonitor: Activity detected: {source} {moreInfo}");
 
-                    // TELEMETRY: 
-                    // what: the count of activity dectected
-                    // why: to understand how frequently activity is detected
-                    // how is PII protected: the frequency of activity is not PII
-                    TelemetryService.Instance.TelemetryClient.GetMetric($"activity Sent").TrackValue(1);
+                // TELEMETRY: 
+                // what: the count of activity dectected
+                // why: to understand how frequently activity is detected
+                // how is PII protected: the frequency of activity is not PII
+                TelemetryService.Instance.TelemetryClient.GetMetric($"activity Sent").TrackValue(1);
 
-                    MainWindow.Instance.SendLine(ActivityCmd);
+                MainWindow.Instance.SendLine(ActivityCmd);
 
-                    // Enable desktop-locked/unlocked timer (desktop is clearly unlocked!)
-                    _timer.Enabled = true;
-                }
                 LastTime = DateTime.Now;
             }
         }
 
         private void HookManager_KeyDown(object sender, KeyEventArgs e) {
-            Activity($"KeyDown - {e.KeyCode}");
+            Activity("KeyDown", LogActivity ? $"{e.KeyCode}" : "");
         }
 
         private void HookManager_KeyUp(object sender, KeyEventArgs e) {
-            Activity($"KeyUp - {e.KeyCode}");
+            Activity("KeyUp", LogActivity ? $"{e.KeyCode}" : "");
         }
 
 
         private void HookManager_KeyPress(object sender, KeyPressEventArgs e) {
-            Activity($"KeyPress - {e.KeyChar}");
+            Activity("KeyPress", LogActivity ? $"{e.KeyChar}" : "");
         }
 
         private void HookManager_MouseMove(object sender, MouseEventArgs e) {
-            Activity($"MouseMove - x={e.X:0000}; y={e.Y:0000}");
+            Activity($"MouseMove", LogActivity ? $"x={e.X:0000}; y={e.Y:0000}" : "");
         }
 
         private void HookManager_MouseClick(object sender, MouseEventArgs e) {
-            Activity($"MouseClick - {e.Button}");
+            Activity($"MouseClick", LogActivity ? $"{e.Button}" : "");
         }
 
         private void HookManager_MouseUp(object sender, MouseEventArgs e) {
-            Activity($"MouseUp - {e.Button}");
+            Activity($"MouseUp", LogActivity ? $"{e.Button}" : "");
         }
 
         private void HookManager_MouseDown(object sender, MouseEventArgs e) {
-            Activity($"MouseDown - {e.Button}");
+            Activity($"MouseDown", LogActivity ? $"{e.Button}" : "");
         }
 
         private void HookManager_MouseDoubleClick(object sender, MouseEventArgs e) {
-            Activity($"MouseDoubleClick - {e.Button}");
+            Activity($"MouseDoubleClick", LogActivity ? $"{e.Button}" : "");
         }
 
         private void HookManager_MouseWheel(object sender, MouseEventArgs e) {
-            Activity($"Wheel={e.Delta:000}");
+            Activity($"MouseWheel", LogActivity ? $"{e.Delta:000}" : "");
         }
 
         #region IDisposable Support
