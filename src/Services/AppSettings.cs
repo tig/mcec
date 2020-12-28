@@ -98,6 +98,8 @@ namespace MCEControl {
         public bool UnlockDetection { get; set; }
         [SafeForTelemetryAttribute]
         public bool InputDetection { get; set; }
+        [SafeForTelemetryAttribute]
+        public bool UserPresenceDetection { get; set; }
 
         [SafeForTelemetryAttribute]
         public bool DisableUpdatePopup { get; set; }
@@ -126,6 +128,7 @@ namespace MCEControl {
             defaultPort.Dispose();
             UnlockDetection = true;
             InputDetection = true;
+            UserPresenceDetection = true;
         }
 
 

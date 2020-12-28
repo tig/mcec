@@ -76,3 +76,4 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
 * Version 2.2.4 (April 18, 2020) - Fixed #12 - shiftup/down does not seem to be working correctly.
 * Version 2.2.5 (April 19, 2020) - Fixed `<SetForeGroundWindow/>` to work even if an app has multiple processes running. Fixed related documentation. Added example to .commands.
 * Version 2.2.6 (April 22, 2020) - Implemented Mouse Middle Button support (mouse:mbc, mbd, ...). Documentation was previously incorrect regarding mouse:xbm.
+* Version 2.2.7 (December 27, 2020) - Augmented User Activity Monitor with more deterministic user presence logic using the WM_POWERBROADCAST API (GUID_SESSION_USER_PRESENCE).

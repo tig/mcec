@@ -8,8 +8,10 @@
 //-------------------------------------------------------------------
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using static Gma.UserActivityMonitor.NativeMethods;
 
 namespace MCEControl {
 
@@ -24,7 +26,7 @@ namespace MCEControl {
         }
 
         private static Gma.UserActivityMonitor.GlobalEventProvider _userActivityMonitor = null;
-        private Timer _timer = null;
+        private Timer _PresencePresumedTimer = null;
 
         public static UserActivityMonitorService Instance => lazy.Value;
         public bool LogActivity { get; set; }
@@ -32,6 +34,10 @@ namespace MCEControl {
         public int DebounceTime { get; set; } = 5;
         public bool UnlockDetection { get; set; }
         public bool InputDetection { get; set; }
+
+        // https://docs.microsoft.com/en-us/archive/msdn-magazine/2007/june/net-matters-handling-messages-in-console-apps
+        public bool UserPresenceDetection { get; set; }
+
         /// <summary>
         /// Starts the Activity Monitor. 
         /// </summary>
@@ -52,10 +58,16 @@ namespace MCEControl {
                 _userActivityMonitor.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.HookManager_MouseDoubleClick);
             }
 
+
             if (UnlockDetection) {
                 Microsoft.Win32.SystemEvents.SessionSwitch += new Microsoft.Win32.SessionSwitchEventHandler(SystemEvents_SessionSwitch);
-                StartSessionUnlockedTimer();
             }
+
+            if (UserPresenceDetection) {
+                StartMonitorPowerDetection();
+            }
+
+            StartPresencePresumedTimer();
 
             // BUGBUG: If app is started with the session unlocked (which will be most of the time), the Session Unlocked Timer
             // does not start until a user input is detected (See Activity() below).
@@ -64,6 +76,7 @@ namespace MCEControl {
             Logger.Instance.Log4.Info($"ActivityMonitor: Start");
             Logger.Instance.Log4.Info($"ActivityMonitor: Keyboard/mouse input detection: {InputDetection}");
             Logger.Instance.Log4.Info($"ActivityMonitor: Desktop unlock detection: {UnlockDetection}");
+            Logger.Instance.Log4.Info($"ActivityMonitor: Monitor Power detection: {UserPresenceDetection}");
             Logger.Instance.Log4.Info($"ActivityMonitor: Command: {ActivityCmd}");
             Logger.Instance.Log4.Info($"ActivityMonitor: Debounce Time: {DebounceTime} seconds");
 
@@ -74,21 +87,63 @@ namespace MCEControl {
             TelemetryService.Instance.TrackEvent("ActivityMonitor Start");
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        private void StartSessionUnlockedTimer() {
-            Debug.Assert(_timer == null);
-            _timer = new Timer();
-            _timer.Tick += Timer_Tick;
-            _timer.Interval = this.DebounceTime * 1000;
+        internal void HandlePowerBroadcast(IntPtr wParam, IntPtr lParam) {
+
+            int pbt = wParam.ToInt32();
+            POWERBROADCAST_SETTING pbSetting = (POWERBROADCAST_SETTING)Marshal.PtrToStructure(lParam, typeof(POWERBROADCAST_SETTING));
+
+            // https://docs.microsoft.com/en-us/windows/win32/power/power-setting-guids
+            if (pbt == PBT_POWERSETTINGCHANGE && pbSetting.PowerSetting == GUID_SESSION_USER_PRESENCE) {
+                // BUGBUG: Data is just a byte and we're lucky the MSB has our value in it
+                switch (pbSetting.Data) {
+                    case 0: // PowerUserPresent (0) - The user is providing input to the session.
+                        _PresencePresumedTimer.Enabled = true;
+                        this.Activity("PowerBroadcast: The user is providing input to the session");
+                        break;
+
+                    case 2: // PowerUserInactive(2) - The user activity timeout has elapsed with no interaction from the user.
+                        _PresencePresumedTimer.Enabled = false;
+                        Logger.Instance.Log4.Info($"ActivityMonitor: PowerBroadcast: The user activity timeout has elapsed with no interaction from the user.");
+                        break;
+
+                    default:
+                        Logger.Instance.Log4.Error($"ActivityMonitor: PowerBroadcast: Unknown GUID_SESSION_USER_PRESENCE data {pbSetting.Data}.");
+                        break;
+                }
+            }
         }
 
-        private void StopSessionUnlockTimer() {
-            Debug.Assert(_timer != null);
-            _timer.Stop();
-            _timer.Dispose();
-            _timer = null;
+        private IntPtr _hUserPresence;
+
+        private void StartMonitorPowerDetection() {
+            _hUserPresence = RegisterPowerSettingNotification(MainWindow.Instance.Handle,
+                    ref GUID_SESSION_USER_PRESENCE,
+                    DEVICE_NOTIFY_WINDOW_HANDLE);
+        }
+
+        private void StopMonitorPowerDetection() {
+            if (_hUserPresence != null) {
+                UnregisterPowerSettingNotification(_hUserPresence);
+            }
+        }
+
+        /// <summary>
+        /// Starts the timer that sends an activity message every DebounceTime seconds if
+        /// user presence is presumed (either by session lock/unlock or powersettingchange).
+        /// Does NOT enable the timer.
+        /// </summary>
+        private void StartPresencePresumedTimer() {
+            Debug.Assert(_PresencePresumedTimer == null);
+            _PresencePresumedTimer = new Timer();
+            _PresencePresumedTimer.Tick += ActivityPresumedTimerTick;
+            _PresencePresumedTimer.Interval = this.DebounceTime;
+        }
+
+        private void StopPresencePresumedTimer() {
+            Debug.Assert(_PresencePresumedTimer != null);
+            _PresencePresumedTimer.Stop();
+            _PresencePresumedTimer.Dispose();
+            _PresencePresumedTimer = null;
         }
 
         public void Stop() {
@@ -104,10 +159,18 @@ namespace MCEControl {
                 _userActivityMonitor = null;
             }
 
+            if (_PresencePresumedTimer != null) {
+                StopPresencePresumedTimer();
+            }
+
             if (UnlockDetection) {
-                StopSessionUnlockTimer();
                 Microsoft.Win32.SystemEvents.SessionSwitch -= new Microsoft.Win32.SessionSwitchEventHandler(SystemEvents_SessionSwitch);
             }
+
+            if (UserPresenceDetection) {
+                StopMonitorPowerDetection();
+            }
+
         }
 
         private void SystemEvents_SessionSwitch(object sender, Microsoft.Win32.SessionSwitchEventArgs e) {
@@ -117,22 +180,20 @@ namespace MCEControl {
                 // Desktop has been locked - Pretty good signal there's not going to be any activity
                 // Stop the timer
                 Logger.Instance.Log4.Info($"ActivityMonitor: Session Locked");
-                Debug.Assert(_timer != null);
-                _timer.Enabled = false;
-                StopSessionUnlockTimer();            }
+                Debug.Assert(_PresencePresumedTimer != null);
+                _PresencePresumedTimer.Enabled = false;
+            }
             else if (e.Reason == SessionSwitchReason.SessionUnlock) {
                 // Desktop has been Unlocked - this is a signal there's activity. 
                 // Start a repeating timer (using the same duration as debounce + 1 second) 
                 Logger.Instance.Log4.Info($"ActivityMonitor: Session Unlocked");
-                StartSessionUnlockedTimer();
-                _timer.Enabled = true;
-                Timer_Tick(null, null);
+                _PresencePresumedTimer.Enabled = true;
+                ActivityPresumedTimerTick(null, null);
             }
         }
 
-        private void Timer_Tick(object sender, EventArgs e) {
-            //Logger.Instance.Log4.Info($"ActivityMonitor: Tick");
-            this.Activity("Session is unlocked");
+        private void ActivityPresumedTimerTick(object sender, EventArgs e) {
+            this.Activity($"{DebounceTime} seconds since user activity detected; User Presence Assumed");
         }
 
         private void Activity(string source, string moreInfo = "") {
@@ -140,9 +201,9 @@ namespace MCEControl {
                 return;
             }
 
-            // Enable desktop-locked/unlocked timer (desktop is clearly unlocked!)
-            if (UnlockDetection && _timer != null) {
-                _timer.Enabled = true;
+            // Enable user presence timer (desktop is clearly unlocked!)
+            if (UnlockDetection && _PresencePresumedTimer != null) {
+                _PresencePresumedTimer.Enabled = true;
             }
 
             if (LastTime.AddSeconds(DebounceTime) <= DateTime.Now) {
@@ -204,8 +265,8 @@ namespace MCEControl {
         void Dispose(bool disposing) {
             if (!disposedValue) {
                 if (disposing) {
-                    _timer?.Dispose();
-                    _timer = null;
+                    _PresencePresumedTimer?.Dispose();
+                    _PresencePresumedTimer = null;
                 }
                 disposedValue = true;
             }

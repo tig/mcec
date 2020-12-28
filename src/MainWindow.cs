@@ -18,6 +18,7 @@ using log4net;
 using MCEControl.Dialogs;
 using Microsoft.Win32;
 using Microsoft.Win32.Security;
+using static Gma.UserActivityMonitor.NativeMethods;
 
 namespace MCEControl {
     public partial class MainWindow : Form {
@@ -102,6 +103,10 @@ namespace MCEControl {
                 // otherwise it will just minimize to the tray
                 shuttingDown = true;
             }
+
+            if (m.Msg == WM_POWERBROADCAST) {
+                UserActivityMonitorService.Instance.HandlePowerBroadcast(m.WParam, m.LParam);
+            }
             base.WndProc(ref m);
         }
 
@@ -111,10 +116,11 @@ namespace MCEControl {
                 $" - .NET: {Environment.Version.ToString()}");
 
             var hWnd = WindowsInput.Native.NativeMethods.FindWindow(null, this.Text);
+#if _DEBUG
             var sb = new StringBuilder(256);
             WindowsInput.Native.NativeMethods.GetClassName(hWnd, sb, 256);
             Logger.Instance.Log4.Info($"Window Class - {sb}");
-
+#endif
             // Load AppSettings
             Settings = AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
 
@@ -259,6 +265,7 @@ namespace MCEControl {
                 UserActivityMonitorService.Instance.ActivityCmd = Settings.ActivityMonitorCommand;
                 UserActivityMonitorService.Instance.InputDetection = Settings.InputDetection;
                 UserActivityMonitorService.Instance.UnlockDetection = Settings.UnlockDetection;
+                UserActivityMonitorService.Instance.UserPresenceDetection = Settings.UserPresenceDetection;
                 UserActivityMonitorService.Instance.LogActivity = Settings.LogUserActivity;
                 UserActivityMonitorService.Instance.Start();
             }
@@ -754,13 +761,14 @@ namespace MCEControl {
             TelemetryService.Instance.TrackEvent("ShowSettings");
 
             if (d.ShowDialog(this) == DialogResult.OK) {
+                Stop();
+
                 Settings = d.Settings;
 
                 Opacity = (double)Settings.Opacity / 100;
 
                 Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Settings.TextBoxLogThreshold];
 
-                Stop();
                 Start();
             }
             d.Dispose();
