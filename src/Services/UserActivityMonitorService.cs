@@ -76,7 +76,7 @@ namespace MCEControl {
             Logger.Instance.Log4.Info($"ActivityMonitor: Start");
             Logger.Instance.Log4.Info($"ActivityMonitor: Keyboard/mouse input detection: {InputDetection}");
             Logger.Instance.Log4.Info($"ActivityMonitor: Desktop unlock detection: {UnlockDetection}");
-            Logger.Instance.Log4.Info($"ActivityMonitor: Monitor Power detection: {UserPresenceDetection}");
+            Logger.Instance.Log4.Info($"ActivityMonitor: Power API User Presence Detection: {UserPresenceDetection}");
             Logger.Instance.Log4.Info($"ActivityMonitor: Command: {ActivityCmd}");
             Logger.Instance.Log4.Info($"ActivityMonitor: Debounce Time: {DebounceTime} seconds");
 
@@ -89,41 +89,108 @@ namespace MCEControl {
 
         internal void HandlePowerBroadcast(IntPtr wParam, IntPtr lParam) {
 
-            int pbt = wParam.ToInt32();
-            POWERBROADCAST_SETTING pbSetting = (POWERBROADCAST_SETTING)Marshal.PtrToStructure(lParam, typeof(POWERBROADCAST_SETTING));
+            var pbt = wParam.ToInt32();
 
             // https://docs.microsoft.com/en-us/windows/win32/power/power-setting-guids
-            if (pbt == PBT_POWERSETTINGCHANGE && pbSetting.PowerSetting == GUID_SESSION_USER_PRESENCE) {
-                // BUGBUG: Data is just a byte and we're lucky the MSB has our value in it
-                switch (pbSetting.Data) {
-                    case 0: // PowerUserPresent (0) - The user is providing input to the session.
-                        _PresencePresumedTimer.Enabled = true;
-                        this.Activity("PowerBroadcast: The user is providing input to the session");
-                        break;
+            switch (pbt) {
+                case PBT_POWERSETTINGCHANGE:
+                    POWERBROADCAST_SETTING pbSetting = (POWERBROADCAST_SETTING)Marshal.PtrToStructure(lParam, typeof(POWERBROADCAST_SETTING));
+                    if (pbSetting.PowerSetting == GUID_SESSION_USER_PRESENCE) {
+                        // BUGBUG: Data is just a byte and we're lucky the MSB has our value in it
+                        switch (pbSetting.Data) {
+                            case 0: // PowerUserPresent (0) - The user is providing input to the session.
+                                _PresencePresumedTimer.Enabled = true;
+                                this.Activity("PowerBroadcast: The user is providing input to the session");
+                                break;
 
-                    case 2: // PowerUserInactive(2) - The user activity timeout has elapsed with no interaction from the user.
-                        _PresencePresumedTimer.Enabled = false;
-                        Logger.Instance.Log4.Info($"ActivityMonitor: PowerBroadcast: The user activity timeout has elapsed with no interaction from the user.");
-                        break;
 
-                    default:
-                        Logger.Instance.Log4.Error($"ActivityMonitor: PowerBroadcast: Unknown GUID_SESSION_USER_PRESENCE data {pbSetting.Data}.");
-                        break;
-                }
+                            case 2: // PowerUserInactive(2) - The user activity timeout has elapsed with no interaction from the user.
+                                _PresencePresumedTimer.Enabled = false;
+                                Logger.Instance.Log4.Info($"ActivityMonitor: PowerBroadcast: The user activity timeout has elapsed with no interaction from the user.");
+                                break;
+
+                            default:
+                                Logger.Instance.Log4.Error($"ActivityMonitor: PowerBroadcast: Unknown GUID_SESSION_USER_PRESENCE data {pbSetting.Data}.");
+                                break;
+                        }
+                    }
+                    else if (pbSetting.PowerSetting == GUID_SYSTEM_AWAYMODE) {
+                        // BUGBUG: Data is just a byte and we're lucky the MSB has our value in it
+                        switch (pbSetting.Data) {
+                            case 0: // 0x0 - The computer is exiting away mode.
+                                this.Activity("PowerBroadcast: The computer is exiting away mode");
+                                break;
+
+
+                            case 1: // 0x1 - The computer is entering away mode.
+                                _PresencePresumedTimer.Enabled = false;
+                                Logger.Instance.Log4.Info($"ActivityMonitor: PowerBroadcast: The computer is entering away mode.");
+                                break;
+
+                            default:
+                                Logger.Instance.Log4.Error($"ActivityMonitor: PowerBroadcast: Unknown GUID_SYSTEM_AWAYMODE data {pbSetting.Data}.");
+                                break;
+                        }
+                    }
+                    else if (pbSetting.PowerSetting == GUID_MONITOR_POWER_ON) {
+                        // BUGBUG: Data is just a byte and we're lucky the MSB has our value in it
+                        switch (pbSetting.Data) {
+                            case 0: // 0x0 - The monitor is off.
+                                _PresencePresumedTimer.Enabled = false;
+                                this.Activity("PowerBroadcast: The monitor is off");
+                                break;
+
+
+                            case 1: // 0x1 - The monitor is on.
+                                Logger.Instance.Log4.Info($"ActivityMonitor: PowerBroadcast: The monitor is on");
+                                break;
+
+                            default:
+                                Logger.Instance.Log4.Error($"ActivityMonitor: PowerBroadcast: Unknown GUID_MONITOR_POWER_ON data {pbSetting.Data}.");
+                                break;
+                        }
+                    }
+                    break;
+
+                default:
+                    Logger.Instance.Log4.Error($"ActivityMonitor: PowerBroadcast: Unknown PBT {pbt}.");
+                    break;
             }
+
         }
 
         private IntPtr _hUserPresence;
+        private IntPtr _hAwayMode;
+        private IntPtr _hMonitorPower;
 
         private void StartMonitorPowerDetection() {
             _hUserPresence = RegisterPowerSettingNotification(MainWindow.Instance.Handle,
                     ref GUID_SESSION_USER_PRESENCE,
+                    DEVICE_NOTIFY_WINDOW_HANDLE);
+
+            _hAwayMode = RegisterPowerSettingNotification(MainWindow.Instance.Handle,
+                    ref GUID_SYSTEM_AWAYMODE,
+                    DEVICE_NOTIFY_WINDOW_HANDLE);
+
+            _hMonitorPower = RegisterPowerSettingNotification(MainWindow.Instance.Handle,
+                    ref GUID_MONITOR_POWER_ON,
                     DEVICE_NOTIFY_WINDOW_HANDLE);
         }
 
         private void StopMonitorPowerDetection() {
             if (_hUserPresence != null) {
                 UnregisterPowerSettingNotification(_hUserPresence);
+                _hUserPresence = (IntPtr)null;
+            }
+
+            if (_hAwayMode != null) {
+                UnregisterPowerSettingNotification(_hAwayMode);
+                _hAwayMode = (IntPtr)null;
+            }
+
+            if (_hMonitorPower != null) {
+                UnregisterPowerSettingNotification(_hMonitorPower);
+                _hMonitorPower = (IntPtr)null;
             }
         }
 

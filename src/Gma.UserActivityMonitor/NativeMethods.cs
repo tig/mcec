@@ -64,6 +64,12 @@ namespace Gma.UserActivityMonitor {
         // {3C0F4548-C03F-4c4d-B9F2-237EDE686376}
         public static Guid GUID_SESSION_USER_PRESENCE = new Guid(0x3c0f4548, 0xc03f, 0x4c4d, 0xb9, 0xf2, 0x23, 0x7e, 0xde, 0x68, 0x63, 0x76);
 
+        //
+        // Specifies if the system is entering or exiting 'away mode'.
+        // 98A7F580-01F7-48AA-9C0F-44352C29E5C0
+        //
+        public static Guid GUID_SYSTEM_AWAYMODE = new Guid(0x98A7F580, 0x01F7, 0x48AA, 0x9C, 0x0F, 0x44, 0x35, 0x2C, 0x29, 0xE5, 0xC0);
+
         // Win32 decls and defs
         //
         public const int PBT_APMQUERYSUSPEND = 0x0000;
