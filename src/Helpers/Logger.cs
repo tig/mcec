@@ -121,7 +121,7 @@ namespace MCEControl {
                 AppendToFile = true,
                 Layout = patternLayout,
                 MaxSizeRollBackups = 5,
-                MaximumFileSize = "100KB",
+                MaximumFileSize = "1MB",
                 RollingStyle = RollingFileAppender.RollingMode.Size,
                 StaticLogFileName = true,
                 File = LogFile

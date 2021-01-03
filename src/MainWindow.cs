@@ -262,10 +262,10 @@ namespace MCEControl {
 
             if (Settings.ActivityMonitorEnabled) {
                 UserActivityMonitorService.Instance.DebounceTime = Settings.ActivityMonitorDebounceTime;
-                UserActivityMonitorService.Instance.ActivityCmd = Settings.ActivityMonitorCommand;
+                UserActivityMonitorService.Instance.ActivityMsg = Settings.ActivityMonitorCommand;
                 UserActivityMonitorService.Instance.InputDetection = Settings.InputDetection;
                 UserActivityMonitorService.Instance.UnlockDetection = Settings.UnlockDetection;
-                UserActivityMonitorService.Instance.UserPresenceDetection = Settings.UserPresenceDetection;
+                UserActivityMonitorService.Instance.PowerBroadcastDetection = Settings.UserPresenceDetection;
                 UserActivityMonitorService.Instance.LogActivity = Settings.LogUserActivity;
                 UserActivityMonitorService.Instance.Start();
             }

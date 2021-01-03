@@ -152,6 +152,7 @@ namespace MCEControl {
             this._tabPageActivityMonitor = new System.Windows.Forms.TabPage();
             this._checkBoxEnableActivityMonitor = new System.Windows.Forms.CheckBox();
             this._groupBoxActivityMonitor = new System.Windows.Forms.GroupBox();
+            this._presenceDetection = new System.Windows.Forms.CheckBox();
             this._unlockDetection = new System.Windows.Forms.CheckBox();
             this._inputDetection = new System.Windows.Forms.CheckBox();
             this._labelActivityDebounceTime = new System.Windows.Forms.Label();
@@ -161,7 +162,6 @@ namespace MCEControl {
             this._toolTipClient = new System.Windows.Forms.ToolTip(this.components);
             this._toolTipServer = new System.Windows.Forms.ToolTip(this.components);
             this._eventLog = new System.Diagnostics.EventLog();
-            this._presenceDetection = new System.Windows.Forms.CheckBox();
             this._tabcontrol.SuspendLayout();
             this._tabGeneral.SuspendLayout();
             this._tabClient.SuspendLayout();
@@ -805,14 +805,25 @@ namespace MCEControl {
             this._groupBoxActivityMonitor.TabIndex = 0;
             this._groupBoxActivityMonitor.TabStop = false;
             // 
+            // _presenceDetection
+            // 
+            this._presenceDetection.AutoSize = true;
+            this._presenceDetection.Location = new System.Drawing.Point(17, 76);
+            this._presenceDetection.Name = "_presenceDetection";
+            this._presenceDetection.Size = new System.Drawing.Size(368, 17);
+            this._presenceDetection.TabIndex = 3;
+            this._presenceDetection.Text = "Don\'t send message if Power Broadcast API indicates user is not present";
+            this._presenceDetection.UseVisualStyleBackColor = true;
+            this._presenceDetection.CheckedChanged += new System.EventHandler(this.presenceDetectionRadio_CheckedChanged);
+            // 
             // _unlockDetection
             // 
             this._unlockDetection.AutoSize = true;
             this._unlockDetection.Location = new System.Drawing.Point(17, 53);
             this._unlockDetection.Name = "_unlockDetection";
-            this._unlockDetection.Size = new System.Drawing.Size(212, 17);
+            this._unlockDetection.Size = new System.Drawing.Size(216, 17);
             this._unlockDetection.TabIndex = 1;
-            this._unlockDetection.Text = "Detect activity via desktop lock/unlock";
+            this._unlockDetection.Text = "Don\'t send message if desktop is locked";
             this._unlockDetection.UseVisualStyleBackColor = true;
             this._unlockDetection.CheckedChanged += new System.EventHandler(this.unlockDetectionRadio_CheckedChanged);
             // 
@@ -821,9 +832,9 @@ namespace MCEControl {
             this._inputDetection.AutoSize = true;
             this._inputDetection.Location = new System.Drawing.Point(17, 30);
             this._inputDetection.Name = "_inputDetection";
-            this._inputDetection.Size = new System.Drawing.Size(239, 17);
+            this._inputDetection.Size = new System.Drawing.Size(289, 17);
             this._inputDetection.TabIndex = 0;
-            this._inputDetection.Text = "Detect activity via keyboard and mouse input";
+            this._inputDetection.Text = "Send message when keyboard/mouse input is detected";
             this._inputDetection.UseVisualStyleBackColor = true;
             this._inputDetection.CheckedChanged += new System.EventHandler(this.inputDetectionRadio_CheckedChanged);
             // 
@@ -833,9 +844,9 @@ namespace MCEControl {
             this._labelActivityDebounceTime.Location = new System.Drawing.Point(14, 142);
             this._labelActivityDebounceTime.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this._labelActivityDebounceTime.Name = "_labelActivityDebounceTime";
-            this._labelActivityDebounceTime.Size = new System.Drawing.Size(283, 13);
+            this._labelActivityDebounceTime.Size = new System.Drawing.Size(274, 13);
             this._labelActivityDebounceTime.TabIndex = 4;
-            this._labelActivityDebounceTime.Text = "Send activity command no more frequently than (seconds):";
+            this._labelActivityDebounceTime.Text = "Send activity mesage no more frequently than (seconds):";
             // 
             // _textBoxDebounceTime
             // 
@@ -861,9 +872,9 @@ namespace MCEControl {
             this._labelActivityCommand.Location = new System.Drawing.Point(14, 113);
             this._labelActivityCommand.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this._labelActivityCommand.Name = "_labelActivityCommand";
-            this._labelActivityCommand.Size = new System.Drawing.Size(95, 13);
+            this._labelActivityCommand.Size = new System.Drawing.Size(91, 13);
             this._labelActivityCommand.TabIndex = 2;
-            this._labelActivityCommand.Text = "Command to send:";
+            this._labelActivityCommand.Text = "Message to send:";
             // 
             // _toolTipClient
             // 
@@ -876,17 +887,6 @@ namespace MCEControl {
             // _eventLog
             // 
             this._eventLog.SynchronizingObject = this;
-            // 
-            // _presenceDetection
-            // 
-            this._presenceDetection.AutoSize = true;
-            this._presenceDetection.Location = new System.Drawing.Point(17, 76);
-            this._presenceDetection.Name = "_presenceDetection";
-            this._presenceDetection.Size = new System.Drawing.Size(228, 17);
-            this._presenceDetection.TabIndex = 3;
-            this._presenceDetection.Text = "Detect activity via user presence detection";
-            this._presenceDetection.UseVisualStyleBackColor = true;
-            this._presenceDetection.CheckedChanged += new System.EventHandler(this.presenceDetectionRadio_CheckedChanged);
             // 
             // SettingsDialog
             // 
