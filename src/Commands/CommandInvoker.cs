@@ -76,6 +76,14 @@ namespace MCEControl {
                             cmd.UserDefined = true;
                         }
 
+                        if (cmd.Enabled) {
+                            if (cmd.UserDefined) {
+                                Logger.Instance.Log4.Debug($"{commands.GetType().Name}: User defined command enabled: '****'");
+                            }
+                            else {
+                                Logger.Instance.Log4.Debug($"{commands.GetType().Name}: Builtin command enabled: '{cmd}'");
+                            }
+                        }
                         commands.Add(cmd);
                     }
                     else {

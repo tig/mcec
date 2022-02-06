@@ -39,11 +39,16 @@ namespace MCEControl {
             // Serialzable, must have constructor
         }
 
+        public ShutdownCommand(String type, int timeout) { 
+            this.type = type;
+            this.TimeOut = timeout;
+        }
+
         public override string ToString() {
             return $"Cmd=\"{Cmd}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
         }
 
-        public override ICommand Clone(Reply reply) => base.Clone(reply, new ShutdownCommand() { Type = this.Type });
+        public override ICommand Clone(Reply reply) => base.Clone(reply, new ShutdownCommand(Type, TimeOut));
 
         // ICommand:Execute
         public override bool Execute() {
@@ -107,10 +112,11 @@ namespace MCEControl {
 
         public static void Shutdown(string shutdownArgs) {
             Logger.Instance.Log4.Debug($"ShutdownCommand: Invoking 'shutdown.exe {shutdownArgs}'");
+
             var proc = System.Diagnostics.Process.Start("shutdown", shutdownArgs);
-            proc.WaitForExit(1000);
+            proc.WaitForExit(1000 * 2);
             if (proc.ExitCode != 0x0) {
-                Logger.Instance.Log4.Error($"ShutdownCommand: 'shutdown.exe {shutdownArgs}' failed ({proc.ExitCode:X}). Forcing Win32Exception...");
+                Logger.Instance.Log4.Error($"ShutdownCommand: 'shutdown.exe {shutdownArgs}' failed ({proc.ExitCode:X})");
                 throw new System.ComponentModel.Win32Exception(proc.ExitCode);
             }
         }
