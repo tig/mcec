@@ -54,6 +54,7 @@ namespace MCEControl {
 
         private async Task GetLatestStableVersionAsync() {
             ReleasePageUri = new Uri("https://github.com/tig/mcec/releases");
+            ErrorMessage = null;
             Logger.Instance.Log4.Debug("Checking for new release...");
             using (var client = new WebClient()) {
                 try {
@@ -70,9 +71,9 @@ namespace MCEControl {
                     //Logger.Instance.Log4.Debug($"Releases {JsonSerializer.Serialize(releases, options: new JsonSerializerOptions() { WriteIndented = true })}");
                     if (releases.Length > 0) {
 #if DEBUG
-                        Logger.Instance.Log4.Info($"The latest PRE-RELEASE is tagged at {releases[0].TagName} and is named {releases[0].Name}. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
+                        Logger.Instance.Log4.Info($"The latest PRE-RELEASE is tagged at {releases[0].TagName} and is named '{releases[0].Name}' Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
 #else
-                        Logger.Instance.Log4.Debug($"The latest release is tagged at {releases[0].TagName} and is named {releases[0].Name}. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
+                        Logger.Instance.Log4.Debug($"The latest release is tagged at {releases[0].TagName} and is named '{releases[0].Name}'. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
 #endif
 
                         LatestStableVersion = new Version(releases[0].TagName.Replace('v', ' '));
@@ -80,12 +81,12 @@ namespace MCEControl {
                         DownloadUri = new Uri(releases[0].Assets[0].BrowserDownloadUrl);
                     }
                     else {
-                        ErrorMessage = "No release found.";
+                        ErrorMessage = "No release found";
                     }
                 }
                 catch (Exception e) {
                     ErrorMessage = $"({ReleasePageUri}) {e.Message}";
-                    Logger.Instance.Log4.Debug(ErrorMessage);
+                    Logger.Instance.Log4.Info(ErrorMessage);
                     TelemetryService.Instance.TrackException(e);
                 }
             }
@@ -143,7 +144,7 @@ namespace MCEControl {
                 //p.WaitForInputIdle(1000);
             }
             catch (Win32Exception we) {
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: {_tempFilename} failed to run with error: {we.Message}");
+                Logger.Instance.Log4.Error($"{this.GetType().Name}: {_tempFilename} failed to run with error: {we.Message}");
             }
             MainWindow.Instance.BeginInvoke((Action)(() => { MainWindow.Instance.ShutDown(); }));
         }

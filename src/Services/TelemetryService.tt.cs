@@ -4,6 +4,6 @@
 // 
 namespace MCEControl {
     public partial class TelemetryService {
-        public const string Key = "26132385-0150-4dd1-83da-ef861e0aee67";
-    }
+        public const string Key = "";
+   }
 }

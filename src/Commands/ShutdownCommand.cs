@@ -94,7 +94,7 @@ namespace MCEControl {
                         break;
 
                     default:
-                        Logger.Instance.Log4.Info($"{this.GetType().Name}: ShutdownCommands: Invalid command: {ToString()}");
+                        Logger.Instance.Log4.Info($"{this.GetType().Name}: Invalid command: {ToString()}");
                         break;
                 }
             }
@@ -106,9 +106,11 @@ namespace MCEControl {
         }
 
         public static void Shutdown(string shutdownArgs) {
+            Logger.Instance.Log4.Debug($"ShutdownCommand: Invoking 'shutdown.exe {shutdownArgs}'");
             var proc = System.Diagnostics.Process.Start("shutdown", shutdownArgs);
             proc.WaitForExit(1000);
             if (proc.ExitCode != 0x0) {
+                Logger.Instance.Log4.Error($"ShutdownCommand: 'shutdown.exe {shutdownArgs}' failed ({proc.ExitCode:X}). Forcing Win32Exception...");
                 throw new System.ComponentModel.Win32Exception(proc.ExitCode);
             }
         }

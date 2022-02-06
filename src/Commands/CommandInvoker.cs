@@ -70,12 +70,17 @@ namespace MCEControl {
             serializedCmds = SerializedCommands.LoadCommands(userCommandsFile, currentVersion);
             if (serializedCmds != null && serializedCmds.commandArray != null) {
                 foreach (var cmd in serializedCmds.commandArray) {
-                    // TELEMETRY: Mark user defined commands as such so they don't get collected
-                    if (!commands.ContainsKey(cmd.Cmd)) {
-                        cmd.UserDefined = true;
-                    }
+                    if (!string.IsNullOrWhiteSpace(cmd.Cmd)) {
+                        // TELEMETRY: Mark user defined commands as such so they don't get collected
+                        if (!commands.ContainsKey(cmd.Cmd)) {
+                            cmd.UserDefined = true;
+                        }
 
-                    commands.Add(cmd);
+                        commands.Add(cmd);
+                    }
+                    else {
+                        Logger.Instance.Log4.Error($"{commands.GetType().Name}: Cmd name can't be blank or whitespace ({cmd})");
+                    }
                 }
                 Logger.Instance.Log4.Info($"{commands.GetType().Name}: {serializedCmds.Count} commands loaded");
             }
@@ -115,7 +120,7 @@ namespace MCEControl {
                 }
             }
             else {
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: Error parsing command: {cmd.ToString()}");
+                Logger.Instance.Log4.Error($"{this.GetType().Name}: Error parsing command: {cmd}");
             }
         }
 

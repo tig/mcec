@@ -42,27 +42,27 @@ namespace MCEControl {
 
             // Add event handlers.
             watcher.Changed += new FileSystemEventHandler(OnChanged);
-            watcher.Created += new FileSystemEventHandler(OnChanged);
-            watcher.Deleted += new FileSystemEventHandler(OnChanged);
-            watcher.Renamed += new RenamedEventHandler(OnRenamed);
+            //watcher.Created += new FileSystemEventHandler(OnChanged);
+            //watcher.Deleted += new FileSystemEventHandler(OnChanged);
+            //watcher.Renamed += new RenamedEventHandler(OnRenamed);
 
             // Begin watching.
             watcher.EnableRaisingEvents = true;
-            Logger.Instance.Log4.Info($"CommandInvoker: Watching {watcher.Path}\\{watcher.Filter} for changes.");
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: Watching {watcher.Path}\\{watcher.Filter} for changes");
             return watcher;
 
         }
 
         private void OnChanged(object source, FileSystemEventArgs e) {
-            Logger.Instance.Log4.Info($"CommandInvoker:{e.FullPath} changed");
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: {e.FullPath} changed");
             TelemetryService.Instance.TrackEvent("Commands file change detected");
             OnChangedEvent();
         }
 
-        private void OnRenamed(object source, RenamedEventArgs e) {
-            // Specify what is done when a file is renamed.
-            Logger.Instance.Log4.Info($"CommandInvoker:{e.OldFullPath} renamed to {e.FullPath}");
-        }
+        //private void OnRenamed(object source, RenamedEventArgs e) {
+        //    // Specify what is done when a file is renamed.
+        //    Logger.Instance.Log4.Info($"CommandInvoker:{e.OldFullPath} renamed to {e.FullPath}");
+        //}
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
@@ -71,10 +71,8 @@ namespace MCEControl {
             if (!disposedValue) {
                 if (disposing) {
                     if (fileWatcher != null) {
-                        fileWatcher.Changed -= OnChanged;
-                        fileWatcher.Created -= OnChanged;
-                        fileWatcher.Deleted -= OnChanged;
-                        fileWatcher.Renamed -= OnRenamed;
+                        Stop();
+                        fileWatcher.Dispose();
                         fileWatcher = null;
                     }
                 }
@@ -96,7 +94,12 @@ namespace MCEControl {
         }
 
         internal void Stop() {
-            throw new NotImplementedException();
+            fileWatcher.EnableRaisingEvents = false;
+            fileWatcher.Changed -= OnChanged;
+            //fileWatcher.Created -= OnChanged;
+            //fileWatcher.Deleted -= OnChanged;
+            //fileWatcher.Renamed -= OnRenamed;
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: Stopped watching {fileWatcher.Path}\\{fileWatcher.Filter} for changes");
         }
         #endregion
     }

@@ -88,7 +88,7 @@ namespace MCEControl {
                 }
             }
             catch (Exception e) {
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: Failed for {ClassName} with error: {e.Message}");
+                Logger.Instance.Log4.Error($"{this.GetType().Name}: Failed for {ClassName} with error: {e.Message}");
                 return true;
             }
             return false;

@@ -208,7 +208,7 @@ namespace MCEControl {
                                     "DisableInternalCommands", false), new NumberFormatInfo());
             }
             catch (UnauthorizedAccessException e) {
-                Logger.Instance.Log4.Info($"Settings: Settings file could not be loaded. {e.Message}");
+                Logger.Instance.Log4.Error($"Settings: Settings file could not be loaded. {e.Message}");
                 MessageBox.Show($"Settings file could not be loaded. {e.Message}");
             }
             finally {

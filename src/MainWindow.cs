@@ -173,13 +173,13 @@ namespace MCEControl {
                 BeginInvoke((Action)(() => { UpdateService_GotLatestVersion(sender, version); }));
             }
             else {
-                if (version == null && !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
+                if (version == null || !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
                     Logger.Instance.Log4.Info(
-                        $"Could not access tig.github.io/mcec to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
+                        $"Could not access {UpdateService.Instance.ReleasePageUri} to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
                 }
                 else if (UpdateService.Instance.CompareVersions() < 0) {
                     installLatestVersionMenuItem.Enabled = true;
-                    Logger.Instance.Log4.Info($"A newer version of MCE Controller ({version}) is available at");
+                    Logger.Instance.Log4.Info($"A newer version is available at");
                     Logger.Instance.Log4.Info($"   {UpdateService.Instance.ReleasePageUri}");
 
                     if (!Settings.DisableUpdatePopup)
@@ -187,10 +187,10 @@ namespace MCEControl {
                 }
                 else if (UpdateService.Instance.CompareVersions() > 0) {
                     Logger.Instance.Log4.Info(
-                        $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version})");
+                        $"You are are running a more recent version than the latest published version ({UpdateService.Instance.ReleasePageUri})");
                 }
                 else {
-                    Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller");
+                    Logger.Instance.Log4.Info("You are running the most recent version");
                 }
             }
         }
@@ -239,7 +239,8 @@ namespace MCEControl {
                 watcher.Dispose();
                 watcher = null;
 
-                Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
+                // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
+                //Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
                 TelemetryService.Instance.Stop();
             }
         }
@@ -351,7 +352,7 @@ namespace MCEControl {
                     Settings.SerialServerHandshake);
             }
             else {
-                Logger.Instance.Log4.Info("Serial: Attempt to StartSerialServer() while an instance already exists!");
+                Logger.Instance.Log4.Error("Serial: Attempt to StartSerialServer() while an instance already exists!");
             }
         }
 
@@ -446,7 +447,7 @@ namespace MCEControl {
                     Invoker.ExecuteNext();
                 }
                 catch (Exception e) {
-                    Logger.Instance.Log4.Info($"Command: ({cmd}) error: {e}");
+                    Logger.Instance.Log4.Error($"Command: ({cmd}) error: {e}");
                 }
             }
         }
@@ -701,7 +702,7 @@ namespace MCEControl {
 
                 case ServiceNotification.Error:
                     Logger.Instance.Log4.Debug($"ClientSocketNotificationHandler - ServiceStatus.Error: {(string)msg}");
-                    Logger.Instance.Log4.Info($"Client: Error; {(string)msg}");
+                    Logger.Instance.Log4.Error($"Client: Error; {(string)msg}");
                     RestartClient();
                     return;
 

@@ -81,7 +81,7 @@ namespace MCEControl {
                         }
                     }
                     catch (Exception e) {
-                        Logger.Instance.Log4.Info($"{this.GetType().Name}: ({Cmd}:{Args}) <{match.Groups[1].Value} {cmd.ToString()}/> - {e.Message}");
+                        Logger.Instance.Log4.Error($"{this.GetType().Name}: ({Cmd}:{Args}) <{match.Groups[1].Value} {cmd.ToString()}/> - {e.Message}");
                         return false;
                     }
                     break;

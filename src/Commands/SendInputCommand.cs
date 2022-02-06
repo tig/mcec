@@ -262,7 +262,7 @@ namespace MCEControl {
                 }
             }
             catch (Exception e) {
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: failed. {e.Message}");
+                Logger.Instance.Log4.Error($"{this.GetType().Name}: failed. {e.Message}");
                 return false;
             }
             return true;

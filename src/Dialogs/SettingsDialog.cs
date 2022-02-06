@@ -268,9 +268,9 @@ namespace MCEControl {
             this._labelLogLevel.AutoSize = true;
             this._labelLogLevel.Location = new System.Drawing.Point(13, 35);
             this._labelLogLevel.Name = "_labelLogLevel";
-            this._labelLogLevel.Size = new System.Drawing.Size(78, 13);
+            this._labelLogLevel.Size = new System.Drawing.Size(277, 13);
             this._labelLogLevel.TabIndex = 1;
-            this._labelLogLevel.Text = "Log Threshold:";
+            this._labelLogLevel.Text = "Log Threshold (display only; log files always contain ALL):";
             // 
             // _checkBoxHideOnStartup
             // 
@@ -311,7 +311,7 @@ namespace MCEControl {
             this._checkBoxEnableClient.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableClient.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableClient.Name = "_checkBoxEnableClient";
-            this._checkBoxEnableClient.Size = new System.Drawing.Size(88, 17);
+            this._checkBoxEnableClient.Size = new System.Drawing.Size(95, 21);
             this._checkBoxEnableClient.TabIndex = 1;
             this._checkBoxEnableClient.Text = "Enable &Client";
             this._toolTipClient.SetToolTip(this._checkBoxEnableClient, "Starts a TCP/IP client connection to the specified address:port. Commands will be" +
@@ -408,7 +408,7 @@ namespace MCEControl {
             this._checkBoxEnableServer.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableServer.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableServer.Name = "_checkBoxEnableServer";
-            this._checkBoxEnableServer.Size = new System.Drawing.Size(93, 17);
+            this._checkBoxEnableServer.Size = new System.Drawing.Size(100, 21);
             this._checkBoxEnableServer.TabIndex = 0;
             this._checkBoxEnableServer.Text = "Enable &Server";
             this._toolTipServer.SetToolTip(this._checkBoxEnableServer, "Enables the TCP/IP server. It will listen on the specified port for commands.");
@@ -570,7 +570,7 @@ namespace MCEControl {
             this._checkBoxEnableSerialServer.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableSerialServer.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableSerialServer.Name = "_checkBoxEnableSerialServer";
-            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(122, 17);
+            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(129, 21);
             this._checkBoxEnableSerialServer.TabIndex = 1;
             this._checkBoxEnableSerialServer.Text = "Enable Serial Server";
             this._checkBoxEnableSerialServer.UseVisualStyleBackColor = true;
@@ -782,7 +782,7 @@ namespace MCEControl {
             this._checkBoxEnableActivityMonitor.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableActivityMonitor.Name = "_checkBoxEnableActivityMonitor";
-            this._checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(159, 17);
+            this._checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(166, 21);
             this._checkBoxEnableActivityMonitor.TabIndex = 0;
             this._checkBoxEnableActivityMonitor.Text = "Enable &User Activity Monitor";
             this._checkBoxEnableActivityMonitor.UseVisualStyleBackColor = true;
@@ -810,7 +810,7 @@ namespace MCEControl {
             this._presenceDetection.AutoSize = true;
             this._presenceDetection.Location = new System.Drawing.Point(17, 76);
             this._presenceDetection.Name = "_presenceDetection";
-            this._presenceDetection.Size = new System.Drawing.Size(368, 17);
+            this._presenceDetection.Size = new System.Drawing.Size(375, 21);
             this._presenceDetection.TabIndex = 3;
             this._presenceDetection.Text = "Don\'t send message if Power Broadcast API indicates user is not present";
             this._presenceDetection.UseVisualStyleBackColor = true;
@@ -821,7 +821,7 @@ namespace MCEControl {
             this._unlockDetection.AutoSize = true;
             this._unlockDetection.Location = new System.Drawing.Point(17, 53);
             this._unlockDetection.Name = "_unlockDetection";
-            this._unlockDetection.Size = new System.Drawing.Size(216, 17);
+            this._unlockDetection.Size = new System.Drawing.Size(223, 21);
             this._unlockDetection.TabIndex = 1;
             this._unlockDetection.Text = "Don\'t send message if desktop is locked";
             this._unlockDetection.UseVisualStyleBackColor = true;
@@ -832,7 +832,7 @@ namespace MCEControl {
             this._inputDetection.AutoSize = true;
             this._inputDetection.Location = new System.Drawing.Point(17, 30);
             this._inputDetection.Name = "_inputDetection";
-            this._inputDetection.Size = new System.Drawing.Size(289, 17);
+            this._inputDetection.Size = new System.Drawing.Size(296, 21);
             this._inputDetection.TabIndex = 0;
             this._inputDetection.Text = "Send message when keyboard/mouse input is detected";
             this._inputDetection.UseVisualStyleBackColor = true;
@@ -1012,9 +1012,6 @@ namespace MCEControl {
             }
 
             _textBoxPacing.Text = $"{Settings.CommandPacing}";
-
-            //comboBoxLogThresholds.SelectedIndex = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"].Value;
-
             _buttonOk.Enabled = false;
         }
 
@@ -1254,6 +1251,8 @@ namespace MCEControl {
 
         private void comboBoxLogThresholds_SelectedIndexChanged(object sender, EventArgs e) {
             Settings.TextBoxLogThreshold = _comboBoxLogThresholds.SelectedItem.ToString();
+            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Settings.TextBoxLogThreshold];
+
             SettingsChanged();
         }
 
