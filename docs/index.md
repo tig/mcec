@@ -4,7 +4,7 @@
 
 **MCE Controller** provides robust remote control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCE Controller** to control a Windows PC.
 
-Almost any action a user can perform on Windows can be invoked remotely from another device on the network. This includes key presses (e.g. Alt-Tab, or Win-S), mouse movements, and Window management actions (e.g. maximize window or set a window to the foreground)
+Almost any action a user can perform on Windows can be invoked remotely from another device on the network. This includes key presses (e.g. Alt-Tab or Win-S), mouse movements, and Window management actions (e.g. maximize window or set a window to the foreground)
 
 **MCE Controller** works great with any remote control system that supports TCP/IP or RS-232 connections. Examples include [**Control4**](https://www.control4.com/), [**iRule**](http://www.iruleathome.com/), [**Crestron**](http://www.crestron.com/), and [**Premise Home Control**](http://cocoontech.com/forums/forum/51-premise-home-control/)
 
@@ -43,37 +43,9 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
   * Re-engineered Client & Server implementation is more robust.
   * New/enhanced built-in test mode that makes it easy to test commands. The new Commands Window shows all available commands.
   * Significantly updated UI throughout. Menus and dialog boxes reorganized based on user feedback. Full Windows 10 system font and dpi scaling support.
-  * Command extension has been enhanced. User defined MCEControl.commands is now automatically generated.
+  * Command extension has been enhanced. User-defined MCEControl.commands is now automatically generated.
   * StartProcess commands are now more robust and flexible.
   * Settings, Command files, and log files are stored in %appdata%.
   * Improved logging.
 * Version 2.0.4 (October 11, 2019) - Fixed bug where Server was not sending commands back to client.
-* Version 2.1.0 (October 25, 2019) - Lots of updates
-  * Commands defined in `MCECommands.command` now *really* override any built-ins.
-  * Reverted the set of built-in commands to include tons of defaults.
-  * Key and Attribute names (e.g. `<sendinput/>` or `Shift=`) in MCECommands.commands` are no longer case senstive.
-  * Default pacing for commands is settable. See `General` settings tab. Default is 0. Specify in ms.
-  * New `Pause` Command enables putting delays between commands
-  * Shutdown commands are expanded and more reliable. Almost all funcdtions supported by the Windows `shutdown.exe` command are supported.
-  * Command window now supports sending multiple lines (scripts)
-  * All `<Commands/>` in `MCEControl.commands` can now be nested. This makes it easy to create compound commands (scripts).
-  * Added `Chars` Command. Useful in nested commands.
-* Version 2.2.0 (March 24, 2020) -
-  * Activity Monitor will now send activity messages every `Debounce Time` seconds whenever the Windows desktop/session is unlocked.
-  * Added telemetry and modified Setup to support opt-in/out.
-  * Update/version checker now checks against Github Releases in the `tig/mcec` respository.
-* Version 2.2.1 (March 28, 2020) -
-  * Commands Window now has ability to enable/disable commands in addition to test them.
-  * Commands are now disabled by default (set Enabled property to true to enable). This was done to reduce the surface area MCE Controller exposes by default.
-  * .commands file is now generated via code instead of a resource.
-  * .commands file is saved by app when it exits. Previously MCE Controller only _read_ the file.
-  * Legacy command files will be converted when encountered. A message box will pop explaining. ALL commands which were defined in the file when read will be set to Enabled=true. Highly recommended users review all commands and disable commands that are not explicitly used.
-* Version 2.2.2 (March 29, 2020) -
-  * Added Activity Monitor settings to enable/disable  mouse/keyboard input either/or desktop unlock.
-  * FIXED: Activity Monitor command was not actually persisting in settings.
-  * Minor bug fixes & code cleanup
-* Version 2.2.3 (March 29, 2020) - Added ability to download and install new versions directly from within app.
-* Version 2.2.4 (April 18, 2020) - Fixed #12 - shiftup/down does not seem to be working correctly.
-* Version 2.2.5 (April 19, 2020) - Fixed `<SetForeGroundWindow/>` to work even if an app has multiple processes running. Fixed related documentation. Added example to .commands.
-* Version 2.2.6 (April 22, 2020) - Implemented Mouse Middle Button support (mouse:mbc, mbd, ...). Documentation was previously incorrect regarding mouse:xbm.
-* Version 2.2.7 (December 27, 2020) - Augmented User Activity Monitor with more deterministic user presence logic using the WM_POWERBROADCAST API (GUID_SESSION_USER_PRESENCE).
+* See [Releases](https://github.com/tig/mcec/releases) for more history
