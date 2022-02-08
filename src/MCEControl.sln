@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\Installer\Installer.tt = ..\Installer\Installer.tt
 		Installer\license.txt = Installer\license.txt
 		..\Installer\logging.nsh = ..\Installer\logging.nsh
+		Win32\Readme.md = Win32\Readme.md
 		README.md = README.md
 		..\Installer\version.txt = ..\Installer\version.txt
 	EndProjectSection

@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml.Serialization;
+using System.Linq;
 using Microsoft.Win32.Security;
 
 namespace MCEControl {
@@ -31,10 +32,11 @@ namespace MCEControl {
         private int wParam;
         [XmlAttribute("wparam")] public int WParam { get => wParam; set => wParam = value; }
 
-        [XmlAttribute("className")]
-        public String ClassName { get; set; }
-        [XmlAttribute("windowname")]
-        public String WindowName { get; set; }
+        private String className;
+        [XmlAttribute("classname")] public String ClassName { get => className; set => className = value; }
+
+        private String windowName;
+        [XmlAttribute("windowname")] public String WindowName { get => windowName; set => windowName = value; }
 
         public static new List<Command> BuiltInCommands {
             get => new List<Command>() {
@@ -69,26 +71,36 @@ namespace MCEControl {
             }
 
             try {
-                if (ClassName != null) {
+                if (!string.IsNullOrWhiteSpace(ClassName)) {
                     var procs = Process.GetProcessesByName(ClassName);
                     if (procs.Length > 0) {
-                        var h = procs[0].MainWindowHandle;
+                        var win = procs[0];
 
-                        Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage {ToString()}");
-                        Win32.SendMessage(h, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
+                        if (!string.IsNullOrWhiteSpace(WindowName)) {
+                            // Find MainWindowTitle matching WindowName
+                            win = procs.FirstOrDefault(w => w.MainWindowTitle.Equals(WindowName));
+                        }
+                        if (win == null) {
+                            Logger.Instance.Log4.Error($"{this.GetType().Name}: Could not find a window of class '{ClassName}' captioned with '{WindowName}'");
+                        }
+                        else {
+                            Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(\"{win.MainWindowTitle}\", {Msg}, {WParam}, {LParam}) - {ToString()}");
+                            Win32.SendMessage(win.MainWindowHandle, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
+                        }
                     }
                     else {
-                        Logger.Instance.Log4.Info($"{this.GetType().Name}: GetProcessByName for {ClassName} failed");
+                        Logger.Instance.Log4.Error($"{this.GetType().Name}: GetProcessByName for class '{ClassName}' failed");
                     }
                 }
-                else {
+                else 
+                {
                     var h = Win32.GetForegroundWindow();
-                    Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage (forground window): {ToString()}");
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(<forground window>, {Msg}, {WParam}, {LParam}) - {ToString()}");
                     Win32.SendMessage(h, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
                 }
             }
             catch (Exception e) {
-                Logger.Instance.Log4.Error($"{this.GetType().Name}: Failed for {ClassName} with error: {e.Message}");
+                Logger.Instance.Log4.Error($"{this.GetType().Name}: Failed for '{ClassName}' with error: {e.Message}");
                 return true;
             }
             return false;

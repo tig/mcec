@@ -78,7 +78,11 @@ namespace MCEControl {
 
                         if (cmd.Enabled) {
                             if (cmd.UserDefined) {
+#if DEBUG
+                                Logger.Instance.Log4.Debug($"{commands.GetType().Name}: User defined command enabled: '{cmd}'");
+#else
                                 Logger.Instance.Log4.Debug($"{commands.GetType().Name}: User defined command enabled: '****'");
+#endif
                             }
                             else {
                                 Logger.Instance.Log4.Debug($"{commands.GetType().Name}: Builtin command enabled: '{cmd}'");
