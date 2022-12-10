@@ -366,11 +366,17 @@ namespace MCEControl {
         }
 
         private void StartClient(bool delay = false) {
-            if (Client == null) {
-                Logger.Instance.Log4.Info("Client: Starting...");
-                Client = new SocketClient(Settings);
-                Client.Notifications += clientSocketNotificationHandler;
-                Client.Start(delay);
+            if (Settings.ActAsClient) {
+                if (Client == null) {
+                    Logger.Instance.Log4.Info($"Client: Starting (delay = {delay})");
+                    Client = new SocketClient(Settings);
+                    Client.Notifications += clientSocketNotificationHandler;
+                    Client.Start(delay);
+                }
+            }
+            else {
+                Logger.Instance.Log4.Debug("Client: StartClient attempt but ActAsClient is not enabled...");
+
             }
         }
 
@@ -384,6 +390,7 @@ namespace MCEControl {
         }
 
         private void ToggleClient() {
+            Logger.Instance.Log4.Debug("Client: ToggleClient...");
             if (Client == null) {
                 StartClient();
             }

@@ -8,12 +8,14 @@
 //-------------------------------------------------------------------
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using MCEControl.Properties;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace MCEControl {
     /// <summary>
@@ -123,28 +125,41 @@ namespace MCEControl {
 
         private void Connect() {
             IPEndPoint endPoint;
+            Log4.Debug($"SocketClient: Connect - {_host}:{_port}");
+            Debug.Assert(_tcpClient != null);
             try {
                 // GetHostEntry returns a list. We need to pick the IPv4 entry.
                 // TODO: Support ipv6
                 var ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
+                Log4.Debug($"SocketClient: {ipv4Addresses.Length} IP v4 addresses found");
 
                 if (ipv4Addresses.Length == 0) {
                     throw new IOException($"{_host}:{_port} didn't resolve to a valid address");
                 }
 
+                Log4.Debug($"SocketClient: new IPEndPoint({ipv4Addresses[0]}, {_port})");
                 endPoint = new IPEndPoint(ipv4Addresses[0], _port);
+
                 // TELEMETRY: Do not pass _host to SetStatus to avoid collecting PII
                 SetStatus(ServiceStatus.Started, $"{ipv4Addresses[0]}:{_port}");
 
+                if (_tcpClient == null) {
+                    Log4.Debug($"SocketClient: Can't Connect - _tcpClient is null");
+                    return;
+                }
+
+                Log4.Debug($"SocketClient: BeginConnect({endPoint.Address}, {_port})");
                 _ = _tcpClient.BeginConnect(endPoint.Address, _port, ar => {
+                    Log4.Debug($"SocketClient: In BeginConnect call back: {_host}:{_port}");
                     if (_tcpClient == null) {
+                        Log4.Debug($"SocketClient: Can't Connect - _tcpClient is null");
                         return;
                     }
 
                     try {
-                        Log4.Debug($"Client BeginConnect: { _host}:{ _port}");
+                        Log4.Debug($"SocketClient: BeginConnect succeeded: {_host}:{_port}");
                         _tcpClient.EndConnect(ar);
-                        Log4.Debug($"Client Back from EndConnect: { _host}:{ _port}");
+                        Log4.Debug($"SocketClient: Back from EndConnect: {_host}:{_port}");
                         SetStatus(ServiceStatus.Connected, $"{_host}:{_port}");
                         var sb = new StringBuilder();
                         while (_bw != null &&
@@ -190,8 +205,8 @@ namespace MCEControl {
                     catch (Exception e) {
                         // Got this when endPoint = new IPEndPoint(Dns.GetHostEntry(_host).AddressList[0], _port) 
                         // resolved to an ipv6 address
-                        Log4.Debug($"SocketClient Generic Exception: {e.GetType().Name}: {e.Message}");
-                        Error($"SocketClient Generic Exception: {e.GetType().Name} {e.Message}");
+                        Log4.Debug($"SocketClient: Generic Exception: {e.GetType().Name}: {e.Message}");
+                        Error($"SocketClient: Generic Exception: {e.GetType().Name} {e.Message}");
                     }
                     finally {
                         //log4.Debug("finally - Stopping");
@@ -209,7 +224,7 @@ namespace MCEControl {
                 return;
             }
             catch (Exception e) {
-                Log4.Debug($"SocketClient: (BeginConnect){e.GetType().Name}: {e.Message}");
+                Log4.Debug($"SocketClient: (BeginConnect) {e.GetType().Name}: {e.Message}");
                 Error($"SocketClient: (BeginConnect) Generic Exception: {e.GetType().Name}: {e.Message}");
                 if (_tcpClient != null) {
                     _tcpClient.Close();
@@ -217,8 +232,6 @@ namespace MCEControl {
 
                 return;
             }
-
-            Log4.Debug("BeginConnect returned");
         }
 
         private void CatchSocketException(SocketException e) {

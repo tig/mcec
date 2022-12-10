@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
 using log4net;
 
 namespace MCEControl {
@@ -85,6 +86,7 @@ namespace MCEControl {
 
         // Send a status notification
         protected void SetStatus(ServiceStatus status, String msg = "") {
+
             // TELEMETRY: 
             // what: Service status
             // why: to understand the typical/non-typical conenction flows
