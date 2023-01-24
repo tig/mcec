@@ -128,20 +128,26 @@ namespace MCEControl {
             Log4.Debug($"SocketClient: Connect - {_host}:{_port}");
             Debug.Assert(_tcpClient != null);
             try {
-                // GetHostEntry returns a list. We need to pick the IPv4 entry.
-                // TODO: Support ipv6
-                var ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
-                Log4.Debug($"SocketClient: {ipv4Addresses.Length} IP v4 addresses found");
 
-                if (ipv4Addresses.Length == 0) {
-                    throw new IOException($"{_host}:{_port} didn't resolve to a valid address");
+                // See if we've just been handed a straight IPv4 address, if so don't bother with DNS
+                IPAddress hostIp;
+                if (!IPAddress.TryParse(_host, out hostIp)) {
+                    // GetHostEntry returns a list. We need to pick the IPv4 entry.
+                    // TODO: Support ipv6
+                    var ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
+                    Log4.Debug($"SocketClient: {ipv4Addresses.Length} IP v4 addresses found");
+
+                    if (ipv4Addresses.Length == 0) {
+                        throw new IOException($"{_host}:{_port} didn't resolve to a valid address");
+                    }
+                    hostIp = ipv4Addresses[0];
                 }
 
-                Log4.Debug($"SocketClient: new IPEndPoint({ipv4Addresses[0]}, {_port})");
-                endPoint = new IPEndPoint(ipv4Addresses[0], _port);
+                Log4.Debug($"SocketClient: new IPEndPoint({hostIp}, {_port})");
+                endPoint = new IPEndPoint(hostIp, _port);
 
                 // TELEMETRY: Do not pass _host to SetStatus to avoid collecting PII
-                SetStatus(ServiceStatus.Started, $"{ipv4Addresses[0]}:{_port}");
+                SetStatus(ServiceStatus.Started, $"{hostIp}:{_port}");
 
                 if (_tcpClient == null) {
                     Log4.Debug($"SocketClient: Can't Connect - _tcpClient is null");
