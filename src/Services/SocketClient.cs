@@ -128,7 +128,6 @@ namespace MCEControl {
             Log4.Debug($"SocketClient: Connect - {_host}:{_port}");
             Debug.Assert(_tcpClient != null);
             try {
-
                 // See if we've just been handed a straight IPv4 address, if so don't bother with DNS
                 IPAddress hostIp;
                 if (!IPAddress.TryParse(_host, out hostIp)) {
