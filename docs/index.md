@@ -2,7 +2,7 @@
 
 ![MCE Controller](mainwindow.png)
 
-**MCE Controller** provides robust remote control a Windows HTPC (or any PC) over the network. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCE Controller** to control a Windows PC.
+**MCE Controller** (MCEC) provides robust control of Windows PCs for smart home systems. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCE Controller** to control a Windows PC.
 
 Almost any action a user can perform on Windows can be invoked remotely from another device on the network. This includes key presses (e.g. Alt-Tab or Win-S), mouse movements, and Window management actions (e.g. maximize window or set a window to the foreground)
 

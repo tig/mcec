@@ -1,4 +1,4 @@
-﻿// Copyright © Kindel Systems, LLC - http://www.kindel.com - charlie@kindel.com
+﻿// Copyright © Kindel, LLC - http://www.kindel.com
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
