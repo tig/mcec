@@ -31,4 +31,4 @@
 using System.Reflection;
 [assembly: AssemblyVersion("<#= version #>")]
 [assembly: AssemblyFileVersion("<#= version #>")]
-[assembly: AssemblyCopyright("Copyright © 2022 Kindel Systems, LLC.")] 
+[assembly: AssemblyCopyright("Copyright © Kindel, LLC.")] 
