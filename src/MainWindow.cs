@@ -18,6 +18,7 @@ using log4net;
 using MCEControl.Dialogs;
 using Microsoft.Win32;
 using Microsoft.Win32.Security;
+using static Gma.UserActivityMonitor.NativeMethods;
 
 namespace MCEControl {
     public partial class MainWindow : Form {
@@ -102,6 +103,10 @@ namespace MCEControl {
                 // otherwise it will just minimize to the tray
                 shuttingDown = true;
             }
+
+            if (m.Msg == WM_POWERBROADCAST) {
+                UserActivityMonitorService.Instance.HandlePowerBroadcast(m.WParam, m.LParam);
+            }
             base.WndProc(ref m);
         }
 
@@ -111,10 +116,11 @@ namespace MCEControl {
                 $" - .NET: {Environment.Version.ToString()}");
 
             var hWnd = WindowsInput.Native.NativeMethods.FindWindow(null, this.Text);
+#if _DEBUG
             var sb = new StringBuilder(256);
             WindowsInput.Native.NativeMethods.GetClassName(hWnd, sb, 256);
             Logger.Instance.Log4.Info($"Window Class - {sb}");
-
+#endif
             // Load AppSettings
             Settings = AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
 
@@ -167,13 +173,13 @@ namespace MCEControl {
                 BeginInvoke((Action)(() => { UpdateService_GotLatestVersion(sender, version); }));
             }
             else {
-                if (version == null && !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
+                if (version == null || !String.IsNullOrWhiteSpace(UpdateService.Instance.ErrorMessage)) {
                     Logger.Instance.Log4.Info(
-                        $"Could not access tig.github.io/mcec to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
+                        $"Could not access {UpdateService.Instance.ReleasePageUri} to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
                 }
                 else if (UpdateService.Instance.CompareVersions() < 0) {
                     installLatestVersionMenuItem.Enabled = true;
-                    Logger.Instance.Log4.Info($"A newer version of MCE Controller ({version}) is available at");
+                    Logger.Instance.Log4.Info($"A newer version is available at");
                     Logger.Instance.Log4.Info($"   {UpdateService.Instance.ReleasePageUri}");
 
                     if (!Settings.DisableUpdatePopup)
@@ -181,10 +187,10 @@ namespace MCEControl {
                 }
                 else if (UpdateService.Instance.CompareVersions() > 0) {
                     Logger.Instance.Log4.Info(
-                        $"You are are running a MORE recent version than can be found at tig.github.io/mcec ({version})");
+                        $"You are are running a more recent version than the latest published version ({UpdateService.Instance.ReleasePageUri})");
                 }
                 else {
-                    Logger.Instance.Log4.Info("You are running the most recent version of MCE Controller");
+                    Logger.Instance.Log4.Info("You are running the most recent version");
                 }
             }
         }
@@ -233,7 +239,8 @@ namespace MCEControl {
                 watcher.Dispose();
                 watcher = null;
 
-                Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
+                // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
+                //Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
                 TelemetryService.Instance.Stop();
             }
         }
@@ -256,10 +263,11 @@ namespace MCEControl {
 
             if (Settings.ActivityMonitorEnabled) {
                 UserActivityMonitorService.Instance.DebounceTime = Settings.ActivityMonitorDebounceTime;
-                UserActivityMonitorService.Instance.ActivityCmd = Settings.ActivityMonitorCommand;
+                UserActivityMonitorService.Instance.ActivityMsg = Settings.ActivityMonitorCommand;
                 UserActivityMonitorService.Instance.InputDetection = Settings.InputDetection;
                 UserActivityMonitorService.Instance.UnlockDetection = Settings.UnlockDetection;
-                UserActivityMonitorService.Instance.LogActivity = false;
+                UserActivityMonitorService.Instance.PowerBroadcastDetection = Settings.UserPresenceDetection;
+                UserActivityMonitorService.Instance.LogActivity = Settings.LogUserActivity;
                 UserActivityMonitorService.Instance.Start();
             }
         }
@@ -269,7 +277,7 @@ namespace MCEControl {
                 this.BeginInvoke((MethodInvoker)delegate () { Stop(); });
             }
             else {
-                UserActivityMonitorService.Stop();
+                UserActivityMonitorService.Instance.Stop();
                 StopClient();
                 StopServer();
                 StopSerialServer();
@@ -344,7 +352,7 @@ namespace MCEControl {
                     Settings.SerialServerHandshake);
             }
             else {
-                Logger.Instance.Log4.Info("Serial: Attempt to StartSerialServer() while an instance already exists!");
+                Logger.Instance.Log4.Error("Serial: Attempt to StartSerialServer() while an instance already exists!");
             }
         }
 
@@ -358,11 +366,17 @@ namespace MCEControl {
         }
 
         private void StartClient(bool delay = false) {
-            if (Client == null) {
-                Logger.Instance.Log4.Info("Client: Starting...");
-                Client = new SocketClient(Settings);
-                Client.Notifications += clientSocketNotificationHandler;
-                Client.Start(delay);
+            if (Settings.ActAsClient) {
+                if (Client == null) {
+                    Logger.Instance.Log4.Info($"Client: Starting (delay = {delay})");
+                    Client = new SocketClient(Settings);
+                    Client.Notifications += clientSocketNotificationHandler;
+                    Client.Start(delay);
+                }
+            }
+            else {
+                Logger.Instance.Log4.Debug("Client: StartClient attempt but ActAsClient is not enabled...");
+
             }
         }
 
@@ -376,6 +390,7 @@ namespace MCEControl {
         }
 
         private void ToggleClient() {
+            Logger.Instance.Log4.Debug("Client: ToggleClient...");
             if (Client == null) {
                 StartClient();
             }
@@ -439,7 +454,7 @@ namespace MCEControl {
                     Invoker.ExecuteNext();
                 }
                 catch (Exception e) {
-                    Logger.Instance.Log4.Info($"Command: ({cmd}) error: {e}");
+                    Logger.Instance.Log4.Error($"Command: ({cmd}) error: {e}");
                 }
             }
         }
@@ -694,7 +709,7 @@ namespace MCEControl {
 
                 case ServiceNotification.Error:
                     Logger.Instance.Log4.Debug($"ClientSocketNotificationHandler - ServiceStatus.Error: {(string)msg}");
-                    Logger.Instance.Log4.Info($"Client: Error; {(string)msg}");
+                    Logger.Instance.Log4.Error($"Client: Error; {(string)msg}");
                     RestartClient();
                     return;
 
@@ -754,13 +769,14 @@ namespace MCEControl {
             TelemetryService.Instance.TrackEvent("ShowSettings");
 
             if (d.ShowDialog(this) == DialogResult.OK) {
+                Stop();
+
                 Settings = d.Settings;
 
                 Opacity = (double)Settings.Opacity / 100;
 
                 Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Settings.TextBoxLogThreshold];
 
-                Stop();
                 Start();
             }
             d.Dispose();

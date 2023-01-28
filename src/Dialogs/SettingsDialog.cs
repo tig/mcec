@@ -72,7 +72,7 @@ namespace MCEControl {
         private ComboBox _comboBoxSerialPort;
         private Label _labelSerialPort;
         private ToolTip _toolTipClient;
-        private System.ComponentModel.IContainer _components;
+        private System.ComponentModel.IContainer _components = null;
         private ToolTip _toolTipServer;
         private TabPage _tabPageActivityMonitor;
         private GroupBox _groupBoxActivityMonitor;
@@ -88,6 +88,8 @@ namespace MCEControl {
         private Label _labelPacing;
         private CheckBox _unlockDetection;
         private CheckBox _inputDetection;
+        private System.ComponentModel.IContainer components;
+        private CheckBox _presenceDetection;
         private TabPage _tabServer;
 
         #region Windows Form Designer generated code
@@ -97,7 +99,7 @@ namespace MCEControl {
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            this._components = new System.ComponentModel.Container();
+            this.components = new System.ComponentModel.Container();
             this._buttonCancel = new System.Windows.Forms.Button();
             this._buttonOk = new System.Windows.Forms.Button();
             this._tabcontrol = new System.Windows.Forms.TabControl();
@@ -150,14 +152,15 @@ namespace MCEControl {
             this._tabPageActivityMonitor = new System.Windows.Forms.TabPage();
             this._checkBoxEnableActivityMonitor = new System.Windows.Forms.CheckBox();
             this._groupBoxActivityMonitor = new System.Windows.Forms.GroupBox();
+            this._presenceDetection = new System.Windows.Forms.CheckBox();
             this._unlockDetection = new System.Windows.Forms.CheckBox();
             this._inputDetection = new System.Windows.Forms.CheckBox();
             this._labelActivityDebounceTime = new System.Windows.Forms.Label();
             this._textBoxDebounceTime = new System.Windows.Forms.TextBox();
             this._textBoxActivityCommand = new System.Windows.Forms.TextBox();
             this._labelActivityCommand = new System.Windows.Forms.Label();
-            this._toolTipClient = new System.Windows.Forms.ToolTip(this._components);
-            this._toolTipServer = new System.Windows.Forms.ToolTip(this._components);
+            this._toolTipClient = new System.Windows.Forms.ToolTip(this.components);
+            this._toolTipServer = new System.Windows.Forms.ToolTip(this.components);
             this._eventLog = new System.Diagnostics.EventLog();
             this._tabcontrol.SuspendLayout();
             this._tabGeneral.SuspendLayout();
@@ -198,10 +201,10 @@ namespace MCEControl {
             this._buttonOk.UseVisualStyleBackColor = true;
             this._buttonOk.Click += new System.EventHandler(this.ButtonOkClick);
             // 
-            // tabcontrol
+            // _tabcontrol
             // 
-            this._tabcontrol.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-            | System.Windows.Forms.AnchorStyles.Left)
+            this._tabcontrol.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._tabcontrol.Controls.Add(this._tabGeneral);
             this._tabcontrol.Controls.Add(this._tabClient);
@@ -210,12 +213,12 @@ namespace MCEControl {
             this._tabcontrol.Controls.Add(this._tabPageActivityMonitor);
             this._tabcontrol.Location = new System.Drawing.Point(16, 16);
             this._tabcontrol.Margin = new System.Windows.Forms.Padding(1);
-            this._tabcontrol.Name = "tabcontrol";
+            this._tabcontrol.Name = "_tabcontrol";
             this._tabcontrol.SelectedIndex = 0;
             this._tabcontrol.Size = new System.Drawing.Size(448, 264);
             this._tabcontrol.TabIndex = 0;
             // 
-            // tabGeneral
+            // _tabGeneral
             // 
             this._tabGeneral.BackColor = System.Drawing.SystemColors.Window;
             this._tabGeneral.Controls.Add(this._textBoxPacing);
@@ -226,48 +229,48 @@ namespace MCEControl {
             this._tabGeneral.Controls.Add(this._checkBoxAutoStart);
             this._tabGeneral.Location = new System.Drawing.Point(4, 22);
             this._tabGeneral.Margin = new System.Windows.Forms.Padding(1);
-            this._tabGeneral.Name = "tabGeneral";
+            this._tabGeneral.Name = "_tabGeneral";
             this._tabGeneral.Size = new System.Drawing.Size(440, 238);
             this._tabGeneral.TabIndex = 0;
             this._tabGeneral.Text = "General";
             // 
-            // textBoxPacing
+            // _textBoxPacing
             // 
             this._textBoxPacing.Location = new System.Drawing.Point(168, 96);
             this._textBoxPacing.Margin = new System.Windows.Forms.Padding(2);
-            this._textBoxPacing.Name = "textBoxPacing";
+            this._textBoxPacing.Name = "_textBoxPacing";
             this._textBoxPacing.Size = new System.Drawing.Size(74, 20);
             this._textBoxPacing.TabIndex = 4;
             this._textBoxPacing.TextChanged += new System.EventHandler(this.textBoxPacing_TextChanged);
             // 
-            // labelPacing
+            // _labelPacing
             // 
             this._labelPacing.AutoSize = true;
             this._labelPacing.Location = new System.Drawing.Point(16, 96);
             this._labelPacing.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this._labelPacing.Name = "labelPacing";
+            this._labelPacing.Name = "_labelPacing";
             this._labelPacing.Size = new System.Drawing.Size(150, 13);
             this._labelPacing.TabIndex = 3;
             this._labelPacing.Text = "Default command &pacing (ms):";
             // 
-            // comboBoxLogThresholds
+            // _comboBoxLogThresholds
             // 
             this._comboBoxLogThresholds.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this._comboBoxLogThresholds.FormattingEnabled = true;
             this._comboBoxLogThresholds.Location = new System.Drawing.Point(16, 51);
-            this._comboBoxLogThresholds.Name = "comboBoxLogThresholds";
+            this._comboBoxLogThresholds.Name = "_comboBoxLogThresholds";
             this._comboBoxLogThresholds.Size = new System.Drawing.Size(121, 21);
             this._comboBoxLogThresholds.TabIndex = 2;
             this._comboBoxLogThresholds.SelectedIndexChanged += new System.EventHandler(this.comboBoxLogThresholds_SelectedIndexChanged);
             // 
-            // labelLogLevel
+            // _labelLogLevel
             // 
             this._labelLogLevel.AutoSize = true;
             this._labelLogLevel.Location = new System.Drawing.Point(13, 35);
-            this._labelLogLevel.Name = "labelLogLevel";
-            this._labelLogLevel.Size = new System.Drawing.Size(78, 13);
+            this._labelLogLevel.Name = "_labelLogLevel";
+            this._labelLogLevel.Size = new System.Drawing.Size(277, 13);
             this._labelLogLevel.TabIndex = 1;
-            this._labelLogLevel.Text = "Log Threshold:";
+            this._labelLogLevel.Text = "Log Threshold (display only; log files always contain ALL):";
             // 
             // _checkBoxHideOnStartup
             // 
@@ -290,14 +293,14 @@ namespace MCEControl {
             this._checkBoxAutoStart.Visible = false;
             this._checkBoxAutoStart.CheckedChanged += new System.EventHandler(this.CheckBoxAutoStartCheckedChanged);
             // 
-            // tabClient
+            // _tabClient
             // 
             this._tabClient.BackColor = System.Drawing.SystemColors.Window;
             this._tabClient.Controls.Add(this._checkBoxEnableClient);
             this._tabClient.Controls.Add(this._clientGroup);
             this._tabClient.Location = new System.Drawing.Point(4, 22);
             this._tabClient.Margin = new System.Windows.Forms.Padding(1);
-            this._tabClient.Name = "tabClient";
+            this._tabClient.Name = "_tabClient";
             this._tabClient.Size = new System.Drawing.Size(440, 238);
             this._tabClient.TabIndex = 1;
             this._tabClient.Text = "Client";
@@ -308,7 +311,7 @@ namespace MCEControl {
             this._checkBoxEnableClient.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableClient.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableClient.Name = "_checkBoxEnableClient";
-            this._checkBoxEnableClient.Size = new System.Drawing.Size(88, 17);
+            this._checkBoxEnableClient.Size = new System.Drawing.Size(95, 21);
             this._checkBoxEnableClient.TabIndex = 1;
             this._checkBoxEnableClient.Text = "Enable &Client";
             this._toolTipClient.SetToolTip(this._checkBoxEnableClient, "Starts a TCP/IP client connection to the specified address:port. Commands will be" +
@@ -387,14 +390,14 @@ namespace MCEControl {
             this._editClientDelayTime.TabIndex = 0;
             this._editClientDelayTime.TextChanged += new System.EventHandler(this.EditClientDelayTimeTextChanged);
             // 
-            // tabServer
+            // _tabServer
             // 
             this._tabServer.BackColor = System.Drawing.SystemColors.Window;
             this._tabServer.Controls.Add(this._checkBoxEnableServer);
             this._tabServer.Controls.Add(this._serverGroup);
             this._tabServer.Location = new System.Drawing.Point(4, 22);
             this._tabServer.Margin = new System.Windows.Forms.Padding(1);
-            this._tabServer.Name = "tabServer";
+            this._tabServer.Name = "_tabServer";
             this._tabServer.Size = new System.Drawing.Size(440, 238);
             this._tabServer.TabIndex = 2;
             this._tabServer.Text = "Server";
@@ -405,7 +408,7 @@ namespace MCEControl {
             this._checkBoxEnableServer.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableServer.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableServer.Name = "_checkBoxEnableServer";
-            this._checkBoxEnableServer.Size = new System.Drawing.Size(93, 17);
+            this._checkBoxEnableServer.Size = new System.Drawing.Size(100, 21);
             this._checkBoxEnableServer.TabIndex = 0;
             this._checkBoxEnableServer.Text = "Enable &Server";
             this._toolTipServer.SetToolTip(this._checkBoxEnableServer, "Enables the TCP/IP server. It will listen on the specified port for commands.");
@@ -548,14 +551,14 @@ namespace MCEControl {
             this._label3.TabIndex = 6;
             this._label3.Text = "P&ort:";
             // 
-            // tabSerial
+            // _tabSerial
             // 
             this._tabSerial.BackColor = System.Drawing.SystemColors.Window;
             this._tabSerial.Controls.Add(this._checkBoxEnableSerialServer);
             this._tabSerial.Controls.Add(this._serialServerGroup);
             this._tabSerial.Location = new System.Drawing.Point(4, 22);
             this._tabSerial.Margin = new System.Windows.Forms.Padding(1);
-            this._tabSerial.Name = "tabSerial";
+            this._tabSerial.Name = "_tabSerial";
             this._tabSerial.Padding = new System.Windows.Forms.Padding(1);
             this._tabSerial.Size = new System.Drawing.Size(440, 238);
             this._tabSerial.TabIndex = 3;
@@ -567,7 +570,7 @@ namespace MCEControl {
             this._checkBoxEnableSerialServer.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableSerialServer.Margin = new System.Windows.Forms.Padding(1);
             this._checkBoxEnableSerialServer.Name = "_checkBoxEnableSerialServer";
-            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(122, 17);
+            this._checkBoxEnableSerialServer.Size = new System.Drawing.Size(129, 21);
             this._checkBoxEnableSerialServer.TabIndex = 1;
             this._checkBoxEnableSerialServer.Text = "Enable Serial Server";
             this._checkBoxEnableSerialServer.UseVisualStyleBackColor = true;
@@ -773,20 +776,21 @@ namespace MCEControl {
             this._tabPageActivityMonitor.Text = "Activity Monitor";
             this._tabPageActivityMonitor.UseVisualStyleBackColor = true;
             // 
-            // checkBoxEnableActivityMonitor
+            // _checkBoxEnableActivityMonitor
             // 
             this._checkBoxEnableActivityMonitor.AutoSize = true;
             this._checkBoxEnableActivityMonitor.Location = new System.Drawing.Point(20, 10);
             this._checkBoxEnableActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
-            this._checkBoxEnableActivityMonitor.Name = "checkBoxEnableActivityMonitor";
-            this._checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(159, 17);
+            this._checkBoxEnableActivityMonitor.Name = "_checkBoxEnableActivityMonitor";
+            this._checkBoxEnableActivityMonitor.Size = new System.Drawing.Size(166, 21);
             this._checkBoxEnableActivityMonitor.TabIndex = 0;
             this._checkBoxEnableActivityMonitor.Text = "Enable &User Activity Monitor";
             this._checkBoxEnableActivityMonitor.UseVisualStyleBackColor = true;
             this._checkBoxEnableActivityMonitor.CheckedChanged += new System.EventHandler(this.checkBoxEnableActivityMonitor_CheckedChanged);
             // 
-            // groupBoxActivityMonitor
+            // _groupBoxActivityMonitor
             // 
+            this._groupBoxActivityMonitor.Controls.Add(this._presenceDetection);
             this._groupBoxActivityMonitor.Controls.Add(this._unlockDetection);
             this._groupBoxActivityMonitor.Controls.Add(this._inputDetection);
             this._groupBoxActivityMonitor.Controls.Add(this._labelActivityDebounceTime);
@@ -795,75 +799,84 @@ namespace MCEControl {
             this._groupBoxActivityMonitor.Controls.Add(this._labelActivityCommand);
             this._groupBoxActivityMonitor.Location = new System.Drawing.Point(12, 11);
             this._groupBoxActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
-            this._groupBoxActivityMonitor.Name = "groupBoxActivityMonitor";
+            this._groupBoxActivityMonitor.Name = "_groupBoxActivityMonitor";
             this._groupBoxActivityMonitor.Padding = new System.Windows.Forms.Padding(1);
             this._groupBoxActivityMonitor.Size = new System.Drawing.Size(412, 221);
             this._groupBoxActivityMonitor.TabIndex = 0;
             this._groupBoxActivityMonitor.TabStop = false;
             // 
-            // unlockDetectionRadio
+            // _presenceDetection
+            // 
+            this._presenceDetection.AutoSize = true;
+            this._presenceDetection.Location = new System.Drawing.Point(17, 76);
+            this._presenceDetection.Name = "_presenceDetection";
+            this._presenceDetection.Size = new System.Drawing.Size(375, 21);
+            this._presenceDetection.TabIndex = 3;
+            this._presenceDetection.Text = "Don\'t send message if Power Broadcast API indicates user is not present";
+            this._presenceDetection.UseVisualStyleBackColor = true;
+            this._presenceDetection.CheckedChanged += new System.EventHandler(this.presenceDetectionRadio_CheckedChanged);
+            // 
+            // _unlockDetection
             // 
             this._unlockDetection.AutoSize = true;
             this._unlockDetection.Location = new System.Drawing.Point(17, 53);
-            this._unlockDetection.Name = "unlockDetectionRadio";
-            this._unlockDetection.Size = new System.Drawing.Size(211, 17);
+            this._unlockDetection.Name = "_unlockDetection";
+            this._unlockDetection.Size = new System.Drawing.Size(223, 21);
             this._unlockDetection.TabIndex = 1;
-            this._unlockDetection.TabStop = true;
-            this._unlockDetection.Text = "Detect activity via desktop lock/unlock";
+            this._unlockDetection.Text = "Don\'t send message if desktop is locked";
             this._unlockDetection.UseVisualStyleBackColor = true;
             this._unlockDetection.CheckedChanged += new System.EventHandler(this.unlockDetectionRadio_CheckedChanged);
             // 
-            // inputDetectionRadio
+            // _inputDetection
             // 
             this._inputDetection.AutoSize = true;
             this._inputDetection.Location = new System.Drawing.Point(17, 30);
-            this._inputDetection.Name = "inputDetectionRadio";
-            this._inputDetection.Size = new System.Drawing.Size(238, 17);
+            this._inputDetection.Name = "_inputDetection";
+            this._inputDetection.Size = new System.Drawing.Size(296, 21);
             this._inputDetection.TabIndex = 0;
-            this._inputDetection.TabStop = true;
-            this._inputDetection.Text = "Detect activity via keyboard and mouse input";
+            this._inputDetection.Text = "Send message when keyboard/mouse input is detected";
             this._inputDetection.UseVisualStyleBackColor = true;
             this._inputDetection.CheckedChanged += new System.EventHandler(this.inputDetectionRadio_CheckedChanged);
             // 
-            // labelActivityDebounceTime
+            // _labelActivityDebounceTime
             // 
             this._labelActivityDebounceTime.AutoSize = true;
-            this._labelActivityDebounceTime.Location = new System.Drawing.Point(17, 112);
+            this._labelActivityDebounceTime.Location = new System.Drawing.Point(14, 142);
             this._labelActivityDebounceTime.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
-            this._labelActivityDebounceTime.Name = "labelActivityDebounceTime";
-            this._labelActivityDebounceTime.Size = new System.Drawing.Size(283, 13);
+            this._labelActivityDebounceTime.Name = "_labelActivityDebounceTime";
+            this._labelActivityDebounceTime.Size = new System.Drawing.Size(274, 13);
             this._labelActivityDebounceTime.TabIndex = 4;
-            this._labelActivityDebounceTime.Text = "Send activity command no more frequently than (seconds):";
+            this._labelActivityDebounceTime.Text = "Send activity mesage no more frequently than (seconds):";
             // 
-            // textBoxDebounceTime
+            // _textBoxDebounceTime
             // 
-            this._textBoxDebounceTime.Location = new System.Drawing.Point(302, 109);
+            this._textBoxDebounceTime.Location = new System.Drawing.Point(299, 139);
             this._textBoxDebounceTime.Margin = new System.Windows.Forms.Padding(1);
-            this._textBoxDebounceTime.Name = "textBoxDebounceTime";
+            this._textBoxDebounceTime.Name = "_textBoxDebounceTime";
             this._textBoxDebounceTime.Size = new System.Drawing.Size(51, 20);
             this._textBoxDebounceTime.TabIndex = 5;
             this._textBoxDebounceTime.TextChanged += new System.EventHandler(this.textBoxDebounceTime_TextChanged);
             // 
-            // textBoxActivityCommand
+            // _textBoxActivityCommand
             // 
-            this._textBoxActivityCommand.Location = new System.Drawing.Point(114, 80);
+            this._textBoxActivityCommand.Location = new System.Drawing.Point(111, 110);
             this._textBoxActivityCommand.Margin = new System.Windows.Forms.Padding(1);
-            this._textBoxActivityCommand.Name = "textBoxActivityCommand";
+            this._textBoxActivityCommand.Name = "_textBoxActivityCommand";
             this._textBoxActivityCommand.Size = new System.Drawing.Size(149, 20);
             this._textBoxActivityCommand.TabIndex = 3;
             this._textBoxActivityCommand.TextChanged += new System.EventHandler(this.textBoxActivityCommand_TextChanged);
             // 
-            // labelActivityCommand
+            // _labelActivityCommand
             // 
             this._labelActivityCommand.AutoSize = true;
-            this._labelActivityCommand.Location = new System.Drawing.Point(17, 83);
+            this._labelActivityCommand.Location = new System.Drawing.Point(14, 113);
             this._labelActivityCommand.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
-            this._labelActivityCommand.Name = "labelActivityCommand";
-            this._labelActivityCommand.Size = new System.Drawing.Size(95, 13);
+            this._labelActivityCommand.Name = "_labelActivityCommand";
+            this._labelActivityCommand.Size = new System.Drawing.Size(91, 13);
             this._labelActivityCommand.TabIndex = 2;
-            this._labelActivityCommand.Text = "Command to send:";
+            this._labelActivityCommand.Text = "Message to send:";
             // 
-            // toolTipClient
+            // _toolTipClient
             // 
             this._toolTipClient.ToolTipTitle = "Client";
             // 
@@ -871,7 +884,7 @@ namespace MCEControl {
             // 
             this._toolTipServer.ToolTipTitle = "Server";
             // 
-            // eventLog1
+            // _eventLog
             // 
             this._eventLog.SynchronizingObject = this;
             // 
@@ -976,6 +989,7 @@ namespace MCEControl {
             _groupBoxActivityMonitor.Enabled = _checkBoxEnableActivityMonitor.Checked = Settings.ActivityMonitorEnabled;
             _unlockDetection.Checked = Settings.UnlockDetection;
             _inputDetection.Checked = Settings.InputDetection;
+            _presenceDetection.Checked = Settings.UserPresenceDetection;
             _textBoxActivityCommand.Text = Settings.ActivityMonitorCommand;
             _textBoxDebounceTime.Text = $"{Settings.ActivityMonitorDebounceTime}";
 
@@ -998,9 +1012,6 @@ namespace MCEControl {
             }
 
             _textBoxPacing.Text = $"{Settings.CommandPacing}";
-
-            //comboBoxLogThresholds.SelectedIndex = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"].Value;
-
             _buttonOk.Enabled = false;
         }
 
@@ -1240,6 +1251,8 @@ namespace MCEControl {
 
         private void comboBoxLogThresholds_SelectedIndexChanged(object sender, EventArgs e) {
             Settings.TextBoxLogThreshold = _comboBoxLogThresholds.SelectedItem.ToString();
+            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Settings.TextBoxLogThreshold];
+
             SettingsChanged();
         }
 
@@ -1260,5 +1273,11 @@ namespace MCEControl {
             Settings.UnlockDetection = _unlockDetection.Checked;
             SettingsChanged();
         }
+
+        private void presenceDetectionRadio_CheckedChanged(object sender, EventArgs e) {
+            Settings.UserPresenceDetection = _presenceDetection.Checked;
+            SettingsChanged();
+        }
+
     }
 }

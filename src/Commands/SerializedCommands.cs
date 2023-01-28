@@ -68,32 +68,38 @@ namespace MCEControl {
             SerializedCommands cmds = null;
             FileStream fs = null;
             try {
-                Logger.Instance.Log4.Info($"CommandInvoker: Loading user-defined commands from {userCommandsFile}");
+                Logger.Instance.Log4.Info($"SerializedCommands: Loading user-defined commands from {userCommandsFile}");
                 fs = new FileStream(userCommandsFile, FileMode.Open, FileAccess.Read);
                 cmds = Deserialize(fs);
 
-                // Is this a legacy load? If so, enable all commands and warn user
-                if (string.IsNullOrEmpty(cmds.Version)) {
-                    var msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\nDisable any commands that are not used using the Commands window.";
-                    MessageBox.Show(msg, Application.ProductName);
-                    Logger.Instance.Log4.Info($"CommandInvoker: {msg}");
-                    cmds.Version = currentVersion;
-                    cmds.commandArray = cmds.commandArray.Select(c => { c.Enabled = true; return c; }).ToArray();
+                if (cmds == null) {
+                    // Deserialization failed. We could automatically rewrite the file, but that would be rude.
+                    // Deserialize logged this
                 }
+                else {
+                    // Is this a legacy load? If so, enable all commands and warn user
+                    if (string.IsNullOrEmpty(cmds.Version)) {
+                        var msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\nDisable any commands that are not used using the Commands window.";
+                        MessageBox.Show(msg, Application.ProductName);
+                        Logger.Instance.Log4.Info($"SerializedCommands: {msg}");
+                        cmds.Version = currentVersion;
+                        cmds.commandArray = cmds.commandArray.Select(c => { c.Enabled = true; return c; }).ToArray();
+                    }
 
-                // If this was written by an older version, re-write it to update it
-                if (!string.IsNullOrEmpty(cmds.Version) && (new Version(currentVersion).CompareTo(new Version(cmds.Version))) > 0) {
-                    Logger.Instance.Log4.Info($"CommandInvoker: Upgrading .commands file from v{cmds.Version}");
-                    SaveCommands(userCommandsFile, cmds, currentVersion);
+                    // If this was written by an older version, re-write it to update it
+                    if (!string.IsNullOrEmpty(cmds.Version) && (new Version(currentVersion).CompareTo(new Version(cmds.Version))) > 0) {
+                        Logger.Instance.Log4.Info($"SerializedCommands: Upgrading .commands file from v{cmds.Version}");
+                        SaveCommands(userCommandsFile, cmds, currentVersion);
+                    }
                 }
             }
             catch (FileNotFoundException) {
-                Logger.Instance.Log4.Info($"CommandInvoker: {userCommandsFile} was not found");
+                Logger.Instance.Log4.Error($"SerializedCommands: {userCommandsFile} was not found");
             }
             catch (Exception ex) {
                 var msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
                 MessageBox.Show(msg, currentVersion);
-                Logger.Instance.Log4.Info($"CommandInvoker: {msg}");
+                Logger.Instance.Log4.Error($"SerializedCommands: {msg}");
                 Logger.DumpException(ex);
             }
             finally {
@@ -118,7 +124,7 @@ namespace MCEControl {
             FileStream ucFS = null;
             try {
                 commands.Version = currentVersion;
-                ucFS = new FileStream(userCommandsFile, FileMode.Create, FileAccess.ReadWrite);
+                ucFS = new FileStream(userCommandsFile, FileMode.Create);
                 new XmlSerializer(typeof(SerializedCommands)).Serialize(ucFS, commands);
             }
             catch (Exception e) {
@@ -127,7 +133,7 @@ namespace MCEControl {
                     $"See log file for details: {Logger.Instance.LogFile}\n\n" +
                     $"For help, open an issue at github.com/tig/mcec";
                 MessageBox.Show(msg, Application.ProductName);
-                Logger.Instance.Log4.Info($"CommandInvoker: {msg}");
+                Logger.Instance.Log4.Error($"SerializedCommands: {msg}");
                 Logger.DumpException(e);
             }
             finally {
@@ -166,11 +172,11 @@ namespace MCEControl {
                 cmds = (SerializedCommands)new XmlSerializer(typeof(SerializedCommands)).Deserialize(lcReader);
             }
             catch (InvalidOperationException ex) {
-                Logger.Instance.Log4.Info($"CommandInvoker: No commands loaded. Error parsing .commands XML. {ex.FullMessage()}");
+                Logger.Instance.Log4.Error($"SerializedCommands: No commands loaded. Error parsing .commands XML. {ex.FullMessage()}");
                 Logger.DumpException(ex);
             }
             catch (Exception ex) {
-                Logger.Instance.Log4.Info($"CommandInvoker: Error parsing .commands XML. {ex.Message}");
+                Logger.Instance.Log4.Error($"SerializedCommands: Error parsing .commands XML. {ex.Message}");
                 Logger.DumpException(ex);
             }
             finally {

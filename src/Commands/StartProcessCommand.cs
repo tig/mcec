@@ -124,7 +124,7 @@ namespace MCEControl {
                         p.WaitForInputIdle(1000); // TODO: Make this settable
                     }
                     catch (System.InvalidOperationException e) {
-                        Logger.Instance.Log4.Info($"{this.GetType().Name}: {e.Message}");
+                        Logger.Instance.Log4.Error($"{this.GetType().Name}: {e.Message}");
                         return false;
                     }
                 }

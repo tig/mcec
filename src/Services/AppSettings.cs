@@ -98,11 +98,14 @@ namespace MCEControl {
         public bool UnlockDetection { get; set; }
         [SafeForTelemetryAttribute]
         public bool InputDetection { get; set; }
+        [SafeForTelemetryAttribute]
+        public bool UserPresenceDetection { get; set; }
 
         [SafeForTelemetryAttribute]
         public bool DisableUpdatePopup { get; set; }
 
-
+        // TELEMETRY: NOT SAFE FOR PII - MUST DEFAULT TO FALSE
+        public bool LogUserActivity { get; set; } = false;
 
         #region ICloneable Members
 
@@ -125,7 +128,9 @@ namespace MCEControl {
             defaultPort.Dispose();
             UnlockDetection = true;
             InputDetection = true;
+            UserPresenceDetection = true;
         }
+
 
 
         /// <summary>
@@ -133,9 +138,11 @@ namespace MCEControl {
         /// This allows the app to be run with multiple instances with a settings
         /// file for each instance (each being in different directory).
         /// However, typical installs get put into to %PROGRAMFILES% which 
-        /// is ACLd to allow only admin writes on Win7.         /// </summary>
+        /// is ACLd to allow only admin writes on Win7.         
+        /// </summary>
         /// <param name="startupPath">Path to where exe was started from (aka Applciation.StartupPath)</param>
         /// <returns>Path to where Settings & Log Files should be</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>")]
         public static String GetSettingsPath(string startupPath) {
             if (string.IsNullOrWhiteSpace(startupPath)) {
                 throw new ArgumentException("startupPath must be specified", nameof(startupPath));
@@ -201,7 +208,7 @@ namespace MCEControl {
                                     "DisableInternalCommands", false), new NumberFormatInfo());
             }
             catch (UnauthorizedAccessException e) {
-                Logger.Instance.Log4.Info($"Settings: Settings file could not be loaded. {e.Message}");
+                Logger.Instance.Log4.Error($"Settings: Settings file could not be loaded. {e.Message}");
                 MessageBox.Show($"Settings file could not be loaded. {e.Message}");
             }
             finally {

@@ -141,6 +141,24 @@ namespace MCEControl {
 
         public override ICommand Clone(Reply reply) => base.Clone(reply, new SendInputCommand(vk, shift, ctrl, alt, win));
 
+        private bool ExecuteShiftCmd(string cmd) {
+            // TODO: Break this out to a separate command
+            if (!string.IsNullOrEmpty(cmd)) {
+                switch (cmd.ToLowerInvariant()) {
+                    case "shiftdown:":
+                        // Modifyer key down
+                        SendInputCommand.ShiftKey(Args, true);
+                        return true;
+
+                    case "shiftup:":
+                        // Modifyer key down
+                        SendInputCommand.ShiftKey(Args, false);
+                        return true;
+                }
+            }
+            return false;
+        }
+
         // ICommand:Execute
         public override bool Execute() {
             if (!base.Execute()) {
@@ -153,21 +171,9 @@ namespace MCEControl {
             // Vk = "<char>" - Simulates keypress of keycode for <char>
 
             try {
-
                 // Deal with shiftdown/up: commands
-                // TODO: Break this out to a separate command
-                if (!string.IsNullOrEmpty(Cmd)) {
-                    switch (Cmd.ToLowerInvariant()) {
-                        case "shiftdown:":
-                            // Modifyer key down
-                            SendInputCommand.ShiftKey(Args, true);
-                            return true;
-
-                        case "shiftup:":
-                            // Modifyer key down
-                            SendInputCommand.ShiftKey(Args, false);
-                            return true;
-                    }
+                if (ExecuteShiftCmd(Cmd)) {
+                    return true;
                 }
 
                 VirtualKeyCode vkcode = 0;
@@ -256,7 +262,7 @@ namespace MCEControl {
                 }
             }
             catch (Exception e) {
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: failed. {e.Message}");
+                Logger.Instance.Log4.Error($"{this.GetType().Name}: failed. {e.Message}");
                 return false;
             }
             return true;
