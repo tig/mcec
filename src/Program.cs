@@ -22,20 +22,9 @@ namespace MCEControl {
             Logger.Instance.LogFile = $@"{ConfigPath}MCEControl.log";
             Logger.Instance.Log4.Debug($"------ START: v{Application.ProductVersion} - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()} ------");
 
-            // TODO: Update to check for 4.7 or newer
-            if (!IsNet45OrNewer()) {
-                MessageBox.Show(global::MCEControl.Properties.Resources.Error_RequiresDotNetVersion);
-                return;
-            }
-
             Application.Run(MainWindow.Instance);
 
             Logger.Instance.Log4.Debug($"------ END runtime: {TelemetryService.Instance.RunTime.Elapsed:g} ------");
-        }
-
-        internal static bool IsNet45OrNewer() {
-            // Class "ReflectionContext" exists from .NET 4.5 onwards.
-            return Type.GetType("System.Reflection.ReflectionContext", false) != null;
         }
         private static void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e) {
             Logger.DumpException(e.Exception);

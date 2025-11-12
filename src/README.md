@@ -2,8 +2,20 @@
 
 ## Pre-requisites
 
-* Visual Studio 2022 or greater
-* NSIS 3.x - `winget install nsis`
+* .NET 8.0 SDK or greater
+* Visual Studio 2022 or greater (optional - can build from command line with `dotnet build`)
+* NSIS 3.x - `winget install nsis` (for creating the installer)
+
+## Building
+
+From the command line:
+```bash
+cd src
+dotnet restore
+dotnet build
+```
+
+Or open `src/MCEControl.sln` in Visual Studio 2022 and build from there.
 
 ## Versions & Updates
 
