@@ -55,6 +55,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Include=".github\dependabot.yml" />
+        <None Include=".github\ISSUE_TEMPLATE\bug_report.md" />
+        <None Include=".github\ISSUE_TEMPLATE\feature_request.md" />
+        <None Include=".github\pull_request_template.md" />
+        <None Include=".github\workflows\ci.yml" />
+        <None Include=".github\workflows\pr-validation.yml" />
+        <None Include=".github\workflows\README.md" />
         <None Include="Resources\Trafficlight-gray-icon.bmp" />
         <None Include="Resources\Trafficlight-gray-icon.png" />
         <None Include="Resources\Trafficlight-green-icon.png" />
