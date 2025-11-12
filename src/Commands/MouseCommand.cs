@@ -60,9 +60,9 @@ namespace MCEControl {
                 return false;
             }
 
-            var sim = new InputSimulator();
+            InputSimulator sim = new InputSimulator();
             // Format is "mouse:<action>[,<parameters>]
-            var param = Args.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] param = Args.Split(new Char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             if (param.Length == 0) {
                 return true;
             }
@@ -171,7 +171,7 @@ namespace MCEControl {
         }
 
         private static int GetIntOrZero(String[] s, int index) {
-            var val = 0;
+            int val = 0;
             if (index < s.Length) {
                 if (!int.TryParse(s[index], out val)) {
                     return 0;

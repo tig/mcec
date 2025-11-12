@@ -90,14 +90,14 @@ namespace Gma.UserActivityMonitor {
         private static int MouseHookProc(int nCode, int wParam, IntPtr lParam) {
             if (nCode >= 0) {
                 //Marshall the data from callback.
-                var mouseHookStruct = (MouseLLHookStruct)Marshal.PtrToStructure(lParam, typeof(MouseLLHookStruct));
+                MouseLLHookStruct mouseHookStruct = (MouseLLHookStruct)Marshal.PtrToStructure(lParam, typeof(MouseLLHookStruct));
 
                 //detect button clicked
-                var button = MouseButtons.None;
+                MouseButtons button = MouseButtons.None;
                 short mouseDelta = 0;
-                var clickCount = 0;
-                var mouseDown = false;
-                var mouseUp = false;
+                int clickCount = 0;
+                bool mouseDown = false;
+                bool mouseUp = false;
 
                 switch (wParam) {
                     case WM_LBUTTONDOWN:
@@ -143,7 +143,7 @@ namespace Gma.UserActivityMonitor {
                 }
 
                 //generate event 
-                var e = new MouseEventExtArgs(
+                MouseEventExtArgs e = new MouseEventExtArgs(
                                                    button,
                                                    clickCount,
                                                    mouseHookStruct.Point.X,
@@ -209,7 +209,7 @@ namespace Gma.UserActivityMonitor {
                 s_MouseDelegate = MouseHookProc;
                 //install hook
                 // See https://stackoverflow.com/questions/17897646/setwindowshookex-fails-with-error-126
-                var mar = LoadLibrary("user32.dll");
+                IntPtr mar = LoadLibrary("user32.dll");
                 s_MouseHookHandle = SetWindowsHookEx(
                     WH_MOUSE_LL,
                     s_MouseDelegate,
@@ -219,7 +219,7 @@ namespace Gma.UserActivityMonitor {
                 //If SetWindowsHookEx fails.
                 if (s_MouseHookHandle == 0) {
                     //Returns the error code returned by the last unmanaged function called using platform invoke that has the DllImportAttribute.SetLastError flag set. 
-                    var errorCode = Marshal.GetLastWin32Error();
+                    int errorCode = Marshal.GetLastWin32Error();
                     //do cleanup
 
                     //Initializes and throws a new instance of the Win32Exception class with the specified error. 
@@ -244,7 +244,7 @@ namespace Gma.UserActivityMonitor {
         private static void ForceUnsunscribeFromGlobalMouseEvents() {
             if (s_MouseHookHandle != 0) {
                 //uninstall hook
-                var result = UnhookWindowsHookEx(s_MouseHookHandle);
+                int result = UnhookWindowsHookEx(s_MouseHookHandle);
                 //reset invalid handle
                 s_MouseHookHandle = 0;
                 //Free up for GC
@@ -252,7 +252,7 @@ namespace Gma.UserActivityMonitor {
                 //if failed and exception must be thrown
                 if (result == 0) {
                     //Returns the error code returned by the last unmanaged function called using platform invoke that has the DllImportAttribute.SetLastError flag set. 
-                    var errorCode = Marshal.GetLastWin32Error();
+                    int errorCode = Marshal.GetLastWin32Error();
                     //Initializes and throws a new instance of the Win32Exception class with the specified error. 
                     throw new Win32Exception(errorCode);
                 }
@@ -303,40 +303,40 @@ namespace Gma.UserActivityMonitor {
         /// </returns>
         private static int KeyboardHookProc(int nCode, Int32 wParam, IntPtr lParam) {
             //indicates if any of underlaing events set e.Handled flag
-            var handled = false;
+            bool handled = false;
 
             if (nCode >= 0) {
                 //read structure KeyboardHookStruct at lParam
-                var MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct));
+                KeyboardHookStruct MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct));
                 //raise KeyDown
                 if (s_KeyDown != null && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
-                    var keyData = (Keys)MyKeyboardHookStruct.VirtualKeyCode;
-                    var e = new KeyEventArgs(keyData);
+                    Keys keyData = (Keys)MyKeyboardHookStruct.VirtualKeyCode;
+                    KeyEventArgs e = new KeyEventArgs(keyData);
                     s_KeyDown.Invoke(null, e);
                     handled = e.Handled;
                 }
 
                 // raise KeyPress
                 if (s_KeyPress != null && wParam == WM_KEYDOWN) {
-                    var isDownShift = ((GetKeyState(VK_SHIFT) & 0x80) == 0x80 ? true : false);
-                    var isDownCapslock = (GetKeyState(VK_CAPITAL) != 0 ? true : false);
+                    bool isDownShift = ((GetKeyState(VK_SHIFT) & 0x80) == 0x80 ? true : false);
+                    bool isDownCapslock = (GetKeyState(VK_CAPITAL) != 0 ? true : false);
 
-                    var keyState = new byte[256];
+                    byte[] keyState = new byte[256];
 #pragma warning disable CA1806 // Do not ignore method results
                     GetKeyboardState(keyState);
 #pragma warning restore CA1806 // Do not ignore method results
-                    var inBuffer = new byte[2];
+                    byte[] inBuffer = new byte[2];
                     if (ToAscii(MyKeyboardHookStruct.VirtualKeyCode,
                               MyKeyboardHookStruct.ScanCode,
                               keyState,
                               inBuffer,
                               MyKeyboardHookStruct.Flags) == 1) {
-                        var key = (char)inBuffer[0];
+                        char key = (char)inBuffer[0];
                         if ((isDownCapslock ^ isDownShift) && Char.IsLetter(key)) {
                             key = Char.ToUpper(key, CultureInfo.InvariantCulture);
                         }
 
-                        var e = new KeyPressEventArgs(key);
+                        KeyPressEventArgs e = new KeyPressEventArgs(key);
                         s_KeyPress.Invoke(null, e);
                         handled = handled || e.Handled;
                     }
@@ -344,8 +344,8 @@ namespace Gma.UserActivityMonitor {
 
                 // raise KeyUp
                 if (s_KeyUp != null && (wParam == WM_KEYUP || wParam == WM_SYSKEYUP)) {
-                    var keyData = (Keys)MyKeyboardHookStruct.VirtualKeyCode;
-                    var e = new KeyEventArgs(keyData);
+                    Keys keyData = (Keys)MyKeyboardHookStruct.VirtualKeyCode;
+                    KeyEventArgs e = new KeyEventArgs(keyData);
                     s_KeyUp.Invoke(null, e);
                     handled = handled || e.Handled;
                 }
@@ -369,7 +369,7 @@ namespace Gma.UserActivityMonitor {
 
                 //install hook
                 // See https://stackoverflow.com/questions/17897646/setwindowshookex-fails-with-error-126
-                var mar = LoadLibrary("user32.dll");
+                IntPtr mar = LoadLibrary("user32.dll");
                 s_KeyboardHookHandle = SetWindowsHookEx(
                     WH_KEYBOARD_LL,
                     s_KeyboardDelegate,
@@ -379,7 +379,7 @@ namespace Gma.UserActivityMonitor {
                 //If SetWindowsHookEx fails.
                 if (s_KeyboardHookHandle == 0) {
                     //Returns the error code returned by the last unmanaged function called using platform invoke that has the DllImportAttribute.SetLastError flag set. 
-                    var errorCode = Marshal.GetLastWin32Error();
+                    int errorCode = Marshal.GetLastWin32Error();
                     //do cleanup
 
                     //Initializes and throws a new instance of the Win32Exception class with the specified error. 
@@ -400,7 +400,7 @@ namespace Gma.UserActivityMonitor {
         private static void ForceUnsunscribeFromGlobalKeyboardEvents() {
             if (s_KeyboardHookHandle != 0) {
                 //uninstall hook
-                var result = UnhookWindowsHookEx(s_KeyboardHookHandle);
+                int result = UnhookWindowsHookEx(s_KeyboardHookHandle);
                 //reset invalid handle
                 s_KeyboardHookHandle = 0;
                 //Free up for GC
@@ -408,7 +408,7 @@ namespace Gma.UserActivityMonitor {
                 //if failed and exception must be thrown
                 if (result == 0) {
                     //Returns the error code returned by the last unmanaged function called using platform invoke that has the DllImportAttribute.SetLastError flag set. 
-                    var errorCode = Marshal.GetLastWin32Error();
+                    int errorCode = Marshal.GetLastWin32Error();
                     //Initializes and throws a new instance of the Win32Exception class with the specified error. 
                     throw new Win32Exception(errorCode);
                 }

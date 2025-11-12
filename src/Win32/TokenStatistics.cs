@@ -23,7 +23,7 @@ namespace Microsoft.Win32.Security {
         public Luid _modifiedId;
 
         internal TokenStatistics(IntPtr ptr) {
-            var ts = (TOKEN_STATISTICS)Marshal.PtrToStructure(ptr, typeof(TOKEN_STATISTICS));
+            TOKEN_STATISTICS ts = (TOKEN_STATISTICS)Marshal.PtrToStructure(ptr, typeof(TOKEN_STATISTICS));
             _tokenId = new Luid(ts.TokenId);
             _authenticationId = new Luid(ts.AuthenticationId);
             _expirationTime = new DateTime(ts.ExpirationTime);

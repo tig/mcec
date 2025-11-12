@@ -10,6 +10,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Windows.Forms;
 using log4net;
 using log4net.Appender;
 using log4net.Core;
@@ -42,8 +43,8 @@ namespace MCEControl {
         public TextBoxExt LogTextBox {
             get {
                 if (log4 != null) {
-                    var hierarchy = (Hierarchy)LogManager.GetRepository();
-                    var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
+                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+                    TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     return a.LogTextBox;
                 }
                 else {
@@ -52,8 +53,8 @@ namespace MCEControl {
             }
             set {
                 if (log4 != null) {
-                    var hierarchy = (Hierarchy)LogManager.GetRepository();
-                    var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
+                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+                    TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     a.LogTextBox = value;
                     a.ActivateOptions();
                 }
@@ -63,8 +64,8 @@ namespace MCEControl {
         public Level TextBoxThreshold {
             get {
                 if (log4 != null) {
-                    var hierarchy = (Hierarchy)LogManager.GetRepository();
-                    var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
+                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+                    TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     return a.Threshold;
                 }
                 else {
@@ -73,8 +74,8 @@ namespace MCEControl {
             }
             set {
                 if (log4 != null) {
-                    var hierarchy = (Hierarchy)LogManager.GetRepository();
-                    var a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
+                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+                    TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
                     if (a != null) {
                         a.Threshold = value;
                         a.ActivateOptions();
@@ -87,8 +88,8 @@ namespace MCEControl {
         public string LogFile {
             get {
                 if (log4 != null) {
-                    var hierarchy = (Hierarchy)LogManager.GetRepository();
-                    var a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
+                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+                    RollingFileAppender a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
                     return a.File;
                 }
                 else {
@@ -97,8 +98,8 @@ namespace MCEControl {
             }
             set {
                 if (log4 != null) {
-                    var hierarchy = (Hierarchy)LogManager.GetRepository();
-                    var a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
+                    Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
+                    RollingFileAppender a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
                     a.File = value;
                     a.ActivateOptions();
                 }
@@ -113,10 +114,10 @@ namespace MCEControl {
             patternLayout.ConversionPattern = "%date %-5level - %message%newline";
             patternLayout.ActivateOptions();
 
-            var hierarchy = (Hierarchy)LogManager.GetRepository();
+            Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
 
             // Log to file
-            var roller = new RollingFileAppender {
+            RollingFileAppender roller = new RollingFileAppender {
                 Name = "File",
                 AppendToFile = true,
                 Layout = patternLayout,
@@ -129,7 +130,7 @@ namespace MCEControl {
             roller.ActivateOptions();
             hierarchy.Root.AddAppender(roller);
 
-            var textbox = new TextBoxAppender {
+            TextBoxAppender textbox = new TextBoxAppender {
                 Name = "TextBox",
                 Layout = patternLayout,
                 LogTextBox = LogTextBox,
@@ -139,7 +140,7 @@ namespace MCEControl {
             hierarchy.Root.AddAppender(textbox);
 
             // Log to console
-            var debugAppender = new ConsoleAppender {
+            ConsoleAppender debugAppender = new ConsoleAppender {
                 Name = "Console",
                 Layout = patternLayout
             };
@@ -187,8 +188,8 @@ namespace MCEControl {
                 return aex.InnerExceptions.Aggregate("[ ", (total, next) => $"{total}[{next.FullMessage()}] ") + "]";
             }
 
-            var msg = ex.Message.Replace(", see inner exception.", "").Trim();
-            var innerMsg = ex.InnerException?.FullMessage();
+            string msg = ex.Message.Replace(", see inner exception.", "").Trim();
+            string innerMsg = ex.InnerException?.FullMessage();
             if (innerMsg is object && innerMsg != msg) {
                 msg = $"{msg} \n[ {innerMsg} ]";
             }
@@ -214,7 +215,7 @@ namespace MCEControl {
                 value.MaxLength = 256 * 1024;
 
                 value.TextChanged += new System.EventHandler(this.LogTextChanged);
-                var frm = value.FindForm();
+                Form frm = value.FindForm();
                 if (frm != null) {
                     frm.FormClosed += delegate { Close(); };
                 }
@@ -230,7 +231,7 @@ namespace MCEControl {
                     logTextBox = null;
                 }
 
-                var hierarchy = (Hierarchy)LogManager.GetRepository();
+                Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
                 hierarchy.Root.RemoveAppender(this);
             }
             catch {

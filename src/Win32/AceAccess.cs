@@ -15,7 +15,7 @@ namespace Microsoft.Win32.Security {
         internal AceAccess(MemoryMarshaler m, bool allowed) {
             _allowed = allowed;
 
-            var ace = (ACCESS_ALLOWED_ACE)m.ParseStruct(typeof(ACCESS_ALLOWED_ACE), false);
+            ACCESS_ALLOWED_ACE ace = (ACCESS_ALLOWED_ACE)m.ParseStruct(typeof(ACCESS_ALLOWED_ACE), false);
             m.Advance(OffsetOfSid());
             BaseInit(ace.Header, (AccessType)ace.Mask, new Sid(m.Ptr));
         }
@@ -35,7 +35,7 @@ namespace Microsoft.Win32.Security {
         public override byte[] GetNativeACE() {
             CheckInvariant();
 
-            var aceBytes = new byte[this.Size];
+            byte[] aceBytes = new byte[this.Size];
 
             // First copy the ACE structure
             UnsafeCopyAceToNativeArray(aceBytes);

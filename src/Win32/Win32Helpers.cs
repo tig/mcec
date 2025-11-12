@@ -25,13 +25,13 @@ namespace Microsoft.Win32.Security {
             sacl = null;
             secDesc = null;
 
-            var ptrOwnerSid = IntPtr.Zero;
-            var ptrGroupSid = IntPtr.Zero;
-            var ptrDacl = IntPtr.Zero;
-            var ptrSacl = IntPtr.Zero;
-            var ptrSecDesc = IntPtr.Zero;
+            IntPtr ptrOwnerSid = IntPtr.Zero;
+            IntPtr ptrGroupSid = IntPtr.Zero;
+            IntPtr ptrDacl = IntPtr.Zero;
+            IntPtr ptrSacl = IntPtr.Zero;
+            IntPtr ptrSecDesc = IntPtr.Zero;
 
-            var rc = Win32.GetSecurityInfo(handle, objectType, securityInfo,
+            uint rc = Win32.GetSecurityInfo(handle, objectType, securityInfo,
                 ref ptrOwnerSid, ref ptrGroupSid, ref ptrDacl, ref ptrSacl, ref ptrSecDesc);
 
             if (rc != Win32.ERROR_SUCCESS) {
@@ -83,13 +83,13 @@ namespace Microsoft.Win32.Security {
             sacl = null;
             secDesc = null;
 
-            var ptrOwnerSid = IntPtr.Zero;
-            var ptrGroupSid = IntPtr.Zero;
-            var ptrDacl = IntPtr.Zero;
-            var ptrSacl = IntPtr.Zero;
-            var ptrSecDesc = IntPtr.Zero;
+            IntPtr ptrOwnerSid = IntPtr.Zero;
+            IntPtr ptrGroupSid = IntPtr.Zero;
+            IntPtr ptrDacl = IntPtr.Zero;
+            IntPtr ptrSacl = IntPtr.Zero;
+            IntPtr ptrSecDesc = IntPtr.Zero;
 
-            var rc = Win32.GetNamedSecurityInfo(objectName, objectType, securityInfo,
+            uint rc = Win32.GetNamedSecurityInfo(objectName, objectType, securityInfo,
                 ref ptrOwnerSid, ref ptrGroupSid, ref ptrDacl, ref ptrSacl, ref ptrSecDesc);
 
             if (rc != Win32.ERROR_SUCCESS) {
@@ -160,7 +160,7 @@ namespace Microsoft.Win32.Security {
                 fixed (byte* pSidGroup = (sidGroup != null ? sidGroup.GetNativeSID() : null)) {
                     fixed (byte* pDacl = (dacl != null ? dacl.GetNativeACL() : null)) {
                         fixed (byte* pSacl = (sacl != null ? sacl.GetNativeACL() : null)) {
-                            var rc = Win32.SetSecurityInfo(handle, ObjectType, SecurityInfo,
+                            uint rc = Win32.SetSecurityInfo(handle, ObjectType, SecurityInfo,
                                 (IntPtr)pSidOwner, (IntPtr)pSidGroup, (IntPtr)pDacl, (IntPtr)pSacl);
                             if (rc != Win32.ERROR_SUCCESS) {
                                 Win32.SetLastError(rc);
@@ -183,7 +183,7 @@ namespace Microsoft.Win32.Security {
                 fixed (byte* pSidGroup = (sidGroup != null ? sidGroup.GetNativeSID() : null)) {
                     fixed (byte* pDacl = (dacl != null ? dacl.GetNativeACL() : null)) {
                         fixed (byte* pSacl = (sacl != null ? sacl.GetNativeACL() : null)) {
-                            var rc = Win32.SetNamedSecurityInfo(objectName, objectType, securityInfo,
+                            uint rc = Win32.SetNamedSecurityInfo(objectName, objectType, securityInfo,
                                 (IntPtr)pSidOwner, (IntPtr)pSidGroup, (IntPtr)pDacl, (IntPtr)pSacl);
                             if (rc != Win32.ERROR_SUCCESS) {
                                 Win32.SetLastError(rc);

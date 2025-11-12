@@ -47,7 +47,7 @@ namespace MCEControl {
 
             textBoxSendCommand.Select();
             Task.Run(() => {
-                foreach (var line in textBoxSendCommand.Lines) {
+                foreach (string line in textBoxSendCommand.Lines) {
                     Send(line);
                 }
             });
@@ -81,11 +81,11 @@ namespace MCEControl {
 
         public void RefreshList() {
             listCmds.Items.Clear();
-            var orderedCmds = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
-            foreach (var command in orderedCmds) {
-                var cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(command.ToLowerInvariant(), StringComparison.Ordinal));
-                var item = new ListViewItem(cmd.Cmd);
-                var match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
+            IOrderedEnumerable<string> orderedCmds = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
+            foreach (string command in orderedCmds) {
+                Command cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(command.ToLowerInvariant(), StringComparison.Ordinal));
+                ListViewItem item = new ListViewItem(cmd.Cmd);
+                Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                 item.SubItems.Add(match.Groups[1].Value);
                 item.SubItems.Add(cmd.ToString());
                 item.Checked = cmd.Enabled;
@@ -102,7 +102,7 @@ namespace MCEControl {
         }
 
         private void listCmds_ItemChecked(object sender, ItemCheckedEventArgs e) {
-            var cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(e.Item.SubItems[0].Text.ToLowerInvariant(), StringComparison.Ordinal));
+            Command cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(e.Item.SubItems[0].Text.ToLowerInvariant(), StringComparison.Ordinal));
             cmd.Enabled = e.Item.Checked;
             saveChangesBtn.Enabled = true;
         }

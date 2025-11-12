@@ -53,9 +53,9 @@ namespace MCEControl {
 
             try {
                 if (!string.IsNullOrEmpty(AppName)) {
-                    var procs = Process.GetProcessesByName(AppName);
+                    Process[] procs = Process.GetProcessesByName(AppName);
                     if (procs.Length > 0) {
-                        var process = procs.Where(p => p.MainWindowHandle != IntPtr.Zero).FirstOrDefault();
+                        Process process = procs.Where(p => p.MainWindowHandle != IntPtr.Zero).FirstOrDefault();
 
                         Logger.Instance.Log4.Info($"{this.GetType().Name}: SetForegroundWindow({ClassName})");
                         Win32.SetForegroundWindow(process.MainWindowHandle);

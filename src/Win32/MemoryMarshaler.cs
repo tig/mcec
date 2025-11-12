@@ -13,7 +13,7 @@ namespace Microsoft.Win32.Security {
         }
 
         public void Advance(int cbLength) {
-            var p = _ptr.ToInt64();
+            long p = _ptr.ToInt64();
             p += cbLength;
             _ptr = (IntPtr)p;
         }
@@ -21,7 +21,7 @@ namespace Microsoft.Win32.Security {
             return ParseStruct(type, true);
         }
         public object ParseStruct(System.Type type, bool moveOffset) {
-            var o = Marshal.PtrToStructure(_ptr, type);
+            object o = Marshal.PtrToStructure(_ptr, type);
             if (moveOffset) {
                 Advance(Marshal.SizeOf(type));
             }

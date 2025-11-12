@@ -79,7 +79,7 @@ namespace MCEControl {
                 else {
                     // Is this a legacy load? If so, enable all commands and warn user
                     if (string.IsNullOrEmpty(cmds.Version)) {
-                        var msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\nDisable any commands that are not used using the Commands window.";
+                        string msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\nDisable any commands that are not used using the Commands window.";
                         MessageBox.Show(msg, Application.ProductName);
                         Logger.Instance.Log4.Info($"SerializedCommands: {msg}");
                         cmds.Version = currentVersion;
@@ -97,7 +97,7 @@ namespace MCEControl {
                 Logger.Instance.Log4.Error($"SerializedCommands: {userCommandsFile} was not found");
             }
             catch (Exception ex) {
-                var msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
+                string msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
                 MessageBox.Show(msg, currentVersion);
                 Logger.Instance.Log4.Error($"SerializedCommands: {msg}");
                 Logger.DumpException(ex);
@@ -129,9 +129,9 @@ namespace MCEControl {
             }
             catch (Exception e) {
                 // TODO: Move MessageBox out of here into MainWindow
-                var msg = $"Could not create commands file ({userCommandsFile}) - {e.Message}.\n\n" +
-                    $"See log file for details: {Logger.Instance.LogFile}\n\n" +
-                    $"For help, open an issue at github.com/tig/mcec";
+                string msg = $"Could not create commands file ({userCommandsFile}) - {e.Message}.\n\n" +
+                             $"See log file for details: {Logger.Instance.LogFile}\n\n" +
+                             $"For help, open an issue at github.com/tig/mcec";
                 MessageBox.Show(msg, Application.ProductName);
                 Logger.Instance.Log4.Error($"SerializedCommands: {msg}");
                 Logger.DumpException(e);
@@ -161,9 +161,9 @@ namespace MCEControl {
                 xmlReader = new XmlTextReader(xmlStream);
                 xsltReader = new XmlTextReader(
                     Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.xslt"));
-                var myXslTrans = new XslCompiledTransform();
+                XslCompiledTransform myXslTrans = new XslCompiledTransform();
                 myXslTrans.Load(xsltReader);
-                var stm = new MemoryStream();
+                MemoryStream stm = new MemoryStream();
                 lcWriter = XmlWriter.Create(stm, new XmlWriterSettings() { Indent = false, OmitXmlDeclaration = false });
                 myXslTrans.Transform(xmlReader, null, lcWriter);
                 stm.Position = 0;

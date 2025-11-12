@@ -1,4 +1,4 @@
-namespace Microsoft.Win32.Security {
+﻿namespace Microsoft.Win32.Security {
     using Win32Structs;
 
     /// <summary>
@@ -9,7 +9,7 @@ namespace Microsoft.Win32.Security {
         private GroupAttributes _attributes;
 
         internal TokenGroup(MemoryMarshaler m) {
-            var sa = (SID_AND_ATTRIBUTES)m.ParseStruct(typeof(SID_AND_ATTRIBUTES));
+            SID_AND_ATTRIBUTES sa = (SID_AND_ATTRIBUTES)m.ParseStruct(typeof(SID_AND_ATTRIBUTES));
             _sid = new Sid(sa.Sid);
             _attributes = (GroupAttributes)sa.Attributes;
         }

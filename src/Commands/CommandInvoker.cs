@@ -33,7 +33,7 @@ namespace MCEControl {
         /// </summary>
         /// <returns></returns>
         private static CommandInvoker CreateBuiltIns(bool disableInternalCommands = false) {
-            var commands = new CommandInvoker();
+            CommandInvoker commands = new CommandInvoker();
 
             // Add the built-ins that are defiend in the `Command`-derived classes
             // SECURITY: Note, by default `Enabled` is set to `false` for all of these.
@@ -41,11 +41,11 @@ namespace MCEControl {
                 return commands;
 
             // Add the built-ins defined in the Command-derived classes
-            foreach (var cmdType in Command.GetDerivedClassesCollection()) {
-                var propertyInfo = cmdType.GetType().GetProperty("BuiltInCommands", BindingFlags.Public | BindingFlags.Static);
+            foreach (Command cmdType in Command.GetDerivedClassesCollection()) {
+                PropertyInfo propertyInfo = cmdType.GetType().GetProperty("BuiltInCommands", BindingFlags.Public | BindingFlags.Static);
                 if (propertyInfo != null) {
                     // Use the PropertyInfo to retrieve the value from the type by not passing in an instance
-                    foreach (var builtinCmd in (List<Command>)propertyInfo.GetValue(null, null)) {
+                    foreach (Command builtinCmd in (List<Command>)propertyInfo.GetValue(null, null)) {
                         commands.Add(builtinCmd);
                     }
                 }
@@ -64,12 +64,12 @@ namespace MCEControl {
             SerializedCommands serializedCmds;
 
             commands = CreateBuiltIns(disableInternalCommands);
-            var nBuiltIn = commands.Count;
+            int nBuiltIn = commands.Count;
 
             // Load external .commands file. 
             serializedCmds = SerializedCommands.LoadCommands(userCommandsFile, currentVersion);
             if (serializedCmds != null && serializedCmds.commandArray != null) {
-                foreach (var cmd in serializedCmds.commandArray) {
+                foreach (Command cmd in serializedCmds.commandArray) {
                     if (!string.IsNullOrWhiteSpace(cmd.Cmd)) {
                         // TELEMETRY: Mark user defined commands as such so they don't get collected
                         if (!commands.ContainsKey(cmd.Cmd)) {
@@ -110,9 +110,9 @@ namespace MCEControl {
 
         internal void Save(string userCommandsFile) {
             Logger.Instance.Log4.Info($@"{GetType().Name}: Saving {Program.ConfigPath}MCEControl.commands...");
-            var sc = new SerializedCommands();
+            SerializedCommands sc = new SerializedCommands();
 
-            var values = Values.Cast<Command>().ToArray();
+            Command[] values = Values.Cast<Command>().ToArray();
 
             // Sort 
             sc.commandArray = values.OrderBy(c => c.Cmd).ToArray();
@@ -147,12 +147,12 @@ namespace MCEControl {
             }
 
             string cmd;
-            var args = "";
+            string args = "";
 
             // parse cmd and args (eg. char vs "shutdown" vs "mouse:<action>[,<parameter>,<parameter>]"
             // and "mouse:<action>[,<parameter>,<parameter>]"
             // These commands are handled internally as Cmd="cmd:" Args="<args>"
-            var match = Regex.Match(cmdString, @"(\w+:)(.+)");
+            Match match = Regex.Match(cmdString, @"(\w+:)(.+)");
             if (match.Success) {
                 cmd = match.Groups[1].Value;
                 args = match.Groups[2].Value;
@@ -169,14 +169,14 @@ namespace MCEControl {
                 // For example sending a will result in the A key being pressed. 
                 // 1 will result in the 1 key being pressed. There is no difference between sending a and A. 
                 // Use shiftdown:/shiftup: to simulate the pressing of the shift, control, alt, and windows keys.
-                var siCmd = new SendInputCommand() { Vk = cmdString, Enabled = true, Reply = reply };
+                SendInputCommand siCmd = new SendInputCommand() { Vk = cmdString, Enabled = true, Reply = reply };
                 executeQueue.Enqueue(siCmd);
             }
             else {
                 // See if we know about this Command - case insensitive
                 if (this[cmd.ToLowerInvariant()] != null) {
                     // Always create a clone for enqueing (so Reply context can be independent)
-                    var clone = (Command)((Command)this[cmd.ToLowerInvariant()]).Clone(reply);
+                    Command clone = (Command)((Command)this[cmd.ToLowerInvariant()]).Clone(reply);
 
                     // This supports commands of the form 'chars:args'; these
                     // commands do not need to originate in CommandTable
@@ -202,7 +202,7 @@ namespace MCEControl {
                 return;
             }
 
-            foreach (var embedded in ((Command)cmd).EmbeddedCommands) {
+            foreach (Command embedded in ((Command)cmd).EmbeddedCommands) {
                 EnqueueCommand(embedded);
             }
         }
@@ -214,7 +214,7 @@ namespace MCEControl {
         internal void ExecuteNext() {
             // TODO: This is simple and just dequeues and executes anything on the queue
             // needs to be smarter? Will this block incoming?
-            while (executeQueue.TryDequeue(out var icmd)) {
+            while (executeQueue.TryDequeue(out ICommand icmd)) {
                 ((Command)icmd).Execute();
                 System.Threading.Thread.Sleep(MainWindow.Instance.Settings.CommandPacing);
             }

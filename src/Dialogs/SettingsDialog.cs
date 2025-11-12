@@ -1017,7 +1017,7 @@ namespace MCEControl {
 
         private void SettingsChanged() {
             if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked) {
-                if (!int.TryParse(_editWakeupPort.Text, out var port)) {
+                if (!int.TryParse(_editWakeupPort.Text, out int port)) {
                     port = 0;
                 }
 
@@ -1029,7 +1029,7 @@ namespace MCEControl {
             }
 
             if (_checkBoxEnableClient.Checked) {
-                if (!int.TryParse(_editClientPort.Text, out var port)) {
+                if (!int.TryParse(_editClientPort.Text, out int port)) {
                     port = 0;
                 }
 
@@ -1039,7 +1039,7 @@ namespace MCEControl {
             }
 
             if (_checkBoxEnableActivityMonitor.Checked) {
-                if (!int.TryParse(_textBoxDebounceTime.Text, out var t)) {
+                if (!int.TryParse(_textBoxDebounceTime.Text, out int t)) {
                     t = 0;
                 }
 
@@ -1090,7 +1090,7 @@ namespace MCEControl {
         }
 
         private void EditServerPortTextChanged(object sender, EventArgs e) {
-            if (int.TryParse(_editServerPort.Text, out var port)) {
+            if (int.TryParse(_editServerPort.Text, out int port)) {
                 Settings.ServerPort = port;
             }
 
@@ -1109,7 +1109,7 @@ namespace MCEControl {
         }
 
         private void EditWakeupPortTextChanged(object sender, EventArgs e) {
-            if (int.TryParse(_editWakeupPort.Text, out var port)) {
+            if (int.TryParse(_editWakeupPort.Text, out int port)) {
                 Settings.WakeupPort = port;
             }
 
@@ -1134,7 +1134,7 @@ namespace MCEControl {
         }
 
         private void EditClientPortTextChanged(object sender, EventArgs e) {
-            if (int.TryParse(_editClientPort.Text, out var port)) {
+            if (int.TryParse(_editClientPort.Text, out int port)) {
                 Settings.ClientPort = port;
             }
 
@@ -1170,7 +1170,7 @@ namespace MCEControl {
         }
 
         private void ComboBoxBaudRateSelectedIndexChanged(object sender, EventArgs e) {
-            if (int.TryParse(_comboBoxBaudRate.SelectedItem.ToString(), out var baud)) {
+            if (int.TryParse(_comboBoxBaudRate.SelectedItem.ToString(), out int baud)) {
                 Settings.SerialServerBaudRate = baud;
             }
 
@@ -1185,7 +1185,7 @@ namespace MCEControl {
         }
 
         private void ComboBoxDataBitsSelectedIndexChanged(object sender, EventArgs e) {
-            if (int.TryParse(_comboBoxDataBits.SelectedItem.ToString(), out var bits)) {
+            if (int.TryParse(_comboBoxDataBits.SelectedItem.ToString(), out int bits)) {
                 Settings.SerialServerDataBits = bits;
             }
 
@@ -1222,7 +1222,7 @@ namespace MCEControl {
         }
 
         private void textBoxDebounceTime_TextChanged(object sender, EventArgs e) {
-            if (int.TryParse(_textBoxDebounceTime.Text, out var t)) {
+            if (int.TryParse(_textBoxDebounceTime.Text, out int t)) {
                 Settings.ActivityMonitorDebounceTime = t;
             }
 
@@ -1257,7 +1257,7 @@ namespace MCEControl {
         }
 
         private void textBoxPacing_TextChanged(object sender, EventArgs e) {
-            if (int.TryParse(_textBoxPacing.Text, out var t)) {
+            if (int.TryParse(_textBoxPacing.Text, out int t)) {
                 Settings.CommandPacing = t;
             }
 

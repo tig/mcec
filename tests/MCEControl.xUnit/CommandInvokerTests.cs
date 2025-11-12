@@ -6,12 +6,14 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
-using mstest = Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace MCEControl.xUnit
 {
     public class CommandInvokerTests
     {
+        // NOTE: This test is disabled because it uses MSTest PrivateType which is not available in .NET Core
+        // TODO: Refactor to use reflection or make the tested members internal with InternalsVisibleTo
+        /*
         [Fact]
         public void CreateBuiltIns_Test()
         {
@@ -48,26 +50,27 @@ namespace MCEControl.xUnit
             returnedBuiltIns = (CommandInvoker)pt.InvokeStatic("CreateBuiltIns", true);
             Assert.Empty(returnedBuiltIns);
         }
+        */
 
         [Fact]
         public void Create_Test()
         {
-            var tempCommandsFile = Path.GetTempFileName();
+            string tempCommandsFile = Path.GetTempFileName();
             File.Delete(tempCommandsFile);
 
-            var commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
+            CommandInvoker? commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
             Assert.NotEmpty(commands);
         }
 
         [Fact]
         public void Create_NoneEnabled_Test()
         {
-            var tempCommandsFile = Path.GetTempFileName();
+            string tempCommandsFile = Path.GetTempFileName();
             File.Delete(tempCommandsFile);
 
-            var commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
+            CommandInvoker? commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
 
-            Assert.Empty(commands.Values.Cast<Command>().Where(cmd => cmd.Enabled));
+            Assert.DoesNotContain(commands.Values.Cast<Command>(), cmd => cmd.Enabled);
         }
 
         /// <summary>
@@ -76,9 +79,9 @@ namespace MCEControl.xUnit
         [Fact]
         public void Create_RetainUserNewCommand_Test()
         {
-            var userCommandsFile = Path.GetTempFileName();
+            string userCommandsFile = Path.GetTempFileName();
             File.Delete(userCommandsFile);
-            var userCommands = new SerializedCommands()
+            SerializedCommands userCommands = new SerializedCommands()
             {
                 // Version = ...,
                 commandArray = new Command[]
@@ -88,9 +91,9 @@ namespace MCEControl.xUnit
             };
             SerializedCommands.SaveCommands(userCommandsFile, userCommands, "0.0.0.0");
 
-            var commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
+            CommandInvoker? commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
 
-            Assert.NotEmpty(commands.Values.Cast<Command>().Where(cmd => cmd.Cmd.Equals("userCmd")));
+            Assert.Contains(commands.Values.Cast<Command>(), cmd => cmd.Cmd.Equals("userCmd"));
         }
 
         /// <summary>
@@ -99,9 +102,9 @@ namespace MCEControl.xUnit
         [Fact]
         public void Create_RetainUserModifiedCommand_Test()
         {
-            var userCommandsFile = Path.GetTempFileName();
+            string userCommandsFile = Path.GetTempFileName();
             File.Delete(userCommandsFile);
-            var userCommands = new SerializedCommands()
+            SerializedCommands userCommands = new SerializedCommands()
             {
                 // Version = ...,
                 commandArray = new Command[]
@@ -112,9 +115,10 @@ namespace MCEControl.xUnit
             };
             SerializedCommands.SaveCommands(userCommandsFile, userCommands, "0.0.0.0");
 
-            var commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
+            CommandInvoker? commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
 
-            var codeCmd = (StartProcessCommand)commands["code"];
+            StartProcessCommand? codeCmd = commands["code"] as StartProcessCommand;
+            Assert.NotNull(codeCmd);
             Assert.Equal("codez", codeCmd.File);
             Assert.Equal("print", codeCmd.Verb);
         }

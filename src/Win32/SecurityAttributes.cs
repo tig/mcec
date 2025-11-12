@@ -21,7 +21,7 @@ namespace Microsoft.Win32.Security {
                 throw new ArgumentException("Can't parse a NULL struct", "pSecAttr");
             }
 
-            var attrs = (SECURITY_ATTRIBUTES)
+            SECURITY_ATTRIBUTES attrs = (SECURITY_ATTRIBUTES)
                 new MemoryMarshaler(pSecAttr).ParseStruct(typeof(SECURITY_ATTRIBUTES));
 
             _inheritHandles = Win32.ToBool(attrs.bInheritHandle);
@@ -38,7 +38,7 @@ namespace Microsoft.Win32.Security {
         // Only called from the custom marshaler
         //
         internal SECURITY_ATTRIBUTES GetSECURITY_ATTRIBUTES() {
-            var attrs = new SECURITY_ATTRIBUTES();
+            SECURITY_ATTRIBUTES attrs = new SECURITY_ATTRIBUTES();
             attrs.nLength = (uint)SECURITY_ATTRIBUTES.SizeOf; ;
             attrs.bInheritHandle = (_inheritHandles ? Win32.TRUE : Win32.FALSE);
             attrs.lpSecurityDescriptor = (_secDesc == null ? IntPtr.Zero : _secDesc.Ptr);

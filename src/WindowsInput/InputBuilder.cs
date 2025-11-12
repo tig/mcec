@@ -66,7 +66,7 @@ namespace WindowsInput {
         /// <param name="keyCode">The <see cref="VirtualKeyCode"/>.</param>
         /// <returns>This <see cref="InputBuilder"/> instance.</returns>
         public InputBuilder AddKeyDown(VirtualKeyCode keyCode) {
-            var down = new INPUT();
+            INPUT down = new INPUT();
             down.Type = (UInt32)InputType.Keyboard;
             down.Data.Keyboard = new KEYBDINPUT();
             down.Data.Keyboard.KeyCode = (UInt16)keyCode;
@@ -85,7 +85,7 @@ namespace WindowsInput {
         /// <param name="keyCode">The <see cref="VirtualKeyCode"/>.</param>
         /// <returns>This <see cref="InputBuilder"/> instance.</returns>
         public InputBuilder AddKeyUp(VirtualKeyCode keyCode) {
-            var up = new INPUT();
+            INPUT up = new INPUT();
             up.Type = (UInt32)InputType.Keyboard;
             up.Data.Keyboard = new KEYBDINPUT();
             up.Data.Keyboard.KeyCode = (UInt16)keyCode;
@@ -117,7 +117,7 @@ namespace WindowsInput {
         public InputBuilder AddCharacter(char character) {
             UInt16 scanCode = character;
 
-            var down = new INPUT();
+            INPUT down = new INPUT();
             down.Type = (UInt32)InputType.Keyboard;
             down.Data.Keyboard = new KEYBDINPUT();
             down.Data.Keyboard.KeyCode = 0;
@@ -126,7 +126,7 @@ namespace WindowsInput {
             down.Data.Keyboard.Time = 0;
             down.Data.Keyboard.ExtraInfo = IntPtr.Zero;
 
-            var up = new INPUT();
+            INPUT up = new INPUT();
             up.Type = (UInt32)InputType.Keyboard;
             up.Data.Keyboard = new KEYBDINPUT();
             up.Data.Keyboard.KeyCode = 0;
@@ -154,7 +154,7 @@ namespace WindowsInput {
         /// <param name="characters">The characters to add.</param>
         /// <returns>This <see cref="InputBuilder"/> instance.</returns>
         public InputBuilder AddCharacters(IEnumerable<char> characters) {
-            foreach (var character in characters) {
+            foreach (char character in characters) {
                 AddCharacter(character);
             }
             return this;
@@ -172,7 +172,7 @@ namespace WindowsInput {
         #region Mouse
 
         public InputBuilder AddRelativeMouseMovement(int x, int y) {
-            var movement = new INPUT();
+            INPUT movement = new INPUT();
             movement.Type = (UInt32)InputType.Mouse;
             movement.Data.Mouse.Flags = (UInt32)MouseFlag.Move;
             movement.Data.Mouse.X = x;
@@ -184,7 +184,7 @@ namespace WindowsInput {
         }
 
         public InputBuilder AddAbsoluteMouseMovement(int absoluteX, int absoluteY) {
-            var movement = new INPUT();
+            INPUT movement = new INPUT();
             movement.Type = (UInt32)InputType.Mouse;
             movement.Data.Mouse.Flags = (UInt32)(MouseFlag.Move | MouseFlag.Absolute);
             movement.Data.Mouse.X = absoluteX;
@@ -196,7 +196,7 @@ namespace WindowsInput {
         }
 
         public InputBuilder AddAbsoluteMouseMovementOnVirtualDesktop(int absoluteX, int absoluteY) {
-            var movement = new INPUT();
+            INPUT movement = new INPUT();
             movement.Type = (UInt32)InputType.Mouse;
             movement.Data.Mouse.Flags = (UInt32)(MouseFlag.Move | MouseFlag.Absolute | MouseFlag.VirtualDesk);
             movement.Data.Mouse.X = absoluteX;
@@ -208,7 +208,7 @@ namespace WindowsInput {
         }
 
         public InputBuilder AddMouseButtonDown(MouseButton button) {
-            var buttonDown = new INPUT();
+            INPUT buttonDown = new INPUT();
             buttonDown.Type = (UInt32)InputType.Mouse;
             buttonDown.Data.Mouse.Flags = (UInt32)button.ToMouseButtonDownFlag();
 
@@ -218,7 +218,7 @@ namespace WindowsInput {
         }
 
         public InputBuilder AddMouseXButtonDown(int xButtonId) {
-            var buttonDown = new INPUT();
+            INPUT buttonDown = new INPUT();
             buttonDown.Type = (UInt32)InputType.Mouse;
             buttonDown.Data.Mouse.Flags = (UInt32)MouseFlag.XDown;
             buttonDown.Data.Mouse.MouseData = (UInt32)xButtonId;
@@ -228,7 +228,7 @@ namespace WindowsInput {
         }
 
         public InputBuilder AddMouseButtonUp(MouseButton button) {
-            var buttonUp = new INPUT();
+            INPUT buttonUp = new INPUT();
             buttonUp.Type = (UInt32)InputType.Mouse;
             buttonUp.Data.Mouse.Flags = (UInt32)button.ToMouseButtonUpFlag();
             _inputList.Add(buttonUp);
@@ -237,7 +237,7 @@ namespace WindowsInput {
         }
 
         public InputBuilder AddMouseXButtonUp(int xButtonId) {
-            var buttonUp = new INPUT();
+            INPUT buttonUp = new INPUT();
             buttonUp.Type = (UInt32)InputType.Mouse;
             buttonUp.Data.Mouse.Flags = (UInt32)MouseFlag.XUp;
             buttonUp.Data.Mouse.MouseData = (UInt32)xButtonId;
@@ -263,7 +263,7 @@ namespace WindowsInput {
         }
 
         public InputBuilder AddMouseVerticalWheelScroll(int scrollAmount) {
-            var scroll = new INPUT();
+            INPUT scroll = new INPUT();
             scroll.Type = (UInt32)InputType.Mouse;
             scroll.Data.Mouse.Flags = (UInt32)MouseFlag.VerticalWheel;
             scroll.Data.Mouse.MouseData = (UInt32)scrollAmount;
@@ -274,7 +274,7 @@ namespace WindowsInput {
         }
 
         public InputBuilder AddMouseHorizontalWheelScroll(int scrollAmount) {
-            var scroll = new INPUT();
+            INPUT scroll = new INPUT();
             scroll.Type = (UInt32)InputType.Mouse;
             scroll.Data.Mouse.Flags = (UInt32)MouseFlag.HorizontalWheel;
             scroll.Data.Mouse.MouseData = (UInt32)scrollAmount;

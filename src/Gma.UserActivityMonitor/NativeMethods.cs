@@ -15,7 +15,7 @@ namespace Gma.UserActivityMonitor {
         internal static extern IntPtr RegisterPowerSettingNotification(IntPtr hRecipient, ref Guid PowerSettingGuid, Int32 Flags);
 
         [DllImport(@"User32", EntryPoint = "UnregisterPowerSettingNotification", CallingConvention = CallingConvention.StdCall)]
-        internal static extern bool UnregisterPowerSettingNotification(IntPtr handle);
+        internal static extern bool UnregisterPowerSettingNotification(IntPtr? handle);
 
         #region WM_POWERBROADCAST constants
         //values from Winuser.h in Microsoft SDK.

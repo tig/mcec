@@ -13,6 +13,7 @@ using System.IO;
 using System.IO.Ports;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace MCEControl {
     /// <summary>
@@ -30,12 +31,17 @@ namespace MCEControl {
 
         private Thread _readThread;
         private SerialPort _serialPort;
+        private CancellationTokenSource _readCancellationTokenSource;
 
         private void Dispose(bool disposing) {
             if (disposing) {
                 _serialPort?.Close();
                 _serialPort = null;
-                _readThread?.Abort();
+                if (_readCancellationTokenSource != null) {
+                    _readCancellationTokenSource.Cancel();
+                    _readCancellationTokenSource.Dispose();
+                    _readCancellationTokenSource = null;
+                }
                 _readThread = null;
             }
         }
@@ -67,7 +73,8 @@ namespace MCEControl {
                 SetStatus(ServiceStatus.Started, GetSettingsDisplayString());
                 _serialPort.Open();
 
-                _readThread = new Thread(Read);
+                _readCancellationTokenSource = new CancellationTokenSource();
+                _readThread = new Thread(() => Read(_readCancellationTokenSource.Token));
                 _readThread.Start();
                 SetStatus(ServiceStatus.Waiting);
             }
@@ -98,7 +105,7 @@ namespace MCEControl {
                 return "";
             }
 
-            var p = "";
+            string p = "";
             switch (_serialPort.Parity) {
                 case Parity.Space:
                     p = "S";
@@ -114,7 +121,7 @@ namespace MCEControl {
                     break;
             }
 
-            var sbits = "";
+            string sbits = "";
             switch (_serialPort.StopBits) {
                 case StopBits.OnePointFive:
                     sbits = "1.5";
@@ -127,7 +134,7 @@ namespace MCEControl {
                     break;
             }
 
-            var hand = "";
+            string hand = "";
             switch (_serialPort.Handshake) {
                 case Handshake.RequestToSend:
                     hand = "Hardware";
@@ -146,18 +153,19 @@ namespace MCEControl {
             return $"{_serialPort.PortName} {_serialPort.BaudRate} baud {p}{_serialPort.DataBits}{sbits} {hand}";
         }
 
-        private void Read() {
+        // Update Read method to accept a CancellationToken
+        private void Read(CancellationToken cancellationToken) {
             Log4.Debug($"Serial Read thread starting: {GetSettingsDisplayString()}");
-            var sb = new StringBuilder();
-            while (true) {
+            StringBuilder sb = new StringBuilder();
+            while (!cancellationToken.IsCancellationRequested) {
                 try {
                     if (_serialPort == null) {
                         Log4.Debug("_serialPort is null in Read()");
                         break;
                     }
-                    var c = (char)_serialPort.ReadChar();
+                    char c = (char)_serialPort.ReadChar();
                     if (c == '\r' || c == '\n' || c == '\0') {
-                        var cmd = sb.ToString();
+                        string cmd = sb.ToString();
                         sb.Length = 0;
                         if (cmd.Length > 0) {
                             SendNotification(ServiceNotification.ReceivedData,

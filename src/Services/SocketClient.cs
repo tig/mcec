@@ -68,7 +68,7 @@ namespace MCEControl {
         }
 
         public void Start(bool delay = false) {
-            var currentCmd = new StringBuilder();
+            StringBuilder currentCmd = new StringBuilder();
             _tcpClient = new TcpClient();
             _bw = new BackgroundWorker {
                 WorkerReportsProgress = false,
@@ -113,7 +113,7 @@ namespace MCEControl {
             }
 
             try {
-                var buf = System.Text.ASCIIEncoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
+                byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
                 _tcpClient.GetStream().Write(buf, 0, buf.Length);
             }
             catch (IOException ioe) {
@@ -133,7 +133,7 @@ namespace MCEControl {
                 if (!IPAddress.TryParse(_host, out hostIp)) {
                     // GetHostEntry returns a list. We need to pick the IPv4 entry.
                     // TODO: Support ipv6
-                    var ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
+                    IPAddress[] ipv4Addresses = Array.FindAll(Dns.GetHostEntry(_host).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork);
                     Log4.Debug($"SocketClient: {ipv4Addresses.Length} IP v4 addresses found");
 
                     if (ipv4Addresses.Length == 0) {
@@ -166,14 +166,14 @@ namespace MCEControl {
                         _tcpClient.EndConnect(ar);
                         Log4.Debug($"SocketClient: Back from EndConnect: {_host}:{_port}");
                         SetStatus(ServiceStatus.Connected, $"{_host}:{_port}");
-                        var sb = new StringBuilder();
+                        StringBuilder sb = new StringBuilder();
                         while (_bw != null &&
                             !_bw.CancellationPending &&
                             CurrentStatus == ServiceStatus.Connected &&
                             _tcpClient != null &&
                             _tcpClient.Connected) {
                             // TODO: Move exception handling around this
-                            var input = _tcpClient.GetStream().ReadByte();
+                            int input = _tcpClient.GetStream().ReadByte();
                             switch (input) {
                                 case (byte)'\r':
                                 case (byte)'\n':
@@ -246,7 +246,7 @@ namespace MCEControl {
                     break;
 
                 default:
-                    var s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
+                    string s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
                     if (s == null) {
                         Error($"{e.Message} ({e.ErrorCode})");
                     }
@@ -275,7 +275,7 @@ namespace MCEControl {
                     return;
                 }
 
-                var buf = System.Text.Encoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
+                byte[] buf = System.Text.Encoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
                 _tcpClient.GetStream().Write(buf, 0, buf.Length);
             }
         }

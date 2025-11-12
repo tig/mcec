@@ -24,18 +24,18 @@ namespace MCEControl
         private ToolStripSeparator toolStripSeparator4;
         private ToolStripMenuItem aboutMenuItem;
         private TextBoxExt logTextBox;
-        private MenuItem menuSeparator5;
-        private MenuItem notifySettingsMenuItem;
-        private MenuItem menuSeparator4;
-        private MenuItem notifyStatusMenuItem;
+        private ToolStripSeparator menuSeparator5;
+        private ToolStripMenuItem notifySettingsMenuItem;
+        private ToolStripSeparator menuSeparator4;
+        private ToolStripMenuItem notifyStatusMenuItem;
         private StatusStrip statusStrip;
         private ToolStripStatusLabel statusStripStatus;
         private ToolStripStatusLabel statusStripClient;
         private ToolStripStatusLabel statusStripServer;
         private ToolStripStatusLabel statusStripSerial;
         private NotifyIcon notifyIcon;
-        private ContextMenu notifyMenu;
-        private MenuItem notifyExitMenuItem;
+        private ContextMenuStrip notifyMenu;
+        private ToolStripMenuItem notifyExitMenuItem;
         private ToolStripMenuItem settingsMenuItem;
 
 
@@ -50,12 +50,12 @@ namespace MCEControl
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainWindow));
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
-            this.notifyMenu = new System.Windows.Forms.ContextMenu();
-            this.notifyStatusMenuItem = new System.Windows.Forms.MenuItem();
-            this.menuSeparator4 = new System.Windows.Forms.MenuItem();
-            this.notifySettingsMenuItem = new System.Windows.Forms.MenuItem();
-            this.menuSeparator5 = new System.Windows.Forms.MenuItem();
-            this.notifyExitMenuItem = new System.Windows.Forms.MenuItem();
+            this.notifyMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.notifyStatusMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.notifySettingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.notifyExitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusStripStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.statusStripClient = new System.Windows.Forms.ToolStripStatusLabel();
@@ -84,45 +84,50 @@ namespace MCEControl
             // 
             // notifyIcon
             // 
-            this.notifyIcon.ContextMenu = this.notifyMenu;
+            this.notifyIcon.ContextMenuStrip = this.notifyMenu;
             this.notifyIcon.Text = global::MCEControl.Properties.Resources.App_FullName;
             this.notifyIcon.Visible = true;
             this.notifyIcon.DoubleClick += new System.EventHandler(this.notifyIcon_DoubleClick);
             // 
             // notifyMenu
             // 
-            this.notifyMenu.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
+            this.notifyMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.notifyStatusMenuItem,
             this.menuSeparator4,
             this.notifySettingsMenuItem,
             this.menuSeparator5,
             this.notifyExitMenuItem});
+            this.notifyMenu.Name = "notifyMenu";
+            this.notifyMenu.Size = new System.Drawing.Size(181, 98);
             // 
             // notifyStatusMenuItem
             // 
-            this.notifyStatusMenuItem.Index = 0;
+            this.notifyStatusMenuItem.Name = "notifyStatusMenuItem";
+            this.notifyStatusMenuItem.Size = new System.Drawing.Size(180, 22);
             this.notifyStatusMenuItem.Text = "&View Status...";
             this.notifyStatusMenuItem.Click += new System.EventHandler(this.notifyIcon_DoubleClick);
             // 
             // menuSeparator4
             // 
-            this.menuSeparator4.Index = 1;
-            this.menuSeparator4.Text = "-";
+            this.menuSeparator4.Name = "menuSeparator4";
+            this.menuSeparator4.Size = new System.Drawing.Size(177, 6);
             // 
             // notifySettingsMenuItem
             // 
-            this.notifySettingsMenuItem.Index = 2;
+            this.notifySettingsMenuItem.Name = "notifySettingsMenuItem";
+            this.notifySettingsMenuItem.Size = new System.Drawing.Size(180, 22);
             this.notifySettingsMenuItem.Text = "&Settings...";
             this.notifySettingsMenuItem.Click += new System.EventHandler(this.settingsMenuItem_Click);
             // 
             // menuSeparator5
             // 
-            this.menuSeparator5.Index = 3;
-            this.menuSeparator5.Text = "-";
+            this.menuSeparator5.Name = "menuSeparator5";
+            this.menuSeparator5.Size = new System.Drawing.Size(177, 6);
             // 
             // notifyExitMenuItem
             // 
-            this.notifyExitMenuItem.Index = 4;
+            this.notifyExitMenuItem.Name = "notifyExitMenuItem";
+            this.notifyExitMenuItem.Size = new System.Drawing.Size(180, 22);
             this.notifyExitMenuItem.Text = "&Exit";
             this.notifyExitMenuItem.Click += new System.EventHandler(this.exitMenuItem_Click);
             // 
