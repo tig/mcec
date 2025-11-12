@@ -15,7 +15,7 @@ namespace Microsoft.Win32.Security {
 
         private static SID_IDENTIFIER_AUTHORITY CreateAuthority(byte[] auth) {
             Debug.Assert(auth.Length == 6);
-            var res = new SID_IDENTIFIER_AUTHORITY();
+            SID_IDENTIFIER_AUTHORITY res = new SID_IDENTIFIER_AUTHORITY();
             res.Value = auth;
             return res;
         }

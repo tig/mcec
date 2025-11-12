@@ -45,8 +45,8 @@ namespace MCEControl {
                 return;
             }
 
-            foreach (var i in _clientList.Keys) {
-                _clientList.TryRemove(i, out var socket);
+            foreach (int i in _clientList.Keys) {
+                _clientList.TryRemove(i, out Socket socket);
                 if (socket != null) {
                     Log4.Debug("Closing Socket #" + i);
                     socket.Close();
@@ -63,7 +63,7 @@ namespace MCEControl {
             try {
                 // Create the listening socket...
                 _mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                var ipLocal = new IPEndPoint(IPAddress.Any, port);
+                IPEndPoint ipLocal = new IPEndPoint(IPAddress.Any, port);
                 // Bind to local IP Address...
                 Log4.Debug("SocketServer - Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
                 _mainSocket.Bind(ipLocal);
@@ -102,7 +102,7 @@ namespace MCEControl {
                 // Here we complete/end the BeginAccept() asynchronous call
                 // by calling EndAccept() - which returns the reference to
                 // a new Socket object
-                var workerSocket = _mainSocket.EndAccept(async);
+                Socket workerSocket = _mainSocket.EndAccept(async);
 
                 // Now increment the client count for this client 
                 // in a thread safe manner
@@ -170,7 +170,7 @@ namespace MCEControl {
 
             // Remove the reference to the worker socket of the closed client
             // so that this object will get garbage collected
-            _ = _clientList.TryRemove(serverReplyContext.ClientNumber, out var socket);
+            _ = _clientList.TryRemove(serverReplyContext.ClientNumber, out Socket socket);
             if (socket != null) {
                 Log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
                 Interlocked.Decrement(ref _clientCount);
@@ -194,7 +194,7 @@ namespace MCEControl {
         // This the call back function which will be invoked when the socket
         // detects any client writing of data on the stream
         private void OnDataReceived(IAsyncResult async) {
-            var clientContext = (ServerReplyContext)async.AsyncState;
+            ServerReplyContext clientContext = (ServerReplyContext)async.AsyncState;
             if (_mainSocket == null || !clientContext.Socket.Connected) {
                 return;
             }
@@ -203,7 +203,7 @@ namespace MCEControl {
                 // Complete the BeginReceive() asynchronous call by EndReceive() method
                 // which will return the number of characters written to the stream 
                 // by the client
-                var iRx = clientContext.Socket.EndReceive(async, out var err);
+                int iRx = clientContext.Socket.EndReceive(async, out SocketError err);
                 if (err != SocketError.Success || iRx == 0) {
                     CloseSocket(clientContext);
                     return;
@@ -212,14 +212,14 @@ namespace MCEControl {
                 // _currentCommand contains the current command we are parsing out and 
                 // _currentIndex is the index into it
                 //int n = 0;
-                for (var i = 0; i < iRx; i++) {
-                    var b = clientContext.DataBuffer[i];
+                for (int i = 0; i < iRx; i++) {
+                    byte b = clientContext.DataBuffer[i];
                     switch (b) {
                         case (byte)TelnetVerbs.IAC:
                             // interpret as a command
                             i++;
                             if (i < iRx) {
-                                var verb = clientContext.DataBuffer[i];
+                                byte verb = clientContext.DataBuffer[i];
                                 switch (verb) {
                                     case (int)TelnetVerbs.IAC:
                                         //literal IAC = 255 escaped, so append char 255 to string
@@ -231,7 +231,7 @@ namespace MCEControl {
                                     case (int)TelnetVerbs.WONT:
                                         // reply to all commands with "WONT", unless it is SGA (suppres go ahead)
                                         i++;
-                                        var inputoption = clientContext.DataBuffer[i];
+                                        byte inputoption = clientContext.DataBuffer[i];
                                         if (i < iRx) {
                                             clientContext.Socket.Send(new[] { (byte)TelnetVerbs.IAC });
                                             if (inputoption == (int)TelnetOptions.SGA) {
@@ -296,12 +296,12 @@ namespace MCEControl {
             }
             try {
                 // Try to resolve the remote host name or address
-                var resolvedHost = Dns.GetHostEntry(host);
-                var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                IPHostEntry resolvedHost = Dns.GetHostEntry(host);
+                Socket clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
                 try {
                     // Create the endpoint that describes the destination
-                    var destination = new IPEndPoint(resolvedHost.AddressList[0], port);
+                    IPEndPoint destination = new IPEndPoint(resolvedHost.AddressList[0], port);
 
                     SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
                                      $"Attempting connection to: {destination}");
@@ -355,8 +355,8 @@ namespace MCEControl {
             }
 
             if (replyContext == null) {
-                foreach (var i in _clientList.Keys) {
-                    if (_clientList.TryGetValue(i, out var client)) {
+                foreach (int i in _clientList.Keys) {
+                    if (_clientList.TryGetValue(i, out Socket client)) {
                         Reply reply = new ServerReplyContext(this, client, i);
                         Send(text, reply);
                     }

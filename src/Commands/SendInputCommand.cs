@@ -190,7 +190,7 @@ namespace MCEControl {
                         // It's not a VK_ string. Is it Hex?
                         if ((!Vk.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase) ||
                              !ushort.TryParse(Vk.Substring(2), NumberStyles.HexNumber,
-                                              CultureInfo.InvariantCulture.NumberFormat, out var num)) &&
+                                              CultureInfo.InvariantCulture.NumberFormat, out ushort num)) &&
                              !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
                                              out num)) {
 
@@ -230,7 +230,7 @@ namespace MCEControl {
 
                 Logger.Instance.Log4.Info($"{this.GetType().Name} {ToString()} ({s}) (0x{(ushort)vkcode:x2})");
 
-                var sim = new KeyboardSimulator();
+                KeyboardSimulator sim = new KeyboardSimulator();
 
                 if (Shift) {
                     sim.KeyDown(VirtualKeyCode.SHIFT);
@@ -271,7 +271,7 @@ namespace MCEControl {
         public static void ShiftKey(String key, Boolean down) {
             Logger.Instance.Log4.Info($"ShiftKey: {key} {(down ? "down" : "up")}");
 
-            var sim = new InputSimulator();
+            InputSimulator sim = new InputSimulator();
             switch (key) {
                 case "shift":
                     if (down) {

@@ -118,7 +118,7 @@ namespace MCEControl {
         // Must have a default public constructor so XMLSerialization will work
         // This class is NOT supposed to be creatable (use Deserialize to construct).
         public AppSettings() {
-            var defaultPort = new SerialPort();
+            SerialPort defaultPort = new SerialPort();
             SerialServerPortName = defaultPort.PortName;
             SerialServerBaudRate = defaultPort.BaudRate;
             SerialServerParity = defaultPort.Parity;
@@ -162,8 +162,8 @@ namespace MCEControl {
         /// <param name="settingsFile">full path to settings file</param>
         public void Serialize(string settingsFile) {
             try {
-                var ser = new XmlSerializer(typeof(AppSettings));
-                var sw = new StreamWriter(settingsFile);
+                XmlSerializer ser = new XmlSerializer(typeof(AppSettings));
+                StreamWriter sw = new StreamWriter(settingsFile);
                 ser.Serialize(sw, this);
                 sw.Close();
 
@@ -182,7 +182,7 @@ namespace MCEControl {
         public static AppSettings Deserialize(String settingsFile) {
             AppSettings settings = null;
 
-            var serializer = new XmlSerializer(typeof(AppSettings));
+            XmlSerializer serializer = new XmlSerializer(typeof(AppSettings));
             // A FileStream is needed to read the XML document.
             FileStream fs = null;
             XmlReader reader = null;
@@ -239,14 +239,14 @@ namespace MCEControl {
         /// </summary>
         /// <returns></returns>
         public virtual IDictionary<string, string> GetTelemetryDictionary() {
-            var dictionary = new Dictionary<string, string>();
+            Dictionary<string, string> dictionary = new Dictionary<string, string>();
             foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(this)) {
                 if (property.Attributes.Contains(new SafeForTelemetryAttribute())) {
-                    var value = property.GetValue(this);
+                    object value = property.GetValue(this);
                     if (value != null) {
                         if (property.PropertyType.IsSubclassOf(typeof(AppSettings))) {
                             // Go deep
-                            var propDict = ((AppSettings)value).GetTelemetryDictionary();
+                            IDictionary<string, string> propDict = ((AppSettings)value).GetTelemetryDictionary();
                             dictionary.Add(property.Name, JsonSerializer.Serialize(propDict, propDict.GetType()));
                         }
                         else {

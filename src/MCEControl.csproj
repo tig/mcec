@@ -1,99 +1,101 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon>Resources\Guillen.Icon.ico</ApplicationIcon>
-    <AssemblyName>MCEControl</AssemblyName>
-    <RootNamespace>MCEControl</RootNamespace>
-    <LangVersion>latest</LangVersion>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <Nullable>disable</Nullable>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <EnableWindowsTargeting>true</EnableWindowsTargeting>
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <UseWindowsForms>true</UseWindowsForms>
+        <ApplicationIcon>Resources\Guillen.Icon.ico</ApplicationIcon>
+        <AssemblyName>MCEControl</AssemblyName>
+        <RootNamespace>MCEControl</RootNamespace>
+        <LangVersion>latest</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <Nullable>disable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
+        <NoWarn>CA1416</NoWarn>
+        <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <Optimize>false</Optimize>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <DebugType>full</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <Optimize>false</Optimize>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <DefineConstants>TRACE</DefineConstants>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-    <Optimize>true</Optimize>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <DefineConstants>TRACE</DefineConstants>
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+        <Optimize>true</Optimize>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="log4net" Version="2.0.17" />
-    <PackageReference Include="Microsoft.ApplicationInsights" Version="2.22.0" />
-    <PackageReference Include="Octokit" Version="13.0.1" />
-    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="log4net" Version="2.0.17" />
+        <PackageReference Include="Microsoft.ApplicationInsights" Version="2.22.0" />
+        <PackageReference Include="Octokit" Version="13.0.1" />
+        <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+        <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <!-- Only include non-standard resx files explicitly -->
-    <EmbeddedResource Include="Resources\MCEControl.xslt" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <!-- Update metadata for standard resx files -->
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
+    <ItemGroup>
+        <!-- Only include non-standard resx files explicitly -->
+        <EmbeddedResource Include="Resources\MCEControl.xslt" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="Resources\Trafficlight-gray-icon.bmp" />
-    <None Include="Resources\Trafficlight-gray-icon.png" />
-    <None Include="Resources\Trafficlight-green-icon.png" />
-    <None Include="Resources\Trafficlight-red-icon.png" />
-    <None Include="app.manifest" />
-  </ItemGroup>
+    <ItemGroup>
+        <!-- Update metadata for standard resx files -->
+        <EmbeddedResource Update="Properties\Resources.resx">
+            <Generator>ResXFileCodeGenerator</Generator>
+            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="Resources\Guillen.Icon.ico" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="Resources\Trafficlight-gray-icon.bmp" />
+        <None Include="Resources\Trafficlight-gray-icon.png" />
+        <None Include="Resources\Trafficlight-green-icon.png" />
+        <None Include="Resources\Trafficlight-red-icon.png" />
+        <None Include="app.manifest" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="Resources\Guillen.Icon.ico" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Update="AssemblyFileVersion.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>AssemblyFileVersion.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Services\TelemetryService.tt.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>TelemetryService.tt</DependentUpon>
-    </Compile>
-  </ItemGroup>
+    <ItemGroup>
+        <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Update="AssemblyFileVersion.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>AssemblyFileVersion.cs</LastGenOutput>
-    </None>
-    <None Update="Services\TelemetryService.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>TelemetryService.tt.cs</LastGenOutput>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <Compile Update="Properties\Resources.Designer.cs">
+            <AutoGen>True</AutoGen>
+            <DesignTime>True</DesignTime>
+            <DependentUpon>Resources.resx</DependentUpon>
+        </Compile>
+        <Compile Update="AssemblyFileVersion.cs">
+            <AutoGen>True</AutoGen>
+            <DesignTime>True</DesignTime>
+            <DependentUpon>AssemblyFileVersion.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Services\TelemetryService.tt.cs">
+            <AutoGen>True</AutoGen>
+            <DesignTime>True</DesignTime>
+            <DependentUpon>TelemetryService.tt</DependentUpon>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="AssemblyFileVersion.tt">
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>AssemblyFileVersion.cs</LastGenOutput>
+        </None>
+        <None Update="Services\TelemetryService.tt">
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>TelemetryService.tt.cs</LastGenOutput>
+        </None>
+    </ItemGroup>
 </Project>

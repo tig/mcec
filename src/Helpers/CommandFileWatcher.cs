@@ -22,7 +22,7 @@ namespace MCEControl {
             // Make a temporary copy of the event to avoid possibility of
             // a race condition if the last subscriber unsubscribes
             // immediately after the null check and before the event is raised.
-            var handler = ChangedEvent;
+            EventHandler handler = ChangedEvent;
 
             // Event will be null if there are no subscribers
             if (handler != null) {
@@ -33,7 +33,7 @@ namespace MCEControl {
         private FileSystemSafeWatcher CreateFileWatcher(string path) {
 
             // Create a new FileSystemSafeWatcher and set its properties.
-            var watcher = new FileSystemSafeWatcher();
+            FileSystemSafeWatcher watcher = new FileSystemSafeWatcher();
             watcher.Path = Path.GetDirectoryName(path);
             /* Watch for changes in LastAccess and LastWrite times, and 
                the renaming of files or directories. */

@@ -4,8 +4,8 @@ using System.Collections;
 namespace Microsoft.Win32.Security {
     class OrderAceAccess : IComparer {
         public int Compare(object o1, object o2) {
-            var lhs = (AceAccess)o1;
-            var rhs = (AceAccess)o2;
+            AceAccess lhs = (AceAccess)o1;
+            AceAccess rhs = (AceAccess)o2;
 
             // The order is:
             // denied direct aces
@@ -74,19 +74,19 @@ namespace Microsoft.Win32.Security {
         protected override void PrepareAcesForACL() {
             IComparer comparer = new OrderAceAccess();
 
-            var nCount = this.AceCount;
+            int nCount = this.AceCount;
 
             // Find first "h" such that 
             // 1. h * 3 + 1 < nCount
             // 2. (h - 1) is exactly divisible by 3
-            var h = 1;
+            int h = 1;
             while (h * 3 + 1 < nCount) {
                 h = 3 * h + 1;
             }
 
             while (h > 0) {
-                for (var i = h - 1; i < nCount; i++) {
-                    var pivot = this.GetAce(i);
+                for (int i = h - 1; i < nCount; i++) {
+                    Ace pivot = this.GetAce(i);
 
                     int j;
                     for (j = i;

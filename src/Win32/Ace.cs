@@ -11,10 +11,10 @@ namespace Microsoft.Win32.Security {
     /// </summary>
     public abstract class Ace {
         internal static Ace Create(MemoryMarshaler m) {
-            var initialPtr = m.Ptr; // Save current ptr
+            IntPtr initialPtr = m.Ptr; // Save current ptr
 
             Debug.Assert(Marshal.SizeOf(typeof(ACE_HEADER)) == 4);
-            var head = (ACE_HEADER)m.ParseStruct(typeof(ACE_HEADER), false);
+            ACE_HEADER head = (ACE_HEADER)m.ParseStruct(typeof(ACE_HEADER), false);
             Ace ace;
             switch (head.AceType) {
                 case AceType.ACCESS_ALLOWED_ACE_TYPE:
@@ -52,11 +52,11 @@ namespace Microsoft.Win32.Security {
 
         protected void BaseInit(AceType type, int size, AceFlags flags, Sid sid, AccessType accessType) {
             if (size >= ushort.MaxValue) {
-                throw new ArgumentException("Ace size is limited to an 16-bit integer", "size");
+                throw new ArgumentException(@"Ace size is limited to an 16-bit integer", nameof(size));
             }
 
             if (size <= ACE_HEADER.SizeOf) {
-                throw new ArgumentException("Ace size must be at least the size of an ACE_HEADER", "size");
+                throw new ArgumentException(@"Ace size must be at least the size of an ACE_HEADER", nameof(size));
             }
 
             _header.AceType = type;
@@ -77,9 +77,9 @@ namespace Microsoft.Win32.Security {
         /// </summary>
         protected void CheckInvariant() {
             int headerSize = _header.AceSize;
-            var compSize = OffsetOfSid() + _sid.Size;
+            int compSize = OffsetOfSid() + _sid.Size;
             if (headerSize != compSize) {
-                var msg = string.Format(
+                string msg = string.Format(
                     "Invariant of Ace is not verified (size is {0} instead of {1})",
                     headerSize, compSize);
                 throw new InvalidOperationException(msg);

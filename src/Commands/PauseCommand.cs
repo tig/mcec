@@ -39,7 +39,7 @@ namespace MCEControl {
                 return false;
             }
 
-            if (int.TryParse(Args, out var time)) {
+            if (int.TryParse(Args, out int time)) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Pausing {time}ms");
                 // TODO: Is this the smartest way to do this?
                 System.Threading.Thread.Sleep(time);

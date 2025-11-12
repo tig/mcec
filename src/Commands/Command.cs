@@ -83,8 +83,8 @@ namespace MCEControl {
             clone.Args = this.Args;
             if (this.EmbeddedCommands != null) {
                 clone.EmbeddedCommands = new List<Command>();
-                foreach (var next in this.EmbeddedCommands) {
-                    var eClone = (Command)next.Clone(reply);
+                foreach (Command next in this.EmbeddedCommands) {
+                    Command eClone = (Command)next.Clone(reply);
                     clone.Enabled = Enabled;
                     clone.EmbeddedCommands.Add(eClone);
                 }

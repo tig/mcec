@@ -115,7 +115,7 @@ namespace MCEControl {
                 $" - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")}" +
                 $" - .NET: {Environment.Version.ToString()}");
 
-            var hWnd = WindowsInput.Native.NativeMethods.FindWindow(null, this.Text);
+            IntPtr hWnd = WindowsInput.Native.NativeMethods.FindWindow(null, this.Text);
 #if _DEBUG
             var sb = new StringBuilder(256);
             WindowsInput.Native.NativeMethods.GetClassName(hWnd, sb, 256);
@@ -577,7 +577,7 @@ namespace MCEControl {
 
         private void HandleSocketServerNotification(ServiceNotification notification, ServiceStatus status,
             SocketServer.ServerReplyContext serverReplyContext, String msg) {
-            var s = "";
+            string s = "";
 
             switch (notification) {
                 case ServiceNotification.ReceivedData:
@@ -643,7 +643,7 @@ namespace MCEControl {
 
         private void HandleSocketServerStatusChange(ServiceStatus status) {
             SetServerStatus(status);
-            var s = "";
+            string s = "";
             switch (status) {
                 case ServiceStatus.Started:
                     s = $"Started on port {Settings.ServerPort}";
@@ -762,7 +762,7 @@ namespace MCEControl {
         }
 
         private void ShowSettings(string defaultTabName) {
-            var d = new SettingsDialog(Settings) {
+            SettingsDialog d = new SettingsDialog(Settings) {
                 DefaultTab = defaultTabName
             };
 
@@ -805,7 +805,7 @@ namespace MCEControl {
 
         private void aboutMenuItem_Click(object sender, EventArgs e) {
             TelemetryService.Instance.TrackEvent("aboutMenuItem");
-            var a = new About();
+            About a = new About();
             a.ShowDialog(this);
             a.Dispose();
         }

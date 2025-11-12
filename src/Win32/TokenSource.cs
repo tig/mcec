@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.Security {
@@ -12,7 +12,7 @@ namespace Microsoft.Win32.Security {
         private readonly Luid _luid;
 
         internal TokenSource(IntPtr ptr) {
-            var ts = (TOKEN_SOURCE)Marshal.PtrToStructure(ptr, typeof(TOKEN_SOURCE));
+            TOKEN_SOURCE ts = (TOKEN_SOURCE)Marshal.PtrToStructure(ptr, typeof(TOKEN_SOURCE));
             _name = new string(ts.Name);
             _luid = new Luid(ts.Indentifier);
         }

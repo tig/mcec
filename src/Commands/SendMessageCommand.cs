@@ -72,13 +72,13 @@ namespace MCEControl {
 
             try {
                 if (!string.IsNullOrWhiteSpace(ClassName)) {
-                    var procs = Process.GetProcessesByName(ClassName);
+                    Process[] procs = Process.GetProcessesByName(ClassName);
                     if (procs.Length > 0) {
-                        var win = procs[0];
+                        Process win = procs[0];
 
                         if (!string.IsNullOrWhiteSpace(WindowName)) {
                             // Find MainWindowTitle matching WindowName
-                            win = procs.FirstOrDefault(w => w.MainWindowTitle.Equals(WindowName));
+                            win = procs.FirstOrDefault(w => w.MainWindowTitle.Equals(WindowName, StringComparison.Ordinal));
                         }
                         if (win == null) {
                             Logger.Instance.Log4.Error($"{this.GetType().Name}: Could not find a window of class '{ClassName}' captioned with '{WindowName}'");
@@ -94,7 +94,7 @@ namespace MCEControl {
                 }
                 else 
                 {
-                    var h = Win32.GetForegroundWindow();
+                    IntPtr h = Win32.GetForegroundWindow();
                     Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(<forground window>, {Msg}, {WParam}, {LParam}) - {ToString()}");
                     Win32.SendMessage(h, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
                 }

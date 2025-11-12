@@ -8,6 +8,7 @@
 //-------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
@@ -113,7 +114,7 @@ namespace MCEControl {
         public static void Shutdown(string shutdownArgs) {
             Logger.Instance.Log4.Debug($"ShutdownCommand: Invoking 'shutdown.exe {shutdownArgs}'");
 
-            var proc = System.Diagnostics.Process.Start("shutdown", shutdownArgs);
+            Process proc = System.Diagnostics.Process.Start("shutdown", shutdownArgs);
             proc.WaitForExit(1000 * 2);
             if (proc.ExitCode != 0x0) {
                 Logger.Instance.Log4.Error($"ShutdownCommand: 'shutdown.exe {shutdownArgs}' failed ({proc.ExitCode:X})");

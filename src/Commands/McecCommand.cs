@@ -53,7 +53,7 @@ namespace MCEControl {
                 throw new InvalidOperationException("Args property cannot be null.");
             }
 
-            var replyBuilder = new StringBuilder();
+            StringBuilder replyBuilder = new StringBuilder();
             switch (Args.ToLowerInvariant()) {
                 // MCE Controller version
                 case "ver":
@@ -72,10 +72,10 @@ namespace MCEControl {
                     Match match = null;
                     try {
                         replyBuilder.Append(Environment.NewLine);
-                        var orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
-                        foreach (var key in orderedKeys) {
+                        IOrderedEnumerable<string> orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
+                        foreach (string key in orderedKeys) {
                             cmd = (Command)MainWindow.Instance.Invoker[key];
-                            var item = new ListViewItem(cmd.Cmd);
+                            ListViewItem item = new ListViewItem(cmd.Cmd);
                             match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                             replyBuilder.Append($"<{match.Groups[1].Value} {cmd.ToString()} />{Environment.NewLine}");
                         }
@@ -88,7 +88,7 @@ namespace MCEControl {
 
                 // Return the current date/time of the PC
                 case "time":
-                    var dt = DateTime.Now;
+                    DateTime dt = DateTime.Now;
                     replyBuilder.AppendFormat("{0}", DateTime.Now);
                     break;
             }

@@ -223,3 +223,4 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "<Pending>", Scope = "member", Target = "~P:MCEControl.MainWindow.Invoker")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.SerializedCommands.LoadBuiltInCommands~MCEControl.SerializedCommands")]
 [assembly: SuppressMessage("Design", "CA1024:Use properties where appropriate", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.TelemetryService.GetTelemetryClient~Microsoft.ApplicationInsights.TelemetryClient")]
+[assembly: SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>", Scope = "member", Target = "~M:MCEControl.UserActivityMonitorService.Start")]

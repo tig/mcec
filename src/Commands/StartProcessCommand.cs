@@ -108,7 +108,7 @@ namespace MCEControl {
 
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Starting process: {ToString()}");
             if (File != null) {
-                var p = new Process {
+                Process p = new Process {
                     StartInfo = {
                         FileName = File,
                         Arguments = Arguments,

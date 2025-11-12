@@ -8,7 +8,7 @@
 	// it does not honor expansions for $(SolutionDir). Lame workaround.
 	int n = dir.IndexOf("$(SolutionDir)");
 	if (n > -1)
-		dir = dir.Remove(n, dir.Length - n) + "..\\..\\";
+		dir = dir.Remove(n, dir.Length - n);
 	string file = Path.Combine(dir, "..\\Installer\\version.txt");
     Console.WriteLine("Generating " + file + " ...");
 
