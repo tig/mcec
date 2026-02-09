@@ -2,7 +2,7 @@
 
 # MCE Controller
 
-By Tig Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) - Copyright © 2023 [Kindel](http://www.kindel.com), LLC.
+By Tig Kindel ([@tigkindel on Twitter](http://www.twitter.com/ckindel)) - Copyright © 2023 [Kindel](http://www.kindel.com), LLC.
 
 ![mcec](https://tig.github.io/mcec/mainwindow.png "MCE Controller")
 
