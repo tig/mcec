@@ -70,8 +70,8 @@ public class UpdateService {
             var releases =
 allReleases.Where(r => r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
 #else
-            Release[] releases = allReleases.Where(r => !r.Prerelease)
-                .OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
+            Release[] releases =
+                [.. allReleases.Where(r => !r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v')))];
 #endif
             if (releases.Length > 0) {
 #if DEBUG

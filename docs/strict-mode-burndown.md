@@ -1,35 +1,49 @@
-# Strict-mode burn-down backlog
+# Strict-mode burn-down — COMPLETE
 
 This repo adopts WinPrint's build conventions (.NET 10, `.editorconfig`, `Directory.Build.props`
 with `TreatWarningsAsErrors` + `EnforceCodeStyleInBuild` + `Nullable` + custom Roslyn analyzers).
 
-The mechanical style (file-scoped namespaces, target-typed `new`, braces, etc.) has already been
-applied via `dotnet format` and is **enforced as errors**. The build is green.
+The burn-down described below has been **completed**. Every category is at **zero** and is now
+enforced as a build **error** (not a warning). `dotnet build MCEControl.slnx -c Release` and
+`dotnet test MCEControl.slnx -c Release` are both green (115 tests pass) on Windows / .NET 10.
 
-The deeper findings cannot be auto-fixed and were **not** applied in the conversion commit because
-they change semantics and must be validated by running the test suite, which only executes on
-Windows (the conversion was done on Linux, where the WinForms/Win32 tests cannot run). They are kept
-**enabled but downgraded to warnings** via `<WarningsNotAsErrors>` in `Directory.Build.props` so the
-build stays green while they are driven to zero.
+## What was driven to zero (all now hard errors)
 
-## What to grind (run on Windows so `dotnet test` validates each change)
-
-Current counts (`dotnet build MCEControl.slnx`):
-
-| Category | Codes | Count | Notes |
+| Category | Codes | Original count | Now |
 |---|---|---|---|
-| Nullable reference types | CS8618, CS8602, CS8622, CS8600, CS8625, CS8604, CS8603, CS8601, CS8605 | ~818 | No auto-fixer; annotate/guard each. CS8618 (uninitialized non-nullable field) dominates. |
-| One type per file | MCEC0001 | 78 | Split secondary top-level types into their own files. |
-| No nested types | MCEC0002 | 18 | Promote nested types to top-level. |
-| Collection expressions | IDE0028 | 34 | `dotnet format` left these; apply `[...]` collection expressions. |
+| Nullable reference types | CS8600–CS8625, CS8762–CS8777 | ~844 | **0 (error)** |
+| One type per file | MCEC0001 | ~82 | **0 (error)** |
+| No nested types | MCEC0002 | ~28 | **0 (error)** |
+| Collection expressions | IDE0028 / IDE0300 / IDE0305 | ~48 | **0 (error)** |
 
-## How to finish (make it fully strict, matching WinPrint)
+Each category's codes were removed from `<WarningsNotAsErrors>` in `Directory.Build.props` as it
+reached zero, so the codebase now matches WinPrint's fully-strict posture.
 
-1. On Windows with the .NET 10 SDK, `dotnet build MCEControl.slnx` to see the warnings.
-2. Fix a category, `dotnet test MCEControl.slnx` to confirm no behavior regressions, commit.
-3. As each category reaches zero, **remove its codes from `<WarningsNotAsErrors>`** in
-   `Directory.Build.props` so it becomes a hard error again.
-4. When the list is empty, `Directory.Build.props` matches WinPrint's fully-strict posture.
+## How it was done (behavior-neutral)
 
-The `MCEControl.Analyzers` house-style rules (MCEC0001/MCEC0002) are defined in
+- **Collection expressions:** object/array/list initializers converted to `[...]`.
+- **MCEC0001:** multi-type files split so each top-level type lives in its own file (same
+  namespace, so no call-site changes). `Win32Structs.cs` became 26 files; the `ACL`/`ACE`/`LUID`
+  interop structs use `_Struct`-suffixed filenames to avoid case-insensitive collisions with the
+  existing `Acl`/`Ace`/`Luid` wrapper files.
+- **MCEC0002:** nested types promoted to top-level in the same namespace (HookManager interop
+  structs, the Socket/Serial reply-context classes, the Telnet enums, `POWERBROADCAST_SETTING`).
+  Only references that were *qualified* by the former outer type needed touching
+  (`SocketServer.ServerReplyContext` → `ServerReplyContext` in `MainWindow.cs`, plus a stale
+  `CA1034` `GlobalSuppressions` entry removed).
+- **Nullable:** annotations only — nullable `?`, the null-forgiving operator `!`, and `= null!;`
+  initializers for late-initialized non-nullable fields/properties (WinForms controls, events,
+  XML-serialized members). Event-handler signatures use `object? sender` to match the
+  `EventHandler` delegates. No logic, control flow, or values were changed, so the 115-test
+  WinForms/Win32 suite stays green.
+
+## Remaining (intentionally kept as warnings)
+
+`<WarningsNotAsErrors>` retains only the two WinForms platform advisories, matching WinPrint:
+
+- `WFO1000` — WinForms source-generator advisory.
+- `WFDEV004` — `Form.Closing` obsoletion in `MainWindow.Designer.cs` (designer-generated code).
+
+These are platform/tooling advisories, not part of the house-style burn-down. The
+`MCEControl.Analyzers` house-style rules (MCEC0001/MCEC0002) are defined in
 `tools/MCEControl.Analyzers/`.

@@ -11,13 +11,12 @@
          explicit package references for runtime resolution and cannot be pruned. -->
     <NoWarn>$(NoWarn);NU1510</NoWarn>
 
-    <!-- BURN-DOWN BACKLOG (tracked, not blocking). Nullable reference types are enabled and
-         the house-style analyzers (MCEC0001 one-type-per-file, MCEC0002 no-nested-types) run,
-         but on this 15-year-old codebase they surface ~830 nullable + ~96 structural findings.
-         They are kept as WARNINGS so the build stays green while they are fixed incrementally,
-         rather than landing one enormous, runtime-untested diff. Remove codes from this list as
-         each category is driven to zero to make it a hard error again (full WinPrint strictness).
-         WFO1000/WFDEV004 are WinForms source-generator/obsoletion advisories handled the same way. -->
+    <!-- The strict-mode burn-down is COMPLETE: nullable reference types (CS86xx), the house-style
+         analyzers (MCEC0001 one-type-per-file, MCEC0002 no-nested-types), and collection-expression
+         style (IDE0028/IDE0300/IDE0305) are all driven to zero and enforced as ERRORS via
+         TreatWarningsAsErrors. Only the two WinForms platform advisories remain as tracked
+         (non-error) warnings: WFO1000 (source-generator) and WFDEV004 (Form.Closing obsoletion in
+         the designer file). These match WinPrint's posture and are not part of the burn-down. -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);WFO1000;WFDEV004</WarningsNotAsErrors>
 
   </PropertyGroup>
