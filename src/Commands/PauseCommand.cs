@@ -20,9 +20,9 @@ public class PauseCommand : Command {
     public const string CmdPrefix = "pause:";
 
     public static new List<Command> BuiltInCommands {
-        get => new() {
+        get => [
             new PauseCommand { Cmd = $"{CmdPrefix}" } // Commands that use form of "cmd:" must define a blank version
-        };
+        ];
     }
 
     public PauseCommand() { }

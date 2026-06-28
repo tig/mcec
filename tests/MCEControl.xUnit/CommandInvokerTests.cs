@@ -84,10 +84,10 @@ public class CommandInvokerTests
         SerializedCommands userCommands = new SerializedCommands()
         {
             // Version = ...,
-            commandArray = new Command[]
-            {
+            commandArray =
+            [
                 new SendMessageCommand("class", "window", 0, 0, 0) { Cmd = "userCmd" }
-            }
+            ]
         };
         SerializedCommands.SaveCommands(userCommandsFile, userCommands, "0.0.0.0");
 
@@ -107,11 +107,11 @@ public class CommandInvokerTests
         SerializedCommands userCommands = new SerializedCommands()
         {
             // Version = ...,
-            commandArray = new Command[]
-            {
+            commandArray =
+            [
               // Change both File (from "code" to "codez" and) and add Verb
               new StartProcessCommand() { Cmd = "code", File ="codez", Verb="print" },
-            }
+            ]
         };
         SerializedCommands.SaveCommands(userCommandsFile, userCommands, "0.0.0.0");
 

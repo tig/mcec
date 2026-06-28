@@ -24,7 +24,7 @@ public class StartProcessCommand : Command {
     [XmlAttribute("verb")] public string Verb { get => verb; set => verb = value; }
 
     public static new List<Command> BuiltInCommands {
-        get => new() {
+        get => [
               new StartProcessCommand() { Cmd = "code", File ="code" },
               new StartProcessCommand() { Cmd = "tada", File=@"C:\Windows\Media\tada.wav", Verb="Open"  },
               new StartProcessCommand() { Cmd = "term", File=@"shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" },
@@ -50,7 +50,7 @@ public class StartProcessCommand : Command {
               //</ StartProcess >                  
               new StartProcessCommand() { 
                   // Start notepad.exe
-                  Cmd = "type_into_notepad", File="notepad.exe", EmbeddedCommands = new List<Command>() {
+                  Cmd = "type_into_notepad", File="notepad.exe", EmbeddedCommands = [
                         // pause 100ms
                         new PauseCommand() { Args = "100", Enabled = true },
                         // send some text
@@ -61,15 +61,15 @@ public class StartProcessCommand : Command {
                         new SendInputCommand() { Vk = "VK_RIGHT", Win = true, Shift = true, Enabled = true  },
                         new SendMessageCommand() { Msg=274, WParam=61488, LParam=0, Enabled = true  },
                         new CharsCommand() { Args="Second ", Enabled = true  },
-                        new CharsCommand() { Args="line...", Enabled = true, EmbeddedCommands = new List<Command>() {
+                        new CharsCommand() { Args="line...", Enabled = true, EmbeddedCommands = [
                             // Bring up help, about
                             new PauseCommand() { Args = "250", Enabled = true },
                             new SendInputCommand() { Vk = "h", Alt=true, Enabled = true  },
                             new SendInputCommand() { Vk = "a", Alt=false, Enabled = true  }
-                        }},
-                   }
+                        ]},
+                   ]
               }
-        };
+        ];
     }
 
     public StartProcessCommand() {

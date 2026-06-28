@@ -15,10 +15,10 @@ public class SerializedCommandsTests
 
         var commands = new SerializedCommands
         {
-            commandArray = new Command[]
-            {
+            commandArray =
+            [
                 new PauseCommand() { Cmd = "pause100", Args = "100", Enabled = true }
-            }
+            ]
         };
 
         SerializedCommands.SaveCommands(tempFile, commands, "1.0.0.0");
@@ -35,11 +35,11 @@ public class SerializedCommandsTests
 
         var commands = new SerializedCommands
         {
-            commandArray = new Command[]
-            {
+            commandArray =
+            [
                 new PauseCommand() { Cmd = "pause100", Args = "100", Enabled = true },
                 new CharsCommand() { Cmd = "hello", Args = "Hello World", Enabled = false }
-            }
+            ]
         };
 
         SerializedCommands.SaveCommands(tempFile, commands, "1.0.0.0");
@@ -73,12 +73,12 @@ public class SerializedCommandsTests
 
         var original = new SerializedCommands
         {
-            commandArray = new Command[]
-            {
+            commandArray =
+            [
                 new StartProcessCommand() { Cmd = "notepad", File = "notepad.exe", Enabled = true },
                 new SendInputCommand() { Cmd = "enter", Vk = "VK_RETURN", Enabled = true },
                 new MouseCommand() { Cmd = "click", Args = "left", Enabled = false }
-            }
+            ]
         };
 
         SerializedCommands.SaveCommands(tempFile, original, "1.0.0.0");

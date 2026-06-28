@@ -239,7 +239,7 @@ public class AppSettings : ICloneable {
     /// </summary>
     /// <returns></returns>
     public virtual IDictionary<string, string> GetTelemetryDictionary() {
-        Dictionary<string, string> dictionary = new Dictionary<string, string>();
+        Dictionary<string, string> dictionary = [];
         foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(this)) {
             if (property.Attributes.Contains(new SafeForTelemetryAttribute())) {
                 object value = property.GetValue(this);

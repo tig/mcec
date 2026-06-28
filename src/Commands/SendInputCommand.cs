@@ -35,7 +35,7 @@ public class SendInputCommand : Command, ICommand {
     [XmlAttribute("shift")] public bool Shift { get => shift; set => shift = value; }
     [XmlAttribute("win")] public bool Win { get => win; set => win = value; }
     [XmlAttribute("vk")] public string Vk { get => vk; set => vk = value; }
-    private static List<Command> _builtins = new() {
+    private static List<Command> _builtins = [
             new SendInputCommand($"shiftdown:", false, false, false, false),
             new SendInputCommand($"shiftup:", false, false, false, false),
             new SendInputCommand() { Cmd = "atlesc", vk = "VK_ESCAPE", Alt = true },
@@ -98,7 +98,7 @@ public class SendInputCommand : Command, ICommand {
             new SendInputCommand() { Cmd="tab", vk="9", Shift=false, Ctrl=false, Alt=false },
             new SendInputCommand() { Cmd="snapshot", vk="44", Shift=false, Ctrl=false, Alt=false },
             new SendInputCommand() { Cmd="zoom", vk="90", Shift=false, Ctrl=false, Alt=false },
-        };
+        ];
     public static new List<Command> BuiltInCommands {
         get => _builtins;
     }

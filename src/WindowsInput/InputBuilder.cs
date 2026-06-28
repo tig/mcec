@@ -17,7 +17,7 @@ internal class InputBuilder : IEnumerable<INPUT> {
     /// Initializes a new instance of the <see cref="InputBuilder"/> class.
     /// </summary>
     public InputBuilder() {
-        _inputList = new List<INPUT>();
+        _inputList = [];
     }
 
     /// <summary>

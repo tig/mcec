@@ -25,11 +25,11 @@ public class SetForegroundWindowCommand : Command {
     public string AppName { get; set; }
 
     public static new List<Command> BuiltInCommands {
-        get => new() {
+        get => [
               new SetForegroundWindowCommand() { Cmd = "activatecode", AppName ="code" },
               new SetForegroundWindowCommand() { Cmd = "activatenotepad", AppName="Notepad"  },
               new SetForegroundWindowCommand() { Cmd = "activatemcec", AppName="MCEControl"  },
-        };
+        ];
     }
     public SetForegroundWindowCommand() {
     }

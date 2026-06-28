@@ -39,7 +39,7 @@ public abstract class Command : ICommand {
         Enabled = false; // SECURITY: Explicity
         UserDefined = false; // TELEMERTRY: Explicit
     }
-    public static List<Command> BuiltInCommands { get => new() { }; }
+    public static List<Command> BuiltInCommands { get => []; }
 
     [XmlAttribute("cmd")]
     public string Cmd { get => cmd; set => cmd = value; }
@@ -82,7 +82,7 @@ public abstract class Command : ICommand {
         clone.Cmd = this.Cmd;
         clone.Args = this.Args;
         if (this.EmbeddedCommands != null) {
-            clone.EmbeddedCommands = new List<Command>();
+            clone.EmbeddedCommands = [];
             foreach (Command next in this.EmbeddedCommands) {
                 Command eClone = (Command)next.Clone(reply);
                 clone.Enabled = Enabled;
@@ -122,7 +122,7 @@ public abstract class Command : ICommand {
     /// https://stackoverflow.com/questions/5411694/get-all-inherited-classes-of-an-abstract-class
     /// </summary>
     public static ICollection<Command> GetDerivedClassesCollection() {
-        List<Command> objects = new List<Command>();
+        List<Command> objects = [];
         foreach (Type type in typeof(Command).Assembly.GetTypes()
             .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(Command)))) {
             objects.Add((Command)Activator.CreateInstance(type));

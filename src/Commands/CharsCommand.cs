@@ -20,9 +20,9 @@ public class CharsCommand : Command {
     public const string CmdPrefix = "chars:";
 
     public static new List<Command> BuiltInCommands {
-        get => new() {
+        get => [
             new CharsCommand { Cmd = $"{CmdPrefix}" },
-        };
+        ];
     }
 
     public CharsCommand() { }

@@ -21,13 +21,13 @@ namespace MCEControl;
 public class McecCommand : Command {
     public const string CmdPrefix = "mcec:";
     public static new List<Command> BuiltInCommands {
-        get => new() {
+        get => [
         new McecCommand { Cmd = $"{CmdPrefix}" },   // Commands that use form of "cmd:" must define a blank version
         new McecCommand { Cmd = $"{CmdPrefix }ver" },
         new McecCommand { Cmd = $"{CmdPrefix }exit" },
         new McecCommand { Cmd = $"{CmdPrefix }cmds" },
         new McecCommand { Cmd = $"{CmdPrefix }time" }
-        };
+        ];
     }
 
     public McecCommand() {

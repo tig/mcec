@@ -39,12 +39,12 @@ public class SendMessageCommand : Command {
     [XmlAttribute("windowname")] public String WindowName { get => windowName; set => windowName = value; }
 
     public static new List<Command> BuiltInCommands {
-        get => new() {
+        get => [
               new SendMessageCommand() { Cmd = "maximize", Msg=274, wParam=61488, lParam=0 },
               new SendMessageCommand() { Cmd = "screensaver", Msg=274, wParam=61760, lParam=0 },
               new SendMessageCommand() { Cmd = "monitoroff", Msg=274, wParam=61808, lParam=2 },
               new SendMessageCommand() { Cmd = "monitoron", Msg=274, wParam=61808, lParam=-1 }
-        };
+        ];
     }
 
     public SendMessageCommand() {

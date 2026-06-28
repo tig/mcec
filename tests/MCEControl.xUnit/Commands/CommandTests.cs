@@ -104,11 +104,11 @@ public class CommandTests
         var original = new TestCommand
         {
             Cmd = "parent",
-            EmbeddedCommands = new List<Command>
-            {
+            EmbeddedCommands =
+            [
                 new PauseCommand { Cmd = "pause", Args = "100", Enabled = true },
                 new TestCommand { Cmd = "child", Enabled = true }
-            }
+            ]
         };
 
         var clone = (TestCommand)original.Clone(null);

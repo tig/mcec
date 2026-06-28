@@ -21,7 +21,7 @@ public class MouseCommand : Command {
     public const string CmdPrefix = "mouse:";
 
     public static new List<Command> BuiltInCommands {
-        get => new() {
+        get => [
             new MouseCommand{ Cmd = $"{CmdPrefix }" },  // Commands that use form of "cmd:" must define a blank version
             new MouseCommand{ Cmd = $"{CmdPrefix }lbc" },
             new MouseCommand{ Cmd = $"{CmdPrefix }lbdc" },
@@ -43,7 +43,7 @@ public class MouseCommand : Command {
             new MouseCommand{ Cmd = $"{CmdPrefix }mt,x,y" },
             new MouseCommand{ Cmd = $"{CmdPrefix }hs,x" },
             new MouseCommand{ Cmd = $"{CmdPrefix }vs,y" },
-        };
+        ];
     }
 
     public MouseCommand() { }

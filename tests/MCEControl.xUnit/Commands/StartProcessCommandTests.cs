@@ -118,11 +118,11 @@ public class StartProcessCommandTests
             Cmd = "notepad",
             File = "notepad.exe",
             Enabled = true,
-            EmbeddedCommands = new System.Collections.Generic.List<Command>
-            {
+            EmbeddedCommands =
+            [
                 new PauseCommand { Cmd = "pause", Args = "100", Enabled = true },
                 new CharsCommand { Cmd = "chars:", Args = "Hello", Enabled = true }
-            }
+            ]
         };
 
         var clone = (StartProcessCommand)original.Clone(null);

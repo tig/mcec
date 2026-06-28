@@ -18,7 +18,7 @@ namespace MCEControl;
 /// </summary>
 public class ShutdownCommand : Command {
     public static new List<Command> BuiltInCommands {
-        get => new() {
+        get => [
             new ShutdownCommand{ Cmd = $"shutdown", Type = $"shutdown" },
             new ShutdownCommand{ Cmd = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
             new ShutdownCommand{ Cmd = $"restart", Type = $"restart" },
@@ -28,7 +28,7 @@ public class ShutdownCommand : Command {
             new ShutdownCommand{ Cmd = $"abort", Type = $"abort" },
             new ShutdownCommand{ Cmd = $"poweroff", Type = $"poweroff" },
             new ShutdownCommand{ Cmd = $"logoff", Type = $"logoff" },
-        };
+        ];
     }
 
     private String type;

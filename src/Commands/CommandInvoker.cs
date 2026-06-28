@@ -33,7 +33,7 @@ public class CommandInvoker : Hashtable {
     /// </summary>
     /// <returns></returns>
     private static CommandInvoker CreateBuiltIns(bool disableInternalCommands = false) {
-        CommandInvoker commands = new CommandInvoker();
+        CommandInvoker commands = [];
 
         // Add the built-ins that are defiend in the `Command`-derived classes
         // SECURITY: Note, by default `Enabled` is set to `false` for all of these.
