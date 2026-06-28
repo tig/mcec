@@ -1,5 +1,6 @@
-# Proposal: MCE Controller as an Agent-Friendly Windows Automation Server
+# Proposal: MCEC, the Model Context Environment Controller
 
+*An agent-friendly Windows automation server.*
 *Status: Draft proposal (working-backwards PR/FAQ). Supersedes the discussion in [issue #46](https://github.com/tig/mcec/issues/46).*
 *Author: Tig Kindel. Date: 2026-06-28.*
 
@@ -24,20 +25,28 @@ experience we want to ship, followed by an FAQ. The longest FAQ (by design) is t
 prior-art/competition question, because "should we build this at all?" turns entirely on whether
 something already does it well.
 
+Part of the proposal is a rebrand. "MCE Controller" (Media Center Edition Controller) names a
+product that's been dead for a decade. We keep the four letters and the pronunciation and give them
+a meaning native to this world. **MCEC** now stands for the **Model Context Environment Controller**:
+the local, native Windows *environment* that a computer-use *model* drives, exposed over the **Model
+Context Protocol** (so MCEC reads as a natural sibling of MCP). Same daemon, new job. The rationale
+is in FAQ 15.
+
 The artifact below is written as though it were the real announcement on the day we ship.
 
 ---
 
 ## The Working-Backwards Artifact (Press Release)
 
-### MCE Controller 3.0 gives AI agents eyes, hands, and a safe front door on Windows
+### MCEC 3.0: "MCE Controller" becomes the Model Context Environment Controller, giving AI agents eyes, hands, and a safe front door on Windows
 
 **A single, self-contained native Windows daemon an agent can mount, see through, and drive, with
 the same disabled-by-default security model MCEC users have trusted for 15 years.**
 
-**SEATTLE, <launch date>.** Kindel today released **MCE Controller 3.0**, a free, open-source
-upgrade that turns its battle-tested Windows control daemon into a tool an AI agent can use
-directly. MCEC has spent more than a decade reliably translating remote commands into keystrokes,
+**SEATTLE, <launch date>.** Kindel today released **MCEC 3.0**, retiring the old "MCE Controller"
+(Media Center Edition Controller) name in favor of what the letters now stand for: the **Model
+Context Environment Controller**. The free, open-source upgrade turns its battle-tested Windows
+control daemon into a tool an AI agent can use directly. MCEC has spent more than a decade reliably translating remote commands into keystrokes,
 mouse moves, window messages, and app launches for home-theater and home-automation systems. Version
 3.0 keeps all of that and adds the half that AI agents were missing: the ability to **observe** the
 screen and UI, **target and wait for** specific windows and controls, and to be **mounted as a
@@ -75,7 +84,7 @@ default**, bind to **localhost only** by default, require their **own explicit o
 from actuation, and **log loudly**. The existing TCP/serial transports and the 250+ HTPC commands
 are untouched. 3.0 is purely additive.
 
-MCE Controller 3.0 is **free and open source (MIT)**, a single native .NET 8 Windows executable
+MCEC 3.0 is **free and open source (MIT)**, a single native .NET 8 Windows executable
 with no Python or Node runtime to install. Download it from
 [github.com/tig/mcec/releases](https://github.com/tig/mcec/releases); enable the agent commands,
 point your MCP client at it, and your agent can see, target, and act on a Windows desktop in
@@ -387,6 +396,33 @@ executable distributed through [GitHub Releases](https://github.com/tig/mcec/rel
 Node runtime. Rolls out as a normal MCEC version bump (3.0), with the agent commands shipped
 **disabled by default** so existing installs are unaffected until a user opts in.
 
+### 15. Why rename it, and what does MCEC stand for now?
+
+Because the old name points at a tombstone. "MCEC" was **Media Center Edition Controller**, named
+for Windows Media Center, which Microsoft shipped its last version of in 2009 and removed from
+Windows in 2015. The letters still fit a far more interesting product, so we keep them (and the
+"em-see-ee-see" pronunciation, the GitHub repo, and 15 years of brand equity) and re-point their
+meaning:
+
+**MCEC = Model Context Environment Controller.**
+
+- **M**odel **C**ontext: deliberately echoes **MCP** (the Model Context Protocol), the transport
+  3.0 adds. MCEC becomes the thing you mount over MCP; the names advertise that they belong together.
+- **E**nvironment: the precise word the computer-use vendors use. Anthropic and OpenAI both tell you
+  to "bring your own **environment**" for the model to act in. MCEC *is* that environment: a local,
+  native Windows desktop a model can see and drive. The name states the job.
+- **C**ontroller: unchanged from "MCE *Controller*," so there is real continuity. Visually the name
+  is identical; only its meaning moved.
+
+One-liner for the website and the press release: *"MCEC, the Model Context Environment Controller:
+eyes, hands, and a safe front door for agents on Windows."*
+
+Alternatives considered (kept on the back-pocket list): **Model Context *Embodiment* Controller**
+(more evocative; "embodiment" = giving an LLM a body of eyes and hands), **Model Context Execution
+Core** (more infrastructural), and **Multimodal Control & Execution Conduit** (drops the MCP pun in
+favor of "multimodal": screen + UI tree + input). We chose *Environment* for the continuity with
+"Controller" and the direct tie to the "bring your own environment" framing in FAQ 4, Camp A.
+
 ---
 
 ## Appendix A: Prior-art capability matrix (summary)
@@ -401,7 +437,7 @@ Node runtime. Rolls out as a normal MCEC version bump (3.0), with the agent comm
 | FlaUI / pywinauto | D | No (library) | **Shots + UIA tree** | **Yes** | **No** | No | No | Active / slow |
 | WinAppDriver | D | Server | Shots / partial tree | WebDriver locators | No | No | No | **Abandoned** |
 | CursorTouch/Windows-MCP | E | No (Python) | UIA + shots | UIA + coords | Yes | No | No | Active, ~6.3k★ |
-| **MCEC 3.0 (proposed)** | (new) | **Yes (.NET 8)** | **Shots (PrintWindow) + UIA** | **find/wait/invoke** | **Yes** | **TCP + serial + MCP/HTTP** | **Yes (15-yr model)** | Proposed |
+| **MCEC 3.0 — Model Context Environment Controller (proposed)** | (new) | **Yes (.NET 8)** | **Shots (PrintWindow) + UIA** | **find/wait/invoke** | **Yes** | **TCP + serial + MCP/HTTP** | **Yes (15-yr model)** | Proposed |
 
 ## Appendix B: Sources
 
