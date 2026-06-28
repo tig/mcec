@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MCEControl.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MCEControl.xUnit/MCEControl.xUnit.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/MCEControl.Analyzers/MCEControl.Analyzers.csproj" />
+  </Folder>
+</Solution>

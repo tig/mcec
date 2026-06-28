@@ -157,7 +157,7 @@ namespace Microsoft.Win32.Security {
         [DllImport(Advapi32, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
         public static extern BOOL EqualPrefixSid(PSID pSid1, PSID pSid2);
         [DllImport(Advapi32, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
-        public static extern BOOL InitializeSid(PSID Sid, [In]ref SID_IDENTIFIER_AUTHORITY pIdentifierAuthority, UCHAR nSubAuthorityCount);
+        public static extern BOOL InitializeSid(PSID Sid, [In] ref SID_IDENTIFIER_AUTHORITY pIdentifierAuthority, UCHAR nSubAuthorityCount);
         [DllImport(Advapi32, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
         public static extern BOOL InitializeAcl(PACL pAcl, DWORD nAclLength, DWORD dwAclRevision);
         [DllImport(Advapi32, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
@@ -189,7 +189,7 @@ namespace Microsoft.Win32.Security {
         [DllImport(Advapi32, CallingConvention = CallingConvention.Winapi, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern BOOL LookupPrivilegeName(
             string lpSystemName,
-            [In]ref LUID lpLuid,
+            [In] ref LUID lpLuid,
             [Out] char[] lpName,
             ref DWORD cbName);
         [DllImport(Advapi32, CallingConvention = CallingConvention.Winapi, SetLastError = true, CharSet = CharSet.Auto)]

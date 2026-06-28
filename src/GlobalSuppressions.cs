@@ -9,7 +9,7 @@
 // You do not need to add suppressions to this file manually.
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage(null, "ENC1003")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("", "ENC1003")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1060:MovePInvokesToNativeMethodsClass", Scope = "member", Target = "Microsoft.Win32.Security.Win32.#EqualSid(System.IntPtr,System.IntPtr)")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Interoperability", "CA1401:PInvokesShouldNotBeVisible", Scope = "member", Target = "Microsoft.Win32.Security.Win32.#EqualSid(System.IntPtr,System.IntPtr)")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA2101:SpecifyMarshalingForPInvokeStringArguments", MessageId = "0", Scope = "member", Target = "Microsoft.Win32.Security.Win32.#LookupAccountSid(System.String,System.IntPtr,System.Char[],System.UInt32&,System.Char[],System.UInt32&,Microsoft.Win32.Security.SID_NAME_USE&)")]

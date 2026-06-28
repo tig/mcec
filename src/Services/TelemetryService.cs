@@ -27,11 +27,11 @@ public partial class TelemetryService {
     public static TelemetryService Instance => _lazy.Value;
 
     public bool TelemetryEnabled { get; set; }
-    public Stopwatch RunTime { get; set; }
+    public Stopwatch? RunTime { get; set; }
 
-    public TelemetryClient TelemetryClient { get; private set; }
+    public TelemetryClient? TelemetryClient { get; private set; }
 
-    public void Start(string appName, IDictionary<string, string> startProperties = null) {
+    public void Start(string appName, IDictionary<string, string>? startProperties = null) {
         RunTime = Stopwatch.StartNew();
 
         object val = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller", "Telemetry", 0);
@@ -40,15 +40,14 @@ public partial class TelemetryService {
         // Setup telemetry via Azure Application Insights.
 
         // Get key from UserSecrets in a way that never puts the key in source
-        if (!string.IsNullOrWhiteSpace(TelemetryService.Key))
-        {
+        if (!string.IsNullOrWhiteSpace(TelemetryService.Key)) {
             _config.ConnectionString = TelemetryService.Key;
         }
 
         // Turn off Debug spew
         TelemetryDebugWriter.IsTracingDisabled = true;
 #if DEBUG
-            _config.TelemetryChannel.DeveloperMode = true;
+        _config.TelemetryChannel.DeveloperMode = true;
 #else
         _config.TelemetryChannel.DeveloperMode = Debugger.IsAttached;
 #endif
@@ -104,8 +103,8 @@ public partial class TelemetryService {
         TelemetryClient.Context.User.AuthenticatedUserId = user;
     }
 
-    public void TrackEvent(string key, IDictionary<string, string> properties = null,
-        IDictionary<string, double> metrics = null) {
+    public void TrackEvent(string key, IDictionary<string, string>? properties = null,
+        IDictionary<string, double>? metrics = null) {
         if (TelemetryEnabled && TelemetryClient != null) {
             TelemetryClient.TrackEvent(key, properties, metrics);
         }

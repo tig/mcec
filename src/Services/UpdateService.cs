@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Octokit;
 using Application = System.Windows.Forms.Application;
+using Timer = System.Windows.Forms.Timer;
 
 namespace MCEControl;
 
@@ -66,15 +67,15 @@ public class UpdateService {
             IReadOnlyList<Release> allReleases = await github.Repository.Release.GetAll("tig", "mcec").ConfigureAwait(false);
 
 #if DEBUG
-                var releases =
- allReleases.Where(r => r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
+            var releases =
+allReleases.Where(r => r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
 #else
             Release[] releases = allReleases.Where(r => !r.Prerelease)
                 .OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
 #endif
             if (releases.Length > 0) {
 #if DEBUG
-                    Logger.Instance.Log4.Info($"The latest PRE-RELEASE is tagged at {releases[0].TagName} and is named '{releases[0].Name}' Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
+                Logger.Instance.Log4.Info($"The latest PRE-RELEASE is tagged at {releases[0].TagName} and is named '{releases[0].Name}' Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
 #else
                 Logger.Instance.Log4.Debug(
                     $"The latest release is tagged at {releases[0].TagName} and is named '{releases[0].Name}'. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");

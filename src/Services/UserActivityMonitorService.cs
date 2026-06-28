@@ -14,6 +14,7 @@ using System.Windows.Forms;
 using Gma.UserActivityMonitor;
 using Microsoft.Win32;
 using static Gma.UserActivityMonitor.NativeMethods;
+using Timer = System.Windows.Forms.Timer;
 
 #pragma warning disable CA1416
 
@@ -30,7 +31,7 @@ namespace MCEControl;
 public sealed class UserActivityMonitorService : IDisposable {
     private static readonly Lazy<UserActivityMonitorService> _lazy = new(() => new UserActivityMonitorService());
 
-    private static GlobalEventProvider _userActivityMonitor;
+    private static GlobalEventProvider? _userActivityMonitor;
     private IntPtr? _hAwayMode;
     private IntPtr? _hMonitorPower;
 

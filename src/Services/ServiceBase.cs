@@ -14,113 +14,112 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using log4net;
 
-namespace MCEControl {
-    public enum ServiceNotification {
-        None = 0,
-        Initialized = 1,
-        StatusChange,
-        ReceivedData,
-        ClientConnected,
-        ClientDisconnected,
-        Write,
-        WriteFailed,
-        Error,
-        Wakeup
-    }
+namespace MCEControl; 
+public enum ServiceNotification {
+    None = 0,
+    Initialized = 1,
+    StatusChange,
+    ReceivedData,
+    ClientConnected,
+    ClientDisconnected,
+    Write,
+    WriteFailed,
+    Error,
+    Wakeup
+}
 
-    public enum ServiceStatus {
-        Started,
-        Waiting,
-        Connected,
-        Sleeping,
-        Stopped
+public enum ServiceStatus {
+    Started,
+    Waiting,
+    Connected,
+    Sleeping,
+    Stopped
+}
+
+/// <summary>
+/// The base class that each of MCE Controller's services are based
+/// on (SocketServer, SocketClient, SerialServer).
+/// 
+/// Allows core code to be able to interact with services (e.g.
+/// start, stop, configure, send replies) without having to 
+/// know what servic is active.
+/// </summary>
+public abstract class Reply {
+    public abstract void Write(String text);
+    public void WriteLine(String textLine) {
+        Write(textLine + Environment.NewLine);
     }
+}
+
+public abstract class ServiceBase {
+    protected ILog Log4 { get; set; }
 
     /// <summary>
-    /// The base class that each of MCE Controller's services are based
-    /// on (SocketServer, SocketClient, SerialServer).
-    /// 
-    /// Allows core code to be able to interact with services (e.g.
-    /// start, stop, configure, send replies) without having to 
-    /// know what servic is active.
+    /// TELEMETRY: Enables collecting of how long sessions are connected for.
     /// </summary>
-    public abstract class Reply {
-        public abstract void Write(String text);
-        public void WriteLine(String textLine) {
-            Write(textLine + Environment.NewLine);
-        }
+    private Stopwatch _connectedTime = new();
+
+    protected ServiceBase() {
+        Log4 = log4net.LogManager.GetLogger("MCEControl");
+        CurrentStatus = ServiceStatus.Stopped;
     }
 
-    public abstract class ServiceBase {
-        protected ILog Log4 { get; set; }
+    public delegate void NotificationCallback(ServiceNotification notify, ServiceStatus status, Reply reply, string msg = "");
+    public event NotificationCallback Notifications;
 
-        /// <summary>
-        /// TELEMETRY: Enables collecting of how long sessions are connected for.
-        /// </summary>
-        private Stopwatch _connectedTime = new Stopwatch();
+    public ServiceStatus CurrentStatus { get; set; }
 
-        protected ServiceBase() {
-            Log4 = log4net.LogManager.GetLogger("MCEControl");
-            CurrentStatus = ServiceStatus.Stopped;
+    public virtual void Send(string text, Reply? replyContext = null) {
+        if (text == null) {
+            throw new ArgumentNullException(nameof(text));
         }
 
-        public delegate void NotificationCallback(ServiceNotification notify, ServiceStatus status, Reply reply, string msg = "");
-        public event NotificationCallback Notifications;
+        Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending \"{Regex.Escape(text)}\"");
 
-        public ServiceStatus CurrentStatus { get; set; }
+        // TELEMETRY: 
+        // what: the number of commands of each type (key) sent
+        // why: to understand what commands are used to control other systems and which are not
+        // how is PII protected: we only collect the text if it is a key for a built-in command
+        Command userDefined = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(q => (q.Cmd == text.Trim('\r').Trim('\n') && q.UserDefined == false));
+        TelemetryService.Instance.TelemetryClient.GetMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent").TrackValue(1);
+    }
 
-        public virtual void Send(string text, Reply replyContext = null) {
-            if (text == null) {
-                throw new ArgumentNullException(nameof(text));
-            }
+    // Send a status notification
+    protected void SetStatus(ServiceStatus status, String msg = "") {
 
-            Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending \"{Regex.Escape(text)}\"");
+        // TELEMETRY: 
+        // what: Service status
+        // why: to understand the typical/non-typical conenction flows
+        // how is PII protected: no PII is involved
+        TelemetryService.Instance.TrackEvent($"{this.GetType().Name} {Enum.GetName(typeof(ServiceStatus), status)}", properties: new Dictionary<string, string> { { "msg", msg } });
 
-            // TELEMETRY: 
-            // what: the number of commands of each type (key) sent
-            // why: to understand what commands are used to control other systems and which are not
-            // how is PII protected: we only collect the text if it is a key for a built-in command
-            Command userDefined = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(q => (q.Cmd == text.Trim('\r').Trim('\n') && q.UserDefined == false));
-            TelemetryService.Instance.TelemetryClient.GetMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent").TrackValue(1);
+        switch (status) {
+            case ServiceStatus.Connected:
+                _connectedTime.Start();
+                break;
+
+            case ServiceStatus.Stopped:
+                if (_connectedTime.IsRunning) {
+                    _connectedTime.Stop();
+                    // TELEMETRY: 
+                    // what: how long the session was connected for
+                    // why: to understand the typical/non-typical connection scenarios
+                    // how is PII protected: no PII is involved
+                    TelemetryService.Instance.TelemetryClient.GetMetric($"{this.GetType().Name} Connected Time").TrackValue(_connectedTime.ElapsedMilliseconds);
+                }
+                break;
         }
+        CurrentStatus = status;
+        SendNotification(ServiceNotification.StatusChange, status, null, msg);
+    }
 
-        // Send a status notification
-        protected void SetStatus(ServiceStatus status, String msg = "") {
+    protected void SendNotification(ServiceNotification notification, ServiceStatus status, Reply? replyContext = null, String msg = "") {
+        Notifications?.Invoke(notification, status, replyContext, msg);
+    }
 
-            // TELEMETRY: 
-            // what: Service status
-            // why: to understand the typical/non-typical conenction flows
-            // how is PII protected: no PII is involved
-            TelemetryService.Instance.TrackEvent($"{this.GetType().Name} {Enum.GetName(typeof(ServiceStatus), status)}", properties: new Dictionary<string, string> { { "msg", msg } });
-
-            switch (status) {
-                case ServiceStatus.Connected:
-                    _connectedTime.Start();
-                    break;
-
-                case ServiceStatus.Stopped:
-                    if (_connectedTime.IsRunning) {
-                        _connectedTime.Stop();
-                        // TELEMETRY: 
-                        // what: how long the session was connected for
-                        // why: to understand the typical/non-typical connection scenarios
-                        // how is PII protected: no PII is involved
-                        TelemetryService.Instance.TelemetryClient.GetMetric($"{this.GetType().Name} Connected Time").TrackValue(_connectedTime.ElapsedMilliseconds);
-                    }
-                    break;
-            }
-            CurrentStatus = status;
-            SendNotification(ServiceNotification.StatusChange, status, null, msg);
-        }
-
-        protected void SendNotification(ServiceNotification notification, ServiceStatus status, Reply replyContext = null, String msg = "") {
-            Notifications?.Invoke(notification, status, replyContext, msg);
-        }
-
-        // Send an error notification
-        protected void Error(String msg) {
-            Log4.Debug(msg);
-            Notifications?.Invoke(ServiceNotification.Error, CurrentStatus, null, msg);
-        }
+    // Send an error notification
+    protected void Error(String msg) {
+        Log4.Debug(msg);
+        Notifications?.Invoke(ServiceNotification.Error, CurrentStatus, null, msg);
     }
 }

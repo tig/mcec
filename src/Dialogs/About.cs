@@ -13,52 +13,51 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using MCEControl.Properties;
 
-namespace MCEControl {
+namespace MCEControl; 
+/// <summary>
+/// About box
+/// </summary>
+
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1501", Justification = "WinForms generated", Scope = "namespace")]
+partial class About : Form {
+    private Label _labelTitle;
+    private Button _buttonOk;
+    private LinkLabel _linkLabelMceController;
+    private LinkLabel _linkLabelKindelSystems;
+    private Label _labelSummary;
+    private PictureBox _iconMcec;
+    private Label _labelVersion;
+    private Label _label1;
+
     /// <summary>
-    /// About box
+    /// Required designer variable.
     /// </summary>
+    public About() {
+        //
+        // Required for Windows Form Designer support
+        //
+        InitializeComponent();
+        // https://www.sgrottel.de/?p=1581&lang=en
+        //Font = System.Drawing.SystemFonts.DialogFont;
+        //_label1.Font =
+        //_labelSummary.Font = _labelTitle.Font = Font;
+        //_linkLabelKindelSystems.Font = Font;
+        //_linkLabelMceController.Font = System.Drawing.SystemFonts.;
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1501", Justification = "WinForms generated", Scope = "namespace")]
-    partial class About : Form {
-        private Label _labelTitle;
-        private Button _buttonOk;
-        private LinkLabel _linkLabelMceController;
-        private LinkLabel _linkLabelKindelSystems;
-        private Label _labelSummary;
-        private PictureBox _iconMcec;
-        private Label _labelVersion;
-        private Label _label1;
+        _labelVersion.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
 
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
-        public About() {
-            //
-            // Required for Windows Form Designer support
-            //
-            InitializeComponent();
-            // https://www.sgrottel.de/?p=1581&lang=en
-            //Font = System.Drawing.SystemFonts.DialogFont;
-            //_label1.Font =
-            //_labelSummary.Font = _labelTitle.Font = Font;
-            //_linkLabelKindelSystems.Font = Font;
-            //_linkLabelMceController.Font = System.Drawing.SystemFonts.;
+        UpdateService.Instance.CheckVersion();
+    }
 
-            _labelVersion.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
+    private void ButtonOkClick(object sender, EventArgs e) => Close();
 
-            UpdateService.Instance.CheckVersion();
-        }
+    private void LinkLabelMceControllerLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+        TelemetryService.Instance.TrackEvent("About Box License Link Clicked");
+        Process.Start(_linkLabelMceController.Tag.ToString());
+    }
 
-        private void ButtonOkClick(object sender, EventArgs e) => Close();
-
-        private void LinkLabelMceControllerLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-            TelemetryService.Instance.TrackEvent("About Box License Link Clicked");
-            Process.Start(_linkLabelMceController.Tag.ToString());
-        }
-
-        private void LinkLabelCharlieLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-            TelemetryService.Instance.TrackEvent("About Box Kindel Systems Page Link Clicked");
-            Process.Start(_linkLabelKindelSystems.Tag.ToString());
-        }
+    private void LinkLabelCharlieLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+        TelemetryService.Instance.TrackEvent("About Box Kindel Systems Page Link Clicked");
+        Process.Start(_linkLabelKindelSystems.Tag.ToString());
     }
 }
