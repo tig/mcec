@@ -80,6 +80,8 @@ CVS/
 
 #Generated for Installer
 *.nsi
+# MCEController.nsi is now a committed source script (built by Release.ps1), not generated.
+!Installer/MCEController.nsi
 AssemblyFileVersion.cs
 *.settings
 

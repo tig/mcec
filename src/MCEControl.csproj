@@ -8,7 +8,17 @@
         <RootNamespace>MCEControl</RootNamespace>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ApplicationManifest>app.manifest</ApplicationManifest>
-        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <!-- Generate the version attributes (AssemblyVersion/FileVersion/InformationalVersion) from
+             the build's version properties, which GitVersion populates from git tags. The remaining
+             assembly attributes (Title/Description/Company/Product/Configuration) stay in
+             AssemblyInfo.cs, so their generation is disabled here to avoid duplicate-attribute errors. -->
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+        <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+        <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+        <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+        <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+        <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+        <Copyright>Copyright © Kindel Systems, LLC.</Copyright>
         <PlatformTarget>AnyCPU</PlatformTarget>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
@@ -73,11 +83,6 @@
             <DesignTime>True</DesignTime>
             <DependentUpon>Resources.resx</DependentUpon>
         </Compile>
-        <Compile Update="AssemblyFileVersion.cs">
-            <AutoGen>True</AutoGen>
-            <DesignTime>True</DesignTime>
-            <DependentUpon>AssemblyFileVersion.tt</DependentUpon>
-        </Compile>
         <Compile Update="Services\TelemetryService.tt.cs">
             <AutoGen>True</AutoGen>
             <DesignTime>True</DesignTime>
@@ -86,10 +91,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="AssemblyFileVersion.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>AssemblyFileVersion.cs</LastGenOutput>
-        </None>
         <None Update="Services\TelemetryService.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>TelemetryService.tt.cs</LastGenOutput>

@@ -31,4 +31,9 @@ branches:
     source-branches: [develop, main]
 
 ignore:
-  sha: []
+  # Bogus historical tags that outrank the real 2.x line and poison version calculation:
+  #   v9.1.2.3  ("Fake Release for Testing Update Mechanism")
+  #   v2.5.4.500
+  sha:
+    - 209fc02e382b0c3f6572fbf315ffd7401af10f03
+    - 2884324e181acfab3a96f12756765f62d31cb117
