@@ -21,12 +21,12 @@ public class MemoryMarshaler {
         return ParseStruct(type, true);
     }
     public object ParseStruct(System.Type type, bool moveOffset) {
-        object o = Marshal.PtrToStructure(_ptr, type);
+        object? o = Marshal.PtrToStructure(_ptr, type);
         if (moveOffset) {
             Advance(Marshal.SizeOf(type));
         }
 
-        return o;
+        return o!;
     }
     public byte ParseUInt8() {
         return (byte)ParseStruct(typeof(byte));

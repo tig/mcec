@@ -31,7 +31,7 @@ public class PauseCommandTests
             Enabled = true
         };
 
-        var clone = (PauseCommand)original.Clone(null);
+        var clone = (PauseCommand)original.Clone(null!);
 
         Assert.Equal(original.Cmd, clone.Cmd);
         Assert.Equal(original.Args, clone.Args);

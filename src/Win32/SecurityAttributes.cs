@@ -9,7 +9,7 @@ using Win32Structs;
 /// </summary>
 public class SecurityAttributes {
     private bool _inheritHandles = false;
-    private SecurityDescriptor _secDesc;
+    private SecurityDescriptor _secDesc = null!;
 
     public SecurityAttributes() {
     }

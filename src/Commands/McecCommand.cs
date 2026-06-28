@@ -69,19 +69,19 @@ public class McecCommand : Command {
             // Return a list of supported commands (really just for testing)
             case "cmds":
                 Command cmd = this;
-                Match match = null;
+                Match? match = null;
                 try {
                     replyBuilder.Append(Environment.NewLine);
                     IOrderedEnumerable<string> orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
                     foreach (string key in orderedKeys) {
-                        cmd = (Command)MainWindow.Instance.Invoker[key];
+                        cmd = (Command)MainWindow.Instance.Invoker[key]!;
                         ListViewItem item = new ListViewItem(cmd.Cmd);
                         match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                         replyBuilder.Append($"<{match.Groups[1].Value} {cmd.ToString()} />{Environment.NewLine}");
                     }
                 }
                 catch (Exception e) {
-                    Logger.Instance.Log4.Error($"{this.GetType().Name}: ({Cmd}:{Args}) <{match.Groups[1].Value} {cmd.ToString()}/> - {e.Message}");
+                    Logger.Instance.Log4.Error($"{this.GetType().Name}: ({Cmd}:{Args}) <{match!.Groups[1].Value} {cmd.ToString()}/> - {e.Message}");
                     return false;
                 }
                 break;

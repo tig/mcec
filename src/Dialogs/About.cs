@@ -20,14 +20,14 @@ namespace MCEControl;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1501", Justification = "WinForms generated", Scope = "namespace")]
 partial class About : Form {
-    private Label _labelTitle;
-    private Button _buttonOk;
-    private LinkLabel _linkLabelMceController;
-    private LinkLabel _linkLabelKindelSystems;
-    private Label _labelSummary;
-    private PictureBox _iconMcec;
+    private Label _labelTitle = null!;
+    private Button _buttonOk = null!;
+    private LinkLabel _linkLabelMceController = null!;
+    private LinkLabel _linkLabelKindelSystems = null!;
+    private Label _labelSummary = null!;
+    private PictureBox _iconMcec = null!;
     private Label _labelVersion;
-    private Label _label1;
+    private Label _label1 = null!;
 
     /// <summary>
     /// Required designer variable.
@@ -44,7 +44,7 @@ partial class About : Form {
         //_linkLabelKindelSystems.Font = Font;
         //_linkLabelMceController.Font = System.Drawing.SystemFonts.;
 
-        _labelVersion.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
+        _labelVersion!.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
 
         UpdateService.Instance.CheckVersion();
     }
@@ -53,11 +53,11 @@ partial class About : Form {
 
     private void LinkLabelMceControllerLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
         TelemetryService.Instance.TrackEvent("About Box License Link Clicked");
-        Process.Start(_linkLabelMceController.Tag.ToString());
+        Process.Start(_linkLabelMceController.Tag!.ToString()!);
     }
 
     private void LinkLabelCharlieLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
         TelemetryService.Instance.TrackEvent("About Box Kindel Systems Page Link Clicked");
-        Process.Start(_linkLabelKindelSystems.Tag.ToString());
+        Process.Start(_linkLabelKindelSystems.Tag!.ToString()!);
     }
 }

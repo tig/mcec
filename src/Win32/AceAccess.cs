@@ -41,7 +41,7 @@ public abstract class AceAccess : Ace {
         UnsafeCopyAceToNativeArray(aceBytes);
 
         // Now copy the Sid data
-        Array.Copy(_sid.GetNativeSID(), 0, aceBytes, OffsetOfSid(), _sid.Size);
+        Array.Copy(_sid!.GetNativeSID(), 0, aceBytes, OffsetOfSid(), _sid.Size);
         return aceBytes;
     }
     protected override int OffsetOfSid() {

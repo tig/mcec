@@ -35,7 +35,7 @@ public class SetForegroundWindowCommandTests
             Enabled = true
         };
 
-        var clone = (SetForegroundWindowCommand)original.Clone(null);
+        var clone = (SetForegroundWindowCommand)original.Clone(null!);
 
         Assert.Equal(original.Cmd, clone.Cmd);
         Assert.Equal(original.Args, clone.Args);

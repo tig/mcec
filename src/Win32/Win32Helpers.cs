@@ -19,11 +19,11 @@ public sealed class Win32Helpers {
         out Dacl dacl,
         out Sacl sacl,
         out SecurityDescriptor secDesc) {
-        sidOwner = null;
-        sidGroup = null;
-        dacl = null;
-        sacl = null;
-        secDesc = null;
+        sidOwner = null!;
+        sidGroup = null!;
+        dacl = null!;
+        sacl = null!;
+        secDesc = null!;
 
         IntPtr ptrOwnerSid = IntPtr.Zero;
         IntPtr ptrGroupSid = IntPtr.Zero;
@@ -77,11 +77,11 @@ public sealed class Win32Helpers {
         out Dacl dacl,
         out Sacl sacl,
         out SecurityDescriptor secDesc) {
-        sidOwner = null;
-        sidGroup = null;
-        dacl = null;
-        sacl = null;
-        secDesc = null;
+        sidOwner = null!;
+        sidGroup = null!;
+        dacl = null!;
+        sacl = null!;
+        secDesc = null!;
 
         IntPtr ptrOwnerSid = IntPtr.Zero;
         IntPtr ptrGroupSid = IntPtr.Zero;
@@ -156,8 +156,8 @@ public sealed class Win32Helpers {
         Sid sidGroup,
         Dacl dacl,
         Sacl sacl) {
-        fixed (byte* pSidOwner = (sidOwner != null ? sidOwner.GetNativeSID() : null)) {
-            fixed (byte* pSidGroup = (sidGroup != null ? sidGroup.GetNativeSID() : null)) {
+        fixed (byte* pSidOwner = (sidOwner != null! ? sidOwner.GetNativeSID() : null)) {
+            fixed (byte* pSidGroup = (sidGroup != null! ? sidGroup.GetNativeSID() : null)) {
                 fixed (byte* pDacl = (dacl != null ? dacl.GetNativeACL() : null)) {
                     fixed (byte* pSacl = (sacl != null ? sacl.GetNativeACL() : null)) {
                         uint rc = Win32.SetSecurityInfo(handle, ObjectType, SecurityInfo,
@@ -179,8 +179,8 @@ public sealed class Win32Helpers {
         Sid sidGroup,
         Dacl dacl,
         Sacl sacl) {
-        fixed (byte* pSidOwner = (sidOwner != null ? sidOwner.GetNativeSID() : null)) {
-            fixed (byte* pSidGroup = (sidGroup != null ? sidGroup.GetNativeSID() : null)) {
+        fixed (byte* pSidOwner = (sidOwner != null! ? sidOwner.GetNativeSID() : null)) {
+            fixed (byte* pSidGroup = (sidGroup != null! ? sidGroup.GetNativeSID() : null)) {
                 fixed (byte* pDacl = (dacl != null ? dacl.GetNativeACL() : null)) {
                     fixed (byte* pSacl = (sacl != null ? sacl.GetNativeACL() : null)) {
                         uint rc = Win32.SetNamedSecurityInfo(objectName, objectType, securityInfo,

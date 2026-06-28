@@ -29,7 +29,7 @@ public abstract class ServiceBase {
     }
 
     public delegate void NotificationCallback(ServiceNotification notify, ServiceStatus status, Reply reply, string msg = "");
-    public event NotificationCallback Notifications;
+    public event NotificationCallback Notifications = null!;
 
     public ServiceStatus CurrentStatus { get; set; }
 
@@ -44,8 +44,8 @@ public abstract class ServiceBase {
         // what: the number of commands of each type (key) sent
         // why: to understand what commands are used to control other systems and which are not
         // how is PII protected: we only collect the text if it is a key for a built-in command
-        Command userDefined = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(q => (q.Cmd == text.Trim('\r').Trim('\n') && q.UserDefined == false));
-        TelemetryService.Instance.TelemetryClient.GetMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent").TrackValue(1);
+        Command? userDefined = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(q => (q.Cmd == text.Trim('\r').Trim('\n') && q.UserDefined == false));
+        TelemetryService.Instance.TelemetryClient!.GetMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent").TrackValue(1);
     }
 
     // Send a status notification
@@ -69,7 +69,7 @@ public abstract class ServiceBase {
                     // what: how long the session was connected for
                     // why: to understand the typical/non-typical connection scenarios
                     // how is PII protected: no PII is involved
-                    TelemetryService.Instance.TelemetryClient.GetMetric($"{this.GetType().Name} Connected Time").TrackValue(_connectedTime.ElapsedMilliseconds);
+                    TelemetryService.Instance.TelemetryClient!.GetMetric($"{this.GetType().Name} Connected Time").TrackValue(_connectedTime.ElapsedMilliseconds);
                 }
                 break;
         }
@@ -78,12 +78,12 @@ public abstract class ServiceBase {
     }
 
     protected void SendNotification(ServiceNotification notification, ServiceStatus status, Reply? replyContext = null, String msg = "") {
-        Notifications?.Invoke(notification, status, replyContext, msg);
+        Notifications?.Invoke(notification, status, replyContext!, msg);
     }
 
     // Send an error notification
     protected void Error(String msg) {
         Log4.Debug(msg);
-        Notifications?.Invoke(ServiceNotification.Error, CurrentStatus, null, msg);
+        Notifications?.Invoke(ServiceNotification.Error, CurrentStatus, null!, msg);
     }
 }

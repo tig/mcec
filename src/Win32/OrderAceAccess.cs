@@ -4,8 +4,8 @@ using System.Collections;
 namespace Microsoft.Win32.Security;
 class OrderAceAccess : IComparer {
     public int Compare(object? o1, object? o2) {
-        AceAccess lhs = (AceAccess)o1;
-        AceAccess rhs = (AceAccess)o2;
+        AceAccess lhs = (AceAccess)o1!;
+        AceAccess rhs = (AceAccess)o2!;
 
         // The order is:
         // denied direct aces

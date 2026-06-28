@@ -24,7 +24,7 @@ namespace MCEControl;
 /// IMPORANT: Be very careful changing this schema as it may break forward compat
 /// </summary>
 public abstract class Command : ICommand {
-    private String cmd;
+    private String cmd = null!;
 
     protected Command() {
         Enabled = false; // SECURITY: Explicity
@@ -45,14 +45,14 @@ public abstract class Command : ICommand {
     [XmlElement("mceccommand", typeof(McecCommand))]
     [XmlElement(typeof(Command))]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
-    public List<Command> EmbeddedCommands { get; set; }
+    public List<Command> EmbeddedCommands { get; set; } = null!;
 
     [XmlAttribute("args")]
-    public virtual string Args { get; set; }
+    public virtual string Args { get; set; } = null!;
 
     [XmlAttribute("enabled")]
     public bool Enabled { get; set; }
-    public virtual Reply Reply { get; set; }
+    public virtual Reply Reply { get; set; } = null!;
 
     public override string ToString() => $"Cmd=\"{Cmd}\" Args=\"{Args}\"";
 
@@ -105,7 +105,7 @@ public abstract class Command : ICommand {
         // what: the number of commands of each type (key) received and executed
         // why: to understand what commands are used and which are not
         // how is PII protected: the name of the command, key, is not user definable
-        TelemetryService.Instance.TelemetryClient.GetMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed").TrackValue(1);
+        TelemetryService.Instance!.TelemetryClient!.GetMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed").TrackValue(1);
         return true;
     }
 
@@ -116,7 +116,7 @@ public abstract class Command : ICommand {
         List<Command> objects = [];
         foreach (Type type in typeof(Command).Assembly.GetTypes()
             .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(Command)))) {
-            objects.Add((Command)Activator.CreateInstance(type));
+            objects.Add((Command)Activator.CreateInstance(type)!);
         }
         return objects;
     }

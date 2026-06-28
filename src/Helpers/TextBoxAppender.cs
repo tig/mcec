@@ -24,7 +24,7 @@ public class TextBoxAppender : AppenderSkeleton {
     private readonly object lockObj = new();
     private TextBoxExt? logTextBox;
     public TextBoxExt LogTextBox {
-        get => logTextBox;
+        get => logTextBox!;
         set {
             logTextBox = value;
             if (value == null) {
@@ -36,7 +36,7 @@ public class TextBoxAppender : AppenderSkeleton {
             value.MaxLength = 256 * 1024;
 
             value.TextChanged += new System.EventHandler(this.LogTextChanged);
-            Form frm = value.FindForm();
+            Form? frm = value.FindForm();
             if (frm != null) {
                 frm.FormClosed += delegate { Close(); };
             }
@@ -85,7 +85,7 @@ public class TextBoxAppender : AppenderSkeleton {
     }
 
     // Keep the end of the log visible and prevent it from overflowing
-    private void LogTextChanged(object sender, EventArgs e) {
+    private void LogTextChanged(object? sender, EventArgs e) {
         Debug.Assert(LogTextBox != null);
         //LogTextBox.ScrollToCaret();
     }

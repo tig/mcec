@@ -30,7 +30,7 @@ public class Logger {
     public static Logger Instance { get { return lazy.Value; } }
 
     // reference to MainWindow._log
-    private ILog log4;
+    private ILog log4 = null!;
     public ILog Log4 {
         get {
             return log4;
@@ -44,18 +44,18 @@ public class Logger {
         get {
             if (log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
-                return a.LogTextBox;
+                TextBoxAppender? a = (TextBoxAppender?)hierarchy.Root.GetAppender("TextBox");
+                return a!.LogTextBox;
             }
             else {
-                return null;
+                return null!;
             }
         }
         set {
             if (log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
-                a.LogTextBox = value;
+                TextBoxAppender? a = (TextBoxAppender?)hierarchy.Root.GetAppender("TextBox");
+                a!.LogTextBox = value;
                 a.ActivateOptions();
             }
         }
@@ -65,8 +65,8 @@ public class Logger {
         get {
             if (log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
-                return a.Threshold;
+                TextBoxAppender? a = (TextBoxAppender?)hierarchy.Root.GetAppender("TextBox");
+                return a!.Threshold;
             }
             else {
                 return Level.Debug;
@@ -75,7 +75,7 @@ public class Logger {
         set {
             if (log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                TextBoxAppender a = (TextBoxAppender)hierarchy.Root.GetAppender("TextBox");
+                TextBoxAppender? a = (TextBoxAppender?)hierarchy.Root.GetAppender("TextBox");
                 if (a != null) {
                     a.Threshold = value;
                     a.ActivateOptions();
@@ -89,8 +89,8 @@ public class Logger {
         get {
             if (log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                RollingFileAppender a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
-                return a.File;
+                RollingFileAppender? a = (RollingFileAppender?)hierarchy.Root.GetAppender("File");
+                return a!.File!;
             }
             else {
                 return "MCEControl.log"; // default
@@ -99,8 +99,8 @@ public class Logger {
         set {
             if (log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
-                RollingFileAppender a = (RollingFileAppender)hierarchy.Root.GetAppender("File");
-                a.File = value;
+                RollingFileAppender? a = (RollingFileAppender?)hierarchy.Root.GetAppender("File");
+                a!.File = value;
                 a.ActivateOptions();
             }
         }

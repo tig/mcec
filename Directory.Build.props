@@ -18,7 +18,7 @@
          rather than landing one enormous, runtime-untested diff. Remove codes from this list as
          each category is driven to zero to make it a hard error again (full WinPrint strictness).
          WFO1000/WFDEV004 are WinForms source-generator/obsoletion advisories handled the same way. -->
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);CS8600;CS8601;CS8602;CS8603;CS8604;CS8605;CS8607;CS8608;CS8609;CS8610;CS8611;CS8612;CS8613;CS8614;CS8615;CS8616;CS8617;CS8618;CS8619;CS8620;CS8621;CS8622;CS8623;CS8624;CS8625;CS8762;CS8763;CS8764;CS8765;CS8766;CS8767;CS8768;CS8769;CS8770;CS8774;CS8775;CS8776;CS8777;WFO1000;WFDEV004</WarningsNotAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);WFO1000;WFDEV004</WarningsNotAsErrors>
 
   </PropertyGroup>
 

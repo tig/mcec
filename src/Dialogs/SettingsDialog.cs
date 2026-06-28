@@ -24,14 +24,14 @@ public class SettingsDialog : Form {
 
     private GroupBox _clientGroup;
 
-    private TabPage _tabGeneral;
+    private TabPage _tabGeneral = null!;
     private GroupBox _serverGroup;
 
     public AppSettings Settings { get; set; }
-    public string DefaultTab { get; set; }
+    public string DefaultTab { get; set; } = null!;
 
     private GroupBox _wakeupGroup;
-    private Button _buttonCancel;
+    private Button _buttonCancel = null!;
     private Button _buttonOk;
     private CheckBox _checkBoxAutoStart;
     private CheckBox _checkBoxEnableClient;
@@ -46,51 +46,51 @@ public class SettingsDialog : Form {
     private TextBox _editWakeupCommand;
     private TextBox _editWakeupPort;
     private TextBox _editWakeupServer;
-    private Label _label1;
-    private Label _label2;
-    private Label _label3;
-    private Label _label4;
-    private Label _label5;
-    private Label _label6;
-    private Label _label7;
-    private Label _label8;
-    private TabPage _tabClient;
-    private TabControl _tabcontrol;
-    private TabPage _tabSerial;
+    private Label _label1 = null!;
+    private Label _label2 = null!;
+    private Label _label3 = null!;
+    private Label _label4 = null!;
+    private Label _label5 = null!;
+    private Label _label6 = null!;
+    private Label _label7 = null!;
+    private Label _label8 = null!;
+    private TabPage _tabClient = null!;
+    private TabControl _tabcontrol = null!;
+    private TabPage _tabSerial = null!;
     private GroupBox _serialServerGroup;
     private CheckBox _checkBoxEnableSerialServer;
     private ComboBox _comboBoxHandshake;
-    private Label _labelHandshake;
+    private Label _labelHandshake = null!;
     private ComboBox _comboBoxStopBits;
-    private Label _labelStopBits;
+    private Label _labelStopBits = null!;
     private ComboBox _comboBoxParity;
-    private Label _labelParity;
+    private Label _labelParity = null!;
     private ComboBox _comboBoxDataBits;
-    private Label _labelDataBits;
+    private Label _labelDataBits = null!;
     private ComboBox _comboBoxBaudRate;
-    private Label _labelBuadRate;
+    private Label _labelBuadRate = null!;
     private ComboBox _comboBoxSerialPort;
-    private Label _labelSerialPort;
-    private ToolTip _toolTipClient;
-    private System.ComponentModel.IContainer _components = null;
-    private ToolTip _toolTipServer;
-    private TabPage _tabPageActivityMonitor;
+    private Label _labelSerialPort = null!;
+    private ToolTip _toolTipClient = null!;
+    private System.ComponentModel.IContainer _components = null!;
+    private ToolTip _toolTipServer = null!;
+    private TabPage _tabPageActivityMonitor = null!;
     private GroupBox _groupBoxActivityMonitor;
     private CheckBox _checkBoxEnableActivityMonitor;
     private System.Windows.Forms.TextBox _textBoxActivityCommand;
-    private Label _labelActivityCommand;
-    private Label _labelActivityDebounceTime;
+    private Label _labelActivityCommand = null!;
+    private Label _labelActivityDebounceTime = null!;
     private System.Windows.Forms.TextBox _textBoxDebounceTime;
-    private EventLog _eventLog;
+    private EventLog _eventLog = null!;
     private ComboBox _comboBoxLogThresholds;
-    private Label _labelLogLevel;
+    private Label _labelLogLevel = null!;
     private TextBox _textBoxPacing;
-    private Label _labelPacing;
+    private Label _labelPacing = null!;
     private CheckBox _unlockDetection;
     private CheckBox _inputDetection;
-    private System.ComponentModel.IContainer components;
+    private System.ComponentModel.IContainer components = null!;
     private CheckBox _presenceDetection;
-    private TabPage _tabServer;
+    private TabPage _tabServer = null!;
 
     #region Windows Form Designer generated code
 
@@ -951,51 +951,51 @@ public class SettingsDialog : Form {
         Settings = (AppSettings)settings.Clone();
 
         // Handle General tab setup
-        _checkBoxHideOnStartup.Checked = Settings.HideOnStartup;
-        _checkBoxAutoStart.Checked = Settings.AutoStart;
+        _checkBoxHideOnStartup!.Checked = Settings.HideOnStartup;
+        _checkBoxAutoStart!.Checked = Settings.AutoStart;
 
         // Client tab setup
-        _checkBoxEnableClient.Checked = Settings.ActAsClient;
-        _editClientPort.Text = Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
-        _editClientHost.Text = Settings.ClientHost;
-        _editClientDelayTime.Text = Settings.ClientDelayTime.ToString(CultureInfo.InvariantCulture);
+        _checkBoxEnableClient!.Checked = Settings.ActAsClient;
+        _editClientPort!.Text = Settings.ClientPort.ToString(CultureInfo.InvariantCulture);
+        _editClientHost!.Text = Settings.ClientHost;
+        _editClientDelayTime!.Text = Settings.ClientDelayTime.ToString(CultureInfo.InvariantCulture);
 
         // Server tab setup
-        _checkBoxEnableServer.Checked = Settings.ActAsServer;
-        _editServerPort.Text = Settings.ServerPort.ToString(CultureInfo.InvariantCulture);
-        _checkBoxEnableWakeup.Checked = Settings.WakeupEnabled;
-        _editWakeupServer.Text = Settings.WakeupHost;
-        _editWakeupPort.Text = Settings.WakeupPort.ToString(CultureInfo.InvariantCulture);
-        _editWakeupCommand.Text = Settings.WakeupCommand;
-        _editClosingCommand.Text = Settings.ClosingCommand;
+        _checkBoxEnableServer!.Checked = Settings.ActAsServer;
+        _editServerPort!.Text = Settings.ServerPort.ToString(CultureInfo.InvariantCulture);
+        _checkBoxEnableWakeup!.Checked = Settings.WakeupEnabled;
+        _editWakeupServer!.Text = Settings.WakeupHost;
+        _editWakeupPort!.Text = Settings.WakeupPort.ToString(CultureInfo.InvariantCulture);
+        _editWakeupCommand!.Text = Settings.WakeupCommand;
+        _editClosingCommand!.Text = Settings.ClosingCommand;
 
         // Serial Server tab setup
-        _checkBoxEnableSerialServer.Checked = Settings.ActAsSerialServer;
-        _comboBoxSerialPort.SelectedItem = Settings.SerialServerPortName;
-        _comboBoxBaudRate.SelectedItem = $"{Settings.SerialServerBaudRate}";
-        _comboBoxDataBits.SelectedItem = $"{Settings.SerialServerDataBits}";
+        _checkBoxEnableSerialServer!.Checked = Settings.ActAsSerialServer;
+        _comboBoxSerialPort!.SelectedItem = Settings.SerialServerPortName;
+        _comboBoxBaudRate!.SelectedItem = $"{Settings.SerialServerBaudRate}";
+        _comboBoxDataBits!.SelectedItem = $"{Settings.SerialServerDataBits}";
         // For the enum types, we cheat and rely on knowledge of what the enum 
         // values are. The combo boxes are pre-filled with in-order strings.
-        _comboBoxParity.SelectedIndex = (int)Settings.SerialServerParity;
-        _comboBoxStopBits.SelectedIndex = (int)Settings.SerialServerStopBits - 1; // None (0) is not allowed
-        _comboBoxHandshake.SelectedIndex = (int)Settings.SerialServerHandshake;
+        _comboBoxParity!.SelectedIndex = (int)Settings.SerialServerParity;
+        _comboBoxStopBits!.SelectedIndex = (int)Settings.SerialServerStopBits - 1; // None (0) is not allowed
+        _comboBoxHandshake!.SelectedIndex = (int)Settings.SerialServerHandshake;
 
-        _clientGroup.Enabled = _checkBoxEnableClient.Checked;
-        _wakeupGroup.Enabled = _checkBoxEnableWakeup.Checked;
-        _serverGroup.Enabled = _checkBoxEnableServer.Checked;
-        _serialServerGroup.Enabled = _checkBoxEnableSerialServer.Checked;
+        _clientGroup!.Enabled = _checkBoxEnableClient.Checked;
+        _wakeupGroup!.Enabled = _checkBoxEnableWakeup.Checked;
+        _serverGroup!.Enabled = _checkBoxEnableServer.Checked;
+        _serialServerGroup!.Enabled = _checkBoxEnableSerialServer.Checked;
 
 
-        _groupBoxActivityMonitor.Enabled = _checkBoxEnableActivityMonitor.Checked = Settings.ActivityMonitorEnabled;
-        _unlockDetection.Checked = Settings.UnlockDetection;
-        _inputDetection.Checked = Settings.InputDetection;
-        _presenceDetection.Checked = Settings.UserPresenceDetection;
-        _textBoxActivityCommand.Text = Settings.ActivityMonitorCommand;
-        _textBoxDebounceTime.Text = $"{Settings.ActivityMonitorDebounceTime}";
+        _groupBoxActivityMonitor!.Enabled = _checkBoxEnableActivityMonitor!.Checked = Settings.ActivityMonitorEnabled;
+        _unlockDetection!.Checked = Settings.UnlockDetection;
+        _inputDetection!.Checked = Settings.InputDetection;
+        _presenceDetection!.Checked = Settings.UserPresenceDetection;
+        _textBoxActivityCommand!.Text = Settings.ActivityMonitorCommand;
+        _textBoxDebounceTime!.Text = $"{Settings.ActivityMonitorDebounceTime}";
 
-        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["ALL"]);
-        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["INFO"]);
-        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap["DEBUG"]);
+        _comboBoxLogThresholds!.Items.Add(LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap["ALL"]!);
+        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap["INFO"]!);
+        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap["DEBUG"]!);
 
         switch (Settings.TextBoxLogThreshold) {
             case "ALL":
@@ -1011,8 +1011,8 @@ public class SettingsDialog : Form {
                 break;
         }
 
-        _textBoxPacing.Text = $"{Settings.CommandPacing}";
-        _buttonOk.Enabled = false;
+        _textBoxPacing!.Text = $"{Settings.CommandPacing}";
+        _buttonOk!.Enabled = false;
     }
 
     private void SettingsChanged() {
@@ -1062,34 +1062,34 @@ public class SettingsDialog : Form {
         base.Dispose(disposing);
     }
 
-    private void ButtonCancelClick(object sender, EventArgs e) {
+    private void ButtonCancelClick(object? sender, EventArgs e) {
         Close();
     }
 
-    private void ButtonOkClick(object sender, EventArgs e) {
+    private void ButtonOkClick(object? sender, EventArgs e) {
         Settings.Serialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
         DialogResult = DialogResult.OK;
         Close();
     }
 
-    private void CheckBoxHideOnStartupCheckedChanged(object sender, EventArgs e) {
+    private void CheckBoxHideOnStartupCheckedChanged(object? sender, EventArgs e) {
         Settings.HideOnStartup = _checkBoxHideOnStartup.Checked;
         SettingsChanged();
     }
 
-    private void CheckBoxAutoStartCheckedChanged(object sender, EventArgs e) {
+    private void CheckBoxAutoStartCheckedChanged(object? sender, EventArgs e) {
         Settings.AutoStart = _checkBoxAutoStart.Checked;
         SettingsChanged();
     }
 
-    private void CheckBoxEnableServerCheckedChanged(object sender, EventArgs e) {
+    private void CheckBoxEnableServerCheckedChanged(object? sender, EventArgs e) {
         Settings.ActAsServer = _checkBoxEnableServer.Checked;
 
         _serverGroup.Enabled = _checkBoxEnableServer.Checked;
         SettingsChanged();
     }
 
-    private void EditServerPortTextChanged(object sender, EventArgs e) {
+    private void EditServerPortTextChanged(object? sender, EventArgs e) {
         if (int.TryParse(_editServerPort.Text, out int port)) {
             Settings.ServerPort = port;
         }
@@ -1097,18 +1097,18 @@ public class SettingsDialog : Form {
         SettingsChanged();
     }
 
-    private void CheckBoxEnableWakeupCheckedChanged(object sender, EventArgs e) {
+    private void CheckBoxEnableWakeupCheckedChanged(object? sender, EventArgs e) {
         Settings.WakeupEnabled = _checkBoxEnableWakeup.Checked;
         _wakeupGroup.Enabled = _checkBoxEnableWakeup.Checked;
         SettingsChanged();
     }
 
-    private void EditWakeupServerTextChanged(object sender, EventArgs e) {
+    private void EditWakeupServerTextChanged(object? sender, EventArgs e) {
         Settings.WakeupHost = _editWakeupServer.Text;
         SettingsChanged();
     }
 
-    private void EditWakeupPortTextChanged(object sender, EventArgs e) {
+    private void EditWakeupPortTextChanged(object? sender, EventArgs e) {
         if (int.TryParse(_editWakeupPort.Text, out int port)) {
             Settings.WakeupPort = port;
         }
@@ -1116,24 +1116,24 @@ public class SettingsDialog : Form {
         SettingsChanged();
     }
 
-    private void EditWakeupCommandTextChanged(object sender, EventArgs e) {
+    private void EditWakeupCommandTextChanged(object? sender, EventArgs e) {
         Settings.WakeupCommand = _editWakeupCommand.Text;
         SettingsChanged();
     }
 
-    private void EditClosingCommandTextChanged(object sender, EventArgs e) {
+    private void EditClosingCommandTextChanged(object? sender, EventArgs e) {
         Settings.ClosingCommand = _editClosingCommand.Text;
         SettingsChanged();
     }
 
-    private void CheckEnableClientCheckedChanged(object sender, EventArgs e) {
+    private void CheckEnableClientCheckedChanged(object? sender, EventArgs e) {
         Settings.ActAsClient = _checkBoxEnableClient.Checked;
 
         _clientGroup.Enabled = _checkBoxEnableClient.Checked;
         SettingsChanged();
     }
 
-    private void EditClientPortTextChanged(object sender, EventArgs e) {
+    private void EditClientPortTextChanged(object? sender, EventArgs e) {
         if (int.TryParse(_editClientPort.Text, out int port)) {
             Settings.ClientPort = port;
         }
@@ -1141,12 +1141,12 @@ public class SettingsDialog : Form {
         SettingsChanged();
     }
 
-    private void EditClientHostTextChanged(object sender, EventArgs e) {
+    private void EditClientHostTextChanged(object? sender, EventArgs e) {
         Settings.ClientHost = _editClientHost.Text;
         SettingsChanged();
     }
 
-    private void EditClientDelayTimeTextChanged(object sender, EventArgs e) {
+    private void EditClientDelayTimeTextChanged(object? sender, EventArgs e) {
         if (_editClientDelayTime.Text.Length > 0) {
             Settings.ClientDelayTime = Convert.ToInt32(_editClientDelayTime.Text, new NumberFormatInfo());
         }
@@ -1155,44 +1155,44 @@ public class SettingsDialog : Form {
     }
 
     // Serial Server handlers
-    private void CheckBoxEnableSerialServerCheckedChanged(object sender, EventArgs e) {
+    private void CheckBoxEnableSerialServerCheckedChanged(object? sender, EventArgs e) {
         Settings.ActAsSerialServer = _checkBoxEnableSerialServer.Checked;
 
         _serialServerGroup.Enabled = _checkBoxEnableSerialServer.Checked;
         SettingsChanged();
     }
 
-    private void ComboBoxSerialPortSelectedIndexChanged(object sender, EventArgs e) {
+    private void ComboBoxSerialPortSelectedIndexChanged(object? sender, EventArgs e) {
         if (_comboBoxBaudRate.SelectedItem != null) {
-            Settings.SerialServerPortName = _comboBoxSerialPort.SelectedItem.ToString();
+            Settings.SerialServerPortName = _comboBoxSerialPort.SelectedItem!.ToString()!;
             SettingsChanged();
         }
     }
 
-    private void ComboBoxBaudRateSelectedIndexChanged(object sender, EventArgs e) {
-        if (int.TryParse(_comboBoxBaudRate.SelectedItem.ToString(), out int baud)) {
+    private void ComboBoxBaudRateSelectedIndexChanged(object? sender, EventArgs e) {
+        if (int.TryParse(_comboBoxBaudRate.SelectedItem!.ToString(), out int baud)) {
             Settings.SerialServerBaudRate = baud;
         }
 
         SettingsChanged();
     }
 
-    private void ComboBoxParitySelectedIndexChanged(object sender, EventArgs e) {
+    private void ComboBoxParitySelectedIndexChanged(object? sender, EventArgs e) {
         if (_comboBoxParity.SelectedItem != null) {
             Settings.SerialServerParity = (Parity)_comboBoxParity.SelectedIndex;
             SettingsChanged();
         }
     }
 
-    private void ComboBoxDataBitsSelectedIndexChanged(object sender, EventArgs e) {
-        if (int.TryParse(_comboBoxDataBits.SelectedItem.ToString(), out int bits)) {
+    private void ComboBoxDataBitsSelectedIndexChanged(object? sender, EventArgs e) {
+        if (int.TryParse(_comboBoxDataBits.SelectedItem!.ToString(), out int bits)) {
             Settings.SerialServerDataBits = bits;
         }
 
         SettingsChanged();
     }
 
-    private void ComboBoxStopBitsSelectedIndexChanged(object sender, EventArgs e) {
+    private void ComboBoxStopBitsSelectedIndexChanged(object? sender, EventArgs e) {
         if (_comboBoxStopBits.SelectedItem != null) {
             // Add one because None is invalid and is not included in the combo box
             Settings.SerialServerStopBits = (StopBits)_comboBoxStopBits.SelectedIndex + 1;
@@ -1200,20 +1200,20 @@ public class SettingsDialog : Form {
         }
     }
 
-    private void ComboBoxHandshakeSelectedIndexChanged(object sender, EventArgs e) {
+    private void ComboBoxHandshakeSelectedIndexChanged(object? sender, EventArgs e) {
         if (_comboBoxHandshake.SelectedItem != null) {
             Settings.SerialServerHandshake = (Handshake)_comboBoxHandshake.SelectedIndex;
             SettingsChanged();
         }
     }
 
-    private void checkBoxEnableActivityMonitor_CheckedChanged(object sender, EventArgs e) {
+    private void checkBoxEnableActivityMonitor_CheckedChanged(object? sender, EventArgs e) {
         Settings.ActivityMonitorEnabled = _checkBoxEnableActivityMonitor.Checked;
         _groupBoxActivityMonitor.Enabled = _checkBoxEnableActivityMonitor.Checked;
         SettingsChanged();
     }
 
-    private void textBoxActivityCommand_TextChanged(object sender, EventArgs e) {
+    private void textBoxActivityCommand_TextChanged(object? sender, EventArgs e) {
         if (_textBoxActivityCommand.Text.Length > 0) {
             Settings.ActivityMonitorCommand = _textBoxActivityCommand.Text;
         }
@@ -1221,14 +1221,14 @@ public class SettingsDialog : Form {
         SettingsChanged();
     }
 
-    private void textBoxDebounceTime_TextChanged(object sender, EventArgs e) {
+    private void textBoxDebounceTime_TextChanged(object? sender, EventArgs e) {
         if (int.TryParse(_textBoxDebounceTime.Text, out int t)) {
             Settings.ActivityMonitorDebounceTime = t;
         }
 
         SettingsChanged();
     }
-    private void SettingsDialog_Load(object sender, EventArgs e) {
+    private void SettingsDialog_Load(object? sender, EventArgs e) {
         switch (DefaultTab) {
             case "General":
                 _tabcontrol.SelectedTab = _tabGeneral;
@@ -1249,14 +1249,14 @@ public class SettingsDialog : Form {
         }
     }
 
-    private void comboBoxLogThresholds_SelectedIndexChanged(object sender, EventArgs e) {
-        Settings.TextBoxLogThreshold = _comboBoxLogThresholds.SelectedItem.ToString();
-        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Settings.TextBoxLogThreshold];
+    private void comboBoxLogThresholds_SelectedIndexChanged(object? sender, EventArgs e) {
+        Settings.TextBoxLogThreshold = _comboBoxLogThresholds.SelectedItem!.ToString()!;
+        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap[Settings.TextBoxLogThreshold!]!;
 
         SettingsChanged();
     }
 
-    private void textBoxPacing_TextChanged(object sender, EventArgs e) {
+    private void textBoxPacing_TextChanged(object? sender, EventArgs e) {
         if (int.TryParse(_textBoxPacing.Text, out int t)) {
             Settings.CommandPacing = t;
         }
@@ -1264,17 +1264,17 @@ public class SettingsDialog : Form {
         SettingsChanged();
     }
 
-    private void inputDetectionRadio_CheckedChanged(object sender, EventArgs e) {
+    private void inputDetectionRadio_CheckedChanged(object? sender, EventArgs e) {
         Settings.InputDetection = _inputDetection.Checked;
         SettingsChanged();
     }
 
-    private void unlockDetectionRadio_CheckedChanged(object sender, EventArgs e) {
+    private void unlockDetectionRadio_CheckedChanged(object? sender, EventArgs e) {
         Settings.UnlockDetection = _unlockDetection.Checked;
         SettingsChanged();
     }
 
-    private void presenceDetectionRadio_CheckedChanged(object sender, EventArgs e) {
+    private void presenceDetectionRadio_CheckedChanged(object? sender, EventArgs e) {
         Settings.UserPresenceDetection = _presenceDetection.Checked;
         SettingsChanged();
     }

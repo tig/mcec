@@ -37,7 +37,7 @@ public sealed class UserActivityMonitorService : IDisposable {
 
     private IntPtr? _hUserPresence;
     private DateTime _lastTime;
-    private Timer _presencePresumedTimer;
+    private Timer _presencePresumedTimer = null!;
 
     private UserActivityMonitorService() {
     }
@@ -255,7 +255,7 @@ public sealed class UserActivityMonitorService : IDisposable {
         Debug.Assert(_presencePresumedTimer != null);
         _presencePresumedTimer.Stop();
         _presencePresumedTimer.Dispose();
-        _presencePresumedTimer = null;
+        _presencePresumedTimer = null!;
     }
 
     public void Stop() {
@@ -284,7 +284,7 @@ public sealed class UserActivityMonitorService : IDisposable {
         }
     }
 
-    private void ActivityPresumedTimerTick(object sender, EventArgs e) {
+    private void ActivityPresumedTimerTick(object? sender, EventArgs? e) {
         Activity($"{DebounceTime} seconds since user activity detected; User Presence Assumed");
     }
 
@@ -311,7 +311,7 @@ public sealed class UserActivityMonitorService : IDisposable {
             // what: the count of activity detected
             // why: to understand how frequently activity is detected
             // how is PII protected: the frequency of activity is not PII
-            TelemetryService.Instance.TelemetryClient.GetMetric("activity Sent").TrackValue(1);
+            TelemetryService.Instance.TelemetryClient!.GetMetric("activity Sent").TrackValue(1);
 
             MainWindow.Instance.SendLine(ActivityMsg);
 
@@ -319,36 +319,36 @@ public sealed class UserActivityMonitorService : IDisposable {
         }
     }
 
-    private void HookManager_KeyDown(object sender, KeyEventArgs e) {
+    private void HookManager_KeyDown(object? sender, KeyEventArgs e) {
         Activity("KeyDown", LogActivity ? $"{e.KeyCode}" : "");
     }
 
-    private void HookManager_KeyUp(object sender, KeyEventArgs e) {
+    private void HookManager_KeyUp(object? sender, KeyEventArgs e) {
         Activity("KeyUp", LogActivity ? $"{e.KeyCode}" : "");
     }
 
 
-    private void HookManager_KeyPress(object sender, KeyPressEventArgs e) {
+    private void HookManager_KeyPress(object? sender, KeyPressEventArgs e) {
         Activity("KeyPress", LogActivity ? $"{e.KeyChar}" : "");
     }
 
-    private void HookManager_MouseMove(object sender, MouseEventArgs e) {
+    private void HookManager_MouseMove(object? sender, MouseEventArgs e) {
         Activity("MouseMove", LogActivity ? $"x={e.X:0000}; y={e.Y:0000}" : "");
     }
 
-    private void HookManager_MouseClick(object sender, MouseEventArgs e) {
+    private void HookManager_MouseClick(object? sender, MouseEventArgs e) {
         Activity("MouseClick", LogActivity ? $"{e.Button}" : "");
     }
 
-    private void HookManager_MouseUp(object sender, MouseEventArgs e) {
+    private void HookManager_MouseUp(object? sender, MouseEventArgs e) {
         Activity("MouseUp", LogActivity ? $"{e.Button}" : "");
     }
 
-    private void HookManager_MouseDown(object sender, MouseEventArgs e) {
+    private void HookManager_MouseDown(object? sender, MouseEventArgs e) {
         Activity("MouseDown", LogActivity ? $"{e.Button}" : "");
     }
 
-    private void HookManager_MouseDoubleClick(object sender, MouseEventArgs e) {
+    private void HookManager_MouseDoubleClick(object? sender, MouseEventArgs e) {
         Activity("MouseDoubleClick", LogActivity ? $"{e.Button}" : "");
     }
 
@@ -364,7 +364,7 @@ public sealed class UserActivityMonitorService : IDisposable {
         if (!_disposedValue) {
             if (disposing) {
                 _presencePresumedTimer?.Dispose();
-                _presencePresumedTimer = null;
+                _presencePresumedTimer = null!;
             }
 
             _disposedValue = true;

@@ -45,10 +45,10 @@ internal static class Program {
 
         Application.Run(MainWindow.Instance);
 
-        Logger.Instance.Log4.Debug($"------ END runtime: {TelemetryService.Instance.RunTime.Elapsed:g} ------");
+        Logger.Instance.Log4.Debug($"------ END runtime: {TelemetryService.Instance.RunTime!.Elapsed:g} ------");
     }
 
-    private static void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e) {
+    private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
         Logger.DumpException(e.Exception);
         TelemetryService.Instance.TrackException(e.Exception);
         MessageBox.Show(@$"Unhandled Exception: {e.Exception.Message}\n\n" +
@@ -57,7 +57,7 @@ internal static class Program {
     }
 
     private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e) {
-        Exception ex = e.ExceptionObject as Exception;
+        Exception ex = (e.ExceptionObject as Exception)!;
         Logger.DumpException(ex);
         TelemetryService.Instance.TrackException(ex);
         MessageBox.Show(@$"Unhandled Exception: {ex.Message}\n\n" +

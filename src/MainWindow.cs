@@ -26,24 +26,24 @@ public partial class MainWindow : Form {
     private static readonly Lazy<MainWindow> _lazy = new(() => new MainWindow());
     public static MainWindow Instance { get { return _lazy.Value; } }
 
-    public SocketServer Server { get; private set; }
-    public SocketClient Client { get; private set; }
-    public SerialServer SerialServer { get; private set; }
-    public CommandInvoker Invoker { get; set; }
-    private CommandWindow cmdWindow;
-    private CommandFileWatcher watcher;
+    public SocketServer Server { get; private set; } = null!;
+    public SocketClient Client { get; private set; } = null!;
+    public SerialServer SerialServer { get; private set; } = null!;
+    public CommandInvoker Invoker { get; set; } = null!;
+    private CommandWindow cmdWindow = null!;
+    private CommandFileWatcher watcher = null!;
 
     // Indicates whether user hit the close box (minimize)
     // or the app is exiting
     private bool shuttingDown;
 
     // Settings
-    public AppSettings Settings { get; set; }
+    public AppSettings Settings { get; set; } = null!;
 
     public MainWindow() {
         InitializeComponent();
         Logger.Instance.LogTextBox = logTextBox;
-        logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, MainMenuStrip.Font.SizeInPoints - 1,
+        logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, MainMenuStrip!.Font.SizeInPoints - 1,
             System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
 
         notifyIcon.Icon = Icon;
@@ -115,7 +115,7 @@ public partial class MainWindow : Form {
             $" - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")}" +
             $" - .NET: {Environment.Version.ToString()}");
 
-        IntPtr hWnd = WindowsInput.Native.NativeMethods.FindWindow(null, this.Text);
+        IntPtr hWnd = WindowsInput.Native.NativeMethods.FindWindow(null!, this.Text);
 #if _DEBUG
         var sb = new StringBuilder(256);
         WindowsInput.Native.NativeMethods.GetClassName(hWnd, sb, 256);
@@ -125,7 +125,7 @@ public partial class MainWindow : Form {
         Settings = AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
 
         // Configure logging (some logging already happened).
-        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Instance.Settings.TextBoxLogThreshold];
+        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![Instance.Settings.TextBoxLogThreshold]!;
         Logger.Instance.Log4.Info($"Logger: Logging to {Logger.Instance.LogFile}");
 
         // Telemetry
@@ -140,7 +140,7 @@ public partial class MainWindow : Form {
         LoadCommands();
         // watch .command file for changes
         watcher = new CommandFileWatcher($@"{Program.ConfigPath}MCEControl.commands");
-        watcher.ChangedEvent += (o, a) => CmdTable_CommandsChangedEvent(o, a);
+        watcher.ChangedEvent += (o, a) => CmdTable_CommandsChangedEvent(o!, a);
 
         if (Settings.HideOnStartup) {
             Opacity = 0;
@@ -168,7 +168,7 @@ public partial class MainWindow : Form {
         Start();
     }
 
-    private void UpdateService_GotLatestVersion(object sender, Version version) {
+    private void UpdateService_GotLatestVersion(object? sender, Version version) {
         if (InvokeRequired) {
             BeginInvoke((Action)(() => { UpdateService_GotLatestVersion(sender, version); }));
         }
@@ -237,7 +237,7 @@ public partial class MainWindow : Form {
             // Save Commands
             // Stop file system watcher
             watcher.Dispose();
-            watcher = null;
+            watcher = null!;
 
             // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
             //Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
@@ -325,7 +325,7 @@ public partial class MainWindow : Form {
             Logger.Instance.Log4.Info("Server: Stopping...");
             // remove our notification handler
             Server.Stop();
-            Server = null;
+            Server = null!;
             sendAwakeMenuItem.Enabled = false;
         }
     }
@@ -361,7 +361,7 @@ public partial class MainWindow : Form {
             Logger.Instance.Log4.Info("Serial: Stopping...");
             // remove our notification handler
             SerialServer.Stop();
-            SerialServer = null;
+            SerialServer = null!;
         }
     }
 
@@ -385,7 +385,7 @@ public partial class MainWindow : Form {
             cmdWindow.Visible = false;
             Logger.Instance.Log4.Info("Client: Stopping...");
             Client.Stop();
-            Client = null;
+            Client = null!;
         }
     }
 
@@ -681,7 +681,7 @@ public partial class MainWindow : Form {
     //
     public void clientSocketNotificationHandler(ServiceNotification notify, ServiceStatus status, Reply reply, String msg) {
         SetClientStatus(status);
-        String s = null;
+        String? s = null;
         switch (notify) {
             case ServiceNotification.StatusChange:
                 if (status == ServiceStatus.Started) {
@@ -725,7 +725,7 @@ public partial class MainWindow : Form {
     //
     public void HandleSerialServerNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg) {
         SetSerialStatus(status);
-        String s = null;
+        String? s = null;
         switch (notify) {
             case ServiceNotification.StatusChange:
                 switch (status) {
@@ -775,7 +775,7 @@ public partial class MainWindow : Form {
 
             Opacity = (double)Settings.Opacity / 100;
 
-            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl").Logger.Repository.LevelMap[Settings.TextBoxLogThreshold];
+            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![Settings.TextBoxLogThreshold]!;
 
             Start();
         }

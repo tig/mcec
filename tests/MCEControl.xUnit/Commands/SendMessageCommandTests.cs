@@ -42,7 +42,7 @@ public class SendMessageCommandTests
             Enabled = true
         };
 
-        var clone = (SendMessageCommand)original.Clone(null);
+        var clone = (SendMessageCommand)original.Clone(null!);
 
         Assert.Equal(original.ClassName, clone.ClassName);
         Assert.Equal(original.WindowName, clone.WindowName);

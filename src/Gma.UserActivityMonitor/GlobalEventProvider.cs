@@ -20,7 +20,7 @@ public class GlobalEventProvider : Component {
     //################################################################
     #region Mouse events
 
-    private event MouseEventHandler m_MouseMove;
+    private event MouseEventHandler m_MouseMove = null!;
 
     /// <summary>
     /// Occurs when the mouse pointer is moved. 
@@ -41,13 +41,13 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    void HookManager_MouseMove(object sender, MouseEventArgs e) {
+    void HookManager_MouseMove(object? sender, MouseEventArgs e) {
         if (m_MouseMove != null) {
             m_MouseMove.Invoke(this, e);
         }
     }
 
-    private event MouseEventHandler m_MouseClick;
+    private event MouseEventHandler m_MouseClick = null!;
     /// <summary>
     /// Occurs when a click was performed by the mouse. 
     /// </summary>
@@ -67,13 +67,13 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    void HookManager_MouseClick(object sender, MouseEventArgs e) {
+    void HookManager_MouseClick(object? sender, MouseEventArgs e) {
         if (m_MouseClick != null) {
             m_MouseClick.Invoke(this, e);
         }
     }
 
-    private event MouseEventHandler m_MouseDown;
+    private event MouseEventHandler m_MouseDown = null!;
 
     /// <summary>
     /// Occurs when the mouse a mouse button is pressed. 
@@ -94,14 +94,14 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    void HookManager_MouseDown(object sender, MouseEventArgs e) {
+    void HookManager_MouseDown(object? sender, MouseEventArgs e) {
         if (m_MouseDown != null) {
             m_MouseDown.Invoke(this, e);
         }
     }
 
 
-    private event MouseEventHandler m_MouseUp;
+    private event MouseEventHandler m_MouseUp = null!;
 
     /// <summary>
     /// Occurs when a mouse button is released. 
@@ -122,13 +122,13 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    void HookManager_MouseUp(object sender, MouseEventArgs e) {
+    void HookManager_MouseUp(object? sender, MouseEventArgs e) {
         if (m_MouseUp != null) {
             m_MouseUp.Invoke(this, e);
         }
     }
 
-    private event MouseEventHandler m_MouseDoubleClick;
+    private event MouseEventHandler m_MouseDoubleClick = null!;
 
     /// <summary>
     /// Occurs when a double clicked was performed by the mouse. 
@@ -149,14 +149,14 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    void HookManager_MouseDoubleClick(object sender, MouseEventArgs e) {
+    void HookManager_MouseDoubleClick(object? sender, MouseEventArgs e) {
         if (m_MouseDoubleClick != null) {
             m_MouseDoubleClick.Invoke(this, e);
         }
     }
 
 
-    private event EventHandler<MouseEventExtArgs> m_MouseMoveExt;
+    private event EventHandler<MouseEventExtArgs> m_MouseMoveExt = null!;
 
     /// <summary>
     /// Occurs when the mouse pointer is moved. 
@@ -181,13 +181,13 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    void HookManager_MouseMoveExt(object sender, MouseEventExtArgs e) {
+    void HookManager_MouseMoveExt(object? sender, MouseEventExtArgs e) {
         if (m_MouseMoveExt != null) {
             m_MouseMoveExt.Invoke(this, e);
         }
     }
 
-    private event EventHandler<MouseEventExtArgs> m_MouseClickExt;
+    private event EventHandler<MouseEventExtArgs> m_MouseClickExt = null!;
 
     /// <summary>
     /// Occurs when a click was performed by the mouse. 
@@ -212,7 +212,7 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    void HookManager_MouseClickExt(object sender, MouseEventExtArgs e) {
+    void HookManager_MouseClickExt(object? sender, MouseEventExtArgs e) {
         if (m_MouseClickExt != null) {
             m_MouseClickExt.Invoke(this, e);
         }
@@ -224,7 +224,7 @@ public class GlobalEventProvider : Component {
     //################################################################
     #region Keyboard events
 
-    private event KeyPressEventHandler m_KeyPress;
+    private event KeyPressEventHandler m_KeyPress = null!;
 
     /// <summary>
     /// Occurs when a key is pressed.
@@ -256,13 +256,13 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    void HookManager_KeyPress(object sender, KeyPressEventArgs e) {
+    void HookManager_KeyPress(object? sender, KeyPressEventArgs e) {
         if (m_KeyPress != null) {
             m_KeyPress.Invoke(this, e);
         }
     }
 
-    private event KeyEventHandler m_KeyUp;
+    private event KeyEventHandler m_KeyUp = null!;
 
     /// <summary>
     /// Occurs when a key is released. 
@@ -282,13 +282,13 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    private void HookManager_KeyUp(object sender, KeyEventArgs e) {
+    private void HookManager_KeyUp(object? sender, KeyEventArgs e) {
         if (m_KeyUp != null) {
             m_KeyUp.Invoke(this, e);
         }
     }
 
-    private event KeyEventHandler m_KeyDown;
+    private event KeyEventHandler m_KeyDown = null!;
 
     /// <summary>
     /// Occurs when a key is preseed. 
@@ -308,7 +308,7 @@ public class GlobalEventProvider : Component {
         }
     }
 
-    private void HookManager_KeyDown(object sender, KeyEventArgs e) {
+    private void HookManager_KeyDown(object? sender, KeyEventArgs e) {
         m_KeyDown.Invoke(this, e);
     }
 

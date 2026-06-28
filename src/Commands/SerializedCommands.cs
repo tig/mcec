@@ -33,7 +33,7 @@ public class SerializedCommands {
 
 #pragma warning disable CA1051 // Do not declare visible instance fields
     [XmlAttribute("version")]
-    public string Version;
+    public string Version = null!;
 
     [XmlArray("commands", Order = 1)]
     [XmlArrayItem("chars", typeof(CharsCommand))]
@@ -49,7 +49,7 @@ public class SerializedCommands {
 
     // XmlSerialization does not work with List<>. Must use an array.
     // Must be public for serialization to work
-    public Command[] commandArray;
+    public Command[] commandArray = null!;
 
     [XmlIgnore] public int Count { get => (commandArray == null ? 0 : commandArray.Length); }
 
@@ -65,8 +65,8 @@ public class SerializedCommands {
     /// <param name="currentVersion">Version of running app</param>
     /// <returns></returns>
     static public SerializedCommands LoadCommands(string userCommandsFile, string currentVersion) {
-        SerializedCommands cmds = null;
-        FileStream fs = null;
+        SerializedCommands? cmds = null;
+        FileStream? fs = null;
         try {
             Logger.Instance.Log4.Info($"SerializedCommands: Loading user-defined commands from {userCommandsFile}");
             fs = new FileStream(userCommandsFile, FileMode.Open, FileAccess.Read);
@@ -107,7 +107,7 @@ public class SerializedCommands {
                 fs.Close();
             }
         }
-        return cmds;
+        return cmds!;
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ public class SerializedCommands {
         }
         // TODO: Emit comments: https://stackoverflow.com/questions/7385921/how-to-write-a-comment-to-an-xml-file-when-using-the-xmlserializer
 
-        FileStream ucFS = null;
+        FileStream? ucFS = null;
         try {
             commands.Version = currentVersion;
             ucFS = new FileStream(userCommandsFile, FileMode.Create);
@@ -149,18 +149,18 @@ public class SerializedCommands {
     /// </summary>
     /// <param name="xmlStream"></param>
     /// <returns></returns>
-    private static SerializedCommands Deserialize(Stream xmlStream) {
-        SerializedCommands cmds = null;
-        XmlReader xmlReader = null;
-        XmlReader xsltReader = null;
-        XmlWriter lcWriter = null;
-        XmlReader lcReader = null;
+    private static SerializedCommands? Deserialize(Stream xmlStream) {
+        SerializedCommands? cmds = null;
+        XmlReader? xmlReader = null;
+        XmlReader? xsltReader = null;
+        XmlWriter? lcWriter = null;
+        XmlReader? lcReader = null;
         try {
 #pragma warning disable CA3075 // Insecure DTD processing in XML
             // Transform XML to all lower case key and value names
             xmlReader = new XmlTextReader(xmlStream);
             xsltReader = new XmlTextReader(
-                Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.xslt"));
+                Assembly.GetExecutingAssembly().GetManifestResourceStream("MCEControl.Resources.MCEControl.xslt")!);
             XslCompiledTransform myXslTrans = new XslCompiledTransform();
             myXslTrans.Load(xsltReader);
             MemoryStream stm = new MemoryStream();
@@ -169,7 +169,7 @@ public class SerializedCommands {
             stm.Position = 0;
             lcReader = new XmlTextReader(stm); // lower-case reader
 
-            cmds = (SerializedCommands)new XmlSerializer(typeof(SerializedCommands)).Deserialize(lcReader);
+            cmds = (SerializedCommands)new XmlSerializer(typeof(SerializedCommands)).Deserialize(lcReader)!;
         }
         catch (InvalidOperationException ex) {
             Logger.Instance.Log4.Error($"SerializedCommands: No commands loaded. Error parsing .commands XML. {ex.FullMessage()}");

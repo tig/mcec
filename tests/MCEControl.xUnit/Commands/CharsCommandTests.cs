@@ -32,7 +32,7 @@ public class CharsCommandTests
             Enabled = true
         };
 
-        var clone = (CharsCommand)original.Clone(null);
+        var clone = (CharsCommand)original.Clone(null!);
 
         Assert.Equal(original.Cmd, clone.Cmd);
         Assert.Equal(original.Args, clone.Args);

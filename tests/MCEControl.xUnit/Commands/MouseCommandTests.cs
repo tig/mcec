@@ -32,7 +32,7 @@ public class MouseCommandTests
             Enabled = true
         };
 
-        var clone = (MouseCommand)original.Clone(null);
+        var clone = (MouseCommand)original.Clone(null!);
 
         Assert.Equal(original.Cmd, clone.Cmd);
         Assert.Equal(original.Args, clone.Args);

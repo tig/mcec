@@ -9,7 +9,7 @@ internal class Aces : CollectionBase {
     }
     public Ace this[int index] {
         get {
-            return (Ace)base.InnerList[index];
+            return (Ace)base.InnerList[index]!;
         }
     }
     public void SetAce(int i, Ace ace) {

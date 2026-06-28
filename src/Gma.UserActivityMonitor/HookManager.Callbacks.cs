@@ -90,7 +90,7 @@ public static partial class HookManager {
     private static int MouseHookProc(int nCode, int wParam, IntPtr lParam) {
         if (nCode >= 0) {
             //Marshall the data from callback.
-            MouseLLHookStruct mouseHookStruct = (MouseLLHookStruct)Marshal.PtrToStructure(lParam, typeof(MouseLLHookStruct));
+            MouseLLHookStruct mouseHookStruct = (MouseLLHookStruct)Marshal.PtrToStructure(lParam, typeof(MouseLLHookStruct))!;
 
             //detect button clicked
             MouseButtons button = MouseButtons.None;
@@ -307,7 +307,7 @@ public static partial class HookManager {
 
         if (nCode >= 0) {
             //read structure KeyboardHookStruct at lParam
-            KeyboardHookStruct MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct));
+            KeyboardHookStruct MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct))!;
             //raise KeyDown
             if (s_KeyDown != null && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
                 Keys keyData = (Keys)MyKeyboardHookStruct.VirtualKeyCode;

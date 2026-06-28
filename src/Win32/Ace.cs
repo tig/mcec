@@ -69,7 +69,7 @@ public abstract class Ace {
     /// </summary>
     protected void CheckInvariant() {
         int headerSize = _header.AceSize;
-        int compSize = OffsetOfSid() + _sid.Size;
+        int compSize = OffsetOfSid() + _sid!.Size;
         if (headerSize != compSize) {
             string msg = string.Format(
                 "Invariant of Ace is not verified (size is {0} instead of {1})",
@@ -77,7 +77,7 @@ public abstract class Ace {
             throw new InvalidOperationException(msg);
         }
 
-        if (_sid == null) {
+        if (_sid == null!) {
             throw new InvalidOperationException(
                 "Invariant of Ace is not verified: sid member is null");
         }
@@ -109,7 +109,7 @@ public abstract class Ace {
     public Sid Sid {
         get {
             CheckInvariant();
-            return _sid;
+            return _sid!;
         }
     }
     /// <summary>

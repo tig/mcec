@@ -16,7 +16,7 @@ internal class TestCommand : Command
 
     public override ICommand Clone(Reply? reply)
     {
-        return base.Clone(reply, new TestCommand());
+        return base.Clone(reply!, new TestCommand());
     }
 
     public override bool Execute()

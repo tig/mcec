@@ -37,7 +37,7 @@ public class McecCommandTests
             Enabled = true
         };
 
-        var clone = (McecCommand)original.Clone(null);
+        var clone = (McecCommand)original.Clone(null!);
 
         Assert.Equal(original.Cmd, clone.Cmd);
         Assert.Equal(original.Enabled, clone.Enabled);

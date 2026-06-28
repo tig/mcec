@@ -31,7 +31,7 @@ public class ShutdownCommand : Command {
         ];
     }
 
-    private String type;
+    private String type = null!;
     [XmlAttribute("type")] public string Type { get => type; set => type = value; }
     private int timeOut = 30;
     [XmlAttribute("timeout")] public int TimeOut { get => timeOut; set => timeOut = value; }

@@ -16,11 +16,11 @@ namespace MCEControl;
 /// Summary description for StartProcessCommands.
 /// </summary>
 public class StartProcessCommand : Command {
-    private String file;
+    private String file = null!;
     [XmlAttribute("file")] public string File { get => file; set => file = value; }
-    private String arguments;
+    private String arguments = null!;
     [XmlAttribute("arguments")] public string Arguments { get => arguments; set => arguments = value; }
-    private String verb;
+    private String verb = null!;
     [XmlAttribute("verb")] public string Verb { get => verb; set => verb = value; }
 
     public static new List<Command> BuiltInCommands {

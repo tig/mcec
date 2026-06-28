@@ -32,10 +32,10 @@ public class SendMessageCommand : Command {
     private int wParam;
     [XmlAttribute("wparam")] public int WParam { get => wParam; set => wParam = value; }
 
-    private String className;
+    private String className = null!;
     [XmlAttribute("classname")] public String ClassName { get => className; set => className = value; }
 
-    private String windowName;
+    private String windowName = null!;
     [XmlAttribute("windowname")] public String WindowName { get => windowName; set => windowName = value; }
 
     public static new List<Command> BuiltInCommands {
@@ -74,7 +74,7 @@ public class SendMessageCommand : Command {
             if (!string.IsNullOrWhiteSpace(ClassName)) {
                 Process[] procs = Process.GetProcessesByName(ClassName);
                 if (procs.Length > 0) {
-                    Process win = procs[0];
+                    Process? win = procs[0];
 
                     if (!string.IsNullOrWhiteSpace(WindowName)) {
                         // Find MainWindowTitle matching WindowName

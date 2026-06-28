@@ -46,7 +46,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         }
 
         foreach (int i in _clientList.Keys) {
-            _clientList.TryRemove(i, out Socket socket);
+            _clientList.TryRemove(i, out Socket? socket);
             if (socket != null) {
                 Log4.Debug("Closing Socket #" + i);
                 socket.Close();
@@ -97,7 +97,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             return;
         }
 
-        ServerReplyContext serverReplyContext = null;
+        ServerReplyContext? serverReplyContext = null;
         try {
             // Here we complete/end the BeginAccept() asynchronous call
             // by calling EndAccept() - which returns the reference to
@@ -133,12 +133,12 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             //if (se.SocketErrorCode == SocketError.ConnectionReset) // WSAECONNRESET (10054)
             {
                 // Forcibly closed
-                CloseSocket(serverReplyContext);
+                CloseSocket(serverReplyContext!);
             }
         }
         catch (Exception e) {
             SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {e.Message}");
-            CloseSocket(serverReplyContext);
+            CloseSocket(serverReplyContext!);
         }
 
         // Since the main Socket is now free, it can go back and wait for
@@ -170,7 +170,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
 
         // Remove the reference to the worker socket of the closed client
         // so that this object will get garbage collected
-        _ = _clientList.TryRemove(serverReplyContext.ClientNumber, out Socket socket);
+        _ = _clientList.TryRemove(serverReplyContext.ClientNumber, out Socket? socket);
         if (socket != null) {
             Log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
             Interlocked.Decrement(ref _clientCount);
@@ -182,7 +182,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     // This the call back function which will be invoked when the socket
     // detects any client writing of data on the stream
     private void OnDataReceived(IAsyncResult async) {
-        ServerReplyContext clientContext = (ServerReplyContext)async.AsyncState;
+        ServerReplyContext clientContext = (ServerReplyContext)async.AsyncState!;
         if (_mainSocket == null || !clientContext.Socket.Connected) {
             return;
         }
@@ -285,7 +285,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         try {
             // Try to resolve the remote host name or address
             IPHostEntry resolvedHost = Dns.GetHostEntry(host);
-            Socket clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            Socket? clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             try {
                 // Create the endpoint that describes the destination
@@ -344,7 +344,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
 
         if (replyContext == null) {
             foreach (int i in _clientList.Keys) {
-                if (_clientList.TryGetValue(i, out Socket client)) {
+                if (_clientList.TryGetValue(i, out Socket? client)) {
                     Reply reply = new ServerReplyContext(this, client, i);
                     Send(text, reply);
                 }

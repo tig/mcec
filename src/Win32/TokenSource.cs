@@ -12,7 +12,7 @@ public class TokenSource {
     private readonly Luid _luid;
 
     internal TokenSource(IntPtr ptr) {
-        TOKEN_SOURCE ts = (TOKEN_SOURCE)Marshal.PtrToStructure(ptr, typeof(TOKEN_SOURCE));
+        TOKEN_SOURCE ts = (TOKEN_SOURCE)Marshal.PtrToStructure(ptr, typeof(TOKEN_SOURCE))!;
         _name = new string(ts.Name);
         _luid = new Luid(ts.Indentifier);
     }

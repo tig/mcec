@@ -39,7 +39,7 @@ public class StartProcessCommandTests
             Enabled = true
         };
 
-        var clone = (StartProcessCommand)original.Clone(null);
+        var clone = (StartProcessCommand)original.Clone(null!);
 
         Assert.Equal(original.Cmd, clone.Cmd);
         Assert.Equal(original.File, clone.File);
@@ -71,7 +71,7 @@ public class StartProcessCommandTests
             Cmd = "test",
             File = "notepad.exe",
             Enabled = true,
-            Reply = null
+            Reply = null!
         };
 
         Assert.Throws<NullReferenceException>(() => cmd.Execute());
@@ -125,7 +125,7 @@ public class StartProcessCommandTests
             ]
         };
 
-        var clone = (StartProcessCommand)original.Clone(null);
+        var clone = (StartProcessCommand)original.Clone(null!);
 
         Assert.NotNull(clone.EmbeddedCommands);
         Assert.Equal(2, clone.EmbeddedCommands.Count);

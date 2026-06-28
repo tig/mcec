@@ -13,7 +13,7 @@ public class CommandFileWatcher : IDisposable {
         fileWatcher = CreateFileWatcher(file);
     }
 
-    public event EventHandler ChangedEvent;
+    public event EventHandler? ChangedEvent;
     /// <summary>
     /// OnChangeEvent is raised whenever the CommandTable is updated due to
     /// user commands file changes
@@ -22,11 +22,11 @@ public class CommandFileWatcher : IDisposable {
         // Make a temporary copy of the event to avoid possibility of
         // a race condition if the last subscriber unsubscribes
         // immediately after the null check and before the event is raised.
-        EventHandler handler = ChangedEvent;
+        EventHandler? handler = ChangedEvent;
 
         // Event will be null if there are no subscribers
         if (handler != null) {
-            handler(this, null);
+            handler(this, null!);
         }
     }
 
@@ -34,7 +34,7 @@ public class CommandFileWatcher : IDisposable {
 
         // Create a new FileSystemSafeWatcher and set its properties.
         FileSystemSafeWatcher watcher = new FileSystemSafeWatcher();
-        watcher.Path = Path.GetDirectoryName(path);
+        watcher.Path = Path.GetDirectoryName(path)!;
         /* Watch for changes in LastAccess and LastWrite times, and 
            the renaming of files or directories. */
         watcher.NotifyFilter = NotifyFilters.LastWrite;
@@ -73,7 +73,7 @@ public class CommandFileWatcher : IDisposable {
                 if (fileWatcher != null) {
                     Stop();
                     fileWatcher.Dispose();
-                    fileWatcher = null;
+                    fileWatcher = null!;
                 }
             }
             disposedValue = true;

@@ -53,17 +53,17 @@ public sealed class SocketClient : ServiceBase, IDisposable {
         Dispose();
     }
 
-    private TcpClient _tcpClient;
-    private BackgroundWorker _bw;
+    private TcpClient _tcpClient = null!;
+    private BackgroundWorker _bw = null!;
 
     private void Dispose(bool disposing) {
         if (disposing) {
             _bw?.CancelAsync();
             _bw?.Dispose();
-            _bw = null;
+            _bw = null!;
             _tcpClient?.Close();
             _tcpClient?.Dispose();
-            _tcpClient = null;
+            _tcpClient = null!;
         }
     }
 
@@ -129,7 +129,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
         Debug.Assert(_tcpClient != null);
         try {
             // See if we've just been handed a straight IPv4 address, if so don't bother with DNS
-            IPAddress hostIp;
+            IPAddress? hostIp;
             if (!IPAddress.TryParse(_host, out hostIp)) {
                 // GetHostEntry returns a list. We need to pick the IPv4 entry.
                 // TODO: Support ipv6
@@ -246,7 +246,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
                 break;
 
             default:
-                string s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
+                string? s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
                 if (s == null) {
                     Error($"{e.Message} ({e.ErrorCode})");
                 }

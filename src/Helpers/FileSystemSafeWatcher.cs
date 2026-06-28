@@ -32,9 +32,9 @@ public class FileSystemSafeWatcher {
     /// Lock order is _enterThread, _events.SyncRoot
     /// </summary>
     private readonly object _enterThread = new(); // Only one timer event is processed at any given moment
-    private ArrayList _events;
+    private ArrayList _events = null!;
 
-    private Timer _serverTimer;
+    private Timer _serverTimer = null!;
     private int _consolidationInterval = 1000; // milliseconds
 
     #region Delegate to FileSystemWatcher
@@ -141,7 +141,7 @@ public class FileSystemSafeWatcher {
     /// <value>The System.ComponentModel.ISynchronizeInvoke that represents the object used to marshal the event handler calls issued as a result of a directory change. The default is null.</value>
     public ISynchronizeInvoke SynchronizingObject {
         get {
-            return _fileSystemWatcher.SynchronizingObject;
+            return _fileSystemWatcher.SynchronizingObject!;
         }
         set {
             _fileSystemWatcher.SynchronizingObject = value;
@@ -150,23 +150,23 @@ public class FileSystemSafeWatcher {
     /// <summary>
     /// Occurs when a file or directory in the specified System.IO.FileSystemWatcher.Path is changed.
     /// </summary>
-    public event FileSystemEventHandler Changed;
+    public event FileSystemEventHandler? Changed;
     /// <summary>
     /// Occurs when a file or directory in the specified System.IO.FileSystemWatcher.Path is created.
     /// </summary>
-    public event FileSystemEventHandler Created;
+    public event FileSystemEventHandler? Created;
     /// <summary>
     /// Occurs when a file or directory in the specified System.IO.FileSystemWatcher.Path is deleted.
     /// </summary>
-    public event FileSystemEventHandler Deleted;
+    public event FileSystemEventHandler? Deleted;
     /// <summary>
     /// Occurs when the internal buffer overflows.
     /// </summary>
-    public event ErrorEventHandler Error;
+    public event ErrorEventHandler? Error;
     /// <summary>
     /// Occurs when a file or directory in the specified System.IO.FileSystemWatcher.Path is renamed.
     /// </summary>
-    public event RenamedEventHandler Renamed;
+    public event RenamedEventHandler? Renamed;
 
     /// <summary>
     /// Begins the initialization of a System.IO.FileSystemWatcher used on a form or used by another component. The initialization occurs at run time.
@@ -291,24 +291,24 @@ public class FileSystemSafeWatcher {
         _events.Add(new DelayedEvent(e));
     }
 
-    private void ElapsedEventHandler(Object sender, ElapsedEventArgs e) {
+    private void ElapsedEventHandler(Object? sender, ElapsedEventArgs e) {
         // We don't fire the events inside the lock. We will queue them here until
         // the code exits the locks.
-        Queue eventsToBeFired = null;
+        Queue? eventsToBeFired = null;
         if (System.Threading.Monitor.TryEnter(_enterThread)) {
             // Only one thread at a time is processing the events                
             try {
                 eventsToBeFired = new Queue(32);
                 // Lock the collection while processing the events
                 lock (_events.SyncRoot) {
-                    DelayedEvent current;
+                    DelayedEvent? current;
                     for (int i = 0; i < _events.Count; i++) {
                         current = _events[i] as DelayedEvent;
-                        if (current.Delayed) {
+                        if (current!.Delayed) {
                             // This event has been delayed already so we can fire it
                             // We just need to remove any duplicates
                             for (int j = i + 1; j < _events.Count; j++) {
-                                if (current.IsDuplicate(_events[j])) {
+                                if (current.IsDuplicate(_events[j]!)) {
                                     // Removing later duplicates
                                     _events.RemoveAt(j);
                                     j--; // Don't skip next event
@@ -318,7 +318,7 @@ public class FileSystemSafeWatcher {
                             bool raiseEvent = true;
                             if (current.Args.ChangeType == WatcherChangeTypes.Created || current.Args.ChangeType == WatcherChangeTypes.Changed) {
                                 //check if the file has been completely copied (can be opened for read)
-                                FileStream stream = null;
+                                FileStream? stream = null;
                                 try {
                                     stream = File.Open(current.Args.FullPath, FileMode.Open, FileAccess.Read, FileShare.None);
                                     // If this succeeds, the file is finished
@@ -356,7 +356,7 @@ public class FileSystemSafeWatcher {
         // else - this timer event was skipped, processing will happen during the next timer event
 
         // Now fire all the events if any events are in eventsToBeFired
-        RaiseEvents(eventsToBeFired);
+        RaiseEvents(eventsToBeFired!);
     }
 
     public int ConsolidationInterval {
@@ -373,10 +373,10 @@ public class FileSystemSafeWatcher {
     protected void RaiseEvents(Queue deQueue) {
 #pragma warning restore CA1030 // Use events where appropriate
         if ((deQueue != null) && (deQueue.Count > 0)) {
-            DelayedEvent de;
+            DelayedEvent? de;
             while (deQueue.Count > 0) {
                 de = deQueue.Dequeue() as DelayedEvent;
-                switch (de.Args.ChangeType) {
+                switch (de!.Args.ChangeType) {
                     case WatcherChangeTypes.Changed:
                         OnChanged(de.Args);
                         break;
@@ -387,7 +387,7 @@ public class FileSystemSafeWatcher {
                         OnDeleted(de.Args);
                         break;
                     case WatcherChangeTypes.Renamed:
-                        OnRenamed(de.Args as RenamedEventArgs);
+                        OnRenamed((de.Args as RenamedEventArgs)!);
                         break;
                 }
             }

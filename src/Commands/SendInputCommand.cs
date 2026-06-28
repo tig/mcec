@@ -28,7 +28,7 @@ public class SendInputCommand : Command, ICommand {
     private bool ctrl;
     private bool shift;
     private bool win;
-    private string vk;
+    private string vk = null!;
 
     [XmlAttribute("alt")] public bool Alt { get => alt; set => alt = value; }
     [XmlAttribute("ctrl")] public bool Ctrl { get => ctrl; set => ctrl = value; }

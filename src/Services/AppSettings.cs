@@ -44,7 +44,7 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public int ClientPort { get; set; } = 5150;
     [SafeForTelemetryAttribute]
-    public string ClosingCommand { get; set; }
+    public string ClosingCommand { get; set; } = null!;
     [SafeForTelemetryAttribute]
     public int Opacity { get; set; } = 100;
     [SafeForTelemetryAttribute]
@@ -52,11 +52,11 @@ public class AppSettings : ICloneable {
 
     // [SafeForTelemetryAttribute] 
     // TELEMETRY: WakeupCommand can be set by user and thus may contain PII, so it is not collected
-    public string WakeupCommand { get; set; }
+    public string WakeupCommand { get; set; } = null!;
     [SafeForTelemetryAttribute]
     public bool WakeupEnabled { get; set; }
     [SafeForTelemetryAttribute]
-    public string WakeupHost { get; set; }
+    public string WakeupHost { get; set; } = null!;
     [SafeForTelemetryAttribute]
     public int WakeupPort { get; set; }
     [SafeForTelemetryAttribute]
@@ -173,18 +173,18 @@ public class AppSettings : ICloneable {
     /// </summary>
     /// <param name="settingsFile">full path to settings file</param>
     public static AppSettings Deserialize(String settingsFile) {
-        AppSettings settings = null;
+        AppSettings? settings = null;
 
         XmlSerializer serializer = new XmlSerializer(typeof(AppSettings));
         // A FileStream is needed to read the XML document.
-        FileStream fs = null;
-        XmlReader reader = null;
+        FileStream? fs = null;
+        XmlReader? reader = null;
         try {
             fs = new FileStream(settingsFile, FileMode.Open, FileAccess.Read);
             reader = new XmlTextReader(fs);
-            settings = (AppSettings)serializer.Deserialize(reader);
+            settings = (AppSettings?)serializer.Deserialize(reader);
 
-            settings.DisableInternalCommands = Convert.ToBoolean(
+            settings!.DisableInternalCommands = Convert.ToBoolean(
                 Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
                                 "DisableInternalCommands", false), new NumberFormatInfo());
             Logger.Instance.Log4.Info("Settings: Loaded settings from " + settingsFile);
@@ -218,7 +218,7 @@ public class AppSettings : ICloneable {
         // what: Settings
         // why: To understand what settings get changed and which dont
         // how is PII protected: only settings clearly identified as not containing PII are collected
-        TelemetryService.Instance.TrackEvent("Settings", settings.GetTelemetryDictionary());
+        TelemetryService.Instance.TrackEvent("Settings", settings!.GetTelemetryDictionary());
 
         return settings;
     }
@@ -235,7 +235,7 @@ public class AppSettings : ICloneable {
         Dictionary<string, string> dictionary = [];
         foreach (PropertyDescriptor property in TypeDescriptor.GetProperties(this)) {
             if (property.Attributes.Contains(new SafeForTelemetryAttribute())) {
-                object value = property.GetValue(this);
+                object? value = property.GetValue(this);
                 if (value != null) {
                     if (property.PropertyType.IsSubclassOf(typeof(AppSettings))) {
                         // Go deep

@@ -42,10 +42,10 @@ public class CommandInvoker : Hashtable {
 
         // Add the built-ins defined in the Command-derived classes
         foreach (Command cmdType in Command.GetDerivedClassesCollection()) {
-            PropertyInfo propertyInfo = cmdType.GetType().GetProperty("BuiltInCommands", BindingFlags.Public | BindingFlags.Static);
+            PropertyInfo? propertyInfo = cmdType.GetType().GetProperty("BuiltInCommands", BindingFlags.Public | BindingFlags.Static);
             if (propertyInfo != null) {
                 // Use the PropertyInfo to retrieve the value from the type by not passing in an instance
-                foreach (Command builtinCmd in (List<Command>)propertyInfo.GetValue(null, null)) {
+                foreach (Command builtinCmd in (List<Command>)propertyInfo.GetValue(null, null)!) {
                     commands.Add(builtinCmd);
                 }
             }
@@ -60,7 +60,7 @@ public class CommandInvoker : Hashtable {
     /// <param name="disableInternalCommands">If true, internal commands will not be added to created instance.</param>
     /// <returns></returns>
     public static CommandInvoker Create(string userCommandsFile, string currentVersion, bool disableInternalCommands) {
-        CommandInvoker commands = null;
+        CommandInvoker commands = null!;
         SerializedCommands serializedCmds;
 
         commands = CreateBuiltIns(disableInternalCommands);
@@ -164,7 +164,7 @@ public class CommandInvoker : Hashtable {
 
         // TODO: Implement ignoreInternalCommands?
 
-        if (cmdString.Length == 1 && ((Command)this["chars:"]).Enabled) {
+        if (cmdString.Length == 1 && ((Command)this["chars:"]!).Enabled) {
             // Sending a single character is equivalent to a single key press of a key on the keyboard. 
             // For example sending a will result in the A key being pressed. 
             // 1 will result in the 1 key being pressed. There is no difference between sending a and A. 
@@ -176,7 +176,7 @@ public class CommandInvoker : Hashtable {
             // See if we know about this Command - case insensitive
             if (this[cmd.ToLowerInvariant()] != null) {
                 // Always create a clone for enqueing (so Reply context can be independent)
-                Command clone = (Command)((Command)this[cmd.ToLowerInvariant()]).Clone(reply);
+                Command clone = (Command)((Command)this[cmd.ToLowerInvariant()]!).Clone(reply);
 
                 // This supports commands of the form 'chars:args'; these
                 // commands do not need to originate in CommandTable
@@ -214,7 +214,7 @@ public class CommandInvoker : Hashtable {
     internal void ExecuteNext() {
         // TODO: This is simple and just dequeues and executes anything on the queue
         // needs to be smarter? Will this block incoming?
-        while (executeQueue.TryDequeue(out ICommand icmd)) {
+        while (executeQueue.TryDequeue(out ICommand? icmd)) {
             ((Command)icmd).Execute();
             System.Threading.Thread.Sleep(MainWindow.Instance.Settings.CommandPacing);
         }

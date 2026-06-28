@@ -20,7 +20,7 @@ public partial class UpdateDialog : Form {
         this.linkReleasePage.Links[0].LinkData = UpdateService.Instance.ReleasePageUri.AbsoluteUri;
     }
 
-    internal void UpdateService_CheckForUpdates(object sender, EventArgs e) {
+    internal void UpdateService_CheckForUpdates(object? sender, EventArgs e) {
         UpdateService.Instance.CheckVersion();
     }
 
@@ -29,7 +29,7 @@ public partial class UpdateDialog : Form {
     }
 
     private void linkReleasePage_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-        Process.Start((string)linkReleasePage.Links[0].LinkData);
+        Process.Start((string)linkReleasePage.Links[0].LinkData!);
     }
 
     private void UpdateDialog_VisibleChanged(object sender, EventArgs e) {

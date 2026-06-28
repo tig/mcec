@@ -12,7 +12,7 @@ public static partial class HookManager {
     //################################################################
     #region Mouse events
 
-    private static event MouseEventHandler s_MouseMove;
+    private static event MouseEventHandler s_MouseMove = null!;
 
     /// <summary>
     /// Occurs when the mouse pointer is moved. 
@@ -29,7 +29,7 @@ public static partial class HookManager {
         }
     }
 
-    private static event EventHandler<MouseEventExtArgs> s_MouseMoveExt;
+    private static event EventHandler<MouseEventExtArgs> s_MouseMoveExt = null!;
 
     /// <summary>
     /// Occurs when the mouse pointer is moved. 
@@ -51,7 +51,7 @@ public static partial class HookManager {
         }
     }
 
-    private static event MouseEventHandler s_MouseClick;
+    private static event MouseEventHandler s_MouseClick = null!;
 
     /// <summary>
     /// Occurs when a click was performed by the mouse. 
@@ -67,7 +67,7 @@ public static partial class HookManager {
         }
     }
 
-    private static event EventHandler<MouseEventExtArgs> s_MouseClickExt;
+    private static event EventHandler<MouseEventExtArgs> s_MouseClickExt = null!;
 
     /// <summary>
     /// Occurs when a click was performed by the mouse. 
@@ -87,7 +87,7 @@ public static partial class HookManager {
         }
     }
 
-    private static event MouseEventHandler s_MouseDown;
+    private static event MouseEventHandler s_MouseDown = null!;
 
     /// <summary>
     /// Occurs when the mouse a mouse button is pressed. 
@@ -103,7 +103,7 @@ public static partial class HookManager {
         }
     }
 
-    private static event MouseEventHandler s_MouseUp;
+    private static event MouseEventHandler s_MouseUp = null!;
 
     /// <summary>
     /// Occurs when a mouse button is released. 
@@ -119,7 +119,7 @@ public static partial class HookManager {
         }
     }
 
-    private static event MouseEventHandler s_MouseWheel;
+    private static event MouseEventHandler s_MouseWheel = null!;
 
     /// <summary>
     /// Occurs when the mouse wheel moves. 
@@ -136,7 +136,7 @@ public static partial class HookManager {
     }
 
 
-    private static event MouseEventHandler s_MouseDoubleClick;
+    private static event MouseEventHandler s_MouseDoubleClick = null!;
 
     //The double click event will not be provided directly from hook.
     //To fire the double click event wee need to monitor mouse up event and when it occures 
@@ -174,7 +174,7 @@ public static partial class HookManager {
                     //Stop monitoring mouse up
                     MouseUp -= OnMouseUp;
                     //Dispose the timer
-                    s_DoubleClickTimer.Tick -= DoubleClickTimeElapsed;
+                    s_DoubleClickTimer!.Tick -= DoubleClickTimeElapsed;
                     s_DoubleClickTimer = null;
                 }
             }
@@ -187,9 +187,9 @@ public static partial class HookManager {
     //The timer to monitor time interval between two clicks.
     private static Timer? s_DoubleClickTimer;
 
-    private static void DoubleClickTimeElapsed(object sender, EventArgs e) {
+    private static void DoubleClickTimeElapsed(object? sender, EventArgs e) {
         //Timer is alapsed and no second click ocuured
-        s_DoubleClickTimer.Enabled = false;
+        s_DoubleClickTimer!.Enabled = false;
         s_PrevClickedButton = MouseButtons.None;
     }
 
@@ -199,7 +199,7 @@ public static partial class HookManager {
     /// </summary>
     /// <param name="sender">Is always null</param>
     /// <param name="e">Some information about click heppened.</param>
-    private static void OnMouseUp(object sender, MouseEventArgs e) {
+    private static void OnMouseUp(object? sender, MouseEventArgs e) {
         //This should not heppen
         if (e.Clicks < 1) { return; }
         //If the secon click heppened on the same button
@@ -209,12 +209,12 @@ public static partial class HookManager {
                 s_MouseDoubleClick.Invoke(null, e);
             }
             //Stop timer
-            s_DoubleClickTimer.Enabled = false;
+            s_DoubleClickTimer!.Enabled = false;
             s_PrevClickedButton = MouseButtons.None;
         }
         else {
             //If it was the firts click start the timer
-            s_DoubleClickTimer.Enabled = true;
+            s_DoubleClickTimer!.Enabled = true;
             s_PrevClickedButton = e.Button;
         }
     }
@@ -223,7 +223,7 @@ public static partial class HookManager {
     //################################################################
     #region Keyboard events
 
-    private static event KeyPressEventHandler s_KeyPress;
+    private static event KeyPressEventHandler s_KeyPress = null!;
 
     /// <summary>
     /// Occurs when a key is pressed.
@@ -251,7 +251,7 @@ public static partial class HookManager {
         }
     }
 
-    private static event KeyEventHandler s_KeyUp;
+    private static event KeyEventHandler s_KeyUp = null!;
 
     /// <summary>
     /// Occurs when a key is released. 
@@ -267,7 +267,7 @@ public static partial class HookManager {
         }
     }
 
-    private static event KeyEventHandler s_KeyDown;
+    private static event KeyEventHandler s_KeyDown = null!;
 
     /// <summary>
     /// Occurs when a key is preseed. 

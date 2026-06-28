@@ -83,8 +83,8 @@ public partial class CommandWindow : Form {
         listCmds.Items.Clear();
         IOrderedEnumerable<string> orderedCmds = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
         foreach (string command in orderedCmds) {
-            Command cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(command.ToLowerInvariant(), StringComparison.Ordinal));
-            ListViewItem item = new ListViewItem(cmd.Cmd);
+            Command? cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(command.ToLowerInvariant(), StringComparison.Ordinal));
+            ListViewItem item = new ListViewItem(cmd!.Cmd);
             Match match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
             item.SubItems.Add(match.Groups[1].Value);
             item.SubItems.Add(cmd.ToString());
@@ -102,8 +102,8 @@ public partial class CommandWindow : Form {
     }
 
     private void listCmds_ItemChecked(object sender, ItemCheckedEventArgs e) {
-        Command cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(e.Item.SubItems[0].Text.ToLowerInvariant(), StringComparison.Ordinal));
-        cmd.Enabled = e.Item.Checked;
+        Command? cmd = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(c => c.Cmd.ToLowerInvariant().Equals(e.Item.SubItems[0].Text.ToLowerInvariant(), StringComparison.Ordinal));
+        cmd!.Enabled = e.Item.Checked;
         saveChangesBtn.Enabled = true;
     }
 

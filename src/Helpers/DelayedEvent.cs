@@ -45,15 +45,15 @@ public class DelayedEvent {
 #pragma warning disable CA1720 // Identifier contains type name
     public virtual bool IsDuplicate(object obj) {
 #pragma warning restore CA1720 // Identifier contains type name
-        DelayedEvent delayedEvent = obj as DelayedEvent;
+        DelayedEvent? delayedEvent = obj as DelayedEvent;
         if (delayedEvent == null) {
             return false; // this is not null so they are different
         }
 
         FileSystemEventArgs eO1 = _args;
-        RenamedEventArgs reO1 = _args as RenamedEventArgs;
+        RenamedEventArgs? reO1 = _args as RenamedEventArgs;
         FileSystemEventArgs eO2 = delayedEvent._args;
-        RenamedEventArgs reO2 = delayedEvent._args as RenamedEventArgs;
+        RenamedEventArgs? reO2 = delayedEvent._args as RenamedEventArgs;
         // The events are equal only if they are of the same type (reO1 and reO2
         // are both null or NOT NULL) and have all properties equal.
         // We also eliminate Changed events that follow recent Created events

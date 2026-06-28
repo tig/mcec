@@ -34,7 +34,7 @@ public partial class TelemetryService {
     public void Start(string appName, IDictionary<string, string>? startProperties = null) {
         RunTime = Stopwatch.StartNew();
 
-        object val = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller", "Telemetry", 0);
+        object? val = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller", "Telemetry", 0);
         TelemetryEnabled = val != null && val.ToString() == "1" ? true : false;
 
         // Setup telemetry via Azure Application Insights.
@@ -55,14 +55,14 @@ public partial class TelemetryService {
         TelemetryClient = new TelemetryClient(_config);
 
         TelemetryClient.Context.Component.Version = FileVersionInfo
-            .GetVersionInfo(Assembly.GetAssembly(typeof(TelemetryService)).Location).FileVersion;
+            .GetVersionInfo(Assembly.GetAssembly(typeof(TelemetryService))!.Location).FileVersion;
         TelemetryClient.Context.Session.Id = Guid.NewGuid().ToString();
         TelemetryClient.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
         // Anonymyize user ID
         SHA256 h = SHA256.Create();
         h.Initialize();
         h.ComputeHash(Encoding.UTF8.GetBytes($"{Environment.UserName}/{Environment.MachineName}"));
-        TelemetryClient.Context.User.Id = Convert.ToBase64String(h.Hash);
+        TelemetryClient.Context.User.Id = Convert.ToBase64String(h.Hash!);
         // See: https://stackoverflow.com/questions/42861344/how-to-overwrite-or-ignore-cloud-roleinstance-with-application-insights
         TelemetryClient.Context.Cloud.RoleInstance = TelemetryClient.Context.User.Id;
 
@@ -77,7 +77,7 @@ public partial class TelemetryService {
         // Merged passed in properites
         startProperties.Concat(new Dictionary<string, string> {
             ["app"] = appName,
-            ["version"] = TelemetryClient.Context.Component.Version,
+            ["version"] = TelemetryClient.Context.Component.Version!,
             ["os"] = Environment.OSVersion.ToString(),
             ["arch"] = Environment.Is64BitProcess ? "x64" : "x86",
             ["dotNetVersion"] = Environment.Version.ToString()
@@ -91,7 +91,7 @@ public partial class TelemetryService {
         // why: to understand how long the app stays running
         // how is PII protected: the time the app runs is not PII
         TrackEvent("Application Stopped",
-            metrics: new Dictionary<string, double> { { "runTime", RunTime.Elapsed.TotalMilliseconds } });
+            metrics: new Dictionary<string, double> { { "runTime", RunTime!.Elapsed.TotalMilliseconds } });
 
         // before exit, flush the remaining data
         Flush();
@@ -100,7 +100,7 @@ public partial class TelemetryService {
     }
 
     public void SetUser(string user) {
-        TelemetryClient.Context.User.AuthenticatedUserId = user;
+        TelemetryClient!.Context.User.AuthenticatedUserId = user;
     }
 
     public void TrackEvent(string key, IDictionary<string, string>? properties = null,

@@ -48,7 +48,7 @@ public class SendInputCommandTests
             Enabled = true
         };
 
-        var clone = (SendInputCommand)original.Clone(null);
+        var clone = (SendInputCommand)original.Clone(null!);
 
         Assert.Equal(original.Cmd, clone.Cmd);
         Assert.Equal(original.Vk, clone.Vk);
@@ -120,7 +120,7 @@ public class SendInputCommandTests
             Enabled = true
         };
 
-        var clone = (SendInputCommand)original.Clone(null);
+        var clone = (SendInputCommand)original.Clone(null!);
 
         Assert.True(clone.Shift);
         Assert.True(clone.Ctrl);

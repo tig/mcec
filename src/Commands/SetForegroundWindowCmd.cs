@@ -22,7 +22,7 @@ public class SetForegroundWindowCommand : Command {
     [XmlAttribute("classname")]
     public string ClassName { get => AppName; set => AppName = value; }
     [XmlAttribute("appname")]
-    public string AppName { get; set; }
+    public string AppName { get; set; } = null!;
 
     public static new List<Command> BuiltInCommands {
         get => [
@@ -55,10 +55,10 @@ public class SetForegroundWindowCommand : Command {
             if (!string.IsNullOrEmpty(AppName)) {
                 Process[] procs = Process.GetProcessesByName(AppName);
                 if (procs.Length > 0) {
-                    Process process = procs.Where(p => p.MainWindowHandle != IntPtr.Zero).FirstOrDefault();
+                    Process? process = procs.Where(p => p.MainWindowHandle != IntPtr.Zero).FirstOrDefault();
 
                     Logger.Instance.Log4.Info($"{this.GetType().Name}: SetForegroundWindow({ClassName})");
-                    Win32.SetForegroundWindow(process.MainWindowHandle);
+                    Win32.SetForegroundWindow(process!.MainWindowHandle);
                 }
                 else {
                     Logger.Instance.Log4.Info($"{this.GetType().Name}: GetProcessByName for {ClassName} failed");
