@@ -12,13 +12,14 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Octokit;
 using Application = System.Windows.Forms.Application;
+using Timer = System.Windows.Forms.Timer;
 
 namespace MCEControl;
 
 public class UpdateService {
     private static readonly Lazy<UpdateService> _lazy = new(() => new UpdateService());
 
-    private string _tempFilename;
+    private string _tempFilename = null!;
 
     public UpdateService() {
         LatestStableVersion = new Version(0, 0);
@@ -32,7 +33,7 @@ public class UpdateService {
 
     public static UpdateService Instance => _lazy.Value;
 
-    public string ErrorMessage { get; private set; }
+    public string ErrorMessage { get; private set; } = null!;
 
     public static Version CurrentVersion {
         get { return new Version(Application.ProductVersion); }
@@ -40,15 +41,15 @@ public class UpdateService {
 
     public Version LatestStableVersion { get; private set; }
 
-    public Uri ReleasePageUri { get; set; }
-    public Uri DownloadUri { get; private set; }
+    public Uri ReleasePageUri { get; set; } = null!;
+    public Uri DownloadUri { get; private set; } = null!;
 
     // FileVersionInfo.GetVersionInfo(Assembly.GetAssembly(typeof(LogService)).Location).FileVersion;
-    public event EventHandler<Version> GotLatestVersion;
+    public event EventHandler<Version> GotLatestVersion = null!;
     protected void OnGotLatestVersion(Version v) => GotLatestVersion?.Invoke(this, v);
 
-    public event EventHandler CheckForUpdates;
-    protected void OnCheckForUpdates() => CheckForUpdates?.Invoke(this, null);
+    public event EventHandler CheckForUpdates = null!;
+    protected void OnCheckForUpdates() => CheckForUpdates?.Invoke(this, null!);
 
     public void CheckVersion() {
         Task.Run(() => {
@@ -59,22 +60,22 @@ public class UpdateService {
 
     private async Task GetLatestStableVersionAsync() {
         ReleasePageUri = new Uri("https://github.com/tig/mcec/releases");
-        ErrorMessage = null;
+        ErrorMessage = null!;
         Logger.Instance.Log4.Debug("Checking for new release...");
         try {
             GitHubClient github = new GitHubClient(new ProductHeaderValue("tig-mcec"));
             IReadOnlyList<Release> allReleases = await github.Repository.Release.GetAll("tig", "mcec").ConfigureAwait(false);
 
 #if DEBUG
-                var releases =
- allReleases.Where(r => r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
+            var releases =
+allReleases.Where(r => r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
 #else
-            Release[] releases = allReleases.Where(r => !r.Prerelease)
-                .OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
+            Release[] releases =
+                [.. allReleases.Where(r => !r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v')))];
 #endif
             if (releases.Length > 0) {
 #if DEBUG
-                    Logger.Instance.Log4.Info($"The latest PRE-RELEASE is tagged at {releases[0].TagName} and is named '{releases[0].Name}' Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
+                Logger.Instance.Log4.Info($"The latest PRE-RELEASE is tagged at {releases[0].TagName} and is named '{releases[0].Name}' Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
 #else
                 Logger.Instance.Log4.Debug(
                     $"The latest release is tagged at {releases[0].TagName} and is named '{releases[0].Name}'. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");

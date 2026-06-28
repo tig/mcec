@@ -14,393 +14,350 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace MCEControl {
-    /// <summary>
-    /// Implements the TCP/IP server using asynchronous sockets
-    /// </summary>
-    sealed public class SocketServer : ServiceBase, IDisposable {
-        // An ConcurrentDictionary is used to keep track of worker sockets that are designed
-        // to communicate with each connected client. For thread safety.
-        private readonly ConcurrentDictionary<int, Socket> _clientList = new ConcurrentDictionary<int, Socket>();
+namespace MCEControl; 
+/// <summary>
+/// Implements the TCP/IP server using asynchronous sockets
+/// </summary>
+sealed public class SocketServer : ServiceBase, IDisposable {
+    // An ConcurrentDictionary is used to keep track of worker sockets that are designed
+    // to communicate with each connected client. For thread safety.
+    private readonly ConcurrentDictionary<int, Socket> _clientList = new();
 
-        // The following variable will keep track of the cumulative 
-        // total number of clients connected at any time. Since multiple threads
-        // can access this variable, modifying this variable should be done
-        // in a thread safe manner
-        private int _clientCount;
+    // The following variable will keep track of the cumulative 
+    // total number of clients connected at any time. Since multiple threads
+    // can access this variable, modifying this variable should be done
+    // in a thread safe manner
+    private int _clientCount;
 
-        #region IDisposable Members
-        public void Dispose() {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-        #endregion
+    #region IDisposable Members
+    public void Dispose() {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    #endregion
 
-        // Disposable members
-        private Socket _mainSocket;
+    // Disposable members
+    private Socket? _mainSocket;
 
-        private void Dispose(bool disposing) {
-            Log4.Debug("SocketServer disposing...");
-            if (!disposing) {
-                return;
-            }
-
-            foreach (int i in _clientList.Keys) {
-                _clientList.TryRemove(i, out Socket socket);
-                if (socket != null) {
-                    Log4.Debug("Closing Socket #" + i);
-                    socket.Close();
-                }
-            }
-            _mainSocket?.Close();
-            _mainSocket = null;
+    private void Dispose(bool disposing) {
+        Log4.Debug("SocketServer disposing...");
+        if (!disposing) {
+            return;
         }
 
-        //-----------------------------------------------------------
-        // Control functions (Start, Stop, etc...)
-        //-----------------------------------------------------------
-        public void Start(int port) {
-            try {
-                // Create the listening socket...
-                _mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                IPEndPoint ipLocal = new IPEndPoint(IPAddress.Any, port);
-                // Bind to local IP Address...
-                Log4.Debug("SocketServer - Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
-                _mainSocket.Bind(ipLocal);
-                // Start listening...
-                Log4.Debug("_mainSocket.Listen");
-                _mainSocket.Listen(4);
-                // Create the call back for any client connections...
-                SetStatus(ServiceStatus.Started, $"{ipLocal.Address}:{port}");
-                SetStatus(ServiceStatus.Waiting);
-                _mainSocket.BeginAccept(OnClientConnect, null);
-            }
-            catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, null, $"{se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
-                SetStatus(ServiceStatus.Stopped);
-            }
-        }
-
-        public void Stop() {
-            Log4.Debug("SocketServer Stop");
-            Dispose(true);
-            SetStatus(ServiceStatus.Stopped);
-        }
-
-        //-----------------------------------------------------------
-        // Async handlers
-        //-----------------------------------------------------------
-        private void OnClientConnect(IAsyncResult async) {
-            Log4.Debug("SocketServer OnClientConnect");
-
-            if (_mainSocket == null) {
-                return;
-            }
-
-            ServerReplyContext serverReplyContext = null;
-            try {
-                // Here we complete/end the BeginAccept() asynchronous call
-                // by calling EndAccept() - which returns the reference to
-                // a new Socket object
-                Socket workerSocket = _mainSocket.EndAccept(async);
-
-                // Now increment the client count for this client 
-                // in a thread safe manner
-                Interlocked.Increment(ref _clientCount);
-
-                // Add the workerSocket reference to the list
-                _clientList.GetOrAdd(_clientCount, workerSocket);
-
-                serverReplyContext = new ServerReplyContext(this, workerSocket, _clientCount);
-
-                Log4.Debug("Opened Socket #" + _clientCount);
-
-                SetStatus(ServiceStatus.Connected);
-                SendNotification(ServiceNotification.ClientConnected, CurrentStatus, serverReplyContext);
-
-                // Send a welcome message to client
-                // TODO: Notify client # & IP address
-                //string msg = "Welcome client " + _clientCount + "\n";
-                //SendMsgToClient(msg, m_clientCount);
-
-                // Let the worker Socket do the further processing for the 
-                // just connected client
-                BeginReceive(serverReplyContext);
-            }
-            catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
-                // See http://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
-                //if (se.SocketErrorCode == SocketError.ConnectionReset) // WSAECONNRESET (10054)
-                {
-                    // Forcibly closed
-                    CloseSocket(serverReplyContext);
-                }
-            }
-            catch (Exception e) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {e.Message}");
-                CloseSocket(serverReplyContext);
-            }
-
-            // Since the main Socket is now free, it can go back and wait for
-            // other clients who are attempting to connect
-            _mainSocket?.BeginAccept(OnClientConnect, null);
-        }
-
-        // Start waiting for data from the client
-        private void BeginReceive(ServerReplyContext serverReplyContext) {
-            Log4.Debug("SocketServer BeginReceive");
-            try {
-                _ = serverReplyContext.Socket.BeginReceive(serverReplyContext.DataBuffer, 0,
-                                    serverReplyContext.DataBuffer.Length,
-                                    SocketFlags.None,
-                                    OnDataReceived,
-                                    serverReplyContext);
-            }
-            catch (SocketException se) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"BeginReceive: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
-                CloseSocket(serverReplyContext);
-            }
-        }
-
-        private void CloseSocket(ServerReplyContext serverReplyContext) {
-            Log4.Debug("SocketServer CloseSocket");
-            if (serverReplyContext == null) {
-                return;
-            }
-
-            // Remove the reference to the worker socket of the closed client
-            // so that this object will get garbage collected
-            _ = _clientList.TryRemove(serverReplyContext.ClientNumber, out Socket socket);
+        foreach (int i in _clientList.Keys) {
+            _clientList.TryRemove(i, out Socket? socket);
             if (socket != null) {
-                Log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
-                Interlocked.Decrement(ref _clientCount);
-                SendNotification(ServiceNotification.ClientDisconnected, CurrentStatus, serverReplyContext);
+                Log4.Debug("Closing Socket #" + i);
                 socket.Close();
             }
         }
+        _mainSocket?.Close();
+        _mainSocket = null;
+    }
 
-        enum TelnetVerbs {
-            WILL = 251,
-            WONT = 252,
-            DO = 253,
-            DONT = 254,
-            IAC = 255
+    //-----------------------------------------------------------
+    // Control functions (Start, Stop, etc...)
+    //-----------------------------------------------------------
+    public void Start(int port) {
+        try {
+            // Create the listening socket...
+            _mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            IPEndPoint ipLocal = new IPEndPoint(IPAddress.Any, port);
+            // Bind to local IP Address...
+            Log4.Debug("SocketServer - Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
+            _mainSocket.Bind(ipLocal);
+            // Start listening...
+            Log4.Debug("_mainSocket.Listen");
+            _mainSocket.Listen(4);
+            // Create the call back for any client connections...
+            SetStatus(ServiceStatus.Started, $"{ipLocal.Address}:{port}");
+            SetStatus(ServiceStatus.Waiting);
+            _mainSocket.BeginAccept(OnClientConnect, null);
+        }
+        catch (SocketException se) {
+            SendNotification(ServiceNotification.Error, CurrentStatus, null, $"{se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+            SetStatus(ServiceStatus.Stopped);
+        }
+    }
+
+    public void Stop() {
+        Log4.Debug("SocketServer Stop");
+        Dispose(true);
+        SetStatus(ServiceStatus.Stopped);
+    }
+
+    //-----------------------------------------------------------
+    // Async handlers
+    //-----------------------------------------------------------
+    private void OnClientConnect(IAsyncResult async) {
+        Log4.Debug("SocketServer OnClientConnect");
+
+        if (_mainSocket == null) {
+            return;
         }
 
-        enum TelnetOptions {
-            SGA = 3
+        ServerReplyContext? serverReplyContext = null;
+        try {
+            // Here we complete/end the BeginAccept() asynchronous call
+            // by calling EndAccept() - which returns the reference to
+            // a new Socket object
+            Socket workerSocket = _mainSocket.EndAccept(async);
+
+            // Now increment the client count for this client 
+            // in a thread safe manner
+            Interlocked.Increment(ref _clientCount);
+
+            // Add the workerSocket reference to the list
+            _clientList.GetOrAdd(_clientCount, workerSocket);
+
+            serverReplyContext = new ServerReplyContext(this, workerSocket, _clientCount);
+
+            Log4.Debug("Opened Socket #" + _clientCount);
+
+            SetStatus(ServiceStatus.Connected);
+            SendNotification(ServiceNotification.ClientConnected, CurrentStatus, serverReplyContext);
+
+            // Send a welcome message to client
+            // TODO: Notify client # & IP address
+            //string msg = "Welcome client " + _clientCount + "\n";
+            //SendMsgToClient(msg, m_clientCount);
+
+            // Let the worker Socket do the further processing for the 
+            // just connected client
+            BeginReceive(serverReplyContext);
+        }
+        catch (SocketException se) {
+            SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+            // See http://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
+            //if (se.SocketErrorCode == SocketError.ConnectionReset) // WSAECONNRESET (10054)
+            {
+                // Forcibly closed
+                CloseSocket(serverReplyContext!);
+            }
+        }
+        catch (Exception e) {
+            SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {e.Message}");
+            CloseSocket(serverReplyContext!);
         }
 
-        // This the call back function which will be invoked when the socket
-        // detects any client writing of data on the stream
-        private void OnDataReceived(IAsyncResult async) {
-            ServerReplyContext clientContext = (ServerReplyContext)async.AsyncState;
-            if (_mainSocket == null || !clientContext.Socket.Connected) {
+        // Since the main Socket is now free, it can go back and wait for
+        // other clients who are attempting to connect
+        _mainSocket?.BeginAccept(OnClientConnect, null);
+    }
+
+    // Start waiting for data from the client
+    private void BeginReceive(ServerReplyContext serverReplyContext) {
+        Log4.Debug("SocketServer BeginReceive");
+        try {
+            _ = serverReplyContext.Socket.BeginReceive(serverReplyContext.DataBuffer, 0,
+                                serverReplyContext.DataBuffer.Length,
+                                SocketFlags.None,
+                                OnDataReceived,
+                                serverReplyContext);
+        }
+        catch (SocketException se) {
+            SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"BeginReceive: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+            CloseSocket(serverReplyContext);
+        }
+    }
+
+    private void CloseSocket(ServerReplyContext serverReplyContext) {
+        Log4.Debug("SocketServer CloseSocket");
+        if (serverReplyContext == null) {
+            return;
+        }
+
+        // Remove the reference to the worker socket of the closed client
+        // so that this object will get garbage collected
+        _ = _clientList.TryRemove(serverReplyContext.ClientNumber, out Socket? socket);
+        if (socket != null) {
+            Log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
+            Interlocked.Decrement(ref _clientCount);
+            SendNotification(ServiceNotification.ClientDisconnected, CurrentStatus, serverReplyContext);
+            socket.Close();
+        }
+    }
+
+    // This the call back function which will be invoked when the socket
+    // detects any client writing of data on the stream
+    private void OnDataReceived(IAsyncResult async) {
+        ServerReplyContext clientContext = (ServerReplyContext)async.AsyncState!;
+        if (_mainSocket == null || !clientContext.Socket.Connected) {
+            return;
+        }
+
+        try {
+            // Complete the BeginReceive() asynchronous call by EndReceive() method
+            // which will return the number of characters written to the stream 
+            // by the client
+            int iRx = clientContext.Socket.EndReceive(async, out SocketError err);
+            if (err != SocketError.Success || iRx == 0) {
+                CloseSocket(clientContext);
                 return;
             }
 
-            try {
-                // Complete the BeginReceive() asynchronous call by EndReceive() method
-                // which will return the number of characters written to the stream 
-                // by the client
-                int iRx = clientContext.Socket.EndReceive(async, out SocketError err);
-                if (err != SocketError.Success || iRx == 0) {
-                    CloseSocket(clientContext);
-                    return;
-                }
-
-                // _currentCommand contains the current command we are parsing out and 
-                // _currentIndex is the index into it
-                //int n = 0;
-                for (int i = 0; i < iRx; i++) {
-                    byte b = clientContext.DataBuffer[i];
-                    switch (b) {
-                        case (byte)TelnetVerbs.IAC:
-                            // interpret as a command
-                            i++;
-                            if (i < iRx) {
-                                byte verb = clientContext.DataBuffer[i];
-                                switch (verb) {
-                                    case (int)TelnetVerbs.IAC:
-                                        //literal IAC = 255 escaped, so append char 255 to string
-                                        clientContext.CmdBuilder.Append(verb);
-                                        break;
-                                    case (int)TelnetVerbs.DO:
-                                    case (int)TelnetVerbs.DONT:
-                                    case (int)TelnetVerbs.WILL:
-                                    case (int)TelnetVerbs.WONT:
-                                        // reply to all commands with "WONT", unless it is SGA (suppres go ahead)
-                                        i++;
-                                        byte inputoption = clientContext.DataBuffer[i];
-                                        if (i < iRx) {
-                                            clientContext.Socket.Send(new[] { (byte)TelnetVerbs.IAC });
-                                            if (inputoption == (int)TelnetOptions.SGA) {
-                                                clientContext.Socket.Send(new[]{verb == (int) TelnetVerbs.DO
-                                                                        ? (byte) TelnetVerbs.WILL
-                                                                        : (byte) TelnetVerbs.DO});
-                                            }
-                                            else {
-                                                clientContext.Socket.Send(new[]{verb == (int) TelnetVerbs.DO
-                                                                        ? (byte) TelnetVerbs.WONT
-                                                                        : (byte) TelnetVerbs.DONT});
-                                            }
-
-                                            clientContext.Socket.Send(new[] { inputoption });
+            // _currentCommand contains the current command we are parsing out and 
+            // _currentIndex is the index into it
+            //int n = 0;
+            for (int i = 0; i < iRx; i++) {
+                byte b = clientContext.DataBuffer[i];
+                switch (b) {
+                    case (byte)TelnetVerbs.IAC:
+                        // interpret as a command
+                        i++;
+                        if (i < iRx) {
+                            byte verb = clientContext.DataBuffer[i];
+                            switch (verb) {
+                                case (int)TelnetVerbs.IAC:
+                                    //literal IAC = 255 escaped, so append char 255 to string
+                                    clientContext.CmdBuilder.Append(verb);
+                                    break;
+                                case (int)TelnetVerbs.DO:
+                                case (int)TelnetVerbs.DONT:
+                                case (int)TelnetVerbs.WILL:
+                                case (int)TelnetVerbs.WONT:
+                                    // reply to all commands with "WONT", unless it is SGA (suppres go ahead)
+                                    i++;
+                                    byte inputoption = clientContext.DataBuffer[i];
+                                    if (i < iRx) {
+                                        clientContext.Socket.Send([(byte)TelnetVerbs.IAC]);
+                                        if (inputoption == (int)TelnetOptions.SGA) {
+                                            clientContext.Socket.Send([verb == (int) TelnetVerbs.DO
+                                                                    ? (byte) TelnetVerbs.WILL
+                                                                    : (byte) TelnetVerbs.DO]);
                                         }
-                                        break;
-                                }
+                                        else {
+                                            clientContext.Socket.Send([verb == (int) TelnetVerbs.DO
+                                                                    ? (byte) TelnetVerbs.WONT
+                                                                    : (byte) TelnetVerbs.DONT]);
+                                        }
+
+                                        clientContext.Socket.Send([inputoption]);
+                                    }
+                                    break;
                             }
-                            break;
+                        }
+                        break;
 
-                        case (byte)'\r':
-                        case (byte)'\n':
-                        case (byte)'\0':
-                            // Skip any delimiter chars that might have been left from earlier input
-                            if (clientContext.CmdBuilder.Length > 0) {
-                                SendNotification(ServiceNotification.ReceivedData, CurrentStatus, clientContext, clientContext.CmdBuilder.ToString());
-                                // Reset n to start new command
-                                clientContext.CmdBuilder.Clear();
-                            }
-                            break;
+                    case (byte)'\r':
+                    case (byte)'\n':
+                    case (byte)'\0':
+                        // Skip any delimiter chars that might have been left from earlier input
+                        if (clientContext.CmdBuilder.Length > 0) {
+                            SendNotification(ServiceNotification.ReceivedData, CurrentStatus, clientContext, clientContext.CmdBuilder.ToString());
+                            // Reset n to start new command
+                            clientContext.CmdBuilder.Clear();
+                        }
+                        break;
 
-                        default:
-                            clientContext.CmdBuilder.Append((char)b);
-                            break;
-                    }
-                }
-
-                // Continue the waiting for data on the Socket
-                BeginReceive(clientContext);
-            }
-            catch (SocketException se) {
-                if (se.SocketErrorCode == SocketError.ConnectionReset) // Error code for Connection reset by peer 
-                {
-                    SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
-                    CloseSocket(clientContext);
-                }
-                else {
-                    SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+                    default:
+                        clientContext.CmdBuilder.Append((char)b);
+                        break;
                 }
             }
+
+            // Continue the waiting for data on the Socket
+            BeginReceive(clientContext);
         }
-
-        public void SendAwakeCommand(String cmd, String host, int port) {
-            Log4.Debug("SocketServer SendAwakeCommand");
-            if (String.IsNullOrEmpty(host)) {
-                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "No wakeup host specified");
-                return;
-            }
-            if (port == 0) {
-                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "Invalid port");
-                return;
-            }
-            try {
-                // Try to resolve the remote host name or address
-                IPHostEntry resolvedHost = Dns.GetHostEntry(host);
-                Socket clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-                try {
-                    // Create the endpoint that describes the destination
-                    IPEndPoint destination = new IPEndPoint(resolvedHost.AddressList[0], port);
-
-                    SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                     $"Attempting connection to: {destination}");
-                    clientSocket.Connect(destination);
-                }
-                catch (SocketException err) {
-                    // Connect failed so close the socket and try the next address
-                    clientSocket.Close();
-                    clientSocket = null;
-                    SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                     "Error connecting.\r\n" + $"   Error: {err.Message}");
-                }
-                // Make sure we have a valid socket before trying to use it
-                if ((clientSocket != null)) {
-                    try {
-                        _ = clientSocket.Send(Encoding.ASCII.GetBytes(cmd + "\r\n"));
-
-                        SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                         "Sent request " + cmd + " to wakeup host.");
-
-                        // For TCP, shutdown sending on our side since the client won't send any more data
-                        clientSocket.Shutdown(SocketShutdown.Send);
-                    }
-                    catch (SocketException err) {
-                        SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                         $"Error occured while sending or receiving data.\r\n   Error: {err.Message}");
-                    }
-                    clientSocket.Dispose();
-                }
-                else {
-                    SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                     "Unable to establish connection to server!");
-                }
-            }
-            catch (SocketException err) {
-                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                 $"Socket error occured: {err.Message}");
-            }
-        }
-
-        public override void Send(string text, Reply replyContext = null) {
-            base.Send(text, replyContext);
-
-            if (text is null) {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            if (CurrentStatus != ServiceStatus.Connected ||
-                _mainSocket == null) {
-                return;
-            }
-
-            if (replyContext == null) {
-                foreach (int i in _clientList.Keys) {
-                    if (_clientList.TryGetValue(i, out Socket client)) {
-                        Reply reply = new ServerReplyContext(this, client, i);
-                        Send(text, reply);
-                    }
-                }
+        catch (SocketException se) {
+            if (se.SocketErrorCode == SocketError.ConnectionReset) // Error code for Connection reset by peer 
+            {
+                SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+                CloseSocket(clientContext);
             }
             else {
-                if (((ServerReplyContext)replyContext).Socket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
-                    SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());
-                }
-                else {
-                    SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext, text);
-                }
+                SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
             }
         }
-
-        #region Nested type: ServerReplyContext
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "none")]
-        public class ServerReplyContext : Reply {
-            internal StringBuilder CmdBuilder { get; set; }
-            internal Socket Socket { get; set; }
-            internal int ClientNumber { get; set; }
-
-            // Buffer to store the data sent by the client
-            internal byte[] DataBuffer = new byte[1024];
-
-            private readonly SocketServer _server;
-
-            // Constructor which takes a Socket and a client number
-            public ServerReplyContext(SocketServer server, Socket socket, int clientNumber) {
-                CmdBuilder = new StringBuilder();
-                _server = server;
-                Socket = socket;
-                ClientNumber = clientNumber;
-            }
-
-            protected string Command {
-                get { return CmdBuilder.ToString(); }
-                set { }
-            }
-
-            public override void Write(String text) {
-                _server.Send(text, this);
-            }
-        }
-        #endregion
     }
+
+    public void SendAwakeCommand(String cmd, String host, int port) {
+        Log4.Debug("SocketServer SendAwakeCommand");
+        if (String.IsNullOrEmpty(host)) {
+            SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "No wakeup host specified");
+            return;
+        }
+        if (port == 0) {
+            SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "Invalid port");
+            return;
+        }
+        try {
+            // Try to resolve the remote host name or address
+            IPHostEntry resolvedHost = Dns.GetHostEntry(host);
+            Socket? clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+            try {
+                // Create the endpoint that describes the destination
+                IPEndPoint destination = new IPEndPoint(resolvedHost.AddressList[0], port);
+
+                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
+                                 $"Attempting connection to: {destination}");
+                clientSocket.Connect(destination);
+            }
+            catch (SocketException err) {
+                // Connect failed so close the socket and try the next address
+                clientSocket.Close();
+                clientSocket = null;
+                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
+                                 "Error connecting.\r\n" + $"   Error: {err.Message}");
+            }
+            // Make sure we have a valid socket before trying to use it
+            if ((clientSocket != null)) {
+                try {
+                    _ = clientSocket.Send(Encoding.ASCII.GetBytes(cmd + "\r\n"));
+
+                    SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
+                                     "Sent request " + cmd + " to wakeup host.");
+
+                    // For TCP, shutdown sending on our side since the client won't send any more data
+                    clientSocket.Shutdown(SocketShutdown.Send);
+                }
+                catch (SocketException err) {
+                    SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
+                                     $"Error occured while sending or receiving data.\r\n   Error: {err.Message}");
+                }
+                clientSocket.Dispose();
+            }
+            else {
+                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
+                                 "Unable to establish connection to server!");
+            }
+        }
+        catch (SocketException err) {
+            SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
+                             $"Socket error occured: {err.Message}");
+        }
+    }
+
+    public override void Send(string text, Reply? replyContext = null) {
+        base.Send(text, replyContext);
+
+        if (text is null) {
+            throw new ArgumentNullException(nameof(text));
+        }
+
+        if (CurrentStatus != ServiceStatus.Connected ||
+            _mainSocket == null) {
+            return;
+        }
+
+        if (replyContext == null) {
+            foreach (int i in _clientList.Keys) {
+                if (_clientList.TryGetValue(i, out Socket? client)) {
+                    Reply reply = new ServerReplyContext(this, client, i);
+                    Send(text, reply);
+                }
+            }
+        }
+        else {
+            if (((ServerReplyContext)replyContext).Socket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
+                SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());
+            }
+            else {
+                SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext, text);
+            }
+        }
+    }
+
 }

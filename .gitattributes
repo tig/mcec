@@ -1,0 +1,20 @@
+# Auto-detect text files; ensure LF line endings on checkout for source files.
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.pdf binary
+*.zip binary
+*.dll binary
+*.exe binary
+*.snk binary
+
+# Windows-specific scripts keep CRLF
+*.bat eol=crlf
+*.cmd eol=crlf
+*.ps1 eol=crlf

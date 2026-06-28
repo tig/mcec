@@ -1,21 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net8.0-windows</TargetFramework>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <UseWindowsForms>true</UseWindowsForms>
         <ApplicationIcon>Resources\Guillen.Icon.ico</ApplicationIcon>
         <AssemblyName>MCEControl</AssemblyName>
         <RootNamespace>MCEControl</RootNamespace>
-        <LangVersion>latest</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <Nullable>disable</Nullable>
-        <ImplicitUsings>disable</ImplicitUsings>
         <PlatformTarget>AnyCPU</PlatformTarget>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
-        <NoWarn>CA1416</NoWarn>
+        <NoWarn>$(NoWarn);CA1416</NoWarn>
         <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     </PropertyGroup>
 
@@ -34,7 +31,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="log4net" Version="2.0.17" />
+        <PackageReference Include="log4net" Version="3.3.2" />
         <PackageReference Include="Microsoft.ApplicationInsights" Version="2.22.0" />
         <PackageReference Include="Octokit" Version="13.0.1" />
         <PackageReference Include="System.IO.Ports" Version="8.0.0" />
@@ -55,13 +52,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include=".github\dependabot.yml" />
-        <None Include=".github\ISSUE_TEMPLATE\bug_report.md" />
-        <None Include=".github\ISSUE_TEMPLATE\feature_request.md" />
-        <None Include=".github\pull_request_template.md" />
-        <None Include=".github\workflows\ci.yml" />
-        <None Include=".github\workflows\pr-validation.yml" />
-        <None Include=".github\workflows\README.md" />
         <None Include="Resources\Trafficlight-gray-icon.bmp" />
         <None Include="Resources\Trafficlight-gray-icon.png" />
         <None Include="Resources\Trafficlight-green-icon.png" />

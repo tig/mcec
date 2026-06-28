@@ -12,114 +12,113 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
-namespace MCEControl {
-    /// <summary>
-    /// Summary description for ShutdownCommands.
-    /// </summary>
-    public class ShutdownCommand : Command {
-        public static new List<Command> BuiltInCommands {
-            get => new List<Command>() {
-                new ShutdownCommand{ Cmd = $"shutdown", Type = $"shutdown" },
-                new ShutdownCommand{ Cmd = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
-                new ShutdownCommand{ Cmd = $"restart", Type = $"restart" },
-                new ShutdownCommand{ Cmd = $"restart-g", Type = $"restart-g" },
-                new ShutdownCommand{ Cmd = $"standby", Type = $"standby" },
-                new ShutdownCommand{ Cmd = $"hibernate", Type = $"hibernate"},
-                new ShutdownCommand{ Cmd = $"abort", Type = $"abort" },
-                new ShutdownCommand{ Cmd = $"poweroff", Type = $"poweroff" },
-                new ShutdownCommand{ Cmd = $"logoff", Type = $"logoff" },
-            };
+namespace MCEControl; 
+/// <summary>
+/// Summary description for ShutdownCommands.
+/// </summary>
+public class ShutdownCommand : Command {
+    public static new List<Command> BuiltInCommands {
+        get => [
+            new ShutdownCommand{ Cmd = $"shutdown", Type = $"shutdown" },
+            new ShutdownCommand{ Cmd = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
+            new ShutdownCommand{ Cmd = $"restart", Type = $"restart" },
+            new ShutdownCommand{ Cmd = $"restart-g", Type = $"restart-g" },
+            new ShutdownCommand{ Cmd = $"standby", Type = $"standby" },
+            new ShutdownCommand{ Cmd = $"hibernate", Type = $"hibernate"},
+            new ShutdownCommand{ Cmd = $"abort", Type = $"abort" },
+            new ShutdownCommand{ Cmd = $"poweroff", Type = $"poweroff" },
+            new ShutdownCommand{ Cmd = $"logoff", Type = $"logoff" },
+        ];
+    }
+
+    private String type = null!;
+    [XmlAttribute("type")] public string Type { get => type; set => type = value; }
+    private int timeOut = 30;
+    [XmlAttribute("timeout")] public int TimeOut { get => timeOut; set => timeOut = value; }
+
+    public ShutdownCommand() {
+        // Serialzable, must have constructor
+    }
+
+    public ShutdownCommand(String type, int timeout) {
+        this.type = type;
+        this.TimeOut = timeout;
+    }
+
+    public override string ToString() {
+        return $"Cmd=\"{Cmd}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
+    }
+
+    public override ICommand Clone(Reply reply) => base.Clone(reply, new ShutdownCommand(Type, TimeOut));
+
+    // ICommand:Execute
+    public override bool Execute() {
+        if (!base.Execute()) {
+            return false;
         }
 
-        private String type;
-        [XmlAttribute("type")] public string Type { get => type; set => type = value; }
-        private int timeOut = 30;
-        [XmlAttribute("timeout")] public int TimeOut { get => timeOut; set => timeOut = value; }
+        try {
+            Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: Executing {ToString()}");
+            switch (Type.ToLowerInvariant()) {
+                case "shutdown":
+                    Shutdown($"/s /t {TimeOut} /f /c \"MCE Controller Forced Shutdown\"");
+                    break;
 
-        public ShutdownCommand() {
-            // Serialzable, must have constructor
-        }
+                case "restart":
+                    Shutdown($"/r /t {TimeOut} /f /c \"MCE Controller Forced Restart\"");
+                    break;
 
-        public ShutdownCommand(String type, int timeout) { 
-            this.type = type;
-            this.TimeOut = timeout;
-        }
+                case "restart-g":
+                    Shutdown($"/g /t {TimeOut} /f /c \"MCE Controller Forced Restart with re-Login\"");
+                    break;
 
-        public override string ToString() {
-            return $"Cmd=\"{Cmd}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
-        }
+                case "standby":
+                    Application.SetSuspendState(PowerState.Suspend, true, false);
+                    break;
 
-        public override ICommand Clone(Reply reply) => base.Clone(reply, new ShutdownCommand(Type, TimeOut));
+                case "hibernate":
+                    Application.SetSuspendState(PowerState.Hibernate, false, false);
+                    break;
 
-        // ICommand:Execute
-        public override bool Execute() {
-            if (!base.Execute()) {
-                return false;
+                case "shutdown-hybrid":
+                    // Shutdown.exe does not suppport timeout on /h (apparently)
+                    Shutdown($"/h /c \"MCE Controller Forced Hybrid Shutdown\"");
+                    break;
+
+                case "poweroff":
+                    // Shutdown.exe does not suppport timeout on /p (apparently)
+                    Shutdown($"/p /c \"MCE Controller Forced Power Off\"");
+                    break;
+
+                case "logoff":
+                    // Shutdown.exe does not suppport timeout on /l (apparently)
+                    Shutdown($"/l /c \"MCE Controller Forced Logoff\"");
+                    break;
+
+                case "abort":
+                    Shutdown($"/a");
+                    break;
+
+                default:
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: Invalid command: {ToString()}");
+                    break;
             }
-
-            try {
-                Logger.Instance.Log4.Info($"Cmd: ShutdownCommands: Executing {ToString()}");
-                switch (Type.ToLowerInvariant()) {
-                    case "shutdown":
-                        Shutdown($"/s /t {TimeOut} /f /c \"MCE Controller Forced Shutdown\"");
-                        break;
-
-                    case "restart":
-                        Shutdown($"/r /t {TimeOut} /f /c \"MCE Controller Forced Restart\"");
-                        break;
-
-                    case "restart-g":
-                        Shutdown($"/g /t {TimeOut} /f /c \"MCE Controller Forced Restart with re-Login\"");
-                        break;
-
-                    case "standby":
-                        Application.SetSuspendState(PowerState.Suspend, true, false);
-                        break;
-
-                    case "hibernate":
-                        Application.SetSuspendState(PowerState.Hibernate, false, false);
-                        break;
-
-                    case "shutdown-hybrid":
-                        // Shutdown.exe does not suppport timeout on /h (apparently)
-                        Shutdown($"/h /c \"MCE Controller Forced Hybrid Shutdown\"");
-                        break;
-
-                    case "poweroff":
-                        // Shutdown.exe does not suppport timeout on /p (apparently)
-                        Shutdown($"/p /c \"MCE Controller Forced Power Off\"");
-                        break;
-
-                    case "logoff":
-                        // Shutdown.exe does not suppport timeout on /l (apparently)
-                        Shutdown($"/l /c \"MCE Controller Forced Logoff\"");
-                        break;
-
-                    case "abort":
-                        Shutdown($"/a");
-                        break;
-
-                    default:
-                        Logger.Instance.Log4.Info($"{this.GetType().Name}: Invalid command: {ToString()}");
-                        break;
-                }
-            }
-            catch (System.ComponentModel.Win32Exception e) {
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: ({Cmd}) {e.Message}");
-                return false;
-            }
-            return true;
         }
+        catch (System.ComponentModel.Win32Exception e) {
+            Logger.Instance.Log4.Info($"{this.GetType().Name}: ({Cmd}) {e.Message}");
+            return false;
+        }
+        return true;
+    }
 
-        public static void Shutdown(string shutdownArgs) {
-            Logger.Instance.Log4.Debug($"ShutdownCommand: Invoking 'shutdown.exe {shutdownArgs}'");
+    public static void Shutdown(string shutdownArgs) {
+        Logger.Instance.Log4.Debug($"ShutdownCommand: Invoking 'shutdown.exe {shutdownArgs}'");
 
-            Process proc = System.Diagnostics.Process.Start("shutdown", shutdownArgs);
-            proc.WaitForExit(1000 * 2);
-            if (proc.ExitCode != 0x0) {
-                Logger.Instance.Log4.Error($"ShutdownCommand: 'shutdown.exe {shutdownArgs}' failed ({proc.ExitCode:X})");
-                throw new System.ComponentModel.Win32Exception(proc.ExitCode);
-            }
+        Process proc = System.Diagnostics.Process.Start("shutdown", shutdownArgs);
+        proc.WaitForExit(1000 * 2);
+        if (proc.ExitCode != 0x0) {
+            Logger.Instance.Log4.Error($"ShutdownCommand: 'shutdown.exe {shutdownArgs}' failed ({proc.ExitCode:X})");
+            throw new System.ComponentModel.Win32Exception(proc.ExitCode);
         }
     }
 }
