@@ -437,7 +437,7 @@ favor of "multimodal": screen + UI tree + input). We chose *Environment* for the
 | FlaUI / pywinauto | D | No (library) | **Shots + UIA tree** | **Yes** | **No** | No | No | Active / slow |
 | WinAppDriver | D | Server | Shots / partial tree | WebDriver locators | No | No | No | **Abandoned** |
 | CursorTouch/Windows-MCP | E | No (Python) | UIA + shots | UIA + coords | Yes | No | No | Active, ~6.3k★ |
-| **MCEC 3.0 — Model Context Environment Controller (proposed)** | (new) | **Yes (.NET 8)** | **Shots (PrintWindow) + UIA** | **find/wait/invoke** | **Yes** | **TCP + serial + MCP/HTTP** | **Yes (15-yr model)** | Proposed |
+| **MCEC 3.0 (Model Context Environment Controller, proposed)** | (new) | **Yes (.NET 8)** | **Shots (PrintWindow) + UIA** | **find/wait/invoke** | **Yes** | **TCP + serial + MCP/HTTP** | **Yes (15-yr model)** | Proposed |
 
 ## Appendix B: Sources
 
