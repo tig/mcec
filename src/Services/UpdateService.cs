@@ -36,7 +36,14 @@ public class UpdateService {
     public string ErrorMessage { get; private set; } = null!;
 
     public static Version CurrentVersion {
-        get { return new Version(Application.ProductVersion); }
+        get {
+            // Application.ProductVersion is the assembly's informational version. On non-tagged
+            // (dev/CI) builds GitVersion appends a SemVer pre-release/build suffix
+            // (e.g. "2.4.1-develop.3+Branch.develop.Sha.abc"); released builds are clean ("2.4.0").
+            // Parse only the leading numeric "Major.Minor.Patch" so Version never throws.
+            string core = Application.ProductVersion.Split('-', '+')[0];
+            return Version.TryParse(core, out Version? v) ? v : new Version(0, 0, 0);
+        }
     }
 
     public Version LatestStableVersion { get; private set; }
