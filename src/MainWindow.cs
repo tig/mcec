@@ -571,12 +571,12 @@ public partial class MainWindow : Form {
             HandleSocketServerStatusChange(status);
         }
         else {
-            HandleSocketServerNotification(notification, status, (SocketServer.ServerReplyContext)reply, msg);
+            HandleSocketServerNotification(notification, status, (ServerReplyContext)reply, msg);
         }
     }
 
     private void HandleSocketServerNotification(ServiceNotification notification, ServiceStatus status,
-        SocketServer.ServerReplyContext serverReplyContext, String msg) {
+        ServerReplyContext serverReplyContext, String msg) {
         string s = "";
 
         switch (notification) {

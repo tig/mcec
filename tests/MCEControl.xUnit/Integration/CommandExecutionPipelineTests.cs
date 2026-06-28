@@ -9,18 +9,6 @@ namespace MCEControl.xUnit.Integration;
 /// </summary>
 public class CommandExecutionPipelineTests
 {
-    private class TestReply : Reply
-    {
-        public string? LastWrittenText { get; private set; }
-        public int WriteCallCount { get; private set; }
-
-        public override void Write(string text)
-        {
-            LastWrittenText = text;
-            WriteCallCount++;
-        }
-    }
-
     [Fact]
     public void CommandInvoker_Enqueue_ParsesSimpleCommand()
     {

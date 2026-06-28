@@ -209,18 +209,4 @@ public sealed class SerialServer : ServiceBase, IDisposable {
         //}
 
     }
-    #region Nested type: SerialReplyContext
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "<Pending>")]
-    public class SerialReplyContext : Reply {
-        private readonly SerialPort _rs232;
-        public SerialReplyContext(SerialPort rs232) {
-            _rs232 = rs232;
-        }
-        public override void Write(String text) {
-            if (_rs232 != null && _rs232.IsOpen) {
-                _rs232.Write(text);
-            }
-        }
-    }
-    #endregion
 }

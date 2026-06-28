@@ -14,43 +14,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using log4net;
 
-namespace MCEControl; 
-public enum ServiceNotification {
-    None = 0,
-    Initialized = 1,
-    StatusChange,
-    ReceivedData,
-    ClientConnected,
-    ClientDisconnected,
-    Write,
-    WriteFailed,
-    Error,
-    Wakeup
-}
-
-public enum ServiceStatus {
-    Started,
-    Waiting,
-    Connected,
-    Sleeping,
-    Stopped
-}
-
-/// <summary>
-/// The base class that each of MCE Controller's services are based
-/// on (SocketServer, SocketClient, SerialServer).
-/// 
-/// Allows core code to be able to interact with services (e.g.
-/// start, stop, configure, send replies) without having to 
-/// know what servic is active.
-/// </summary>
-public abstract class Reply {
-    public abstract void Write(String text);
-    public void WriteLine(String textLine) {
-        Write(textLine + Environment.NewLine);
-    }
-}
-
+namespace MCEControl;
 public abstract class ServiceBase {
     protected ILog Log4 { get; set; }
 

@@ -79,12 +79,4 @@ public class PauseCommandTests
         Assert.Contains("pause", result);
         Assert.Contains("100", result);
     }
-
-    private class TestReply : Reply
-    {
-        public override void Write(string text)
-        {
-            // No-op for testing
-        }
-    }
 }

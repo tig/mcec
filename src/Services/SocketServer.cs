@@ -179,18 +179,6 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         }
     }
 
-    enum TelnetVerbs {
-        WILL = 251,
-        WONT = 252,
-        DO = 253,
-        DONT = 254,
-        IAC = 255
-    }
-
-    enum TelnetOptions {
-        SGA = 3
-    }
-
     // This the call back function which will be invoked when the socket
     // detects any client writing of data on the stream
     private void OnDataReceived(IAsyncResult async) {
@@ -372,34 +360,4 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         }
     }
 
-    #region Nested type: ServerReplyContext
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "none")]
-    public class ServerReplyContext : Reply {
-        internal StringBuilder CmdBuilder { get; set; }
-        internal Socket Socket { get; set; }
-        internal int ClientNumber { get; set; }
-
-        // Buffer to store the data sent by the client
-        internal byte[] DataBuffer = new byte[1024];
-
-        private readonly SocketServer _server;
-
-        // Constructor which takes a Socket and a client number
-        public ServerReplyContext(SocketServer server, Socket socket, int clientNumber) {
-            CmdBuilder = new StringBuilder();
-            _server = server;
-            Socket = socket;
-            ClientNumber = clientNumber;
-        }
-
-        protected string Command {
-            get { return CmdBuilder.ToString(); }
-            set { }
-        }
-
-        public override void Write(String text) {
-            _server.Send(text, this);
-        }
-    }
-    #endregion
 }

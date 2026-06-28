@@ -14,14 +14,7 @@ using System.Xml;
 using System.Xml.Serialization;
 using Microsoft.Win32;
 
-namespace MCEControl; 
-
-/// <summary>
-/// Used by TELEMETRY to determine which settings are safe for collection.
-/// </summary>
-[System.AttributeUsage(System.AttributeTargets.Property)]
-public class SafeForTelemetryAttribute : System.Attribute {
-}
+namespace MCEControl;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "This is just settings info.")]
 public class AppSettings : ICloneable {
