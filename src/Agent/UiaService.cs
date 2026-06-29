@@ -1,0 +1,235 @@
+// Copyright © Kindel, LLC - http://www.kindel.com
+// Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
+
+using System.Drawing;
+using System.Runtime.InteropServices;
+using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Conditions;
+using FlaUI.Core.Tools;
+using FlaUI.UIA3;
+
+namespace MCEControl;
+
+/// <summary>
+/// UI Automation (UIA) observation and targeting for the MCEC 3.0 agent commands, backed by FlaUI.
+/// Provides a depth-bounded tree dump (<see cref="DumpTree"/>), element lookup (<see cref="Find"/>),
+/// and pattern dispatch (<see cref="Invoke"/>). Every UIA read is wrapped defensively: a single stale
+/// or unsupported node must never abort the whole walk.
+/// </summary>
+public static class UiaService {
+    /// <summary>
+    /// Snapshots the UIA tree rooted at <paramref name="hwnd"/> down to <paramref name="maxDepth"/>
+    /// levels (depth 0 = the root node only). Returns null if the window can't be attached to.
+    /// </summary>
+    public static UiaElementInfo? DumpTree(IntPtr hwnd, int maxDepth) {
+        if (hwnd == IntPtr.Zero) {
+            return null;
+        }
+        try {
+            using UIA3Automation automation = new();
+            AutomationElement root = automation.FromHandle(hwnd);
+            return BuildNode(root, 0, maxDepth);
+        }
+        catch (Exception e) {
+            // FromHandle/UIA can throw COMException or FlaUI-specific exceptions on a window that
+            // closes mid-call; never let it escape the command's Execute().
+            Logger.Instance.Log4.Error($"UiaService.DumpTree failed: {e.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Finds the first descendant of <paramref name="hwnd"/> matching <paramref name="value"/> by the
+    /// given strategy (<c>name</c>/<c>automationid</c>/<c>classname</c>, case-insensitive). When
+    /// <paramref name="timeoutMs"/> &gt; 0 it retries until found or the timeout elapses. Returns a
+    /// single node (no children) or null.
+    /// </summary>
+    public static UiaElementInfo? Find(IntPtr hwnd, string by, string value, int timeoutMs) {
+        if (hwnd == IntPtr.Zero) {
+            return null;
+        }
+        try {
+            using UIA3Automation automation = new();
+            AutomationElement root = automation.FromHandle(hwnd);
+            AutomationElement? el = FindElement(root, by, value, timeoutMs);
+            return el is null ? null : Describe(el);
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"UiaService.Find failed: {e.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Finds an element (5s timeout) and dispatches <paramref name="action"/>
+    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>). Returns true on success, false if
+    /// the element wasn't found or the required pattern is unsupported.
+    /// </summary>
+    public static bool Invoke(IntPtr hwnd, string by, string value, string action, string? text) {
+        if (hwnd == IntPtr.Zero) {
+            return false;
+        }
+        try {
+            using UIA3Automation automation = new();
+            AutomationElement root = automation.FromHandle(hwnd);
+            AutomationElement? el = FindElement(root, by, value, 5000);
+            if (el is null) {
+                return false;
+            }
+            return action.ToLowerInvariant() switch {
+                "toggle" => InvokeToggle(el),
+                "setvalue" => InvokeSetValue(el, text),
+                "setfocus" => InvokeSetFocus(el),
+                _ => InvokeDefault(el),
+            };
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"UiaService.Invoke failed: {e.Message}");
+            return false;
+        }
+    }
+
+    private static UiaElementInfo BuildNode(AutomationElement el, int depth, int maxDepth) {
+        UiaElementInfo info = Describe(el);
+        if (depth >= maxDepth) {
+            return info;
+        }
+
+        AutomationElement[] children;
+        try {
+            children = el.FindAllChildren();
+        }
+        catch (COMException) {
+            // Element went stale; return what we have so far.
+            return info;
+        }
+
+        foreach (AutomationElement child in children) {
+            try {
+                info.Children.Add(BuildNode(child, depth + 1, maxDepth));
+            }
+            catch (COMException) {
+                // Skip a node that went stale mid-walk; keep the rest of the tree.
+            }
+        }
+        return info;
+    }
+
+    private static AutomationElement? FindElement(AutomationElement root, string by, string value, int timeoutMs) {
+        Func<ConditionFactory, ConditionBase> condition = BuildCondition(by, value);
+        if (timeoutMs > 0) {
+            return Retry.WhileNull(
+                () => root.FindFirstDescendant(condition),
+                TimeSpan.FromMilliseconds(timeoutMs)).Result;
+        }
+        return root.FindFirstDescendant(condition);
+    }
+
+    private static Func<ConditionFactory, ConditionBase> BuildCondition(string by, string value) =>
+        by.ToLowerInvariant() switch {
+            "automationid" => cf => cf.ByAutomationId(value),
+            "classname" => cf => cf.ByClassName(value),
+            _ => cf => cf.ByName(value),
+        };
+
+    private static bool InvokeDefault(AutomationElement el) {
+        var pattern = el.Patterns.Invoke.PatternOrDefault;
+        if (pattern is null) {
+            return false;
+        }
+        pattern.Invoke();
+        return true;
+    }
+
+    private static bool InvokeToggle(AutomationElement el) {
+        var pattern = el.Patterns.Toggle.PatternOrDefault;
+        if (pattern is null) {
+            return false;
+        }
+        pattern.Toggle();
+        return true;
+    }
+
+    private static bool InvokeSetValue(AutomationElement el, string? text) {
+        var pattern = el.Patterns.Value.PatternOrDefault;
+        if (pattern is null) {
+            return false;
+        }
+        pattern.SetValue(text ?? string.Empty);
+        return true;
+    }
+
+    private static bool InvokeSetFocus(AutomationElement el) {
+        el.Focus();
+        return true;
+    }
+
+    private static UiaElementInfo Describe(AutomationElement el) {
+        UiaElementInfo info = new();
+
+        try {
+            info.ControlType = el.Properties.ControlType.ValueOrDefault.ToString();
+        }
+        catch (COMException) {
+            // Leave the default control type.
+        }
+
+        try {
+            info.Name = CleanString(el.Properties.Name.ValueOrDefault);
+        }
+        catch (COMException) {
+            // Property unavailable on a stale node; leave null.
+        }
+
+        try {
+            info.AutomationId = CleanString(el.Properties.AutomationId.ValueOrDefault);
+        }
+        catch (COMException) {
+            // Leave null.
+        }
+
+        try {
+            info.ClassName = CleanString(el.Properties.ClassName.ValueOrDefault);
+        }
+        catch (COMException) {
+            // Leave null.
+        }
+
+        try {
+            info.IsEnabled = el.Properties.IsEnabled.ValueOrDefault;
+        }
+        catch (COMException) {
+            // Leave false.
+        }
+
+        try {
+            info.IsOffscreen = el.Properties.IsOffscreen.ValueOrDefault;
+        }
+        catch (COMException) {
+            // Leave false.
+        }
+
+        try {
+            Rectangle r = el.Properties.BoundingRectangle.ValueOrDefault;
+            info.X = r.X;
+            info.Y = r.Y;
+            info.Width = r.Width;
+            info.Height = r.Height;
+        }
+        catch (COMException) {
+            // Leave zeroed bounds.
+        }
+
+        try {
+            info.Value = CleanString(el.Patterns.Value.PatternOrDefault?.Value?.ValueOrDefault);
+        }
+        catch (COMException) {
+            // Leave null.
+        }
+
+        return info;
+    }
+
+    private static string? CleanString(string? value) =>
+        string.IsNullOrEmpty(value) ? null : value;
+}

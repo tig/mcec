@@ -38,22 +38,52 @@ internal static class Program {
     ///     The main entry point for the application.
     /// </summary>
     [STAThread]
-    private static void Main() {
-        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
-
-        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
-
+    private static void Main(string[] args) {
         // Start logging
         Logger.Instance.LogFile = $@"{ConfigPath}MCEControl.log";
         Logger.Instance.Log4.Debug(
             $"------ START: v{Application.ProductVersion} - OS: {Environment.OSVersion} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()} ------");
 
+        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+
+        // MCEC 3.0: headless MCP server mode. An MCP client launches `MCEControl.exe --mcp` and speaks
+        // JSON-RPC over stdio. No WinForms message loop runs; stdout is reserved for the protocol.
+        if (Array.Exists(args, a => string.Equals(a, "--mcp", StringComparison.OrdinalIgnoreCase))) {
+            RunHeadlessMcp();
+            return;
+        }
+
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+
         Application.Run(MainWindow.Instance);
 
         Logger.Instance.Log4.Debug($"------ END runtime: {TelemetryService.Instance.RunTime!.Elapsed:g} ------");
+    }
+
+    /// <summary>
+    /// Headless bootstrap for <c>--mcp</c>: loads settings and the command core through the
+    /// UI-agnostic <see cref="AgentRuntime"/> seam (no <c>MainWindow</c>), then serves MCP over stdio.
+    /// </summary>
+    private static void RunHeadlessMcp() {
+        // Match the GUI's DPI awareness so PrintWindow/GetWindowRect capture geometry is consistent
+        // whether MCEC runs headless (--mcp) or interactively.
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+
+        TelemetryService.Instance.Start("MCE Controller");
+
+        AppSettings settings = AppSettings.Deserialize($@"{ConfigPath}{AppSettings.SettingsFileName}");
+        AgentRuntime.Settings = settings;
+        AgentRuntime.Invoker = CommandInvoker.Create(
+            $@"{ConfigPath}MCEControl.commands", Application.ProductVersion, settings.DisableInternalCommands);
+
+        Logger.Instance.Log4.Info($"MCEC: headless MCP mode (AgentCommandsEnabled={settings.AgentCommandsEnabled}).");
+
+        using Stream stdin = Console.OpenStandardInput();
+        using Stream stdout = Console.OpenStandardOutput();
+        AgentServer.RunStdio(stdin, stdout);
     }
 
     private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {

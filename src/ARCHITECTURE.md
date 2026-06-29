@@ -183,6 +183,20 @@ All commands are located in the `Commands\` directory:
 | **ShutdownCommand** | System power | Shutdown, restart, logoff, sleep, hibernate |
 | **PauseCommand** | Timing control | Thread.Sleep for command pacing |
 | **McecCommand** | Internal control | Controls MCE Controller itself (reload, shutdown, etc.) |
+| **CaptureCommand** | Agent: observe | Screenshot a window/region via `PrintWindow` (`PW_RENDERFULLCONTENT`) → PNG/base64 |
+| **QueryCommand** | Agent: observe | Dump the UI Automation tree of a window (via FlaUI) |
+| **FindCommand** | Agent: target | `find` / `wait-for` a UIA element by name/automation-id/class with a timeout |
+| **InvokeCommand** | Agent: act | Drive a UIA element pattern (Invoke/Toggle/Value/SetFocus) |
+
+> **MCEC 3.0 agent subsystem (`src/Agent/`, `Services/AgentServer.cs`).** The four agent
+> commands above add *observation* and *targeting* on top of the existing actuation core, and
+> are exposed as Model Context Protocol (MCP) tools over stdio (`MCEControl.exe --mcp`) and a
+> localhost HTTP/JSON floor. They are **disabled by default** behind a dedicated opt-in
+> (`AppSettings.AgentCommandsEnabled`, separate from the actuation enable), bind to localhost
+> only, and loudly audit-log every action. The engine reaches settings/invoker through the
+> UI-agnostic `AgentRuntime` seam so it runs headless (no `MainWindow`). See
+> [`docs/agent-server.md`](../docs/agent-server.md) (users) and
+> [`docs/agent-server-architecture.md`](../docs/agent-server-architecture.md) (devs).
 
 **Nested Commands**:
 Commands can contain embedded commands that execute after the parent completes. Example:

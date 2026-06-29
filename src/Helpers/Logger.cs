@@ -139,9 +139,12 @@ public class Logger {
         textbox.ActivateOptions();
         hierarchy.Root.AddAppender(textbox);
 
-        // Log to console
+        // Log to console — on STDERR, never stdout. In headless MCP mode (--mcp) stdout is reserved
+        // for the JSON-RPC protocol stream, so any log line on stdout would corrupt it. Routing to
+        // stderr (the conventional log channel for stdio servers) keeps stdout clean in all modes.
         ConsoleAppender debugAppender = new ConsoleAppender {
             Name = "Console",
+            Target = ConsoleAppender.ConsoleError,
             Layout = patternLayout
         };
         debugAppender.ActivateOptions();

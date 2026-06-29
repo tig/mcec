@@ -43,6 +43,10 @@ public abstract class Command : ICommand {
     [XmlElement("pause", typeof(PauseCommand))]
     [XmlElement("mouse", typeof(MouseCommand))]
     [XmlElement("mceccommand", typeof(McecCommand))]
+    [XmlElement("capture", typeof(CaptureCommand))]
+    [XmlElement("query", typeof(QueryCommand))]
+    [XmlElement("find", typeof(FindCommand))]
+    [XmlElement("invoke", typeof(InvokeCommand))]
     [XmlElement(typeof(Command))]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
     public List<Command> EmbeddedCommands { get; set; } = null!;

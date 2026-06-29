@@ -216,7 +216,9 @@ public class CommandInvoker : Hashtable {
         // needs to be smarter? Will this block incoming?
         while (executeQueue.TryDequeue(out ICommand? icmd)) {
             ((Command)icmd).Execute();
-            System.Threading.Thread.Sleep(MainWindow.Instance.Settings.CommandPacing);
+            // Read pacing via the UI-agnostic AgentRuntime seam so the engine works headless
+            // (--mcp) where there is no MainWindow. In GUI mode this is the same settings object.
+            System.Threading.Thread.Sleep(AgentRuntime.Settings?.CommandPacing ?? 0);
         }
     }
 }
