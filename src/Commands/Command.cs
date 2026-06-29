@@ -102,7 +102,7 @@ public abstract class Command : ICommand {
         if (!Enabled) {
             Logger.Instance.Log4.Info($"Command: Attempt to execute a disabled command ({Cmd})");
             Logger.Instance.Log4.Info($"         As of MCE Controller v2.2.1 commands are disabled by default.");
-            Logger.Instance.Log4.Info($"         Edit MCEControl.commands to enable commands (change `Enabled=\"false\"' to 'Enabled=\"true\"').");
+            Logger.Instance.Log4.Info($"         Edit mcec.commands to enable commands (change `Enabled=\"false\"' to 'Enabled=\"true\"').");
             return false;
         }
         // TELEMETRY: 

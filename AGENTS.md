@@ -35,46 +35,55 @@ Three independent, **off-by-default** gates — see [`docs/agent-server.md`](doc
 `McpServerEnabled` (HTTP floor, localhost-bound). Every agent action is logged with an `AGENT-AUDIT:`
 line. An agent that hits "agent commands are disabled" should tell the user, not retry.
 
-## Dogfood recipe — test MCEC using MCEC
+## Dogfood — test MCEC using MCEC (mcec drives mcec)
 
 This is the proposal's success metric ("an MCP client mounts MCEC and completes a multi-step GUI
-task"). It runs headless and needs a desktop session.
+task"), encoded as a real, opt-in test: **MCEC drives MCEC** end-to-end with genuine keyboard + mouse
+input — no `StartProcess` launch crutch.
 
-1. **Build:** `dotnet build src/MCEControl.csproj -c Debug`
-2. **Enable the gate** in the build output's `MCEControl.settings`:
-   `<AgentCommandsEnabled>true</AgentCommandsEnabled>`
-3. **Open a target** (e.g. Notepad) so there is a real window to drive.
-4. **Drive the MCP stdio server.** MCEC is a *WinExe*, so a console-pipeline (`Get-Content | exe`)
-   will not reliably capture its redirected stdout — launch it with explicit inherited pipe handles
-   (e.g. Python `subprocess.Popen([exe, "--mcp"], stdin=PIPE, stdout=PIPE)`), then send newline-
-   delimited JSON-RPC: `initialize`, `tools/list`, `tools/call {name:"query", arguments:{process:"notepad"}}`,
-   `tools/call {name:"capture", arguments:{process:"notepad"}}`.
-5. **Verify:** `initialize.result.instructions` is non-empty; `tools/list` lists
-   `capture/query/find/invoke/send_command`; `query` returns a multi-node UIA tree; `capture` returns
-   an `image` content block whose base64 decodes to bytes starting with the PNG signature
-   `89 50 4E 47` and renders the window (not black).
+It lives in [`tests/MCEControl.xUnit/Integration/AgentDesktopE2ETests.cs`](tests/MCEControl.xUnit/Integration/AgentDesktopE2ETests.cs).
+Because it drives the **real desktop** (global keystrokes, mouse, launching apps), it is **skipped
+unless `MCEC_DESKTOP_E2E=1`** — `dotnet test`/CI never touch your desktop. Run it deliberately on an
+interactive session:
 
-### Last validated
+```
+dotnet build src/MCEControl.csproj -c Debug
+$env:MCEC_DESKTOP_E2E=1 ; dotnet test --filter Category=DesktopE2E
+```
 
-Driving Windows 11's modern **Notepad** (a WinUI 3 / DirectComposition app — the case plain screen
-grabs return black for): `query` returned a 42-node UIA tree; `capture` returned a valid 1094×691 PNG
-that rendered the toolbar, tab, syntax-highlighted text, and status bar correctly. This confirms the
-`PrintWindow(PW_RENDERFULLCONTENT)` path and the gating both work end-to-end.
+What it does, all via the `mcec.exe --mcp` server's `send_command`/`query`/`capture` tools:
 
-**mcec drives mcec.** A second, harder self-test: the `--mcp` server `send_command`s a `start_mcec`
-StartProcess (launch `MCEControl.exe` from its *own* directory, then keyboard Alt+H → A) to **start a
-second copy of MCEC and open its About box**, then `capture`/`query` that About window. `query`
-returned the dialog's UIA tree (`Window:About`, the version `Text`, `License Agreement`, `Button:OK`)
-and `capture` returned a clean PNG of the About box. Run each copy from its own directory so the
-per-directory config files don't collide. Tips learned: give the launched copy `ActAsServer=false`
-(otherwise its socket-server bind raises a Windows Firewall prompt that steals foreground from the
-keystrokes), and a freshly launched copy must be the foreground window for the menu keystrokes to land.
+1. **Launch via the Win+R Run dialog (keyboard):** `send_command winr` (Win+R) → `chars:<path to
+   mcec.exe>` → `enter`. This starts a *second* MCEC purely through keyboard input.
+2. **Open Help ▸ About (mouse + keyboard):** `query` the new window's UIA tree to get the **Help**
+   menu's bounding rect → `mouse:mt,<x>,<y>` + `mouse:lbc` to **mouse-click** it → `key_a` to press
+   **A** and open About. (Pixel coords from UIA are normalized to InputSimulator's 0..65535 space
+   using the physical primary-display size.)
+3. **Verify:** `capture {window:"About"}` returns a PNG image block; `query {window:"About"}` returns
+   the dialog's UIA tree (`Window:About`, the version text, `License Agreement`, `Button:OK`).
+4. **Graceful shutdown:** `key_esc` dismisses About (its OK button is the CancelButton) → `alt_f`
+   opens the File menu → `key_x` chooses **E&xit**, so the controlled instance runs its normal
+   `ShutDown()` (saves settings, closes) rather than being killed. The test asserts the window is gone.
 
-This self-test surfaced two real robustness bugs, now fixed: `SetStatus` set `NotifyIcon.Text` (a
-127-char cap) to the full informational version and crashed GUI startup on long prerelease version
-strings; and `.commands` loading called `new Version(informationalVersion)` (which throws on
-`x.y.z-branch+sha`) and popped `MessageBox` prompts that would hang the headless `--mcp` process.
-Headless mode now suppresses all load-path dialogs (`AgentRuntime.Headless`).
+The actuation commands it relies on are enabled in a temporary `mcec.commands` it writes next to the
+exe (`winr`, `chars:`, `enter`, `mouse:`, `key_a`, `key_esc`, `alt_f`, `key_x`) and removed afterward.
+
+### Operational tips (learned the hard way)
+
+- Give the controlled copy `ActAsServer=false` — otherwise its socket-server bind raises a **Windows
+  Firewall** prompt that steals foreground and eats the keystrokes.
+- A freshly launched copy must be the **foreground** window for menu keystrokes to land; injected
+  Win+R is reliable, but let the Run dialog focus before typing the path.
+- MCEC is a *WinExe*, so a console pipeline (`Get-Content | exe`) won't reliably capture its stdout —
+  spawn it with explicit inherited pipe handles (the test uses `Process` with `RedirectStandardInput/Output`).
+
+### Bugs this dogfood surfaced (now fixed)
+
+- `SetStatus` set `NotifyIcon.Text` (a 127-char cap) to the full informational version → crashed GUI
+  startup on long prerelease version strings. Now capped.
+- `.commands` loading called `new Version(informationalVersion)` (throws on `x.y.z-branch+sha`) and
+  popped `MessageBox` prompts that would hang the headless `--mcp` process. Now uses
+  `System.Version.TryParse` and suppresses load-path dialogs when `AgentRuntime.Headless`.
 
 ## Working in this repo
 

@@ -40,14 +40,17 @@ internal static class Program {
     [STAThread]
     private static void Main(string[] args) {
         // Start logging
-        Logger.Instance.LogFile = $@"{ConfigPath}MCEControl.log";
+        Logger.Instance.LogFile = $@"{ConfigPath}mcec.log";
         Logger.Instance.Log4.Debug(
             $"------ START: v{Application.ProductVersion} - OS: {Environment.OSVersion} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()} ------");
+
+        // v3.0: carry an existing user's MCEControl.settings/.commands forward to the new mcec.* names.
+        ConfigMigration.Run(ConfigPath);
 
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
-        // MCEC 3.0: headless MCP server mode. An MCP client launches `MCEControl.exe --mcp` and speaks
+        // MCEC 3.0: headless MCP server mode. An MCP client launches `mcec.exe --mcp` and speaks
         // JSON-RPC over stdio. No WinForms message loop runs; stdout is reserved for the protocol.
         if (Array.Exists(args, a => string.Equals(a, "--mcp", StringComparison.OrdinalIgnoreCase))) {
             RunHeadlessMcp();
@@ -80,7 +83,7 @@ internal static class Program {
         AppSettings settings = AppSettings.Deserialize($@"{ConfigPath}{AppSettings.SettingsFileName}");
         AgentRuntime.Settings = settings;
         AgentRuntime.Invoker = CommandInvoker.Create(
-            $@"{ConfigPath}MCEControl.commands", Application.ProductVersion, settings.DisableInternalCommands);
+            $@"{ConfigPath}mcec.commands", Application.ProductVersion, settings.DisableInternalCommands);
 
         Logger.Instance.Log4.Info($"MCEC: headless MCP mode (AgentCommandsEnabled={settings.AgentCommandsEnabled}).");
 

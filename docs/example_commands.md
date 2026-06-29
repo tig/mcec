@@ -1,4 +1,4 @@
-# Example MCE Controller Commands
+# Example MCEC Commands
 
 Here's a bunch of example commands users have defined and posted. They may serve as inspiration or guidance...
 
@@ -23,7 +23,7 @@ Here's a bunch of example commands users have defined and posted. They may serve
 </startprocess>
 ```
 
-Note, this could also be achieved by having the control system send MCE Controller a set of discrete commands, as shown in this screenshot: 
+Note, this could also be achieved by having the control system send MCEC a set of discrete commands, as shown in this screenshot: 
 
 ![Commands](commands_test.png "Commands")
 

@@ -146,7 +146,7 @@ namespace MCEControl
             this.statusStrip.ShowItemToolTips = true;
             this.statusStrip.Size = new System.Drawing.Size(597, 24);
             this.statusStrip.TabIndex = 2;
-            this.statusStrip.Text = "MCE Controller";
+            this.statusStrip.Text = "MCEC";
             // 
             // statusStripStatus
             // 
@@ -156,7 +156,7 @@ namespace MCEControl
             this.statusStripStatus.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.statusStripStatus.Name = "statusStripStatus";
             this.statusStripStatus.Size = new System.Drawing.Size(123, 19);
-            this.statusStripStatus.Text = "MCE Controller Status";
+            this.statusStripStatus.Text = "MCEC Status";
             this.statusStripStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.statusStripStatus.Click += new System.EventHandler(this.statusStripStatus_Click);
             // 
@@ -267,7 +267,7 @@ namespace MCEControl
             // 
             this.openCommandsFolderMenuItem.Name = "openCommandsFolderMenuItem";
             this.openCommandsFolderMenuItem.Size = new System.Drawing.Size(337, 22);
-            this.openCommandsFolderMenuItem.Text = "&Open folder containing MCEControl.commands...";
+            this.openCommandsFolderMenuItem.Text = "&Open folder containing mcec.commands...";
             this.openCommandsFolderMenuItem.Click += new System.EventHandler(this.openCommandsFolderMenuItem_Click);
             // 
             // toolStripSeparator1
@@ -359,7 +359,7 @@ namespace MCEControl
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "MainWindow";
-            this.Text = "MCE Controller";
+            this.Text = "MCEC";
             this.HelpButtonClicked += new System.ComponentModel.CancelEventHandler(this.docsMenuItem_Click);
             this.Closing += new System.ComponentModel.CancelEventHandler(this.mainWindow_Closing);
             this.Load += new System.EventHandler(this.mainWindow_Load);

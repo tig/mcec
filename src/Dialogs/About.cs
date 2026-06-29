@@ -44,7 +44,7 @@ partial class About : Form {
         //_linkLabelKindelSystems.Font = Font;
         //_linkLabelMceController.Font = System.Drawing.SystemFonts.;
 
-        _labelVersion!.Text = $"{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
+        _labelVersion!.Text = $"Model Context Environment Controller\r\n{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
 
         UpdateService.Instance.CheckVersion();
     }

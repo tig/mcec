@@ -32,7 +32,7 @@ does **not** turn the others on.
 
 1. **Agent commands are DISABLED by default.**
    The new observation/automation commands require their **own** opt-in,
-   `AgentCommandsEnabled`, in `MCEControl.settings`. This is a **separate** switch from
+   `AgentCommandsEnabled`, in `mcec.settings`. This is a **separate** switch from
    the existing actuation/command enable — enabling MCEC to run commands does **not**
    enable the agent surface, and vice-versa. Every individual command also remains
    `Enabled=false` until you turn it on, exactly as with all other MCEC commands.
@@ -57,7 +57,7 @@ and returns a JSON failure (for commands) — it never silently proceeds.
 
 ## How to enable
 
-Edit `MCEControl.settings` (in your MCEC settings directory) and set the opt-ins you
+Edit `mcec.settings` (in your MCEC settings directory) and set the opt-ins you
 want. At minimum, to use the agent commands at all:
 
 ```xml
@@ -185,7 +185,7 @@ client (such as a desktop AI assistant) can spawn it on demand and talk to it ov
 standard input/output:
 
 ```
-MCEControl.exe --mcp
+mcec.exe --mcp
 ```
 
 Wire it into your MCP client config (the `claude_desktop_config.json` / `mcp.json`
@@ -195,7 +195,7 @@ style used by most clients):
 {
   "mcpServers": {
     "mcec": {
-      "command": "C:/Program Files/Kindel Systems/MCE Controller/MCEControl.exe",
+      "command": "C:/Program Files/Kindel Systems/MCEC/mcec.exe",
       "args": ["--mcp"]
     }
   }
@@ -204,7 +204,7 @@ style used by most clients):
 
 > The agent commands still obey the security gates above. Running `--mcp` does **not**
 > bypass `AgentCommandsEnabled` or the per-command `Enabled` flags — set those in
-> `MCEControl.settings` first.
+> `mcec.settings` first.
 
 ### Tools exposed over MCP
 

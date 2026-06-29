@@ -13,7 +13,7 @@ namespace MCEControl;
 
 /// <summary>
 /// MCEC 3.0's agent front door: a self-contained Model Context Protocol (MCP) server, hand-rolled as
-/// JSON-RPC 2.0 over two transports — stdio (for an MCP client that launches <c>MCEControl.exe --mcp</c>)
+/// JSON-RPC 2.0 over two transports — stdio (for an MCP client that launches <c>mcec.exe --mcp</c>)
 /// and a localhost HTTP/JSON floor (POST a JSON-RPC request to <c>/mcp</c>). No external SDK or
 /// Python/Node runtime: the same self-contained native binary, with MCP/HTTP as just one more
 /// transport over the existing command core.

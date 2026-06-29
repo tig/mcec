@@ -1,6 +1,6 @@
 # Code signing — Azure Trusted Signing (runbook)
 
-MCE Controller signs its Windows installer (`MCEController.Setup.exe`) with **Azure Trusted
+MCEC signs its Windows installer (`mcec.Setup.exe`) with **Azure Trusted
 Signing** (a.k.a. Azure Artifact Signing), authenticating from GitHub Actions via **OIDC
 federation** — there is **no client secret** and nothing sensitive to rotate. Signing is wired
 into [`.github/workflows/release.yml`](../.github/workflows/release.yml) and gated on the six
@@ -58,12 +58,12 @@ creates:
 Once the secrets are set, releasing is one push:
 
 ```bash
-git tag -a v2.5.0 -m "MCE Controller v2.5.0"
+git tag -a v2.5.0 -m "MCEC v2.5.0"
 git push origin v2.5.0
 ```
 
 `release.yml` then builds the self-contained installer (`Release.ps1`), signs
-`MCEController.Setup.exe` via Azure Trusted Signing, and publishes the GitHub Release with
+`mcec.Setup.exe` via Azure Trusted Signing, and publishes the GitHub Release with
 auto-generated notes. (You can also run it from the Actions tab via **workflow_dispatch** with a
 version, for a dry run.)
 

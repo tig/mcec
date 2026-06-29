@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-  Single source of truth for MCE Controller's Azure Trusted Signing + GitHub OIDC trust.
+  Single source of truth for MCEC's Azure Trusted Signing + GitHub OIDC trust.
 .DESCRIPTION
   Dot-sourced/invoked by SetupAzure.ps1 and ValidateAzure.ps1. Edit values HERE only.
   Returns a hashtable when invoked:  $cfg = & "$PSScriptRoot/Azure.Config.ps1"
   None of these values are secret — they are Azure/GitHub identifiers, not credentials.
   The actual trust is the federated credential (no client secret is ever created).
 
-  REUSE NOTE: MCE Controller reuses WinPrint's already-validated Trusted Signing account
+  REUSE NOTE: MCEC reuses WinPrint's already-validated Trusted Signing account
   and certificate profile (publisher identity = Kindel LLC). The one-time Microsoft
   identity validation is therefore NOT repeated. Only a *dedicated app registration*
   ('mcec') with its own GitHub OIDC federated credentials is created for this repo, and

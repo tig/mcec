@@ -1,6 +1,8 @@
-# MCE Controller Documentation
+# MCEC Documentation
 
-**MCE Controller** (MCEC) provides robust control of Windows PCs for smart home systems. It runs in the background listening on the network (or serial port) for *Commands*. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCEC** to control a Windows PC.
+**MCEC** (Model Context Environment Controller) provides robust control of Windows PCs for smart home systems. It runs in the background listening on the network (or serial port) for *Commands*. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCEC** to control a Windows PC.
+
+> New in 3.0, MCEC is also an opt-in **agent-automation server** — it can see the screen and drive native Windows apps for AI agents over the Model Context Protocol (MCP). All agent capabilities are disabled by default. See the **[Agent Server user guide](agent-server.md)** for details; the rest of this document covers the remote-control features unchanged from prior versions.
 
 For example:
 
@@ -30,11 +32,11 @@ By default **MCEC** supports over 250 built-in commands for controlling a Window
 * Supports sending text (e.g. simulating typing) with the `chars:` command.
 * Commands can be paced (slowed down) and there's a `pause` command enabling waiting for apps to open etc...
 * Includes built-in support for common Windows Media Center commands.
-* It can easily be extended to suit your needs through a `MCEController.commands file.`
+* It can easily be extended to suit your needs through a `mcec.commands` file.
 
 ## Key Features
 
-* Can act as a TCP/IP client. Specify a `host` (as a `hostname` or `IP address`) and `port` to connect to. The host can then send commands back on the TCP/IP connection for MCE Controller to act on.
+* Can act as a TCP/IP client. Specify a `host` (as a `hostname` or `IP address`) and `port` to connect to. The host can then send commands back on the TCP/IP connection for MCEC to act on.
 * Can act as a TCP/IP server. Specify a 'port' for it to listen on and any TCP/IP client can connect and send commands. The Server supports any number of simultaneous clients. The Telnet protocol is supported.
 * Can act as a Serial server listening on RS-232 COM port.
 * Supports running multiple instances.
@@ -51,19 +53,19 @@ By default **MCEC** supports over 250 built-in commands for controlling a Window
 
 To install, go here: **[Download and Install the Latest Version](https://github.com/tig/mcec/releases)**
 
-If **Collect Telemetry** is checked during setup, usage information will be sent to a telemetry service to enable improvements. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables and `0` disables). See [this page](telemetry.md) for details on what telemetry is collected and how it is used.
+If **Collect Telemetry** is checked during setup, usage information will be sent to a telemetry service to enable improvements. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables and `0` disables). (This registry key keeps its legacy "MCE Controller" name for back-compat, even though the product is now branded MCEC.) See [this page](telemetry.md) for details on what telemetry is collected and how it is used.
 
 Un-install **MCEC** via add/remove programs.
 
 ## Running
 
-When **MCE Controller** runs, it defaults to showing itself. If you close the main MCE Controller window the app will minimize to an icon in the taskbar. Double clicking on the taskbar icon will cause the window to show itself again.
+When **MCEC** runs, it defaults to showing itself. If you close the main MCEC window the app will minimize to an icon in the taskbar. Double clicking on the taskbar icon will cause the window to show itself again.
 
 If you would like **MCEC** to automatically hide upon startup, check the _Hide Window at Startup_ checkbox in the **Settings** dialog.
 
 To have **MCEC** start automatically do the following:
 
-1. Create a Windows shortcut to `MCEControl.exe` (found in `C:\Program Files (x86)\Kindel Systems\MCE Controller` by default).
+1. Create a Windows shortcut to `mcec.exe` (found in `C:\Program Files (x86)\Kindel Systems\MCEC` by default).
 2. Put the shortcut file into the Windows Startup Folder (`C:\Users\[User Name]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup`).
 
 Run multiple instances of **MCEC** by simply copying the contents of the installation directory to another directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
@@ -76,17 +78,17 @@ Use the **File.Exit** menu to shut down the app.
 
 ![Settings](settings_general.png "Settings")
 
-Configuration settings are stored in `MCEControl.settings` found in the  `%APPDATA%\Roaming\Kindel Systems\MCE Controller` directory.
+Configuration settings are stored in `mcec.settings` found in the  `%APPDATA%\Roaming\Kindel Systems\MCEC` directory.
 
 All settings can be configured from **Settings** dialog box the **File.Settings...** menu. The **General** tab shown above supports the following settings:
 
 * **Hide Window at Startup** - If checked the **MCEC** will start minimized to tray icon.
-* **Log Threshold** - By default only informational log events will be shown in the MCE Controller main window. This setting over-rides this enabling the display of `INFO`, `DEBUG`, or `ALL` log settings. Note that the log files always include `ALL` events.
+* **Log Threshold** - By default only informational log events will be shown in the MCEC main window. This setting over-rides this enabling the display of `INFO`, `DEBUG`, or `ALL` log settings. Note that the log files always include `ALL` events.
 * **Default command pacing (ms)** - If this value is greater than 0, **MCEC** will delay executing each command it receives by the value (in milliseconds). The default is 0.
 
 ### The Client Tab
 
-The *Client* Settings tab controls **MCE Controller’s** TCP/IP client functionality. When acting as a client, **MCEC** will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. **MCEC** sends nothing to the host by default.
+The *Client* Settings tab controls **MCEC’s** TCP/IP client functionality. When acting as a client, **MCEC** will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. **MCEC** sends nothing to the host by default.
 
 ![Client](settings_client.png "Client")
 
@@ -99,7 +101,7 @@ The status of the Client is displayed on the main window status bar. Double-clic
 
 ### The Server Tab
 
-**MCE Controller** can act as either a TCP/IP client or server (it can actually operate as both simultaneously, which can be useful for testing, but not much else). By default MCE Controller is configured to act as a TCP/IP server listening on port 5150. You can change this behavior using the Settings dialog described below.
+**MCEC** can act as either a TCP/IP client or server (it can actually operate as both simultaneously, which can be useful for testing, but not much else). By default MCEC is configured to act as a TCP/IP server listening on port 5150. You can change this behavior using the Settings dialog described below.
 
 The *Server* Settings tab controls **MCEC’s** TCP/IP server functionality. When acting as a server, **MCEC** will open the specified port and wait for a client to connect. When a client does connect **MCEC** will wait for incoming commands until the client closes the connection.
 
@@ -115,7 +117,7 @@ The status of the Server is displayed on the main window status bar. Double-clic
 
 ### The Serial Server Tab
 
-The *Serial Server* Settings controls **MCE Controller’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCEC** will open the specified COM port (e.g. COM1) and wait commands to be sent.
+The *Serial Server* Settings controls **MCEC’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCEC** will open the specified COM port (e.g. COM1) and wait commands to be sent.
 
 ![Serial](settings_serialserver.png "Serial")
 
@@ -128,7 +130,7 @@ The status of the Serial Server is displayed on the main window status bar. Doub
 
 ### The Activity Monitor Tab
 
-**MCE Controller**'s **User Activity Monitor** sends a command (`activity` by default) to the home automation system when a user is using the PC. It knows the user is using the PC monitoring keyboard and mouse movement. If the mouse is moving or keys are being pressed, the PC is in use. This is useful for adding additional context to a room occupancy sensor in a home automation system.
+**MCEC**'s **User Activity Monitor** sends a command (`activity` by default) to the home automation system when a user is using the PC. It knows the user is using the PC monitoring keyboard and mouse movement. If the mouse is moving or keys are being pressed, the PC is in use. This is useful for adding additional context to a room occupancy sensor in a home automation system.
 
 ![Activity Monitor](settings_activity.png "Activity Monitor")
 
@@ -146,9 +148,9 @@ By default ALL commands are disabled to reduce the surface area *MCEC* exposes o
 
 Clicking the **Save MCECommmands.commands. file** button will immediately save changes. Note the `.commands` file will be saved automatically whenever *MCEC* exits.
 
-## Testing MCE Controller
+## Testing MCEC
 
-The built-in TCP/IP client can send commands to another instance of **MCE Controller** running on the same or different PC. Or, if both the Client and Server in a single instance are set to connect to `localhost` and the same port they can connect to each other, enabling easy testing of commands.
+The built-in TCP/IP client can send commands to another instance of **MCEC** running on the same or different PC. Or, if both the Client and Server in a single instance are set to connect to `localhost` and the same port they can connect to each other, enabling easy testing of commands.
 
 By default **MCEC** is configured such the following will configure "test mode".
 
@@ -161,7 +163,7 @@ By default **MCEC** is configured such the following will configure "test mode".
 
 ![Commands](commands_test.png "Commands")
 
-The **Commands Window** shows a list of all *Commands* **MCE Controller** is configured to 'listen for'. It is useful to see the full list and to be able to test them.
+The **Commands Window** shows a list of all *Commands* **MCEC** is configured to 'listen for'. It is useful to see the full list and to be able to test them.
 
 * Double click on any command to cause it to be sent from the Client to the Server (be careful, because if you double click on 'shutdown' your PC will literally shut down!).
 * Type anything into the **Send "chars:" command** edit box and press **Send** to send a `chars:` command.
@@ -181,17 +183,17 @@ Turn on the **Activity Monitor** while in test mode and you'll see events in the
 
 ### Using PUTTY
 
-PuTTY is a free terminal emulator (and Telnet and SSH client). It works well for testing **MCE Controller**. You can download [PuTTY here](http://www.chiark.greenend.org.uk/~sgtatham/putty/).
+PuTTY is a free terminal emulator (and Telnet and SSH client). It works well for testing **MCEC**. You can download [PuTTY here](http://www.chiark.greenend.org.uk/~sgtatham/putty/).
 
 #### Using PUTTY to test TCP/IP interactions
 
 1. Run PUTTY.EXE
-2. Set **Host Name** to `localhost` (or the network name of the PC running MCE Controller
-3. Set **Port** to the port MCE Controller is set to listen on (e.g. 5150)
+2. Set **Host Name** to `localhost` (or the network name of the PC running MCEC
+3. Set **Port** to the port MCEC is set to listen on (e.g. 5150)
 4. Set the **Connection Type** to **Raw**.
 5. Click **Open**
 
-Type commands in the PuTTY Window and see how MCE Controller reacts.
+Type commands in the PuTTY Window and see how MCEC reacts.
 
 #### Using PUTTY to test serial connections
 
@@ -199,14 +201,14 @@ PuTTY supports connecting via serial ports. The usage is the same as in the TCP/
 
 ## Commands Details
 
-**MCE Controller** works with ***Commands***. *Commands* are text strings like `greenbutton`, `hibernate`, and `winkey` tha **MCEC** listens to and acts on. Each command has a **Type**. When **MCEC** receives a command it causes an action to happen on the PC it is running on. The action taken is dependent on the type of command and the parameters set for that command.
+**MCEC** works with ***Commands***. *Commands* are text strings like `greenbutton`, `hibernate`, and `winkey` tha **MCEC** listens to and acts on. Each command has a **Type**. When **MCEC** receives a command it causes an action to happen on the PC it is running on. The action taken is dependent on the type of command and the parameters set for that command.
 
 *IMPORTANT*: As of version 2.2.1, ALL commands are disabled by default to reduce the surface area *MCEC* exposes on the network. Use the **Commands Window** to enable/disable commands.
 
 ### Types
-The following command types are supported by **MCE Controller**:
+The following command types are supported by **MCEC**:
 
-* **`StartProcess`** - Starts the specified process. Can specify the path to an executable, shortcut, or a URI. Supports embedded `nextCommand` elements allowing other form of MCE Controller commands to be invoke after the process starts.
+* **`StartProcess`** - Starts the specified process. Can specify the path to an executable, shortcut, or a URI. Supports embedded `nextCommand` elements allowing other form of MCEC commands to be invoke after the process starts.
 * **`SetForgroundWindow`** - Causes the specified window to be brought to the foreground.
 * **`Shutdown`** - Allows the host computer to be shutdown, restarted, put in standby, or hibernate mode.
 * **`SendMessage`** - Enables the sending of window messages to windows. E.g. the 'mcemaximize' command causes the Media Center window to go full screen.
@@ -218,7 +220,7 @@ The following command types are supported by **MCE Controller**:
 
 ### Built-in Commands
 
-**MCE Controller** includes a set of pre-defined commands for controlling a Windows PC as well as standard keyboard input. Pre-defined commands can be viewed in the **Commands Window**. See the section titled “Defining Your Own Commands” below for instructions on how to add or change the commands **MCEC** supports.
+**MCEC** includes a set of pre-defined commands for controlling a Windows PC as well as standard keyboard input. Pre-defined commands can be viewed in the **Commands Window**. See the section titled “Defining Your Own Commands” below for instructions on how to add or change the commands **MCEC** supports.
 
 **MCEC** commands (`Cmd` values) are _not_ case-sensitive. Thus `VK_UP` is equivalent to `vk_up` and `shutdown` is equivalent to `ShutDown`.
 
@@ -226,7 +228,7 @@ The following describes the Built-In commands:
 
 #### Commands for Simulating Keyboard Input
 
-Any Windows virtual key code is supported by default. The form of the commands are `VK_<key name>`. For example you can send **MCE Controller** any of the following commands and the corresponding key press will be simulated.
+Any Windows virtual key code is supported by default. The form of the commands are `VK_<key name>`. For example you can send **MCEC** any of the following commands and the corresponding key press will be simulated.
 
 ```
 VK_ESCAPE
@@ -239,7 +241,7 @@ VK_F1
 
 A list of all Window's virtual key codes can be found here: [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx)
 
-Anytime **MCE Controller** receives `chars:` plus some text, it simulates the typing of that text on the keyboard. The syntax of the command is `chars:*` where '*'' represents one or more characters. This is equivalent to typing those characters on the keyboard. E.g. `chars:3` will cause the number 3 to be typed as though the user had pressed the 3 key on the keyboard. `chars:Hello` will be just like the user pressed the following keys:
+Anytime **MCEC** receives `chars:` plus some text, it simulates the typing of that text on the keyboard. The syntax of the command is `chars:*` where '*'' represents one or more characters. This is equivalent to typing those characters on the keyboard. E.g. `chars:3` will cause the number 3 to be typed as though the user had pressed the 3 key on the keyboard. `chars:Hello` will be just like the user pressed the following keys:
 
 ```
 Shift key down
@@ -318,7 +320,7 @@ When sending mouse movements it is best if the **MCEC** window is hidden as the 
 
 #### mcec: Commands
 
-The following commands control **MCE Controller** itself:
+The following commands control **MCEC** itself:
 
 * **`mcec:ver`** – Gets the version number.
 * **`mcec:exit`** – Causes **MCEC** to exit.
@@ -328,7 +330,7 @@ Values returned by commands in **MCEC** are of the format `command=value` where 
 
 ### Defining Your Own Commands
 
-**MCE Controller** provides almost 300 built-in commands. The first time MCE Controller runs, it creates an `MCEControl.commands` file including all built-in commands (with `Enabled="false"` set on ALL of them). After running MCEController once, you can You can override or augment this set by editing the `MCEControl.commands` file and (Use the **Commands.Open commands folder...** menu to find the file location on your machine.
+**MCEC** provides almost 300 built-in commands. The first time MCEC runs, it creates an `mcec.commands` file including all built-in commands (with `Enabled="false"` set on ALL of them). After running MCEC once, you can You can override or augment this set by editing the `mcec.commands` file and (Use the **Commands.Open commands folder...** menu to find the file location on your machine.
 
 Note deleting a built-in command from the `.commands` file will not remove it permanently. Anytime **MCEC* saves the file built-in commands will be re-added; however, `Enabled="false"` will be set which is functionally equivalent to deleting them.
 
@@ -349,12 +351,12 @@ The file format is XML and must include the headers. `Commands` are defined with
 </mcecontroler>
 ```
 
-Whenever the `MCEControl.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1).
+Whenever the `mcec.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1).
 
-`MCEControl.commands` supports defining the following types of commands.
+`mcec.commands` supports defining the following types of commands.
 
 * `Chars` - Simulates text input.
-* `Mcec` - MCE Controller control.
+* `Mcec` - MCEC control.
 * `Pause` - Delays.
 * `SendInput` - Simulates keyboard input.
 * `SendMessage` - Sends Windows messages.
@@ -385,7 +387,7 @@ For example, the following launches Notepad, waits 1 second and then types some 
 </StartProcess>
 ```
 
-**Note on case sensitivity**: In the `MCEControl.commands` file, all XML element and attribute names are case-insensitive. E.g. `ctrl` IS the same as `Ctrl`. The value of the `Cmd` attribute is NOT case-sensitive (e.g. `Cmd="MonitorOff"` will be treated the same as `cmd="monitoroff"`. The values of any `true/false` attribute must be lower case `true` or `false`.
+**Note on case sensitivity**: In the `mcec.commands` file, all XML element and attribute names are case-insensitive. E.g. `ctrl` IS the same as `Ctrl`. The value of the `Cmd` attribute is NOT case-sensitive (e.g. `Cmd="MonitorOff"` will be treated the same as `cmd="monitoroff"`. The values of any `true/false` attribute must be lower case `true` or `false`.
 
 #### SendInput Commands
 
@@ -404,7 +406,7 @@ This example causes a Windows-X to be simulated, which causes the Windows 10 "ex
 <SendInput Cmd="winx" vk="VK_X" Win="true"/>
 ```
 
-The below illustrate how single character commands (see below) are implemented. Each of these does precisely the same thing as if **MCE Controller* received a space (` `) character (assuming `chars:` command was enabled, of course):
+The below illustrate how single character commands (see below) are implemented. Each of these does precisely the same thing as if **MCEC* received a space (` `) character (assuming `chars:` command was enabled, of course):
 
 ```xml
 <SendInput Cmd="space" vk="VK_SPACE" Enabled="true"/>
@@ -489,20 +491,20 @@ Pause commands cause a delay _in addition to_ any delay introduced by the `Pacin
 
 ### Disabling All Internal Commands
 
-You can force **MCE Controller** to only listen to and act on commands defined in the MCEControl.commands file. To do this use the Windows registry editor to create the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller` registry key and set `DisableInternalCommands` (a DWORD value) to anything other than 0.
+You can force **MCEC** to only listen to and act on commands defined in the mcec.commands file. To do this use the Windows registry editor to create the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller` registry key (legacy name, kept for back-compat) and set `DisableInternalCommands` (a DWORD value) to anything other than 0.
 
 This will disable ALL internal commands.
 
-This is a machine wide setting and will apply to all instances of MCE Controller.
+This is a machine wide setting and will apply to all instances of MCEC.
 
 ## Logging
 
-Informational, debug, and diagnostic events are logged to `MCEControl.log` while MCE Controller is operating. These are also shown in the main window . If the program is started from the default location (in Program Files) the log will be written to `%LocalAppData%\Kindel Systems\MCE Controller\MCEControl.log`. Otherwise the log will be written to the directory the program is started from.
+Informational, debug, and diagnostic events are logged to `mcec.log` while MCEC is operating. These are also shown in the main window . If the program is started from the default location (in Program Files) the log will be written to `%LocalAppData%\Kindel Systems\MCEC\mcec.log`. Otherwise the log will be written to the directory the program is started from.
 
 ## Usage Notes
 
-The `mcestart` command will launch Media Center and cause it to be maximized. If you do not want this behavior, change `MCEControl.commands` such that the `mcestart` command does not have the embedded `nextCommand` element.
+The `mcestart` command will launch Media Center and cause it to be maximized. If you do not want this behavior, change `mcec.commands` such that the `mcestart` command does not have the embedded `nextCommand` element.
 
-For **MCE Controller** to work property the target application (Media Center) must be the active window (foreground) on the desktop. You can use the `mceactivate` command to cause Media Center to be the foreground app if it’s already running. Alternatively you can just use `mcestart` as it will end up causing the same thing to happen (although not as quickly).
+For **MCEC** to work property the target application (Media Center) must be the active window (foreground) on the desktop. You can use the `mceactivate` command to cause Media Center to be the foreground app if it’s already running. Alternatively you can just use `mcestart` as it will end up causing the same thing to happen (although not as quickly).
 
 Also, you may find that `greenbutton` is a better function than `mcestart` because it is equivalent to the green-button on a Windows remote control. `mcestart` is a bit different because if Media Center is already running `mcestart` will not go to the "Start" screen of Media Center while `greenbutton` will. However, `greenbutton` does not cause the Media Center window to be maximized.

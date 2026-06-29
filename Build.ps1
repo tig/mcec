@@ -1,4 +1,4 @@
-# Local build helper for MCE Controller (MCEC).
+# Local build helper for MCEC (Model Context Environment Controller).
 # If a command-line build fails, open a Visual Studio Developer prompt first:
 #   cmd.exe "/K" '"C:\Program Files\Microsoft Visual Studio\2022\Preview\Common7\Tools\VsDevCmd.bat" && pwsh -noexit'
 

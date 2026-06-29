@@ -93,7 +93,7 @@ public class Logger {
                 return a!.File!;
             }
             else {
-                return "MCEControl.log"; // default
+                return "mcec.log"; // default
             }
         }
         set {

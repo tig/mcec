@@ -64,7 +64,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          Copy-Item src/bin/MCEController.Setup.exe artifacts/MCEController.Setup.exe -Force
+          Copy-Item src/bin/mcec.Setup.exe artifacts/mcec.Setup.exe -Force
 
       - name: Azure login (OIDC)
         if: ${{ env.SIGN == 'true' }}
@@ -97,10 +97,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create ${{ steps.ver.outputs.tag }} `
-            --title "MCE Controller ${{ steps.ver.outputs.tag }}" `
+            --title "MCEC ${{ steps.ver.outputs.tag }}" `
             --generate-notes `
             --latest `
-            artifacts/MCEController.Setup.exe
+            artifacts/mcec.Setup.exe
 
   # Auto-submit the new version to winget-pkgs on every STABLE release (skips pre-releases
   # and is gated on the WINGET_TOKEN secret). Requires a one-time manual bootstrap of the
@@ -122,7 +122,7 @@ jobs:
           identifier: Kindel.mcec
           version: ${{ steps.ver.outputs.version }}
           release-tag: ${{ github.ref_name }}
-          installers-regex: 'MCEController\.Setup\.exe$'
+          installers-regex: 'mcec\.Setup\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
 
       - name: Skipped (no WINGET_TOKEN)

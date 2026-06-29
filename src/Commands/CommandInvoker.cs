@@ -56,7 +56,7 @@ public class CommandInvoker : Hashtable {
     /// <summary>
     /// Creaates a `Commands` instance from a combination of an external .commands file and the built-in commands.
     /// </summary>
-    /// <param name="userCommandsFile">Path to MCEControl.commands file.</param>
+    /// <param name="userCommandsFile">Path to mcec.commands file.</param>
     /// <param name="disableInternalCommands">If true, internal commands will not be added to created instance.</param>
     /// <returns></returns>
     public static CommandInvoker Create(string userCommandsFile, string currentVersion, bool disableInternalCommands) {
@@ -109,7 +109,7 @@ public class CommandInvoker : Hashtable {
     }
 
     internal void Save(string userCommandsFile) {
-        Logger.Instance.Log4.Info($@"{GetType().Name}: Saving {Program.ConfigPath}MCEControl.commands...");
+        Logger.Instance.Log4.Info($@"{GetType().Name}: Saving {Program.ConfigPath}mcec.commands...");
         SerializedCommands sc = new SerializedCommands();
 
         Command[] values = [.. Values.Cast<Command>()];

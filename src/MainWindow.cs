@@ -142,7 +142,7 @@ public partial class MainWindow : Form {
 
         LoadCommands();
         // watch .command file for changes
-        watcher = new CommandFileWatcher($@"{Program.ConfigPath}MCEControl.commands");
+        watcher = new CommandFileWatcher($@"{Program.ConfigPath}mcec.commands");
         watcher.ChangedEvent += (o, a) => CmdTable_CommandsChangedEvent(o!, a);
 
         if (Settings.HideOnStartup) {
@@ -213,7 +213,7 @@ public partial class MainWindow : Form {
             // Invoker.Dispose();
         }
 
-        Invoker = CommandInvoker.Create($@"{Program.ConfigPath}MCEControl.commands", Application.ProductVersion, Settings.DisableInternalCommands);
+        Invoker = CommandInvoker.Create($@"{Program.ConfigPath}mcec.commands", Application.ProductVersion, Settings.DisableInternalCommands);
         AgentRuntime.Invoker = Invoker;
         if (Invoker == null) {
             notifyIcon.Visible = false;
@@ -244,7 +244,7 @@ public partial class MainWindow : Form {
             watcher = null!;
 
             // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
-            //Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
+            //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
             TelemetryService.Instance.Stop();
         }
     }

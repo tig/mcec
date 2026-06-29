@@ -1,8 +1,8 @@
-# MCE Controller Architecture
+# MCEC Architecture
 
 ## Overview
 
-MCE Controller is a Windows desktop application built on .NET 8 (WinForms) that enables remote control of a Windows PC through multiple communication channels (TCP/IP sockets and serial ports). It receives commands over these channels and executes them by simulating keyboard/mouse input, launching processes, sending Windows messages, and more.
+MCEC is a Windows desktop application built on .NET 8 (WinForms) that enables remote control of a Windows PC through multiple communication channels (TCP/IP sockets and serial ports). It receives commands over these channels and executes them by simulating keyboard/mouse input, launching processes, sending Windows messages, and more.
 
 **Primary Use Case**: Home theater PC (HTPC) automation and control, particularly for Windows Media Center environments.
 
@@ -141,12 +141,12 @@ All services inherit from `ServiceBase` which provides:
 **Architecture**:
 - Hashtable-based command lookup (case-insensitive)
 - ConcurrentQueue for command execution
-- Combines built-in commands with user-defined commands from `MCEControl.commands` file
+- Combines built-in commands with user-defined commands from `mcec.commands` file
 - Parses command strings and routes to appropriate command instances
 
 **Command Sources**:
 1. **Built-in commands**: Defined in Command-derived classes (disabled by default for security)
-2. **User commands**: Loaded from XML file `MCEControl.commands`
+2. **User commands**: Loaded from XML file `mcec.commands`
 
 #### 3.2 Command Base Classes
 
@@ -182,7 +182,7 @@ All commands are located in the `Commands\` directory:
 | **SetForegroundWindowCommand** | Window focus | Brings window to foreground |
 | **ShutdownCommand** | System power | Shutdown, restart, logoff, sleep, hibernate |
 | **PauseCommand** | Timing control | Thread.Sleep for command pacing |
-| **McecCommand** | Internal control | Controls MCE Controller itself (reload, shutdown, etc.) |
+| **McecCommand** | Internal control | Controls MCEC itself (reload, shutdown, etc.) |
 | **CaptureCommand** | Agent: observe | Screenshot a window/region via `PrintWindow` (`PW_RENDERFULLCONTENT`) → PNG/base64 |
 | **QueryCommand** | Agent: observe | Dump the UI Automation tree of a window (via FlaUI) |
 | **FindCommand** | Agent: target | `find` / `wait-for` a UIA element by name/automation-id/class with a timeout |
@@ -190,7 +190,7 @@ All commands are located in the `Commands\` directory:
 
 > **MCEC 3.0 agent subsystem (`src/Agent/`, `Services/AgentServer.cs`).** The four agent
 > commands above add *observation* and *targeting* on top of the existing actuation core, and
-> are exposed as Model Context Protocol (MCP) tools over stdio (`MCEControl.exe --mcp`) and a
+> are exposed as Model Context Protocol (MCP) tools over stdio (`mcec.exe --mcp`) and a
 > localhost HTTP/JSON floor. They are **disabled by default** behind a dedicated opt-in
 > (`AppSettings.AgentCommandsEnabled`, separate from the actuation enable), bind to localhost
 > only, and loudly audit-log every action. The engine reaches settings/invoker through the
@@ -247,7 +247,7 @@ InputSimulator (facade)
 
 **Purpose**: Application configuration management
 
-**Storage**: XML serialization to `MCEControl.settings`
+**Storage**: XML serialization to `mcec.settings`
 
 **Features**:
 - Server/Client/Serial configuration
@@ -302,7 +302,7 @@ InputSimulator (facade)
 **Purpose**: Hot-reload of command definitions
 
 **Features**:
-- Watches `MCEControl.commands` file
+- Watches `mcec.commands` file
 - Triggers CommandInvoker reload on file changes
 - FileSystemWatcher wrapper with debouncing
 
@@ -398,20 +398,20 @@ InputSimulator (facade)
 
 | File | Format | Purpose |
 |------|--------|---------|
-| `MCEControl.settings` | XML | Application settings (serialized AppSettings) |
-| `MCEControl.commands` | XML | User-defined and enabled built-in commands |
-| `MCEControl.log` | Text | Log4net output |
+| `mcec.settings` | XML | Application settings (serialized AppSettings) |
+| `mcec.commands` | XML | User-defined and enabled built-in commands |
+| `mcec.log` | Text | Log4net output |
 | `version.txt` | Text | Build version (incremented by T4 template) |
 | `app.manifest` | XML | Windows UAC and compatibility settings |
 
 **File Locations**:
 - **Development**: Same directory as executable
-- **Production Install**: `%APPDATA%\Kindel Systems\MCE Controller\` (if installed to Program Files)
+- **Production Install**: `%APPDATA%\Kindel Systems\MCEC\` (if installed to Program Files)
 
 ## Security Considerations
 
 1. **Default Deny**: All built-in commands are disabled by default (`Enabled="false"`)
-2. **Explicit Enable**: Users must edit `MCEControl.commands` to enable commands
+2. **Explicit Enable**: Users must edit `mcec.commands` to enable commands
 3. **Registry Override**: `DisableInternalCommands` registry key can block all built-in commands
 4. **Network Security**: No authentication on socket connections (assumes trusted network)
 5. **Telemetry Privacy**: PII filtering via attributes, user-defined commands not tracked

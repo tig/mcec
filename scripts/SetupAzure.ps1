@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  One-shot, idempotent setup of MCE Controller's Azure Trusted Signing OIDC trust for CI.
+  One-shot, idempotent setup of MCEC's Azure Trusted Signing OIDC trust for CI.
 
 .DESCRIPTION
   Creates (or reuses, if already present) everything release.yml needs to sign Windows

@@ -18,7 +18,7 @@ namespace MCEControl;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "This is just settings info.")]
 public class AppSettings : ICloneable {
-    public const string SettingsFileName = "MCEControl.settings";
+    public const string SettingsFileName = "mcec.settings";
 
     // Global
     [XmlIgnore] public bool DisableInternalCommands;

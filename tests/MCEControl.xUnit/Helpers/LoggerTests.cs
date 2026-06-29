@@ -20,7 +20,7 @@ public class LoggerTests
     public void LogFile_DefaultsToLogFileInConfigPath()
     {
         var logger = Logger.Instance;
-        Assert.Contains("MCEControl.log", logger.LogFile);
+        Assert.Contains("mcec.log", logger.LogFile);
     }
 
     [Fact]

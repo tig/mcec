@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Verifies MCE Controller's Azure Trusted Signing OIDC trust is correctly configured for CI.
+  Verifies MCEC's Azure Trusted Signing OIDC trust is correctly configured for CI.
 
 .DESCRIPTION
   Read-only. Reads scripts/Azure.Config.ps1, discovers the app registration by display

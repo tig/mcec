@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-    Builds a release of MCE Controller: a versioned, self-contained publish plus
-    the NSIS installer (MCEController.Setup.exe) — in one command.
+    Builds a release of MCEC: a versioned, self-contained publish plus
+    the NSIS installer (mcec.Setup.exe) — in one command.
 
 .EXAMPLE
     ./Release.ps1 -Version 2.5.0
@@ -12,9 +12,9 @@
     reports it correctly and the in-app updater works.
 
     After running, create the GitHub release and upload the installer, e.g.:
-      git tag -a v2.5.0 -m "MCE Controller v2.5.0"; git push origin v2.5.0
-      gh release create v2.5.0 --title "MCE Controller v2.5.0" --notes-file notes.md `
-        --latest src/bin/MCEController.Setup.exe
+      git tag -a v2.5.0 -m "MCEC v2.5.0"; git push origin v2.5.0
+      gh release create v2.5.0 --title "MCEC v2.5.0" --notes-file notes.md `
+        --latest src/bin/mcec.Setup.exe
 #>
 param(
     [Parameter(Mandatory = $true)]
@@ -28,7 +28,7 @@ $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $proj = Join-Path $root 'src\MCEControl.csproj'
 $publish = Join-Path $root 'src\bin\publish'
-$setup = Join-Path $root 'src\bin\MCEController.Setup.exe'
+$setup = Join-Path $root 'src\bin\mcec.Setup.exe'
 $assemblyVersion = "$Version.0"   # AssemblyVersion/FileVersion want 4 parts
 
 Write-Host "==> Publishing self-contained $Runtime build, version $Version ..." -ForegroundColor Cyan
