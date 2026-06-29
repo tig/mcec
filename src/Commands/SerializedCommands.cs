@@ -80,14 +80,21 @@ public class SerializedCommands {
                 // Is this a legacy load? If so, enable all commands and warn user
                 if (string.IsNullOrEmpty(cmds.Version)) {
                     string msg = $"{userCommandsFile} was created with a legacy version of MCE Controller.\n\nConverting it and enabling all commands it contains.\n\nDisable any commands that are not used using the Commands window.";
-                    MessageBox.Show(msg, Application.ProductName);
+                    if (!AgentRuntime.Headless) {
+                        MessageBox.Show(msg, Application.ProductName);
+                    }
                     Logger.Instance.Log4.Info($"SerializedCommands: {msg}");
                     cmds.Version = currentVersion;
                     cmds.commandArray = [.. cmds.commandArray.Select(c => { c.Enabled = true; return c; })];
                 }
 
-                // If this was written by an older version, re-write it to update it
-                if (!string.IsNullOrEmpty(cmds.Version) && (new Version(currentVersion).CompareTo(new Version(cmds.Version))) > 0) {
+                // If this was written by an older version, re-write it to update it. Use tolerant
+                // parsing: informational/prerelease version strings (e.g. "2.4.2-branch.1+sha") are not
+                // valid System.Version and would otherwise throw here, breaking .commands loading.
+                if (!string.IsNullOrEmpty(cmds.Version)
+                    && System.Version.TryParse(currentVersion, out System.Version? curV)
+                    && System.Version.TryParse(cmds.Version, out System.Version? fileV)
+                    && curV.CompareTo(fileV) > 0) {
                     Logger.Instance.Log4.Info($"SerializedCommands: Upgrading .commands file from v{cmds.Version}");
                     SaveCommands(userCommandsFile, cmds, currentVersion);
                 }
@@ -98,7 +105,9 @@ public class SerializedCommands {
         }
         catch (Exception ex) {
             string msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
-            MessageBox.Show(msg, currentVersion);
+            if (!AgentRuntime.Headless) {
+                MessageBox.Show(msg, currentVersion);
+            }
             Logger.Instance.Log4.Error($"SerializedCommands: {msg}");
             Logger.DumpException(ex);
         }

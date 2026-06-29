@@ -21,6 +21,13 @@ public static class AgentRuntime {
     public static CommandInvoker? Invoker { get; set; }
 
     /// <summary>
+    /// True when running as the headless MCP server (<c>--mcp</c>). In this mode the engine MUST NOT
+    /// show modal dialogs (there is no operator at a screen and stdout is the protocol stream), so the
+    /// settings/commands load paths suppress their <c>MessageBox</c> prompts when this is set.
+    /// </summary>
+    public static bool Headless { get; set; }
+
+    /// <summary>
     /// True only when the user has explicitly opted in to the agent observation/targeting commands.
     /// Defaults to false (disabled) when no settings are loaded.
     /// </summary>

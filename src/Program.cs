@@ -68,6 +68,9 @@ internal static class Program {
     /// UI-agnostic <see cref="AgentRuntime"/> seam (no <c>MainWindow</c>), then serves MCP over stdio.
     /// </summary>
     private static void RunHeadlessMcp() {
+        // Headless: never show a modal dialog (no operator; stdout is the JSON-RPC stream).
+        AgentRuntime.Headless = true;
+
         // Match the GUI's DPI awareness so PrintWindow/GetWindowRect capture geometry is consistent
         // whether MCEC runs headless (--mcp) or interactively.
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);

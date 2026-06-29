@@ -61,6 +61,21 @@ grabs return black for): `query` returned a 42-node UIA tree; `capture` returned
 that rendered the toolbar, tab, syntax-highlighted text, and status bar correctly. This confirms the
 `PrintWindow(PW_RENDERFULLCONTENT)` path and the gating both work end-to-end.
 
+**mcec drives mcec.** A second, harder self-test: the `--mcp` server `send_command`s a `start_mcec`
+StartProcess (launch `MCEControl.exe` from its *own* directory, then keyboard Alt+H → A) to **start a
+second copy of MCEC and open its About box**, then `capture`/`query` that About window. `query`
+returned the dialog's UIA tree (`Window:About`, the version `Text`, `License Agreement`, `Button:OK`)
+and `capture` returned a clean PNG of the About box. Run each copy from its own directory so the
+per-directory config files don't collide. Tips learned: give the launched copy `ActAsServer=false`
+(otherwise its socket-server bind raises a Windows Firewall prompt that steals foreground from the
+keystrokes), and a freshly launched copy must be the foreground window for the menu keystrokes to land.
+
+This self-test surfaced two real robustness bugs, now fixed: `SetStatus` set `NotifyIcon.Text` (a
+127-char cap) to the full informational version and crashed GUI startup on long prerelease version
+strings; and `.commands` loading called `new Version(informationalVersion)` (which throws on
+`x.y.z-branch+sha`) and popped `MessageBox` prompts that would hang the headless `--mcp` process.
+Headless mode now suppresses all load-path dialogs (`AgentRuntime.Headless`).
+
 ## Working in this repo
 
 - Build is strict: `Nullable=enable`, `TreatWarningsAsErrors=true`, and house analyzers **MCEC0001

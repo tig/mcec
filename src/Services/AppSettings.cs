@@ -180,7 +180,9 @@ public class AppSettings : ICloneable {
         }
         catch (Exception e) {
             Logger.Instance.Log4.Info($"Settings: Settings file could not be written. {settingsFile} {e.Message}");
-            MessageBox.Show($"Settings file could not be written. {settingsFile} {e.Message}");
+            if (!AgentRuntime.Headless) {
+                MessageBox.Show($"Settings file could not be written. {settingsFile} {e.Message}");
+            }
         }
     }
 
@@ -218,7 +220,9 @@ public class AppSettings : ICloneable {
         }
         catch (UnauthorizedAccessException e) {
             Logger.Instance.Log4.Error($"Settings: Settings file could not be loaded. {e.Message}");
-            MessageBox.Show($"Settings file could not be loaded. {e.Message}");
+            if (!AgentRuntime.Headless) {
+                MessageBox.Show($"Settings file could not be loaded. {e.Message}");
+            }
         }
         finally {
             if (reader != null) {

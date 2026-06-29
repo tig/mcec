@@ -490,7 +490,9 @@ public partial class MainWindow : Form {
         }
         else {
             statusStripStatus.Text = text;
-            notifyIcon.Text = text;
+            // NotifyIcon.Text throws if longer than 127 chars. Status text can include the full
+            // informational version (e.g. a long prerelease "x.y.z-branch.n+sha" string), so cap it.
+            notifyIcon.Text = text.Length > 127 ? text[..124] + "..." : text;
         }
     }
 
