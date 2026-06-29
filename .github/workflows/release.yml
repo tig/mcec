@@ -25,6 +25,7 @@ permissions:
 
 env:
   SIGN: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' && secrets.AZURE_SIGNING_ACCOUNT != '' && secrets.AZURE_SIGNING_PROFILE != '' && secrets.AZURE_SIGNING_ENDPOINT != '' }}
+  HAS_WINGET: ${{ secrets.WINGET_TOKEN != '' }}
 
 jobs:
   release:
@@ -100,3 +101,30 @@ jobs:
             --generate-notes `
             --latest `
             artifacts/MCEController.Setup.exe
+
+  # Auto-submit the new version to winget-pkgs on every STABLE release (skips pre-releases
+  # and is gated on the WINGET_TOKEN secret). Requires a one-time manual bootstrap of the
+  # package into microsoft/winget-pkgs — see packaging/winget/README.md.
+  winget:
+    name: Submit to winget-pkgs
+    needs: release
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && !contains(github.ref_name, '-') }}
+    steps:
+      - name: Derive version (strip leading v)
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Submit to winget-pkgs
+        if: ${{ env.HAS_WINGET == 'true' }}
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: Kindel.mcec
+          version: ${{ steps.ver.outputs.version }}
+          release-tag: ${{ github.ref_name }}
+          installers-regex: 'MCEController\.Setup\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
+
+      - name: Skipped (no WINGET_TOKEN)
+        if: ${{ env.HAS_WINGET != 'true' }}
+        run: echo "::notice::WINGET_TOKEN not set — skipping winget-pkgs submission. See packaging/winget/README.md."
