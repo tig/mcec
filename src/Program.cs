@@ -12,14 +12,22 @@ internal static class Program {
         get {
             // Get dir of mcecontrol.exe
             string path = AppDomain.CurrentDomain.BaseDirectory;
-            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
             string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
-            // is this in Program Files?
-            if (path.Contains(programFiles)) {
-                // We're running from the default install location. Use %appdata%.
-                // strip % programfiles %
-                path = $@"{appdata}\{path.Substring(programFiles.Length + 1)}";
+            // If we're running from a (read-only) Program Files install location, redirect log/
+            // settings/command files to %AppData%. Check both 64-bit ("Program Files") and 32-bit
+            // ("Program Files (x86)") roots — the installer puts the self-contained x64 build under
+            // 64-bit Program Files, while older installs used the x86 path.
+            foreach (Environment.SpecialFolder folder in new[] {
+                Environment.SpecialFolder.ProgramFiles,
+                Environment.SpecialFolder.ProgramFilesX86,
+            }) {
+                string programFiles = Environment.GetFolderPath(folder);
+                if (!string.IsNullOrEmpty(programFiles) &&
+                    path.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase)) {
+                    path = $@"{appdata}\{path.Substring(programFiles.Length + 1)}";
+                    break;
+                }
             }
 
             return path;
