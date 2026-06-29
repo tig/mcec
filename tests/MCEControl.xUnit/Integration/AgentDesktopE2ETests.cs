@@ -285,6 +285,12 @@ public class AgentDesktopE2ETests {
         "<MCEController xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\r\n" +
         "               xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" version=\"3.0.0\">\r\n" +
         "<Commands xmlns=\"http://www.kindel.com/products/mcecontroller\">\r\n" +
+        // Agent observation commands must be enabled per-command (the second security gate), in
+        // addition to AgentCommandsEnabled in settings, for the MCP tools to run them.
+        "  <capture Cmd=\"capture\" Enabled=\"true\" />\r\n" +
+        "  <query   Cmd=\"query\"   Enabled=\"true\" />\r\n" +
+        "  <find     Cmd=\"find\"   Enabled=\"true\" />\r\n" +
+        "  <invoke  Cmd=\"invoke\"  Enabled=\"true\" />\r\n" +
         "  <SendInput Cmd=\"winr\" Vk=\"r\" Win=\"true\" Enabled=\"true\" />\r\n" +
         "  <Chars     Cmd=\"chars:\" Enabled=\"true\" />\r\n" +
         "  <SendInput Cmd=\"enter\" Vk=\"VK_RETURN\" Enabled=\"true\" />\r\n" +

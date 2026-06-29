@@ -69,6 +69,12 @@ public static class UiaService {
         if (hwnd == IntPtr.Zero) {
             return false;
         }
+        // Reject an unknown/typo action (e.g. "click", "set-value") rather than silently activating the
+        // element via the default Invoke pattern. The caller defaults a missing action to "invoke".
+        if (!IsSupportedAction(action)) {
+            Logger.Instance.Log4.Warn($"UiaService.Invoke: unsupported action '{action}' — rejected.");
+            return false;
+        }
         try {
             using UIA3Automation automation = new();
             AutomationElement root = automation.FromHandle(hwnd);
@@ -77,10 +83,11 @@ public static class UiaService {
                 return false;
             }
             return action.ToLowerInvariant() switch {
+                "invoke" => InvokeDefault(el),
                 "toggle" => InvokeToggle(el),
                 "setvalue" => InvokeSetValue(el, text),
                 "setfocus" => InvokeSetFocus(el),
-                _ => InvokeDefault(el),
+                _ => false,
             };
         }
         catch (Exception e) {
@@ -88,6 +95,14 @@ public static class UiaService {
             return false;
         }
     }
+
+    /// <summary>True if <paramref name="action"/> is one of the supported invoke actions
+    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>, case-insensitive).</summary>
+    public static bool IsSupportedAction(string action) =>
+        action?.ToLowerInvariant() switch {
+            "invoke" or "toggle" or "setvalue" or "setfocus" => true,
+            _ => false,
+        };
 
     private static UiaElementInfo BuildNode(AutomationElement el, int depth, int maxDepth) {
         UiaElementInfo info = Describe(el);

@@ -45,6 +45,10 @@ public class SerializedCommands {
     [XmlArrayItem("pause", typeof(PauseCommand))]
     [XmlArrayItem("mouse", typeof(MouseCommand))]
     [XmlArrayItem("mceccommand", typeof(McecCommand))]
+    [XmlArrayItem("capture", typeof(CaptureCommand))]
+    [XmlArrayItem("query", typeof(QueryCommand))]
+    [XmlArrayItem("find", typeof(FindCommand))]
+    [XmlArrayItem("invoke", typeof(InvokeCommand))]
     [XmlArrayItem(typeof(Command))]
 
     // XmlSerialization does not work with List<>. Must use an array.

@@ -202,6 +202,14 @@ public static class AgentServer {
     }
 
     private static JsonObject RunAgentCommand(string name, JsonObject args) {
+        // Honor the per-command Enabled flag — the documented second security gate. The MCP tool only
+        // runs if the corresponding command in the loaded table is enabled (built-ins ship disabled;
+        // the operator opts in per-command via mcec.commands). Fail closed if the table/command is missing.
+        if ((AgentRuntime.Invoker?[name] as Command)?.Enabled != true) {
+            AgentRuntime.Audit(name, "BLOCKED — command is disabled in mcec.commands");
+            return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").");
+        }
+
         Command cmd = BuildCommand(name, args);
         CapturingReply reply = new();
         cmd.Reply = reply;
