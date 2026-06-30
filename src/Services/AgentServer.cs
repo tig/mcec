@@ -116,8 +116,10 @@ public static class AgentServer {
         "until opened), then `invoke` the item. Invoking a control that opens a MODAL dialog (About, " +
         "Settings, message/file dialogs) returns promptly with `modalPending:true` — the action " +
         "completes when the dialog closes — so just `query`/`capture` the new window to read it, and " +
-        "`invoke` its buttons to dismiss it. Use `wait-for` (or `find` with a timeout) to wait for a " +
-        "control to appear before acting. " +
+        "`invoke` its buttons to dismiss it. `invoke` does NOT wait for a control — it fast-fails if the " +
+        "element isn't present yet — so `wait-for` (or `find` with a timeout) the control before acting; " +
+        "an `invoke` that returns `error.category:no-target` means the control hasn't appeared yet, so " +
+        "`wait-for` it rather than blindly retrying. " +
         "`send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
         "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
         "RESULTS: every tool returns one envelope — `{ ok, result?, warnings?, error? }`. Branch on `ok` " +

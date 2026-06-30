@@ -30,8 +30,10 @@ in sync. In short:
 >    `tree-truncated` warning) hit the node cap — raise `maxNodes` or target a deeper window. `warnings`
 >    are non-fatal; `errorCategory` tells you how to recover. (Shape: `docs/design/agent-tool-result-contract.md`.)
 > 3. **Act** — prefer `invoke` (`by` name/automationId/classname; `action` invoke|toggle|setvalue|
->    setfocus) over coordinate clicks. Use `find`/`wait-for` to wait for a control. `send_command`
->    sends any raw MCEC command (keystrokes, mouse, launch).
+>    setfocus) over coordinate clicks. `invoke` **fast-fails** if the control isn't present (it does not
+>    wait), so `find`/`wait-for` the control first; an `invoke` that returns `no-target` means it hasn't
+>    appeared yet — `wait-for` it rather than retrying blindly. `send_command` sends any raw MCEC command
+>    (keystrokes, mouse, launch).
 > 4. **Verify** with another `query`/`capture`.
 
 ## Security (do not regress)
