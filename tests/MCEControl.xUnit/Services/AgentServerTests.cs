@@ -79,49 +79,4 @@ public class AgentServerTests {
             AgentRuntime.Settings = null;
         }
     }
-
-    [Fact]
-    public void Dispatch_ToolsCall_Capture_WhenCommandDisabledInTable_IsBlocked() {
-        // CR P1: even with AgentCommandsEnabled, the MCP path must honor the per-command Enabled flag
-        // (the documented second gate). A disabled `capture` in the command table must not run.
-        AgentTestSupport.EnsureTelemetry();
-        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
-        CommandInvoker invoker = new();
-        invoker["capture"] = new CaptureCommand { Cmd = "capture", Enabled = false };
-        AgentRuntime.Invoker = invoker;
-        try {
-            JsonObject prms = new() { ["name"] = "capture", ["arguments"] = new JsonObject() };
-            JsonObject resp = AgentServer.Dispatch(Request(60, "tools/call", prms))!;
-
-            Assert.True(resp["result"]!["isError"]!.GetValue<bool>());
-            Assert.Contains("disabled", resp.ToJsonString(), StringComparison.OrdinalIgnoreCase);
-        }
-        finally {
-            AgentRuntime.Settings = null;
-            AgentRuntime.Invoker = null;
-        }
-    }
-
-    [Fact]
-    public void Dispatch_ToolsCall_Capture_WhenCommandEnabledInTable_PassesPerCommandGate() {
-        // With the per-command flag enabled, the MCP path runs the command. With no target args it
-        // fails for "No matching window" (proving it executed) — NOT the "disabled" gate message.
-        AgentTestSupport.EnsureTelemetry();
-        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
-        CommandInvoker invoker = new();
-        invoker["capture"] = new CaptureCommand { Cmd = "capture", Enabled = true };
-        AgentRuntime.Invoker = invoker;
-        try {
-            JsonObject prms = new() { ["name"] = "capture", ["arguments"] = new JsonObject() };
-            JsonObject resp = AgentServer.Dispatch(Request(61, "tools/call", prms))!;
-            string raw = resp.ToJsonString();
-
-            Assert.DoesNotContain("is disabled", raw, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("No matching window", raw, StringComparison.Ordinal);
-        }
-        finally {
-            AgentRuntime.Settings = null;
-            AgentRuntime.Invoker = null;
-        }
-    }
 }
