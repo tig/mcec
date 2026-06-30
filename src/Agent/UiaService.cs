@@ -3,6 +3,7 @@
 
 using System.Drawing;
 using System.Runtime.InteropServices;
+using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Conditions;
 using FlaUI.Core.Tools;
@@ -17,6 +18,16 @@ namespace MCEControl;
 /// or unsupported node must never abort the whole walk.
 /// </summary>
 public static class UiaService {
+    /// <summary>
+    /// Timeout for the element lookup an <c>invoke</c> performs before dispatching its action. It is kept
+    /// below <see cref="AgentServer.InvokeModalGraceMs"/> on purpose: the grace assumes that an invoke
+    /// still running afterward is blocked on a modal dialog, so the lookup itself must finish first — a
+    /// missing element must fail fast (no-target) rather than be misreported as a pending modal (#107).
+    /// Agents are instructed to <c>wait-for</c>/<c>find</c> a control before acting on it, so invoke does
+    /// not need a long implicit wait of its own.
+    /// </summary>
+    public const int InvokeFindTimeoutMs = 500;
+
     /// <summary>
     /// Snapshots the UIA tree rooted at <paramref name="hwnd"/> down to <paramref name="maxDepth"/>
     /// levels (depth 0 = the root node only) and at most <paramref name="maxNodes"/> nodes. The node
@@ -33,7 +44,11 @@ public static class UiaService {
             using UIA3Automation automation = new();
             AutomationElement root = automation.FromHandle(hwnd);
             UiaTreeBudget budget = new() { MaxNodes = maxNodes <= 0 ? int.MaxValue : maxNodes };
-            UiaElementInfo node = BuildNode(root, 0, maxDepth, budget);
+            // Walk children one at a time with the control-view walker rather than materializing every
+            // child up front: a container with thousands of immediate children must not be fully
+            // enumerated just to emit a handful before the node cap bites (#109).
+            ITreeWalker walker = automation.TreeWalkerFactory.GetControlViewWalker();
+            UiaElementInfo node = BuildNode(root, 0, maxDepth, budget, walker);
             return new UiaTreeResult(node, budget.Count, budget.Truncated);
         }
         catch (Exception e) {
@@ -87,7 +102,7 @@ public static class UiaService {
         try {
             using UIA3Automation automation = new();
             AutomationElement root = automation.FromHandle(hwnd);
-            AutomationElement? el = FindElement(root, by, value, 5000);
+            AutomationElement? el = FindElement(root, by, value, InvokeFindTimeoutMs);
             if (el is null) {
                 return false;
             }
@@ -115,33 +130,41 @@ public static class UiaService {
             _ => false,
         };
 
-    private static UiaElementInfo BuildNode(AutomationElement el, int depth, int maxDepth, UiaTreeBudget budget) {
+    private static UiaElementInfo BuildNode(AutomationElement el, int depth, int maxDepth, UiaTreeBudget budget, ITreeWalker walker) {
         budget.Count++;
         UiaElementInfo info = Describe(el);
         if (depth >= maxDepth) {
             return info;
         }
 
-        AutomationElement[] children;
+        AutomationElement? child;
         try {
-            children = el.FindAllChildren();
+            child = walker.GetFirstChild(el);
         }
         catch (COMException) {
             // Element went stale; return what we have so far.
             return info;
         }
 
-        foreach (AutomationElement child in children) {
+        while (child is not null) {
             if (budget.Count >= budget.MaxNodes) {
-                // Hit the node cap: stop expanding and flag it so the caller surfaces a warning.
+                // Hit the node cap: stop expanding and flag it so the caller surfaces a warning. Because
+                // we never materialized the remaining siblings, the cap also bounds the UIA enumeration.
                 budget.Truncated = true;
                 break;
             }
             try {
-                info.Children.Add(BuildNode(child, depth + 1, maxDepth, budget));
+                info.Children.Add(BuildNode(child, depth + 1, maxDepth, budget, walker));
             }
             catch (COMException) {
                 // Skip a node that went stale mid-walk; keep the rest of the tree.
+            }
+            try {
+                child = walker.GetNextSibling(child);
+            }
+            catch (COMException) {
+                // Can't advance past a stale node; stop this level with what we have.
+                break;
             }
         }
         return info;
