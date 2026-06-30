@@ -34,6 +34,26 @@ public static class ScreenCapture {
     /// <returns>The PNG bytes and capture diagnostics.</returns>
     /// <exception cref="ArgumentException">Thrown when the window has no on-screen area.</exception>
     public static CaptureResult CaptureWindow(IntPtr hwnd) {
+        using Bitmap bmp = CaptureWindowBitmap(hwnd, out bool usedFallback);
+        ImageStats stats = AnalyzeBlank(bmp);
+        return new CaptureResult(Encode(bmp), bmp.Width, bmp.Height, usedFallback, stats);
+    }
+
+    /// <summary>
+    /// Captures a top-level window by handle into a <see cref="Bitmap"/> the caller owns (and must
+    /// dispose). Shared by <see cref="CaptureWindow"/> (still PNG) and the GIF recorder, which needs the
+    /// raw bitmap to feed many frames into one animation.
+    /// </summary>
+    /// <param name="hwnd">The window handle to capture.</param>
+    /// <returns>A new ARGB bitmap of the window; the caller owns and must dispose it.</returns>
+    /// <exception cref="ArgumentException">Thrown when the window has no on-screen area.</exception>
+    public static Bitmap CaptureWindowBitmap(IntPtr hwnd) => CaptureWindowBitmap(hwnd, out _);
+
+    /// <summary>
+    /// Captures a window into an owned <see cref="Bitmap"/>, reporting whether the degraded
+    /// <c>CopyFromScreen</c> fallback was used (<c>PrintWindow</c> was refused).
+    /// </summary>
+    private static Bitmap CaptureWindowBitmap(IntPtr hwnd, out bool usedFallback) {
         if (!AgentNativeMethods.GetWindowRect(hwnd, out NativeRect rect)) {
             throw new ArgumentException("Could not get window bounds.", nameof(hwnd));
         }
@@ -44,24 +64,28 @@ public static class ScreenCapture {
             throw new ArgumentException("Window has no on-screen area to capture.", nameof(hwnd));
         }
 
-        using Bitmap bmp = new(width, height, PixelFormat.Format32bppArgb);
-        using Graphics gfx = Graphics.FromImage(bmp);
+        Bitmap bmp = new(width, height, PixelFormat.Format32bppArgb);
+        try {
+            using Graphics gfx = Graphics.FromImage(bmp);
 
-        IntPtr hdc = gfx.GetHdc();
-        bool printed = AgentNativeMethods.PrintWindow(hwnd, hdc, AgentNativeMethods.PW_RENDERFULLCONTENT);
-        gfx.ReleaseHdc(hdc);
+            IntPtr hdc = gfx.GetHdc();
+            bool printed = AgentNativeMethods.PrintWindow(hwnd, hdc, AgentNativeMethods.PW_RENDERFULLCONTENT);
+            gfx.ReleaseHdc(hdc);
 
-        bool usedFallback = false;
-        if (!printed) {
-            // Fallback: blit the corresponding screen region into the same bitmap. This grabs whatever
-            // is on screen at those coordinates, so it returns black for composited/occluded windows
-            // and is reported to the caller as a degraded path.
-            gfx.CopyFromScreen(rect.Left, rect.Top, 0, 0, new Size(width, height));
-            usedFallback = true;
+            usedFallback = false;
+            if (!printed) {
+                // Fallback: blit the corresponding screen region into the same bitmap. This grabs
+                // whatever is on screen at those coordinates, so it returns black for composited/occluded
+                // windows and is reported to the caller as a degraded path.
+                gfx.CopyFromScreen(rect.Left, rect.Top, 0, 0, new Size(width, height));
+                usedFallback = true;
+            }
         }
-
-        ImageStats stats = AnalyzeBlank(bmp);
-        return new CaptureResult(Encode(bmp), width, height, usedFallback, stats);
+        catch {
+            bmp.Dispose();
+            throw;
+        }
+        return bmp;
     }
 
     /// <summary>
@@ -74,16 +98,36 @@ public static class ScreenCapture {
     /// <returns>The PNG bytes and capture diagnostics (<c>UsedFallback</c> is always false for regions).</returns>
     /// <exception cref="ArgumentException">Thrown when the region has no area.</exception>
     public static CaptureResult CaptureRegion(int x, int y, int width, int height) {
+        using Bitmap bmp = CaptureRegionBitmap(x, y, width, height);
+        ImageStats stats = AnalyzeBlank(bmp);
+        return new CaptureResult(Encode(bmp), width, height, UsedFallback: false, stats);
+    }
+
+    /// <summary>
+    /// Captures an arbitrary screen region (screen coordinates) into a <see cref="Bitmap"/> the caller
+    /// owns (and must dispose). Shared by <see cref="CaptureRegion"/> and the GIF recorder.
+    /// </summary>
+    /// <param name="x">Left screen coordinate.</param>
+    /// <param name="y">Top screen coordinate.</param>
+    /// <param name="width">Region width in pixels.</param>
+    /// <param name="height">Region height in pixels.</param>
+    /// <returns>A new ARGB bitmap of the region; the caller owns and must dispose it.</returns>
+    /// <exception cref="ArgumentException">Thrown when the region has no area.</exception>
+    public static Bitmap CaptureRegionBitmap(int x, int y, int width, int height) {
         if (width <= 0 || height <= 0) {
             throw new ArgumentException("Region has no area to capture.", nameof(width));
         }
 
-        using Bitmap bmp = new(width, height, PixelFormat.Format32bppArgb);
-        using Graphics gfx = Graphics.FromImage(bmp);
-        gfx.CopyFromScreen(x, y, 0, 0, new Size(width, height));
-
-        ImageStats stats = AnalyzeBlank(bmp);
-        return new CaptureResult(Encode(bmp), width, height, UsedFallback: false, stats);
+        Bitmap bmp = new(width, height, PixelFormat.Format32bppArgb);
+        try {
+            using Graphics gfx = Graphics.FromImage(bmp);
+            gfx.CopyFromScreen(x, y, 0, 0, new Size(width, height));
+        }
+        catch {
+            bmp.Dispose();
+            throw;
+        }
+        return bmp;
     }
 
     private static byte[] Encode(Bitmap bmp) {

@@ -92,8 +92,9 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 | `find`     | Find a **UI Automation element** by name / automation id / class.                 | window target, `by` (`name`\|`automationid`\|`classname`), `value`, `timeout` |
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
 | `invoke`   | Drive a UI Automation element pattern — far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`), `text` |
+| `record`   | Record a window or region to an **animated GIF** over time (start/stop or a bounded one-shot). | window target, or region `x`/`y`/`width`/`height`; `action` (`start`\|`stop`\|`oneshot`), `fps`, `durationMs`, `maxWidth`, `file` |
 
-All five return a `CommandResult` JSON object via `Reply.WriteLine`:
+All return a `CommandResult` JSON object via `Reply.WriteLine`:
 
 ```json
 {
@@ -163,6 +164,66 @@ a `capture-blank` warning instead, since a user-specified region can legitimatel
 (Over MCP, `capture` additionally returns the PNG as an `image` content block so the
 model can view it directly, in addition to the JSON text above — including for a blank-frame
 failure, so the agent can see what was grabbed.)
+
+### `record` — capturing change over time
+
+`capture` answers "what does this look like **now**". When you need to show change *over
+time* — an animation for a demo or issue report, or a repro of a transient/flicker — use
+`record`, which writes an **animated GIF**.
+
+> **⚠️ Privacy:** a recording captures whatever is on screen for its *entire* duration,
+> not just one instant — it is a louder disclosure than a still `capture`. Only record
+> what you mean to, keep recordings short, and be aware the GIF may contain sensitive
+> content (credentials, messages, other windows). Recording is off unless the operator has
+> enabled the agent commands, and every start/stop/write is `AGENT-AUDIT:`-logged.
+
+Two ways to bound a recording:
+
+- **One-shot:** give `durationMs` (and optional `fps`); MCEC records that long, then writes
+  the GIF and returns metadata in a single call.
+- **Segment:** `action: "start"` begins recording and returns immediately; `action: "stop"`
+  ends it, encodes, writes the file, and returns metadata. Only one recording runs at a time.
+
+Safety limits (operator-configurable in `mcec.settings`, requests above them are *clamped*,
+not failed) keep an agent from producing an unbounded file:
+
+| Setting                    | Default  | Meaning |
+|----------------------------|----------|---------|
+| `AgentRecordMaxFps`        | 30       | Max frames per second (`fps` default is 5). |
+| `AgentRecordMaxDurationMs` | 60000    | Max recording length (60 s). |
+| `AgentRecordMaxFrames`     | 600      | Hard cap on captured frames. |
+| `AgentRecordMaxWidth`      | 1280     | Frames are downscaled so width fits this. |
+
+A finished `record` (one-shot or `stop`) returns the output path and metadata:
+
+```json
+{
+  "success": true,
+  "command": "record",
+  "data": {
+    "file": "C:\\Users\\me\\AppData\\Local\\Temp\\mcec-rec-20260629-141503.gif",
+    "frames": 73,
+    "durationMs": 14600,
+    "fps": 5,
+    "width": 1280,
+    "height": 824,
+    "bytes": 1048576,
+    "target": {
+      "handle": 1576490, "title": "Untitled - Notepad", "className": "Notepad",
+      "processName": "notepad", "processId": 21344,
+      "x": 120, "y": 80, "width": 1024, "height": 768
+    }
+  }
+}
+```
+
+`action: "start"` returns `{ "recording": true, "fps": 5, "maxDurationMs": 60000, "target": { … } }`.
+If `file` is omitted, MCEC writes to a timestamped path under the system temp directory and
+reports it in `file`.
+
+No extra dependency is used: each frame is quantized + LZW-compressed to a GIF by GDI+, and
+the frames are stitched into one GIF89a (Netscape loop extension + per-frame delays). See
+`docs/design/gif-recording.md` for the full design.
 
 ### `query` result example
 
@@ -303,6 +364,7 @@ When connected, the server advertises these tools:
 | `find`         | The `find` command (match a UI element, one-shot).             |
 | `wait-for`     | The `wait-for` command (poll for a UI element until a timeout). |
 | `invoke`       | The `invoke` command (run an existing MCEC command).           |
+| `record`       | The `record` command (window/region → animated GIF over time). |
 | `send_command` | Generic raw-command passthrough — send any MCEC command line.  |
 
 ---
@@ -328,7 +390,7 @@ is not a general-purpose web API and is not exposed off-box by default.
 
 ## Summary
 
-- New, opt-in agent surface: `capture`, `query`, `find`, `wait-for`, `invoke`.
+- New, opt-in agent surface: `capture`, `query`, `find`, `wait-for`, `invoke`, `record`.
 - Structured JSON results; same commands exposed as MCP/HTTP tools.
 - **Three independent off-by-default gates:** `AgentCommandsEnabled`, per-command
   `Enabled`, and `McpServerEnabled` (localhost-bound).

@@ -1,6 +1,6 @@
 # MCEC
 
-![MCEC](mainwindow.png)
+![MCEC](hero.gif)
 
 **MCEC** (Model Context Environment Controller) is eyes, hands, and a safe front door for agents on Windows — and the same battle-tested remote control for smart-home systems.
 
