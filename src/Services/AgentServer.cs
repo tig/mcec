@@ -284,17 +284,10 @@ public static class AgentServer {
 
         AgentToolResult env = AgentToolResult.FromLegacy(legacy, name);
 
-        // For capture, surface the PNG as an MCP image content block in addition to the JSON envelope,
-        // and drop the (potentially multi-MB) base64 from the envelope text so it is not duplicated.
-        JsonObject? image = null;
-        if (name == "capture" && env.Ok && env.Result?["base64"] is JsonValue b64) {
-            image = new JsonObject {
-                ["type"] = "image",
-                ["data"] = b64.GetValue<string>(),
-                ["mimeType"] = "image/png",
-            };
-            env.Result.Remove("base64");
-        }
+        // For capture, additionally surface the PNG as an MCP image content block so image-aware clients
+        // render it. The base64 stays in the envelope's result so text-only agents (which do not consume
+        // MCP image blocks) still get the bytes, as the result contract requires.
+        JsonObject? image = name == "capture" && env.Ok ? CaptureContent.TryBuildImageBlock(env.Result) : null;
 
         return McpResult(env, image);
     }
