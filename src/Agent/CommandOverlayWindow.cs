@@ -34,6 +34,7 @@ public sealed class CommandOverlayWindow : Form {
     private readonly OverlayFeed _feed = new(maxLines: 8, lifetime: TimeSpan.FromSeconds(8));
     private readonly Action<CommandEvent> _onEvent;
     private readonly System.Windows.Forms.Timer _ageTimer;
+    private readonly OverlayPosition _side;
 
     // The handle currently registered as ignored, tracked so a WinForms handle recreation never leaves a
     // stale HWND in the resolver's ignore set (a recycled value could otherwise hide a real window).
@@ -45,7 +46,8 @@ public sealed class CommandOverlayWindow : Form {
         TopMost = true;
         StartPosition = FormStartPosition.Manual;
         Text = string.Empty;
-        Bounds = OverlayLayout.RightFraction(Screen.PrimaryScreen!.WorkingArea, 0.30);
+        _side = AgentRuntime.Settings?.CommandOverlayPosition ?? OverlayPosition.Right;
+        Bounds = OverlayLayout.ForSide(Screen.PrimaryScreen!.WorkingArea, 0.30, _side);
 
         _onEvent = OnCommandEvent;
         CommandEventHub.Subscribe(_onEvent);
@@ -142,7 +144,7 @@ public sealed class CommandOverlayWindow : Form {
             SizeF size = g.MeasureString(ev.TerseText, font, width - pad * 2);
             float boxH = size.Height + pad;
             float boxW = Math.Min(size.Width + pad * 2, width);
-            float boxX = width - boxW; // right-aligned
+            float boxX = _side == OverlayPosition.Left ? 0 : width - boxW; // hug the docked edge
             float boxY = y - boxH;
             if (boxY < 0) {
                 break;

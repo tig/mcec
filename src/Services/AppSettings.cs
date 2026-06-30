@@ -139,6 +139,10 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public bool CommandOverlayEnabled { get; set; } = true;
 
+    // Which side of the primary screen the overlay docks to. Default Right.
+    [SafeForTelemetryAttribute]
+    public OverlayPosition CommandOverlayPosition { get; set; } = OverlayPosition.Right;
+
     // --- GIF recording limits (issue #80) ---
     // SECURITY/SAFETY: the agent `record` command is bounded by these so it cannot accidentally create
     // an unbounded file. Requests above a limit are CLAMPED (not failed) and the clamp is audited.
