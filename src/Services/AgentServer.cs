@@ -249,6 +249,13 @@ public static class AgentServer {
 
         AgentRuntime.Audit(name, args.ToJsonString(AgentJson.Options));
 
+        // The ambient session (#86) carries sessionId onto this result and remembers the target/
+        // observation/action/error. Snapshot the prior observation now, before this call records its own,
+        // so a failure can carry the last good state into error.lastObservation.
+        AgentSession session = AgentRuntime.Session;
+        JsonObject? priorObservation = session.LastObservation;
+        session.RecordAction(name);
+
         // `invoke` can activate a control that opens a MODAL dialog (About, Settings, message/file
         // dialogs). The UIA Invoke runs the control's click handler synchronously, so the call would
         // otherwise block — and hold ExecLock — for the dialog's whole lifetime, deadlocking every
@@ -261,7 +268,7 @@ public static class AgentServer {
         if (name == "invoke") {
             if (!TryRunInvokeWithModalGrace(cmd)) {
                 AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
-                return McpResult(AgentToolResult.Success(InvokeModalPendingResult()));
+                return McpResult(AgentToolResult.Success(InvokeModalPendingResult(), session.SessionId));
             }
         }
         else {
@@ -273,21 +280,33 @@ public static class AgentServer {
         // Translate the legacy CommandResult the command wrote into its reply into the #101 envelope.
         string captured = reply.Captured.Trim();
         if (string.IsNullOrEmpty(captured)) {
-            return McpResult(AgentToolResult.Failure("no-output", AgentErrorCategory.Internal, $"The '{name}' command produced no output."));
+            AgentError noOutput = new("no-output", AgentErrorCategory.Internal, $"The '{name}' command produced no output.", priorObservation);
+            session.RecordError(noOutput.ToJsonObject());
+            return McpResult(AgentToolResult.Failure(noOutput, session.SessionId));
         }
 
         if (TryParse(captured) is not JsonObject legacy) {
             // An agent command always emits CommandResult JSON; a non-JSON reply is unexpected. Carry the
             // raw text forward rather than fabricating a structured error.
-            return McpResult(AgentToolResult.Success(new JsonObject { ["output"] = captured }));
+            return McpResult(AgentToolResult.Success(new JsonObject { ["output"] = captured }, session.SessionId));
         }
 
-        AgentToolResult env = AgentToolResult.FromLegacy(legacy, name);
+        AgentToolResult env = AgentToolResult.FromLegacy(legacy, name, session.SessionId, priorObservation);
 
         // For capture, additionally surface the PNG as an MCP image content block so image-aware clients
         // render it. The base64 stays in the envelope's result so text-only agents (which do not consume
         // MCP image blocks) still get the bytes, as the result contract requires.
         JsonObject? image = name == "capture" && env.Ok ? CaptureContent.TryBuildImageBlock(env.Result) : null;
+
+        // Record this call's outcome so the next call's sessionId/lastObservation reflect it.
+        if (env.Ok) {
+            if (name is "query" or "capture" or "find") {
+                session.RecordObservation(env.Result, env.Result?["window"] as JsonObject);
+            }
+        }
+        else if (env.Error is not null) {
+            session.RecordError(env.Error.ToJsonObject());
+        }
 
         return McpResult(env, image);
     }
@@ -344,11 +363,14 @@ public static class AgentServer {
             invoker.ExecuteNext();
         }
 
+        AgentSession session = AgentRuntime.Session;
+        session.RecordAction("send_command");
+
         // The legacy command path returns opaque text, not a CommandResult; carry it forward as the
         // success payload. (Native success/failure detection for send_command is out of Phase 1 scope.)
         string captured = reply.Captured.Trim();
         JsonObject result = new() { ["output"] = string.IsNullOrEmpty(captured) ? "ok" : captured };
-        return McpResult(AgentToolResult.Success(result));
+        return McpResult(AgentToolResult.Success(result, session.SessionId));
     }
 
     /// <summary>Builds and populates an agent command instance from MCP tool arguments.</summary>
@@ -576,10 +598,11 @@ public static class AgentServer {
     /// <summary>
     /// A tool-level failure (a security gate or a bad request) reported as the #101 envelope. These are
     /// MCEC-side refusals the agent cannot recover from on its own, so they map to the <c>internal</c>
-    /// category; <paramref name="code"/> distinguishes the specific cause.
+    /// category; <paramref name="code"/> distinguishes the specific cause. The ambient session's id is
+    /// attached so even a refused call tells the agent which session it belonged to.
     /// </summary>
     private static JsonObject ToolError(string message, string code = "internal-error") =>
-        McpResult(AgentToolResult.Failure(code, AgentErrorCategory.Internal, message));
+        McpResult(AgentToolResult.Failure(new AgentError(code, AgentErrorCategory.Internal, message), AgentRuntime.Session.SessionId));
 
     private static JsonObject TextContent(string text) => new() {
         ["type"] = "text",

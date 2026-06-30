@@ -204,6 +204,18 @@ public class AgentToolResultTests {
     }
 
     [Fact]
+    public void FromLegacy_Failure_AttachesSessionIdAndPriorObservation() {
+        JsonObject legacy = CommandResult.Fail("invoke", "No matching window").ToJsonObject();
+        JsonObject prior = new() { ["window"] = "About" };
+
+        JsonObject env = AgentToolResult.FromLegacy(legacy, "invoke", "s-1234", prior).ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.Equal("s-1234", env["sessionId"]!.GetValue<string>());
+        Assert.Equal("About", env["error"]!["lastObservation"]!["window"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void Envelope_IsCamelCaseAndOmitsNulls() {
         string json = AgentToolResult.Success(new JsonObject { ["found"] = false }).ToJson();
 
