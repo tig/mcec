@@ -13,6 +13,11 @@
 # Include dlls if they�re in the NuGet packages directory
 !/packages/*/lib/*.dll
 !/packages/*/lib/*/*.dll
+
+###################
+# MCEC dogfood evidence bundles (screenshots may contain desktop contents)
+###################
+/artifacts/
 # Include dlls if they're in the CommonReferences directory
 !*CommonReferences/*.dll
 
