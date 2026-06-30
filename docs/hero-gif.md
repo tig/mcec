@@ -41,8 +41,9 @@ It is the executable form of these decisions — replicate them if reproducing b
    socket server and never prompts.)
 4. **Backdrop.** All desktop windows are minimized (`Shell.Application.MinimizeAll()`) before
    recording. The recorded region is the window's **original** pinned rect; once the tour resizes and
-   moves the window, the desktop wallpaper shows through the freed area, so a **solid-color wallpaper**
-   gives the cleanest hero. (The Settings/About dialogs are `CenterParent`, so they stay in frame.)
+   moves the window, the desktop wallpaper shows through the freed area — so whatever wallpaper is set
+   becomes the hero's backdrop (a calm, low-detail one keeps the file smaller; a busy photo is fine but
+   costs bytes). (The Settings/About dialogs are `CenterParent`, so they stay in frame.)
 5. **Record.** `record action:start` over the window region at a low fps, then drive the tour (settings
    tabs, resize-drag, title-bar circles, About), then `record action:stop file:docs/hero.gif`.
 
@@ -52,7 +53,7 @@ Connect to the controller (`mcec.exe --mcp`) and, after the subject is launched 
 
 | Step | Tool call |
 |------|-----------|
-| Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:680 }` (region = the subject window's pinned rect) |
+| Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:600 }` (region = the subject window's pinned rect) |
 | Settings | click **File** → send `S` → `query` the **Settings** window → click each tab header's rect (`mouse:mt,…` + `mouse:lbc`) in turn → `Esc` |
 | Resize | drag the bottom-right sizing border inward: `mouse:mt` to the corner → `mouse:lbd` → a few `mouse:mt` moves → `mouse:lbu` |
 | Move | drag the title bar in circles: `mouse:mt` onto the title bar → `mouse:lbd` → `mouse:mt` around a small circle → `mouse:lbu` |
@@ -62,6 +63,6 @@ Connect to the controller (`mcec.exe --mcp`) and, after the subject is launched 
 ## Tuning size
 
 The GIF encoder writes full (non-diffed) frames, so **file size ≈ frame count × frame area**. The
-deeper tour runs ~23 s → ~70 frames → ≈8 MB at 680 px wide, 4 fps. To shrink the hero, lower `fps`,
-lower `maxWidth`, or trim the per-step dwell `Start-Sleep`s in the script.
+deeper tour is tuned to ~14 s → ~46 frames → ≈4 MB at 600 px wide, 4 fps. To shrink it further, lower
+`fps`, lower `maxWidth`, or trim the per-step dwell `Start-Sleep`s; to make it richer, raise them.
 </content>

@@ -128,7 +128,7 @@ function ClickAbs([int]$cx, [int]$cy) { MoveAbs $cx $cy; Cmd 'mouse:lbc' }
 function Drag($points) {
   MoveAbs $points[0][0] $points[0][1]; Start-Sleep -Milliseconds 150
   Cmd 'mouse:lbd'; Start-Sleep -Milliseconds 200
-  foreach ($p in $points[1..($points.Count - 1)]) { MoveAbs $p[0] $p[1]; Start-Sleep -Milliseconds 130 }
+  foreach ($p in $points[1..($points.Count - 1)]) { MoveAbs $p[0] $p[1]; Start-Sleep -Milliseconds 90 }
   Start-Sleep -Milliseconds 150; Cmd 'mouse:lbu'
 }
 function Find($node, [scriptblock]$pred) {
@@ -153,9 +153,9 @@ try {
   (New-Object -ComObject Shell.Application).MinimizeAll()
   Start-Sleep -Milliseconds 800
 
-  # fps 4 + downscale to 680 keeps the hero compact (the encoder writes full frames, so frame
-  # count x width drive file size).
-  $rec = Tool 'record' @{ action = 'start'; x = $rx; y = $ry; width = $rw; height = $rh; fps = 4; maxWidth = 680 }
+  # fps 4 + downscale to 600 keeps the hero compact (the encoder writes full frames, so frame
+  # count x width drive file size; the per-step dwells below are tuned to keep the tour short).
+  $rec = Tool 'record' @{ action = 'start'; x = $rx; y = $ry; width = $rw; height = $rh; fps = 4; maxWidth = 600 }
   Write-Host "record start: $($rec.result.content[0].text)"
   Start-Sleep -Milliseconds 500
 
@@ -166,7 +166,7 @@ try {
   for ($i = 0; $i -lt 25; $i++) { Start-Sleep -Milliseconds 600; $tree = QueryTree 'MCEC' 4; if ($tree) { break } }
   if (-not $tree) { throw 'subject MCEC window never appeared' }
   Write-Host 'subject window up'
-  Start-Sleep -Milliseconds 1200   # dwell on the freshly-started window
+  Start-Sleep -Milliseconds 600    # dwell on the freshly-started window
   $tree = QueryTree 'MCEC' 5        # re-query so the menu bar is fully built before we locate it
 
   $isMenu = { param($n) ($n.controlType -match 'MenuItem') }
@@ -185,11 +185,11 @@ try {
     $tab = Find $stree { param($n) $n.name -eq $tn -and $n.controlType -match 'TabItem' }
     if ($tab) {
       ClickAbs ([int]($tab.x + $tab.width / 2)) ([int]($tab.y + $tab.height / 2))
-      Write-Host "  tab: $tn"; Start-Sleep -Milliseconds 1100
+      Write-Host "  tab: $tn"; Start-Sleep -Milliseconds 600
     }
     else { Write-Host "  (tab '$tn' not found in tree)" }
   }
-  Cmd 'key_esc'; Start-Sleep -Milliseconds 1000   # close Settings (modal) before touching the main window
+  Cmd 'key_esc'; Start-Sleep -Milliseconds 500    # close Settings (modal) before touching the main window
 
   # --- Resize the main window ~25% smaller by dragging the bottom-right sizing border inward. ---
   # The window is pinned at ($winX,$winY,$winW,$winH); the recorded region is that same rect, so the
@@ -202,7 +202,7 @@ try {
     , @([int](($corner0X + $corner1X) / 2), [int](($corner0Y + $corner1Y) / 2))
     , @($corner1X, $corner1Y)
   )
-  Start-Sleep -Milliseconds 1000
+  Start-Sleep -Milliseconds 500
 
   # --- Move the window by dragging its title bar in small circles. ---
   # Grab the title bar (offset from the now-resized window's top-left), then walk the cursor around two
@@ -212,22 +212,22 @@ try {
   $offX = $grabX - $winX; $offY = $grabY - $winY             # cursor-to-window-top-left offset
   $ccx = $winX + 90 + $offX; $ccy = $winY + 70 + $offY; $r = 55   # circle centre, in cursor space
   $path = @(, @($grabX, $grabY))                            # button-down on the title bar
-  for ($a = 0; $a -le 720; $a += 30) {
+  for ($a = 0; $a -le 720; $a += 40) {
     $rad = [math]::PI * $a / 180.0
     $path += , @([int]($ccx + $r * [math]::Cos($rad)), [int]($ccy + $r * [math]::Sin($rad)))
   }
   Drag $path
-  Start-Sleep -Milliseconds 1000
+  Start-Sleep -Milliseconds 500
 
   # --- Help > About (re-query: the window moved, so the menu bar is at fresh coordinates). ---
   $tree = QueryTree 'MCEC' 5
   $help = Find $tree { param($n) (& $isMenu $n) -and $n.name -eq 'Help' }
   if (-not $help) { throw 'Help menu item not found after move' }
   ClickAbs ([int]($help.x + $help.width / 2)) ([int]($help.y + $help.height / 2))
-  Start-Sleep -Milliseconds 600; Cmd 'key_a'; Start-Sleep -Milliseconds 1800
+  Start-Sleep -Milliseconds 500; Cmd 'key_a'; Start-Sleep -Milliseconds 1200
 
   # --- Pause on the About box, then stop. ---
-  Start-Sleep -Milliseconds 2500
+  Start-Sleep -Milliseconds 1500
 
   $stop = Tool 'record' @{ action = 'stop'; file = $outGif }
   Write-Host "record stop: $($stop.result.content[0].text)"
