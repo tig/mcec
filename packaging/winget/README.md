@@ -32,7 +32,7 @@ which smooths winget validation (sandbox install/uninstall + SmartScreen).
    and open a PR under `manifests/k/Kindel/mcec/<version>/`. `komac` automates this:
    ```bash
    komac update Kindel.mcec --version <v> \
-     --urls https://github.com/tig/mcec/releases/download/v<v>/MCEController.Setup.exe \
+     --urls https://github.com/tig/mcec/releases/download/v<v>/mcec.Setup.exe \
      --token <PAT> --submit
    ```
 
@@ -51,11 +51,11 @@ ReleaseDate:     2026-06-29
 ## Notes / things to validate on a real install
 
 - **Installer type `nullsoft`** (NSIS), **`Scope: machine`** — installs to
-  `C:\Program Files\Kindel Systems\MCE Controller` and requires elevation. winget's silent mode
+  `C:\Program Files\Kindel Systems\MCEC` and requires elevation. winget's silent mode
   and the winget-pkgs sandbox use the NSIS `/S` switch.
 - **`winget upgrade` correlation:** the manifests intentionally omit `AppsAndFeaturesEntries`
   for now. The NSIS installer registers its Add/Remove Programs `DisplayName` as
-  "MCE Controller `<version>`" (includes the version). Before adding `AppsAndFeaturesEntries`,
-  standardize the installer `DisplayName` to just "MCE Controller" (drop the version, keep
+  "MCEC `<version>`" (includes the version). Before adding `AppsAndFeaturesEntries`,
+  standardize the installer `DisplayName` to just "MCEC" (drop the version, keep
   `DisplayVersion`) so upgrade detection is stable across versions.
 - Only the **x64** installer is published; add more `Installers` entries if other arches ship.

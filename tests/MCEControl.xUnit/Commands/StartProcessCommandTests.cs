@@ -64,8 +64,12 @@ public class StartProcessCommandTests
     }
 
     [Fact]
-    public void Execute_WithNullReply_ThrowsNullReferenceException()
+    public void Execute_WithNullReply_Throws()
     {
+        // Reaching the null-Reply guard requires getting past base.Execute(), whose telemetry metric
+        // needs an initialized telemetry client. Initialize it so this test is deterministic regardless
+        // of whether other tests in the run have already done so.
+        AgentTestSupport.EnsureTelemetry();
         var cmd = new StartProcessCommand
         {
             Cmd = "test",
@@ -74,7 +78,7 @@ public class StartProcessCommandTests
             Reply = null!
         };
 
-        Assert.Throws<NullReferenceException>(() => cmd.Execute());
+        Assert.Throws<InvalidOperationException>(() => cmd.Execute());
     }
 
     [Fact]

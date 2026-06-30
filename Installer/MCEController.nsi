@@ -1,4 +1,4 @@
-; NSIS installer for MCE Controller (.NET 10, self-contained).
+; NSIS installer for MCEC (Model Context Environment Controller); .NET 10, self-contained.
 ;
 ; Build via Release.ps1 (recommended), or directly:
 ;   makensis /DVERSION=2.4.0 /DPUBLISHDIR=<abs path to publish folder> Installer\MCEController.nsi
@@ -16,14 +16,14 @@ Unicode True
   !define PUBLISHDIR "${__FILEDIR__}\..\src\bin\publish"
 !endif
 !ifndef OUTFILE
-  !define OUTFILE "${__FILEDIR__}\..\src\bin\MCEController.Setup.exe"
+  !define OUTFILE "${__FILEDIR__}\..\src\bin\mcec.Setup.exe"
 !endif
 
-!define PRODUCT_NAME "MCE Controller"
+!define PRODUCT_NAME "MCEC"
 !define PRODUCT_VERSION "${VERSION}"
 !define PRODUCT_PUBLISHER "Kindel Systems"
 !define PRODUCT_WEB_SITE "https://github.com/tig/mcec/wiki"
-!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\MCEControl.exe"
+!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\mcec.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 !define PRODUCT_STARTMENU_REGVAL "NSIS:StartMenuDir"
@@ -57,6 +57,9 @@ ${NSD_GetState} $mycheckbox $0
 ${If} ${RunningX64}
     SetRegView 64
 ${EndIf}
+# NOTE: This registry key is legacy infrastructure read by the app (TelemetryService /
+# AppSettings DisableInternalCommands) — it stays "MCE Controller" for back-compat, like the
+# "Kindel Systems" company name, even though the product is now branded MCEC.
 WriteRegDWORD HKLM "Software\Kindel Systems\MCE Controller" "Telemetry" $0
 ${If} ${RunningX64}
 SetRegView 32
@@ -69,7 +72,7 @@ FunctionEnd
 
 var ICONS_GROUP
 !define MUI_STARTMENUPAGE_NODISABLE
-!define MUI_STARTMENUPAGE_DEFAULTFOLDER "MCE Controller"
+!define MUI_STARTMENUPAGE_DEFAULTFOLDER "MCEC"
 !define MUI_STARTMENUPAGE_REGISTRY_ROOT "${PRODUCT_UNINST_ROOT_KEY}"
 !define MUI_STARTMENUPAGE_REGISTRY_KEY "${PRODUCT_UNINST_KEY}"
 !define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "${PRODUCT_STARTMENU_REGVAL}"
@@ -77,8 +80,8 @@ var ICONS_GROUP
 
 !insertmacro MUI_PAGE_INSTFILES
 
-!define MUI_FINISHPAGE_RUN "$INSTDIR\MCEControl.exe"
-!define MUI_FINISHPAGE_LINK "MCE Controller Home Page."
+!define MUI_FINISHPAGE_RUN "$INSTDIR\mcec.exe"
+!define MUI_FINISHPAGE_LINK "MCEC Home Page."
 !define MUI_FINISHPAGE_LINK_LOCATION "https://tig.github.io/mcec"
 !insertmacro MUI_PAGE_FINISH
 
@@ -87,22 +90,22 @@ var ICONS_GROUP
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${OUTFILE}"
-InstallDir "$PROGRAMFILES64\Kindel Systems\MCE Controller"
+InstallDir "$PROGRAMFILES64\Kindel Systems\MCEC"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
 
 Section "MainSection" SEC01
   ; Stop any running instance so files can be overwritten during an upgrade
-  nsExec::Exec 'taskkill /F /IM MCEControl.exe'
+  nsExec::Exec 'taskkill /F /IM mcec.exe'
   Sleep 500
   SetOutPath "$INSTDIR"
   SetOverwrite on
   ; Recursively install the entire self-contained publish output
   File /r "${PUBLISHDIR}\*.*"
   CreateDirectory "$SMPROGRAMS\$ICONS_GROUP"
-  CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\MCE Controller.lnk" "$INSTDIR\MCEControl.exe"
-  CreateShortCut "$DESKTOP\MCE Controller.lnk" "$INSTDIR\MCEControl.exe"
+  CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\MCEC.lnk" "$INSTDIR\mcec.exe"
+  CreateShortCut "$DESKTOP\MCEC.lnk" "$INSTDIR\mcec.exe"
 SectionEnd
 
 Section -AdditionalIcons
@@ -111,10 +114,10 @@ SectionEnd
 
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
-  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\MCEControl.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\mcec.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\MCEControl.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\mcec.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "${PRODUCT_STARTMENU_REGVAL}" "$ICONS_GROUP"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
@@ -132,14 +135,14 @@ Function un.onInit
 FunctionEnd
 
 Section Uninstall
-  nsExec::Exec 'taskkill /F /IM MCEControl.exe'
+  nsExec::Exec 'taskkill /F /IM mcec.exe'
   Sleep 500
   ReadRegStr $ICONS_GROUP ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "${PRODUCT_STARTMENU_REGVAL}"
   ; Remove the whole self-contained install tree
   RMDir /r "$INSTDIR"
   Delete "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk"
-  Delete "$DESKTOP\MCE Controller.lnk"
-  Delete "$SMPROGRAMS\$ICONS_GROUP\MCE Controller.lnk"
+  Delete "$DESKTOP\MCEC.lnk"
+  Delete "$SMPROGRAMS\$ICONS_GROUP\MCEC.lnk"
   RMDir "$SMPROGRAMS\$ICONS_GROUP"
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"

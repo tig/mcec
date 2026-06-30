@@ -3,23 +3,23 @@
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 <Commands xmlns="http://www.kindel.com/products/mcecontroller">
 <!--
-MCE Controller Example Commands File
+MCEC (Model Context Environment Controller) Example Commands File
 Copyright 2017 Kindel Sytems, LLC.
 
 ===================================================================
- Modify this file to extend/change the commands MCE Controller     
- supports. 
- 
- This file must be named MCEControl.commands and must be placed 
- in the same directory as the MCEControl.exe file.
+ Modify this file to extend/change the commands MCEC
+ supports.
+
+ This file must be named mcec.commands and must be placed
+ in the same directory as the mcec.exe file.
 ===================================================================
 
 See the documentation at https://github.com/tig/mcec/wiki for
-full details on the commands supported by MCE Controller.
+full details on the commands supported by MCEC.
 
 The following types of commands can be defined in this
-file, which is read when MCE Controller starts. Any commands
-defined in MCEControl.commands will override built-in commands.
+file, which is read when MCEC starts. Any commands
+defined in mcec.commands will override built-in commands.
 
 StartProcess - Starts the specified process.
 
@@ -39,7 +39,7 @@ keyboard keystrokes the Cmd key is either the keyboard letter
 (e.g. "A" or "a") or a virutal key-code name (e.g. "VK_UP" or
 "vk_up").
 
-MCE Controller supports a special set of built-in commands which
+MCEC supports a special set of built-in commands which
 can NOT be overridden here.  The built-in commands include:
 
 Single characters, 'chars:', 'shiftdown:', 'shiftup:', and

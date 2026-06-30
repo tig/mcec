@@ -45,7 +45,7 @@
             this._labelTitle.Name = "_labelTitle";
             this._labelTitle.Size = new System.Drawing.Size(410, 63);
             this._labelTitle.TabIndex = 0;
-            this._labelTitle.Text = "MCE Controller";
+            this._labelTitle.Text = "MCEC";
             this._labelTitle.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // _linkLabelMceController

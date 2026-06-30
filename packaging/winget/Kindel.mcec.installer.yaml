@@ -3,7 +3,7 @@
 # from the signed release (https://github.com/tig/mcec/releases). See README.md.
 PackageIdentifier: Kindel.mcec
 PackageVersion: "{{version}}"
-# MCE Controller ships an NSIS installer (per-machine; requires elevation). winget's
+# MCEC ships an NSIS installer (per-machine; requires elevation). winget's
 # "nullsoft" type knows the silent switch is /S.
 InstallerType: nullsoft
 Scope: machine

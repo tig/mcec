@@ -18,7 +18,7 @@ namespace MCEControl;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "This is just settings info.")]
 public class AppSettings : ICloneable {
-    public const string SettingsFileName = "MCEControl.settings";
+    public const string SettingsFileName = "mcec.settings";
 
     // Global
     [XmlIgnore] public bool DisableInternalCommands;
@@ -100,6 +100,22 @@ public class AppSettings : ICloneable {
     // TELEMETRY: NOT SAFE FOR PII - MUST DEFAULT TO FALSE
     public bool LogUserActivity { get; set; } = false;
 
+    // --- MCEC 3.0 agent (Model Context Environment Controller) settings ---
+    // SECURITY: The observation/targeting commands (capture/query/find/invoke) ship DISABLED by
+    // default and require their OWN explicit opt-in, separate from the actuation enable. Enabling
+    // "press keys" must not silently enable "screenshot my screen".
+    [SafeForTelemetryAttribute]
+    public bool AgentCommandsEnabled { get; set; } = false;
+
+    // The MCP/HTTP façade is off by default and binds to localhost only unless deliberately changed.
+    [SafeForTelemetryAttribute]
+    public bool McpServerEnabled { get; set; } = false;
+
+    // TELEMETRY: A bind address is PII-adjacent, so it is not collected.
+    public string McpBindAddress { get; set; } = "127.0.0.1";
+    [SafeForTelemetryAttribute]
+    public int McpHttpPort { get; set; } = 5151;
+
     #region ICloneable Members
 
     public object Clone() {
@@ -164,7 +180,9 @@ public class AppSettings : ICloneable {
         }
         catch (Exception e) {
             Logger.Instance.Log4.Info($"Settings: Settings file could not be written. {settingsFile} {e.Message}");
-            MessageBox.Show($"Settings file could not be written. {settingsFile} {e.Message}");
+            if (!AgentRuntime.Headless) {
+                MessageBox.Show($"Settings file could not be written. {settingsFile} {e.Message}");
+            }
         }
     }
 
@@ -202,7 +220,9 @@ public class AppSettings : ICloneable {
         }
         catch (UnauthorizedAccessException e) {
             Logger.Instance.Log4.Error($"Settings: Settings file could not be loaded. {e.Message}");
-            MessageBox.Show($"Settings file could not be loaded. {e.Message}");
+            if (!AgentRuntime.Headless) {
+                MessageBox.Show($"Settings file could not be loaded. {e.Message}");
+            }
         }
         finally {
             if (reader != null) {

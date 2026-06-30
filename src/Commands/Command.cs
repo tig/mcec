@@ -43,6 +43,10 @@ public abstract class Command : ICommand {
     [XmlElement("pause", typeof(PauseCommand))]
     [XmlElement("mouse", typeof(MouseCommand))]
     [XmlElement("mceccommand", typeof(McecCommand))]
+    [XmlElement("capture", typeof(CaptureCommand))]
+    [XmlElement("query", typeof(QueryCommand))]
+    [XmlElement("find", typeof(FindCommand))]
+    [XmlElement("invoke", typeof(InvokeCommand))]
     [XmlElement(typeof(Command))]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
     public List<Command> EmbeddedCommands { get; set; } = null!;
@@ -98,7 +102,7 @@ public abstract class Command : ICommand {
         if (!Enabled) {
             Logger.Instance.Log4.Info($"Command: Attempt to execute a disabled command ({Cmd})");
             Logger.Instance.Log4.Info($"         As of MCE Controller v2.2.1 commands are disabled by default.");
-            Logger.Instance.Log4.Info($"         Edit MCEControl.commands to enable commands (change `Enabled=\"false\"' to 'Enabled=\"true\"').");
+            Logger.Instance.Log4.Info($"         Edit mcec.commands to enable commands (change `Enabled=\"false\"' to 'Enabled=\"true\"').");
             return false;
         }
         // TELEMETRY: 

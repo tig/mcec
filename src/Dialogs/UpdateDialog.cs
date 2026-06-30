@@ -16,7 +16,7 @@ public partial class UpdateDialog : Form {
 
         StartPosition = FormStartPosition.CenterParent;
 
-        this.labelNewVersion.Text = $"A newer version of MCE Controller ({UpdateService.Instance.LatestStableVersion}) is available.";
+        this.labelNewVersion.Text = $"A newer version of MCEC ({UpdateService.Instance.LatestStableVersion}) is available.";
         this.linkReleasePage.Links[0].LinkData = UpdateService.Instance.ReleasePageUri.AbsoluteUri;
     }
 

@@ -113,7 +113,7 @@ public partial class CommandWindow : Form {
         // why: 
         TelemetryService.Instance.TrackEvent("saveChangesBtn_Click");
 
-        MainWindow.Instance.Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
+        MainWindow.Instance.Invoker.Save($@"{Program.ConfigPath}mcec.commands");
     }
 
     private void testRadio_CheckedChanged(object sender, EventArgs e) {

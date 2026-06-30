@@ -30,7 +30,7 @@ Debug builds check for pre-releases and there should ALWAYS be a fake, NEWER pre
 
 ## Installer
 
-* `Installer\MCEController Setup.exe`
+* `Installer\mcec.Setup.exe`
 * Built using NSIS. A post-build event runs `makensis.exe` against `Installer/Installer.nsi`
 
 ## How to Release a new version
@@ -44,7 +44,7 @@ Debug builds check for pre-releases and there should ALWAYS be a fake, NEWER pre
 1. `git push --tags`
 1. `git push --all`
 1. On [Releases page](https://github.com/tig/mcec/releases) "Draft New Release"
-  * Title of form "MCE Controller Version 2.2.10"
+  * Title of form "MCEC Version 2.2.10"
   * Auto generate release notes and edit as needed.
   * Add the following to end:
 
@@ -53,10 +53,10 @@ To install, copy and paste the following command into a PowerShell command windo
 
 
 ```powershell
-$mcecv="v2.2.10.2"; $mcec="MCEController.Setup.exe"; iwr https://github.com/tig/mcec/releases/download/$mcecv/$mcec -outfile "$env:temp\$mcec"; start "$env:temp\$mcec"
+$mcecv="v2.2.10.2"; $mcec="mcec.Setup.exe"; iwr https://github.com/tig/mcec/releases/download/$mcecv/$mcec -outfile "$env:temp\$mcec"; start "$env:temp\$mcec"
 ```
 ````
-   * Drag & Drop `Installer/MCEController Setup.exe` to "Attach binaries..." 
+   * Drag & Drop `Installer/mcec.Setup.exe` to "Attach binaries..." 
    * Click Publish Release
 
 ## Unit Tests

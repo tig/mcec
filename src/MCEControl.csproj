@@ -4,7 +4,9 @@
         <TargetFramework>net10.0-windows</TargetFramework>
         <UseWindowsForms>true</UseWindowsForms>
         <ApplicationIcon>Resources\Guillen.Icon.ico</ApplicationIcon>
-        <AssemblyName>MCEControl</AssemblyName>
+        <!-- v3.0: the executable is now `mcec.exe`. RootNamespace stays `MCEControl` (internal only)
+             to avoid churning every source file; the product is branded "MCEC". -->
+        <AssemblyName>mcec</AssemblyName>
         <RootNamespace>MCEControl</RootNamespace>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -41,6 +43,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
         <PackageReference Include="log4net" Version="3.3.2" />
         <PackageReference Include="Microsoft.ApplicationInsights" Version="2.22.0" />
         <PackageReference Include="Octokit" Version="14.0.0" />

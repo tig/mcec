@@ -124,6 +124,9 @@ public partial class MainWindow : Form {
         // Load AppSettings
         Settings = AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
 
+        // Expose settings to the UI-agnostic agent engine (capture/query/find/invoke + MCP/HTTP).
+        AgentRuntime.Settings = Settings;
+
         // Configure logging (some logging already happened).
         Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![Instance.Settings.TextBoxLogThreshold]!;
         Logger.Instance.Log4.Info($"Logger: Logging to {Logger.Instance.LogFile}");
@@ -139,7 +142,7 @@ public partial class MainWindow : Form {
 
         LoadCommands();
         // watch .command file for changes
-        watcher = new CommandFileWatcher($@"{Program.ConfigPath}MCEControl.commands");
+        watcher = new CommandFileWatcher($@"{Program.ConfigPath}mcec.commands");
         watcher.ChangedEvent += (o, a) => CmdTable_CommandsChangedEvent(o!, a);
 
         if (Settings.HideOnStartup) {
@@ -210,7 +213,8 @@ public partial class MainWindow : Form {
             // Invoker.Dispose();
         }
 
-        Invoker = CommandInvoker.Create($@"{Program.ConfigPath}MCEControl.commands", Application.ProductVersion, Settings.DisableInternalCommands);
+        Invoker = CommandInvoker.Create($@"{Program.ConfigPath}mcec.commands", Application.ProductVersion, Settings.DisableInternalCommands);
+        AgentRuntime.Invoker = Invoker;
         if (Invoker == null) {
             notifyIcon.Visible = false;
         }
@@ -240,7 +244,7 @@ public partial class MainWindow : Form {
             watcher = null!;
 
             // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
-            //Invoker.Save($@"{Program.ConfigPath}MCEControl.commands");
+            //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
             TelemetryService.Instance.Stop();
         }
     }
@@ -261,6 +265,11 @@ public partial class MainWindow : Form {
             StartClient();
         }
 
+        // MCEC 3.0: optional MCP/HTTP agent front door (localhost-bound, off by default).
+        if (Settings.McpServerEnabled) {
+            AgentServer.StartHttp();
+        }
+
         if (Settings.ActivityMonitorEnabled) {
             UserActivityMonitorService.Instance.DebounceTime = Settings.ActivityMonitorDebounceTime;
             UserActivityMonitorService.Instance.ActivityMsg = Settings.ActivityMonitorCommand;
@@ -278,6 +287,7 @@ public partial class MainWindow : Form {
         }
         else {
             UserActivityMonitorService.Instance.Stop();
+            AgentServer.StopHttp();
             StopClient();
             StopServer();
             StopSerialServer();
@@ -480,7 +490,9 @@ public partial class MainWindow : Form {
         }
         else {
             statusStripStatus.Text = text;
-            notifyIcon.Text = text;
+            // NotifyIcon.Text throws if longer than 127 chars. Status text can include the full
+            // informational version (e.g. a long prerelease "x.y.z-branch.n+sha" string), so cap it.
+            notifyIcon.Text = text.Length > 127 ? text[..124] + "..." : text;
         }
     }
 
