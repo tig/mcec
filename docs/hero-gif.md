@@ -53,7 +53,7 @@ Connect to the controller (`mcec.exe --mcp`) and, after the subject is launched 
 
 | Step | Tool call |
 |------|-----------|
-| Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:600 }` (region = the subject window's pinned rect) |
+| Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:440 }` (region = the subject window's pinned rect) |
 | Settings | click **File** → send `S` → `query` the **Settings** window → click each tab header's rect (`mouse:mt,…` + `mouse:lbc`) in turn → `Esc` |
 | Resize | drag the bottom-right sizing border inward: `mouse:mt` to the corner → `mouse:lbd` → a few `mouse:mt` moves → `mouse:lbu` |
 | Move | drag the title bar in circles: `mouse:mt` onto the title bar → `mouse:lbd` → `mouse:mt` around a small circle → `mouse:lbu` |
@@ -63,6 +63,6 @@ Connect to the controller (`mcec.exe --mcp`) and, after the subject is launched 
 ## Tuning size
 
 The GIF encoder writes full (non-diffed) frames, so **file size ≈ frame count × frame area**. The
-deeper tour is tuned to ~14 s → ~46 frames → ≈4 MB at 600 px wide, 4 fps. To shrink it further, lower
+deeper tour is tuned to ~13 s → ~42 frames → ≈2 MB at 440 px wide, 4 fps. To shrink it further, lower
 `fps`, lower `maxWidth`, or trim the per-step dwell `Start-Sleep`s; to make it richer, raise them.
 </content>

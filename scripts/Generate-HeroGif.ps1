@@ -153,9 +153,9 @@ try {
   (New-Object -ComObject Shell.Application).MinimizeAll()
   Start-Sleep -Milliseconds 800
 
-  # fps 4 + downscale to 600 keeps the hero compact (the encoder writes full frames, so frame
+  # fps 4 + downscale to 440 keeps the hero compact (the encoder writes full frames, so frame
   # count x width drive file size; the per-step dwells below are tuned to keep the tour short).
-  $rec = Tool 'record' @{ action = 'start'; x = $rx; y = $ry; width = $rw; height = $rh; fps = 4; maxWidth = 600 }
+  $rec = Tool 'record' @{ action = 'start'; x = $rx; y = $ry; width = $rw; height = $rh; fps = 4; maxWidth = 440 }
   Write-Host "record start: $($rec.result.content[0].text)"
   Start-Sleep -Milliseconds 500
 
@@ -212,7 +212,7 @@ try {
   $offX = $grabX - $winX; $offY = $grabY - $winY             # cursor-to-window-top-left offset
   $ccx = $winX + 90 + $offX; $ccy = $winY + 70 + $offY; $r = 55   # circle centre, in cursor space
   $path = @(, @($grabX, $grabY))                            # button-down on the title bar
-  for ($a = 0; $a -le 720; $a += 40) {
+  for ($a = 0; $a -le 720; $a += 50) {
     $rad = [math]::PI * $a / 180.0
     $path += , @([int]($ccx + $r * [math]::Cos($rad)), [int]($ccy + $r * [math]::Sin($rad)))
   }
@@ -224,10 +224,10 @@ try {
   $help = Find $tree { param($n) (& $isMenu $n) -and $n.name -eq 'Help' }
   if (-not $help) { throw 'Help menu item not found after move' }
   ClickAbs ([int]($help.x + $help.width / 2)) ([int]($help.y + $help.height / 2))
-  Start-Sleep -Milliseconds 500; Cmd 'key_a'; Start-Sleep -Milliseconds 1200
+  Start-Sleep -Milliseconds 500; Cmd 'key_a'; Start-Sleep -Milliseconds 1000
 
   # --- Pause on the About box, then stop. ---
-  Start-Sleep -Milliseconds 1500
+  Start-Sleep -Milliseconds 1000
 
   $stop = Tool 'record' @{ action = 'stop'; file = $outGif }
   Write-Host "record stop: $($stop.result.content[0].text)"
