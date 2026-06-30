@@ -103,7 +103,12 @@ public static class AgentServer {
         "untitled popups are not enumerated by title/process — target them by handle or `foreground:true`.\n" +
         "2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, " +
         "state, value) so you can pick a control instead of guessing pixels; `capture` returns a PNG " +
-        "of the window (works on composited WinUI/WPF surfaces).\n" +
+        "of the window (works on composited WinUI/WPF surfaces). Use `capture` for a single state " +
+        "check; use `record` ONLY to show CHANGE over time — an animated GIF of a sequence, or a repro " +
+        "of a transient/flicker. `record` either runs as a bounded one-shot (`durationMs`) or as " +
+        "`action:start` then `action:stop`; keep recordings short — fps/duration are capped and frames " +
+        "are downscaled so the file stays bounded. It captures whatever is on screen for the whole " +
+        "duration, so prefer a still `capture` when one frame answers the question.\n" +
         "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
         "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
         "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
@@ -114,7 +119,7 @@ public static class AgentServer {
         "control to appear before acting. " +
         "`send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
         "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
-        "SECURITY: observation tools (capture/query/find/invoke) only work when the operator has set " +
+        "SECURITY: observation tools (capture/query/find/invoke/record) only work when the operator has set " +
         "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
         "than retrying. Every action is audit-logged on the host.";
 
@@ -177,6 +182,20 @@ public static class AgentServer {
             "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus) — more reliable than coordinate clicks.",
             invokeProps, ["value"]));
 
+        JsonObject recordProps = WindowTargetProps();
+        recordProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
+        recordProps["y"] = PropSchema("integer", "Region top");
+        recordProps["width"] = PropSchema("integer", "Region width");
+        recordProps["height"] = PropSchema("integer", "Region height");
+        recordProps["action"] = PropSchema("string", "start | stop | oneshot (default: oneshot if durationMs given, else start)");
+        recordProps["fps"] = PropSchema("integer", "Frames per second (default 5, clamped to the operator limit)");
+        recordProps["durationMs"] = PropSchema("integer", "For a one-shot: how long to record (clamped to the operator limit)");
+        recordProps["maxWidth"] = PropSchema("integer", "Downscale frames so width fits this (default 1280)");
+        recordProps["file"] = PropSchema("string", "Output .gif path (a temp path is generated if omitted)");
+        tools.Add(Tool("record",
+            "Record a window or region to an animated GIF over time (start/stop or a bounded one-shot). Use only to show CHANGE over time; for a single state check use capture.",
+            recordProps, []));
+
         tools.Add(Tool("send_command",
             "Send any raw MCEC command string to the existing command core (e.g. actuation commands).",
             new JsonObject { ["command"] = PropSchema("string", "The MCEC command string to enqueue") },
@@ -207,7 +226,7 @@ public static class AgentServer {
             return RunSendCommand(args);
         }
 
-        if (name is "capture" or "query" or "find" or "wait-for" or "invoke") {
+        if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError($"Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
@@ -252,6 +271,12 @@ public static class AgentServer {
                     ["isError"] = false,
                 };
             }
+        }
+        else if (name == "record") {
+            // `record` manages its own background capture thread; a one-shot blocks the caller for the
+            // whole recording duration. Do NOT hold ExecLock for that span or it would stall every
+            // other tool call. Frame grabbing runs off-lock on the recorder thread regardless.
+            cmd.Execute();
         }
         else {
             lock (ExecLock) {
@@ -383,6 +408,22 @@ public static class AgentServer {
             By = Str(args, "by") ?? "name",
             Value = Str(args, "value")!,
             Timeout = Int(args, "timeout"),
+        },
+        "record" => new RecordCommand {
+            Action = Str(args, "action")!,
+            Window = Str(args, "window")!,
+            Handle = Long(args, "handle"),
+            Process = Str(args, "process")!,
+            ClassName = Str(args, "className")!,
+            Foreground = Bool(args, "foreground"),
+            X = Int(args, "x"),
+            Y = Int(args, "y"),
+            Width = Int(args, "width"),
+            Height = Int(args, "height"),
+            Fps = Int(args, "fps"),
+            DurationMs = Int(args, "durationMs"),
+            MaxWidth = Int(args, "maxWidth"),
+            File = Str(args, "file")!,
         },
         _ => new InvokeCommand { // invoke
             Window = Str(args, "window")!,

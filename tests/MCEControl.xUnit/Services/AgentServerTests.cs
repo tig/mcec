@@ -52,6 +52,7 @@ public class AgentServerTests {
         Assert.Contains("find", names);
         Assert.Contains("wait-for", names);
         Assert.Contains("invoke", names);
+        Assert.Contains("record", names);
         Assert.Contains("send_command", names);
     }
 
