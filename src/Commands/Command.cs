@@ -102,7 +102,7 @@ public abstract class Command : ICommand {
     public virtual bool Execute() {
         if (!Enabled) {
             Logger.Instance.Log4.Info($"Command: Attempt to execute a disabled command ({Cmd})");
-            Logger.Instance.Log4.Info($"         As of MCE Controller v2.2.1 commands are disabled by default.");
+            Logger.Instance.Log4.Info($"         As of MCEC v2.2.1 commands are disabled by default.");
             Logger.Instance.Log4.Info($"         Edit mcec.commands to enable commands (change `Enabled=\"false\"' to 'Enabled=\"true\"').");
             return false;
         }
