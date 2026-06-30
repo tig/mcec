@@ -19,22 +19,28 @@ namespace MCEControl;
 public static class UiaService {
     /// <summary>
     /// Snapshots the UIA tree rooted at <paramref name="hwnd"/> down to <paramref name="maxDepth"/>
-    /// levels (depth 0 = the root node only). Returns null if the window can't be attached to.
+    /// levels (depth 0 = the root node only) and at most <paramref name="maxNodes"/> nodes. The node
+    /// cap keeps the result size bounded and stable for agent reasoning on pathological trees (e.g. a
+    /// virtualized list with thousands of items); when it bites, <see cref="UiaTreeResult.Truncated"/>
+    /// is set so the caller can warn rather than silently return a clipped tree. <paramref name="maxNodes"/>
+    /// &lt;= 0 means unbounded. Returns a result with a null root if the window can't be attached to.
     /// </summary>
-    public static UiaElementInfo? DumpTree(IntPtr hwnd, int maxDepth) {
+    public static UiaTreeResult DumpTree(IntPtr hwnd, int maxDepth, int maxNodes) {
         if (hwnd == IntPtr.Zero) {
-            return null;
+            return new UiaTreeResult(null, 0, false);
         }
         try {
             using UIA3Automation automation = new();
             AutomationElement root = automation.FromHandle(hwnd);
-            return BuildNode(root, 0, maxDepth);
+            UiaTreeBudget budget = new() { MaxNodes = maxNodes <= 0 ? int.MaxValue : maxNodes };
+            UiaElementInfo node = BuildNode(root, 0, maxDepth, budget);
+            return new UiaTreeResult(node, budget.Count, budget.Truncated);
         }
         catch (Exception e) {
             // FromHandle/UIA can throw COMException or FlaUI-specific exceptions on a window that
             // closes mid-call; never let it escape the command's Execute().
             Logger.Instance.Log4.Error($"UiaService.DumpTree failed: {e.Message}");
-            return null;
+            return new UiaTreeResult(null, 0, false);
         }
     }
 
@@ -109,7 +115,8 @@ public static class UiaService {
             _ => false,
         };
 
-    private static UiaElementInfo BuildNode(AutomationElement el, int depth, int maxDepth) {
+    private static UiaElementInfo BuildNode(AutomationElement el, int depth, int maxDepth, UiaTreeBudget budget) {
+        budget.Count++;
         UiaElementInfo info = Describe(el);
         if (depth >= maxDepth) {
             return info;
@@ -125,8 +132,13 @@ public static class UiaService {
         }
 
         foreach (AutomationElement child in children) {
+            if (budget.Count >= budget.MaxNodes) {
+                // Hit the node cap: stop expanding and flag it so the caller surfaces a warning.
+                budget.Truncated = true;
+                break;
+            }
             try {
-                info.Children.Add(BuildNode(child, depth + 1, maxDepth));
+                info.Children.Add(BuildNode(child, depth + 1, maxDepth, budget));
             }
             catch (COMException) {
                 // Skip a node that went stale mid-walk; keep the rest of the tree.

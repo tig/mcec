@@ -103,12 +103,16 @@ public static class AgentServer {
         "untitled popups are not enumerated by title/process — target them by handle or `foreground:true`.\n" +
         "2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, " +
         "state, value) so you can pick a control instead of guessing pixels; `capture` returns a PNG " +
-        "of the window (works on composited WinUI/WPF surfaces). Use `capture` for a single state " +
-        "check; use `record` ONLY to show CHANGE over time — an animated GIF of a sequence, or a repro " +
-        "of a transient/flicker. `record` either runs as a bounded one-shot (`durationMs`) or as " +
-        "`action:start` then `action:stop`; keep recordings short — fps/duration are capped and frames " +
-        "are downscaled so the file stays bounded. It captures whatever is on screen for the whole " +
-        "duration, so prefer a still `capture` when one frame answers the question.\n" +
+        "of the window (works on composited WinUI/WPF surfaces). Use `capture` for a single state check; " +
+        "use `record` ONLY to show CHANGE over time — a bounded one-shot (`durationMs`) or `action:start` " +
+        "then `action:stop`; keep recordings short (fps/duration are capped and frames downscaled), and " +
+        "remember it captures whatever is on screen for the whole duration. Check results for trouble: a " +
+        "`capture` with errorCategory `capture-blank` is a black/empty frame (minimized, cloaked, " +
+        "occluded, or a locked session) — restore/foreground the window and retry instead of trusting the " +
+        "image; a `capture-fallback` warning means PrintWindow was refused and the picture may be wrong. " +
+        "If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap — " +
+        "raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are " +
+        "non-fatal; errorCategory tells you how to recover.\n" +
         "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
         "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
         "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
@@ -119,6 +123,13 @@ public static class AgentServer {
         "control to appear before acting. " +
         "`send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
         "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
+        "RESULTS: every tool returns one envelope — `{ ok, result?, warnings?, error? }`. Branch on `ok` " +
+        "first: on success read `result`; on failure read `error.category` (a closed set: timeout, " +
+        "ambiguous-selector, stale-element, no-target, capture-blank, focus, elevation, foreground, " +
+        "internal) to choose recovery — e.g. `no-target` means broaden the selector or `query` to " +
+        "discover targets, `ambiguous-selector` means add `processName`/`className`/`automationId`, " +
+        "`stale-element` means re-`query`/`find` for a fresh handle. `error.detail` is human-readable and " +
+        "`error.lastObservation`, when present, is the last good state before the failure.\n" +
         "SECURITY: observation tools (capture/query/find/invoke/record) only work when the operator has set " +
         "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
         "than retrying. Every action is audit-logged on the host.";
@@ -148,13 +159,14 @@ public static class AgentServer {
         captureProps["height"] = PropSchema("integer", "Region height");
         captureProps["file"] = PropSchema("string", "Optional path to also save the PNG to");
         tools.Add(Tool("capture",
-            "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG.",
+            "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG. Blank/black frames are detected and reported as a capture-blank error (window) or warning (region) rather than a silent bad image.",
             captureProps, []));
 
         JsonObject queryProps = WindowTargetProps();
         queryProps["maxDepth"] = PropSchema("integer", "Max UI Automation tree depth (default 6)");
+        queryProps["maxNodes"] = PropSchema("integer", "Max UI Automation nodes returned (default 1000); a clipped tree is flagged with a tree-truncated warning");
         tools.Add(Tool("query",
-            "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state.",
+            "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state. Returns nodeCount/truncated and warns when the node cap clips the tree.",
             queryProps, []));
 
         JsonObject findProps = WindowTargetProps();
@@ -229,12 +241,12 @@ public static class AgentServer {
         if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
-                return ToolError($"Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
+                return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
             }
             return RunAgentCommand(name, args);
         }
 
-        return ToolError($"Unknown tool: {name}");
+        return ToolError($"Unknown tool: {name}", "unknown-tool");
     }
 
     private static JsonObject RunAgentCommand(string name, JsonObject args) {
@@ -243,7 +255,7 @@ public static class AgentServer {
         // the operator opts in per-command via mcec.commands). Fail closed if the table/command is missing.
         if ((AgentRuntime.Invoker?[name] as Command)?.Enabled != true) {
             AgentRuntime.Audit(name, "BLOCKED — command is disabled in mcec.commands");
-            return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").");
+            return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").", "command-disabled");
         }
 
         Command cmd = BuildCommand(name, args);
@@ -266,10 +278,7 @@ public static class AgentServer {
         if (name == "invoke") {
             if (!TryRunInvokeWithModalGrace(cmd)) {
                 AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
-                return new JsonObject {
-                    ["content"] = new JsonArray { TextContent(InvokeModalPendingJson) },
-                    ["isError"] = false,
-                };
+                return McpResult(AgentToolResult.Success(InvokeModalPendingResult()));
             }
         }
         else if (name == "record") {
@@ -284,48 +293,37 @@ public static class AgentServer {
             }
         }
 
+        // Translate the legacy CommandResult the command wrote into its reply into the #101 envelope.
         string captured = reply.Captured.Trim();
-        JsonObject result = [];
-        JsonArray content = [];
-
-        // For capture, surface the PNG as MCP image content in addition to the JSON text.
-        bool isError = false;
-        if (!string.IsNullOrEmpty(captured)) {
-            string textJson = captured;
-            JsonNode? parsed = TryParse(captured);
-            if (parsed is JsonObject obj) {
-                isError = obj["success"] is JsonValue sv && sv.TryGetValue(out bool ok) && !ok;
-                if (name == "capture" && obj["data"] is JsonObject data && data["base64"] is JsonValue) {
-                    content.Add(new JsonObject {
-                        ["type"] = "image",
-                        ["data"] = data["base64"]!.GetValue<string>(),
-                        ["mimeType"] = "image/png",
-                    });
-                    // Avoid duplicating the (potentially multi-MB) PNG: drop base64 from the text block
-                    // now that it is carried by the image content above.
-                    data.Remove("base64");
-                    textJson = obj.ToJsonString(AgentJson.Options);
-                }
-            }
-            content.Add(TextContent(textJson));
-        }
-        else {
-            isError = true;
-            content.Add(TextContent($"{{\"success\":false,\"error\":\"command produced no output\"}}"));
+        if (string.IsNullOrEmpty(captured)) {
+            return McpResult(AgentToolResult.Failure("no-output", AgentErrorCategory.Internal, $"The '{name}' command produced no output."));
         }
 
-        result["content"] = content;
-        result["isError"] = isError;
-        return result;
+        if (TryParse(captured) is not JsonObject legacy) {
+            // An agent command always emits CommandResult JSON; a non-JSON reply is unexpected. Carry the
+            // raw text forward rather than fabricating a structured error.
+            return McpResult(AgentToolResult.Success(new JsonObject { ["output"] = captured }));
+        }
+
+        AgentToolResult env = AgentToolResult.FromLegacy(legacy, name);
+
+        // For capture, additionally surface the PNG as an MCP image content block so image-aware clients
+        // render it. The base64 stays in the envelope's result so text-only agents (which do not consume
+        // MCP image blocks) still get the bytes, as the result contract requires.
+        JsonObject? image = name == "capture" && env.Ok ? CaptureContent.TryBuildImageBlock(env.Result) : null;
+
+        return McpResult(env, image);
     }
 
     // Grace period for an `invoke` to complete before we assume it opened a modal dialog and return.
     private const int InvokeModalGraceMs = 750;
 
-    private const string InvokeModalPendingJson =
-        "{\"success\":true,\"command\":\"invoke\",\"data\":{\"invoked\":true,\"modalPending\":true," +
-        "\"note\":\"The invoke opened a modal dialog (or a long-running action); it completes when the " +
-        "dialog closes. Query or capture the new window to read or dismiss it.\"}}";
+    private static JsonObject InvokeModalPendingResult() => new() {
+        ["invoked"] = true,
+        ["modalPending"] = true,
+        ["note"] = "The invoke opened a modal dialog (or a long-running action); it completes when the " +
+            "dialog closes. Query or capture the new window to read or dismiss it.",
+    };
 
     /// <summary>
     /// Runs an <c>invoke</c> on a background worker and waits up to <see cref="InvokeModalGraceMs"/> ms.
@@ -354,12 +352,12 @@ public static class AgentServer {
     private static JsonObject RunSendCommand(JsonObject args) {
         string command = args["command"]?.GetValue<string>() ?? "";
         if (string.IsNullOrWhiteSpace(command)) {
-            return ToolError("send_command requires a non-empty 'command' argument.");
+            return ToolError("send_command requires a non-empty 'command' argument.", "bad-arguments");
         }
 
         CommandInvoker? invoker = AgentRuntime.Invoker;
         if (invoker is null) {
-            return ToolError("Command engine is not available.");
+            return ToolError("Command engine is not available.", "engine-unavailable");
         }
 
         AgentRuntime.Audit("send_command", command);
@@ -369,12 +367,11 @@ public static class AgentServer {
             invoker.ExecuteNext();
         }
 
+        // The legacy command path returns opaque text, not a CommandResult; carry it forward as the
+        // success payload. (Native success/failure detection for send_command is out of Phase 1 scope.)
         string captured = reply.Captured.Trim();
-        JsonObject result = new() {
-            ["content"] = new JsonArray { TextContent(string.IsNullOrEmpty(captured) ? "ok" : captured) },
-            ["isError"] = false,
-        };
-        return result;
+        JsonObject result = new() { ["output"] = string.IsNullOrEmpty(captured) ? "ok" : captured };
+        return McpResult(AgentToolResult.Success(result));
     }
 
     /// <summary>Builds and populates an agent command instance from MCP tool arguments.</summary>
@@ -398,6 +395,7 @@ public static class AgentServer {
             ClassName = Str(args, "className")!,
             Foreground = Bool(args, "foreground"),
             MaxDepth = Int(args, "maxDepth") is int d and > 0 ? d : 6,
+            MaxNodes = Int(args, "maxNodes") is int n and > 0 ? n : 1000,
         },
         "find" or "wait-for" => new FindCommand {
             Window = Str(args, "window")!,
@@ -597,13 +595,30 @@ public static class AgentServer {
         ["error"] = new JsonObject { ["code"] = code, ["message"] = message },
     };
 
-    private static JsonObject ToolError(string message) {
-        string json = new JsonObject { ["success"] = false, ["error"] = message }.ToJsonString(AgentJson.Options);
+    /// <summary>
+    /// Wraps an <see cref="AgentToolResult"/> envelope in the MCP <c>tools/call</c> transport: the
+    /// envelope rides in a text content block (preceded by an optional image block, e.g. capture's PNG),
+    /// and MCP <c>isError</c> mirrors the envelope (<c>isError = !ok</c>) per the #101 contract.
+    /// </summary>
+    private static JsonObject McpResult(AgentToolResult env, JsonObject? imageContent = null) {
+        JsonArray content = [];
+        if (imageContent is not null) {
+            content.Add(imageContent);
+        }
+        content.Add(TextContent(env.ToJson()));
         return new JsonObject {
-            ["content"] = new JsonArray { TextContent(json) },
-            ["isError"] = true,
+            ["content"] = content,
+            ["isError"] = !env.Ok,
         };
     }
+
+    /// <summary>
+    /// A tool-level failure (a security gate or a bad request) reported as the #101 envelope. These are
+    /// MCEC-side refusals the agent cannot recover from on its own, so they map to the <c>internal</c>
+    /// category; <paramref name="code"/> distinguishes the specific cause.
+    /// </summary>
+    private static JsonObject ToolError(string message, string code = "internal-error") =>
+        McpResult(AgentToolResult.Failure(code, AgentErrorCategory.Internal, message));
 
     private static JsonObject TextContent(string text) => new() {
         ["type"] = "text",

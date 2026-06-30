@@ -84,4 +84,43 @@ public class AgentServerTests {
             AgentRuntime.Settings = null;
         }
     }
+
+    [Fact]
+    public void Dispatch_ToolsCall_WhenAgentDisabled_EmitsEnvelopeInTextContent() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = null; // agent commands disabled
+        try {
+            JsonObject prms = new() {
+                ["name"] = "capture",
+                ["arguments"] = new JsonObject(),
+            };
+
+            JsonObject resp = AgentServer.Dispatch(Request(4, "tools/call", prms))!;
+            JsonObject result = resp["result"]!.AsObject();
+
+            // MCP isError mirrors the envelope (isError = !ok).
+            Assert.True(result["isError"]!.GetValue<bool>());
+
+            // The first text content block is the #101 envelope: ok:false + a complete error.
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(result))!.AsObject();
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            JsonObject error = envelope["error"]!.AsObject();
+            Assert.Equal("internal", error["category"]!.GetValue<string>());
+            Assert.Equal("agent-commands-disabled", error["code"]!.GetValue<string>());
+            Assert.False(envelope.ContainsKey("result"));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    private static string FirstTextBlock(JsonObject toolResult) {
+        foreach (JsonNode? block in toolResult["content"]!.AsArray()) {
+            if (block?["type"]?.GetValue<string>() == "text") {
+                return block["text"]!.GetValue<string>();
+            }
+        }
+        Assert.Fail("no text content block in tool result");
+        return "";
+    }
 }
