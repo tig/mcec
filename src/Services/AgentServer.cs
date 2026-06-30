@@ -110,7 +110,8 @@ public static class AgentServer {
         "until opened), then `invoke` the item. Invoking a control that opens a MODAL dialog (About, " +
         "Settings, message/file dialogs) returns promptly with `modalPending:true` — the action " +
         "completes when the dialog closes — so just `query`/`capture` the new window to read it, and " +
-        "`invoke` its buttons to dismiss it. Use `find` to wait for a control to appear before acting. " +
+        "`invoke` its buttons to dismiss it. Use `wait-for` (or `find` with a timeout) to wait for a " +
+        "control to appear before acting. " +
         "`send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
         "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
         "SECURITY: observation tools (capture/query/find/invoke) only work when the operator has set " +
@@ -159,6 +160,14 @@ public static class AgentServer {
             "Find (or wait for, with a timeout) a UI Automation element by name / automation id / class.",
             findProps, ["value"]));
 
+        JsonObject waitForProps = WindowTargetProps();
+        waitForProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
+        waitForProps["value"] = PropSchema("string", "Value to match");
+        waitForProps["timeout"] = PropSchema("integer", "Milliseconds to wait for the element (default 5000)");
+        tools.Add(Tool("wait-for",
+            "Wait for a UI Automation element to appear: polls until found or the timeout elapses (default 5s).",
+            waitForProps, ["value"]));
+
         JsonObject invokeProps = WindowTargetProps();
         invokeProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
         invokeProps["value"] = PropSchema("string", "Value to match");
@@ -198,7 +207,7 @@ public static class AgentServer {
             return RunSendCommand(args);
         }
 
-        if (name is "capture" or "query" or "find" or "invoke") {
+        if (name is "capture" or "query" or "find" or "wait-for" or "invoke") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError($"Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
@@ -365,7 +374,7 @@ public static class AgentServer {
             Foreground = Bool(args, "foreground"),
             MaxDepth = Int(args, "maxDepth") is int d and > 0 ? d : 6,
         },
-        "find" => new FindCommand {
+        "find" or "wait-for" => new FindCommand {
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),
             Process = Str(args, "process")!,

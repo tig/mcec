@@ -214,7 +214,8 @@ When connected, the server advertises these tools:
 |----------------|----------------------------------------------------------------|
 | `capture`      | The `capture` command (window screenshot → base64 PNG).        |
 | `query`        | The `query` command (describe a window).                       |
-| `find`         | The `find` command (enumerate / match windows).                |
+| `find`         | The `find` command (match a UI element, one-shot).             |
+| `wait-for`     | The `wait-for` command (poll for a UI element until a timeout). |
 | `invoke`       | The `invoke` command (run an existing MCEC command).           |
 | `send_command` | Generic raw-command passthrough — send any MCEC command line.  |
 
