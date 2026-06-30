@@ -20,6 +20,22 @@ namespace MCEControl;
 public class AppSettings : ICloneable {
     public const string SettingsFileName = "mcec.settings";
 
+    // Registry key for per-machine settings (telemetry opt-in, disable-internal-commands override).
+    // For MCEC 3.0 rebrand, new location under "Kindel"; legacy "Kindel Systems" is read as fallback for upgrades.
+    public const string RegistryKeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel\MCE Controller";
+    public const string LegacyRegistryKeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller";
+
+    /// <summary>
+    /// Read a registry value preferring the current (Kindel) key, falling back to legacy (Kindel Systems) key.
+    /// </summary>
+    public static object? GetRegistryValue(string valueName, object? defaultValue) {
+        object? val = Registry.GetValue(RegistryKeyPath, valueName, null);
+        if (val == null) {
+            val = Registry.GetValue(LegacyRegistryKeyPath, valueName, defaultValue);
+        }
+        return val;
+    }
+
     // Global
     [XmlIgnore] public bool DisableInternalCommands;
 
@@ -203,8 +219,7 @@ public class AppSettings : ICloneable {
             settings = (AppSettings?)serializer.Deserialize(reader);
 
             settings!.DisableInternalCommands = Convert.ToBoolean(
-                Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
-                                "DisableInternalCommands", false), new NumberFormatInfo());
+                GetRegistryValue("DisableInternalCommands", false), new NumberFormatInfo());
             Logger.Instance.Log4.Info("Settings: Loaded settings from " + settingsFile);
         }
         catch (FileNotFoundException) {
@@ -215,8 +230,7 @@ public class AppSettings : ICloneable {
 
             // even if it's first run, read global commands
             settings.DisableInternalCommands = Convert.ToBoolean(
-                Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller",
-                                "DisableInternalCommands", false), new NumberFormatInfo());
+                GetRegistryValue("DisableInternalCommands", false), new NumberFormatInfo());
         }
         catch (UnauthorizedAccessException e) {
             Logger.Instance.Log4.Error($"Settings: Settings file could not be loaded. {e.Message}");

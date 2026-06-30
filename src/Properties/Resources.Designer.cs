@@ -72,7 +72,7 @@ namespace MCEControl.Properties {
         /// <summary>
         ///   Looks up a localized string similar to 
         ///
-        ///MCEC (Model Context Environment Controller) Commands File - Copyright Kindel Systems, LLC.
+        ///MCEC (Model Context Environment Controller) Commands File - Copyright Kindel, LLC.
         ///
         ///This file must be named mcec.commands and must be placed  in the same directory as the mcec.exe file.
         ///

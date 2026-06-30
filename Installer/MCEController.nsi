@@ -21,7 +21,7 @@ Unicode True
 
 !define PRODUCT_NAME "MCEC"
 !define PRODUCT_VERSION "${VERSION}"
-!define PRODUCT_PUBLISHER "Kindel Systems"
+!define PRODUCT_PUBLISHER "Kindel"
 !define PRODUCT_WEB_SITE "https://github.com/tig/mcec/wiki"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\mcec.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
@@ -58,9 +58,9 @@ ${If} ${RunningX64}
     SetRegView 64
 ${EndIf}
 # NOTE: This registry key is legacy infrastructure read by the app (TelemetryService /
-# AppSettings DisableInternalCommands) — it stays "MCE Controller" for back-compat, like the
-# "Kindel Systems" company name, even though the product is now branded MCEC.
-WriteRegDWORD HKLM "Software\Kindel Systems\MCE Controller" "Telemetry" $0
+# AppSettings DisableInternalCommands) — it stays "MCE Controller" for back-compat (with
+# fallback support in code), even though the product is now branded MCEC.
+WriteRegDWORD HKLM "Software\Kindel\MCE Controller" "Telemetry" $0
 ${If} ${RunningX64}
 SetRegView 32
 ${EndIf}
@@ -90,7 +90,7 @@ var ICONS_GROUP
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${OUTFILE}"
-InstallDir "$PROGRAMFILES64\Kindel Systems\MCEC"
+InstallDir "$PROGRAMFILES64\Kindel\MCEC"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show

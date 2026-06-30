@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------
-// Copyright © 2019 Kindel Systems, LLC
+// Copyright © 2019 Kindel, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 //

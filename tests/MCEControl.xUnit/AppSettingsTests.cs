@@ -13,8 +13,8 @@ public class AppSettingsTests
     public void GetSettingsPath_inProgramFiles_Test()
     {
         // If we're running within Program Files, use %AppData% 
-        string startupPath = $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)}\Kindel Systems\MCE Controller";
-        // should be "%appdata%\Kindel Systems\MCE Controller"
+        string startupPath = $@"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)}\Kindel\MCE Controller";
+        // should be "%appdata%\Kindel\MCE Controller" (rebrand 3.0; test uses UserAppDataPath directly)
         string settingsPath = $@"{Application.UserAppDataPath.Substring(0, Application.UserAppDataPath.Length - (Application.ProductVersion.Length + 1))}";
         Assert.True(AppSettings.GetSettingsPath(startupPath).CompareTo(settingsPath) == 0);
     }
