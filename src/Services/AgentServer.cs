@@ -306,7 +306,9 @@ public static class AgentServer {
     }
 
     // Grace period for an `invoke` to complete before we assume it opened a modal dialog and return.
-    private const int InvokeModalGraceMs = 750;
+    // Must stay above UiaService.InvokeFindTimeoutMs so an invoke's element lookup always resolves within
+    // the grace — otherwise a missing element would be misreported as a pending modal (see #107).
+    public const int InvokeModalGraceMs = 750;
 
     private static JsonObject InvokeModalPendingResult() => new() {
         ["invoked"] = true,

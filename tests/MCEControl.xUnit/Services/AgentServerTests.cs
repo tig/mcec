@@ -138,6 +138,17 @@ public class AgentServerTests {
         }
     }
 
+    [Fact]
+    public void InvokeFindTimeout_StaysBelowModalGrace_SoMissesAreNotReportedAsPendingModals() {
+        // #107: invoke runs on a worker and is declared "modal pending" if it outlives the grace. If the
+        // element lookup could take longer than the grace, an ordinary lookup miss (misspelled name, menu
+        // not expanded) would be misreported as a pending modal success. The find must resolve within the
+        // grace, so a worker still running afterward can only be a genuinely blocking action.
+        Assert.True(
+            UiaService.InvokeFindTimeoutMs < AgentServer.InvokeModalGraceMs,
+            $"invoke find timeout ({UiaService.InvokeFindTimeoutMs}ms) must be < modal grace ({AgentServer.InvokeModalGraceMs}ms)");
+    }
+
     private static string FirstTextBlock(JsonObject toolResult) {
         foreach (JsonNode? block in toolResult["content"]!.AsArray()) {
             if (block?["type"]?.GetValue<string>() == "text") {
