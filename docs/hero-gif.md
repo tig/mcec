@@ -65,4 +65,29 @@ Connect to the controller (`mcec.exe --mcp`) and, after the subject is launched 
 The GIF encoder writes full (non-diffed) frames, so **file size ≈ frame count × frame area**. The
 deeper tour is tuned to ~13 s → ~42 frames → ≈2 MB at 440 px wide, 4 fps. To shrink it further, lower
 `fps`, lower `maxWidth`, or trim the per-step dwell `Start-Sleep`s; to make it richer, raise them.
+
+## Toward script-free recreation
+
+The point of MCEC is that an **agent** drives complex GUI tasks easily — so the goal is that an agent
+reads *this file* and recreates the hero with **nothing but `mcec.exe`**, no `.ps1`. The script is a
+stopgap for the steps MCEC can't yet express as agent tool calls. What it does outside the agent
+surface, and the capability that would remove each (tracking issues):
+
+| Script does (not via MCEC) | Needed capability | Issue |
+|---|---|---|
+| `GetSystemMetrics`/`SetProcessDPIAware`, then normalizes every pixel to `mouse:mt`'s 0–65535 space | pixel-/element-relative mouse targeting + a `displays` query (the keystone — `query` gives pixels, `mouse` wants normalized) | #122 |
+| `mouse:lbd` + a stream of `mouse:mt` + `mouse:lbu` for the resize and the circular move | a first-class `drag` action | #123 |
+| Resize 25% / move by dragging the chrome; pins `WindowLocation`/`WindowSize`; `Shell.MinimizeAll()` | window-management actions (move/resize/min/max/foreground; clean-desktop) | #124 |
+| Clicks each Settings tab header by computed pixel center | a `select` action (SelectionItem) — `invoke` is a no-op on tabs | #125 |
+| `Start-Process` to launch the subject | a gated launch action | #126 |
+| Computes a fixed `{x,y,w,h}` record region | `record { handle }`, optionally following the window | #127 |
+| Polls `query` for the subject window / Settings dialog to appear | wait-for-**window** predicate | #112 |
+
+Menus **are** already script-free in principle (`invoke … action:expand` then `invoke` the item), but
+the tour still opens Settings with a keystroke because invoking a menu item that opens a **modal**
+dialog currently wedges later UIA queries of that dialog (#128) — needed here to read the tab bounds.
+
+Deliberately **out of scope** for the agent: provisioning the isolated subject and enabling the
+actuation gates (`AgentCommandsEnabled`, per-command `Enabled`). An agent enabling its own input would
+defeat the security model, so an operator does that first; the agent's recipe begins after.
 </content>
