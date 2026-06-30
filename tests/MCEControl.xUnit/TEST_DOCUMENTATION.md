@@ -327,7 +327,7 @@ The test suite is designed to:
 - Run in parallel (no shared state)
 - Run without admin privileges
 - Run without network access
-- Run on Windows only (.NET 8 Windows-specific APIs)
+- Run on Windows only (.NET 10 Windows-specific APIs)
 
 ## Future Enhancements
 

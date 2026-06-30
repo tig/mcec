@@ -2,7 +2,7 @@
 
 ## Overview
 
-MCEC is a Windows desktop application built on .NET 8 (WinForms) that enables remote control of a Windows PC through multiple communication channels (TCP/IP sockets and serial ports). It receives commands over these channels and executes them by simulating keyboard/mouse input, launching processes, sending Windows messages, and more.
+MCEC is a Windows desktop application built on .NET 10 (WinForms) that enables remote control of a Windows PC through multiple communication channels (TCP/IP sockets and serial ports). It receives commands over these channels and executes them by simulating keyboard/mouse input, launching processes, sending Windows messages, and more.
 
 **Primary Use Case**: Home theater PC (HTPC) automation and control, particularly for Windows Media Center environments.
 
@@ -429,7 +429,7 @@ InputSimulator (facade)
 
 ## Build System
 
-- **Target**: .NET 8 (net8.0-windows)
+- **Target**: .NET 10 (net10.0-windows)
 - **UI Framework**: Windows Forms
 - **Project Type**: WinExe
 - **T4 Templates**: 
@@ -473,4 +473,4 @@ InputSimulator (facade)
 3. **Command Thread**: Move command execution off UI thread
 4. **Authentication**: Add optional security layer for network communication
 5. **Plugin System**: Dynamic command loading from external assemblies
-6. **Cross-Platform**: .NET 8 supports cross-platform, but WindowsInput and WinForms limit to Windows
+6. **Cross-Platform**: .NET 10 supports cross-platform, but WindowsInput and WinForms limit to Windows
