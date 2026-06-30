@@ -62,8 +62,11 @@ function Write-McecToolCall {
     if ($Session.Truncated) { return }
     $entry = [ordered]@{ ts = (Get-Date).ToString("o"); sessionId = $Session.SessionId; direction = $Direction; method = $Method; payload = $Payload }
     $json = ($entry | ConvertTo-Json -Depth 20 -Compress)
-    # Privacy + size: keep image bytes out of the transcript — the PNG is a separate artifact.
-    $json = [regex]::Replace($json, '("(?:data|base64)"\s*:\s*")[A-Za-z0-9+/=]{200,}(")', '${1}<redacted base64>${2}')
+    # Privacy + size: keep image bytes out of the transcript — the PNG is a separate artifact. Redact by
+    # field (the capture `base64` value and an image content block's `data`) regardless of length: a small
+    # region capture can produce a PNG whose base64 is well under any length threshold, and a length gate
+    # would leak those screen bytes into the transcript (#110).
+    $json = [regex]::Replace($json, '("(?:data|base64)"\s*:\s*")[A-Za-z0-9+/=]+(")', '${1}<redacted base64>${2}')
     if ($Session.ToolCallBytes + $json.Length -gt $script:MaxToolCallBytes) {
         Add-Content -Path $Session.ToolCallLog -Value '{"truncated":"tool-call log size cap reached"}' -Encoding utf8
         $Session.Truncated = $true
