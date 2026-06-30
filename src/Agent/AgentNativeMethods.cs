@@ -19,6 +19,16 @@ namespace MCEControl;
 internal static class AgentNativeMethods {
     private const string User32 = "user32.dll";
     private const string Dwmapi = "dwmapi.dll";
+    private const string Gdi32 = "gdi32.dll";
+
+    /// <summary>UpdateLayeredWindow flag: use the per-pixel alpha of the source bitmap.</summary>
+    public const int ULW_ALPHA = 0x02;
+
+    /// <summary>BLENDFUNCTION BlendOp: source-over alpha blend.</summary>
+    public const byte AC_SRC_OVER = 0x00;
+
+    /// <summary>BLENDFUNCTION AlphaFormat: the source bitmap has per-pixel alpha.</summary>
+    public const byte AC_SRC_ALPHA = 0x01;
 
     /// <summary>Render the full window content, including DirectComposition/DWM surfaces.</summary>
     public const uint PW_RENDERFULLCONTENT = 0x00000002;
@@ -67,4 +77,32 @@ internal static class AgentNativeMethods {
 
     [DllImport(Dwmapi)]
     public static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out NativeRect pvAttribute, int cbAttribute);
+
+    // --- Per-pixel-alpha layered window plumbing for the command overlay (#119) ---
+
+    [DllImport(User32)]
+    public static extern IntPtr GetDC(IntPtr hwnd);
+
+    [DllImport(User32)]
+    public static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
+
+    [DllImport(Gdi32)]
+    public static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+    [DllImport(Gdi32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DeleteDC(IntPtr hdc);
+
+    [DllImport(Gdi32)]
+    public static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
+    [DllImport(Gdi32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DeleteObject(IntPtr hgdiobj);
+
+    [DllImport(User32, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UpdateLayeredWindow(
+        IntPtr hwnd, IntPtr hdcDst, ref System.Drawing.Point pptDst, ref System.Drawing.Size psize,
+        IntPtr hdcSrc, ref System.Drawing.Point pptSrc, int crKey, ref BlendFunction pblend, int dwFlags);
 }
