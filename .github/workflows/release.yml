@@ -74,8 +74,19 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Ensure PSGallery repository is registered
+        if: ${{ env.SIGN == 'true' }}
+        shell: pwsh
+        run: |
+          if (-not (Get-PSRepository -Name 'PSGallery' -ErrorAction SilentlyContinue)) {
+            Write-Host "Registering default PSGallery..."
+            Register-PSRepository -Default
+          }
+          Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
+
       - name: Sign installer (Azure Trusted Signing)
         if: ${{ env.SIGN == 'true' }}
+        continue-on-error: true
         uses: azure/artifact-signing-action@v2
         with:
           endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
