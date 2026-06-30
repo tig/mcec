@@ -22,7 +22,13 @@ in sync. In short:
 > 1. **Target** a window by `window` (title substring), `process` (name without `.exe`), `className`,
 >    or `foreground:true`. At least one is required — a call with no target fails by design.
 > 2. **Observe** — `query` dumps the UI Automation tree (controlType, name, automationId, bounds,
->    state, value); `capture` returns a PNG (renders composited WinUI/WPF surfaces correctly).
+>    state, value; bounded by `maxDepth` and `maxNodes`); `capture` returns a PNG (renders composited
+>    WinUI/WPF surfaces correctly). **Check results before trusting them:** a `capture` with
+>    `errorCategory: capture-blank` is a black/empty frame (minimized/cloaked/occluded/locked session) —
+>    restore or foreground the window and retry, don't trust the image; a `capture-fallback` warning
+>    means PrintWindow was refused and the picture may be wrong; a `query` with `truncated:true` (a
+>    `tree-truncated` warning) hit the node cap — raise `maxNodes` or target a deeper window. `warnings`
+>    are non-fatal; `errorCategory` tells you how to recover. (Shape: `docs/design/agent-tool-result-contract.md`.)
 > 3. **Act** — prefer `invoke` (`by` name/automationId/classname; `action` invoke|toggle|setvalue|
 >    setfocus) over coordinate clicks. Use `find`/`wait-for` to wait for a control. `send_command`
 >    sends any raw MCEC command (keystrokes, mouse, launch).
@@ -87,6 +93,13 @@ exe (`winr`, `chars:`, `enter`, `mouse:`, `key_a`, `key_esc`, `alt_f`, `key_x`) 
 
 ## Working in this repo
 
+- **Agent-facing guidance is part of "Done" — not optional, not "later."** Any change to how an agent
+  observes/targets/acts — a new tool, arg, failure mode, warning/error category, or driving technique —
+  MUST update `AgentServer.Instructions` (the connect-time observe→target→act playbook in
+  [`src/Services/AgentServer.cs`](src/Services/AgentServer.cs)) **and** the [built-in guidance](#the-built-in-guidance-single-source-of-truth)
+  block in this file, in the same change. Updating a per-tool `Tool(...)` description is **not** a
+  substitute — those describe *args*; `Instructions` teaches *recovery and strategy*. Read the trigger
+  by principle, not keyword: it fires on feature work, not just dogfooding. Treat it like updating tests.
 - Build is strict: `Nullable=enable`, `TreatWarningsAsErrors=true`, and house analyzers **MCEC0001
   (one top-level type per file)** / **MCEC0002 (no nested types)**. New code must be warning-clean.
 - Agent subsystem lives in `src/Agent/` + `src/Services/AgentServer.cs`; commands plug into the

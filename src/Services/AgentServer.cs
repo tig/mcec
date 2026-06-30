@@ -103,7 +103,13 @@ public static class AgentServer {
         "untitled popups are not enumerated by title/process — target them by handle or `foreground:true`.\n" +
         "2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, " +
         "state, value) so you can pick a control instead of guessing pixels; `capture` returns a PNG " +
-        "of the window (works on composited WinUI/WPF surfaces).\n" +
+        "of the window (works on composited WinUI/WPF surfaces). Check results for trouble: a `capture` " +
+        "with errorCategory `capture-blank` is a black/empty frame (minimized, cloaked, occluded, or a " +
+        "locked session) — restore/foreground the window and retry instead of trusting the image; a " +
+        "`capture-fallback` warning means PrintWindow was refused and the picture may be wrong. If " +
+        "`query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap — raise " +
+        "`maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are " +
+        "non-fatal; errorCategory tells you how to recover.\n" +
         "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
         "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
         "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
@@ -143,13 +149,14 @@ public static class AgentServer {
         captureProps["height"] = PropSchema("integer", "Region height");
         captureProps["file"] = PropSchema("string", "Optional path to also save the PNG to");
         tools.Add(Tool("capture",
-            "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG.",
+            "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG. Blank/black frames are detected and reported as a capture-blank error (window) or warning (region) rather than a silent bad image.",
             captureProps, []));
 
         JsonObject queryProps = WindowTargetProps();
         queryProps["maxDepth"] = PropSchema("integer", "Max UI Automation tree depth (default 6)");
+        queryProps["maxNodes"] = PropSchema("integer", "Max UI Automation nodes returned (default 1000); a clipped tree is flagged with a tree-truncated warning");
         tools.Add(Tool("query",
-            "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state.",
+            "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state. Returns nodeCount/truncated and warns when the node cap clips the tree.",
             queryProps, []));
 
         JsonObject findProps = WindowTargetProps();
@@ -373,6 +380,7 @@ public static class AgentServer {
             ClassName = Str(args, "className")!,
             Foreground = Bool(args, "foreground"),
             MaxDepth = Int(args, "maxDepth") is int d and > 0 ? d : 6,
+            MaxNodes = Int(args, "maxNodes") is int n and > 0 ? n : 1000,
         },
         "find" or "wait-for" => new FindCommand {
             Window = Str(args, "window")!,
