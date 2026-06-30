@@ -108,10 +108,10 @@ public static class AgentServer {
         "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
         "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
         "until opened), then `invoke` the item. Invoking a control that opens a MODAL dialog (About, " +
-        "Settings, message/file dialogs) may not return until that dialog is dismissed — MCEC runs " +
-        "commands on the app's UI thread — so do not block on it; after firing the invoke, `query`/" +
-        "`capture` the expected window to confirm it opened. Use `find` to wait for a control to appear " +
-        "before acting. `send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
+        "Settings, message/file dialogs) returns promptly with `modalPending:true` — the action " +
+        "completes when the dialog closes — so just `query`/`capture` the new window to read it, and " +
+        "`invoke` its buttons to dismiss it. Use `find` to wait for a control to appear before acting. " +
+        "`send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
         "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
         "SECURITY: observation tools (capture/query/find/invoke) only work when the operator has set " +
         "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
@@ -225,8 +225,29 @@ public static class AgentServer {
         cmd.Cmd = name;
 
         AgentRuntime.Audit(name, args.ToJsonString(AgentJson.Options));
-        lock (ExecLock) {
-            cmd.Execute();
+
+        // `invoke` can activate a control that opens a MODAL dialog (About, Settings, message/file
+        // dialogs). The UIA Invoke runs the control's click handler synchronously, so the call would
+        // otherwise block — and hold ExecLock — for the dialog's whole lifetime, deadlocking every
+        // later tool call (the agent couldn't even query or dismiss the dialog it just opened). Run it
+        // on a worker and, if it hasn't returned within a short grace, report "modal pending" and
+        // return; the worker finishes when the dialog closes. capture/query/find/send_command keep the
+        // simple serialized path, and the legacy TCP/serial pipeline (MainWindow.ReceivedData ->
+        // CommandInvoker.ExecuteNext on the UI thread) is untouched, so home-automation sequences keep
+        // their in-order, synchronous behavior.
+        if (name == "invoke") {
+            if (!TryRunInvokeWithModalGrace(cmd)) {
+                AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
+                return new JsonObject {
+                    ["content"] = new JsonArray { TextContent(InvokeModalPendingJson) },
+                    ["isError"] = false,
+                };
+            }
+        }
+        else {
+            lock (ExecLock) {
+                cmd.Execute();
+            }
         }
 
         string captured = reply.Captured.Trim();
@@ -262,6 +283,38 @@ public static class AgentServer {
         result["content"] = content;
         result["isError"] = isError;
         return result;
+    }
+
+    // Grace period for an `invoke` to complete before we assume it opened a modal dialog and return.
+    private const int InvokeModalGraceMs = 750;
+
+    private const string InvokeModalPendingJson =
+        "{\"success\":true,\"command\":\"invoke\",\"data\":{\"invoked\":true,\"modalPending\":true," +
+        "\"note\":\"The invoke opened a modal dialog (or a long-running action); it completes when the " +
+        "dialog closes. Query or capture the new window to read or dismiss it.\"}}";
+
+    /// <summary>
+    /// Runs an <c>invoke</c> on a background worker and waits up to <see cref="InvokeModalGraceMs"/> ms.
+    /// Returns true if it finished (its result is in the command's reply); false if it is still running,
+    /// which means the invoked control opened a modal dialog. We deliberately do NOT hold
+    /// <see cref="ExecLock"/> for an invoke: a modal opener must not block the later query/capture/invoke
+    /// calls the agent needs to read or dismiss the very dialog it opened. The worker ends on its own
+    /// when the dialog closes.
+    /// </summary>
+    private static bool TryRunInvokeWithModalGrace(Command cmd) {
+        Thread worker = new(() => {
+            try {
+                cmd.Execute();
+            }
+            catch (Exception e) {
+                Logger.Instance.Log4.Error($"AgentServer: invoke worker failed: {e.Message}");
+            }
+        }) {
+            IsBackground = true,
+            Name = "mcec-agent-invoke",
+        };
+        worker.Start();
+        return worker.Join(InvokeModalGraceMs);
     }
 
     private static JsonObject RunSendCommand(JsonObject args) {
