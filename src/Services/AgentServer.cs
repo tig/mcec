@@ -103,7 +103,13 @@ public static class AgentServer {
         "untitled popups are not enumerated by title/process — target them by handle or `foreground:true`.\n" +
         "2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, " +
         "state, value) so you can pick a control instead of guessing pixels; `capture` returns a PNG " +
-        "of the window (works on composited WinUI/WPF surfaces).\n" +
+        "of the window (works on composited WinUI/WPF surfaces). Check results for trouble: a `capture` " +
+        "with errorCategory `capture-blank` is a black/empty frame (minimized, cloaked, occluded, or a " +
+        "locked session) — restore/foreground the window and retry instead of trusting the image; a " +
+        "`capture-fallback` warning means PrintWindow was refused and the picture may be wrong. If " +
+        "`query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap — raise " +
+        "`maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are " +
+        "non-fatal; errorCategory tells you how to recover.\n" +
         "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
         "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
         "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
