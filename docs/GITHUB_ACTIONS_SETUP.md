@@ -11,7 +11,7 @@ I've successfully set up a modern GitHub Actions CI/CD workflow for your MCECont
   - Push to `develop` branch
   - Pull requests targeting `develop` branch
 - **Features:**
-  - ? Builds the solution using .NET 8.0
+  - ? Builds the solution using .NET 10.0
   - ? Runs all xUnit tests
   - ? Generates code coverage reports (using coverlet)
   - ? Publishes test results with visual reports
@@ -90,7 +90,7 @@ In your GitHub repository settings, consider adding:
 ## ?? What the CI Workflow Does
 
 1. **Checkout** - Gets your code
-2. **Setup .NET** - Installs .NET 8.0 SDK
+2. **Setup .NET** - Installs .NET 10.0 SDK
 3. **Restore** - Downloads NuGet packages
 4. **Build** - Compiles the solution in Release mode
 5. **Test** - Runs all xUnit tests with coverage collection

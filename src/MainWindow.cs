@@ -840,20 +840,20 @@ public partial class MainWindow : Form {
     private void openCommandsFolderMenuItem_Click(object sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("openCommandsFolderMenuItem");
 
-        Process.Start(Program.ConfigPath);
+        Program.LaunchExternal(Program.ConfigPath);
     }
 
 
     private void docsMenuItem_Click(object sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("docsMenuItem");
 
-        Process.Start("https://tig.github.io/mcec/");
+        Program.LaunchExternal("https://tig.github.io/mcec/");
     }
 
     private void MenuItemEditCommands_Click(object sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("MenuItemEditCommands");
 
-        Process.Start(Program.ConfigPath);
+        Program.LaunchExternal(Program.ConfigPath);
     }
 
     private void updatesMenuItem_Click(object sender, EventArgs e) {

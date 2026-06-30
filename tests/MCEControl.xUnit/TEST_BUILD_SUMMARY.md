@@ -10,7 +10,7 @@ A comprehensive unit test suite has been built for the MCE Controller applicatio
 - **Test Files Created**: 17 new test files
 - **Test Coverage**: All major architectural layers
 - **Build Status**: ? All tests compile successfully
-- **Framework**: xUnit with .NET 8
+- **Framework**: xUnit with .NET 10
 
 ## Test Files Created
 
@@ -215,7 +215,7 @@ dotnet test /p:CollectCoverage=true
 
 The test suite:
 - ? Compiles without errors
-- ? Uses same .NET 8 target as main application
+- ? Uses same .NET 10 target as main application
 - ? References main MCEControl project
 - ? Includes all required NuGet packages (xUnit, coverlet)
 - ? Can run in CI/CD pipelines

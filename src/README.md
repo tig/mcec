@@ -2,7 +2,7 @@
 
 ## Pre-requisites
 
-* .NET 8.0 SDK or greater
+* .NET 10.0 SDK or greater
 * Visual Studio 2022 or greater (optional - can build from command line with `dotnet build`)
 * NSIS 3.x - `winget install nsis` (for creating the installer)
 

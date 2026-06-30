@@ -84,7 +84,7 @@ default**, bind to **localhost only** by default, require their **own explicit o
 from actuation, and **log loudly**. The existing TCP/serial transports and the 250+ HTPC commands
 are untouched. 3.0 is purely additive.
 
-MCEC 3.0 is **free and open source (MIT)**, a single native .NET 8 Windows executable
+MCEC 3.0 is **free and open source (MIT)**, a single native .NET 10 Windows executable
 with no Python or Node runtime to install. Download it from
 [github.com/tig/mcec/releases](https://github.com/tig/mcec/releases); enable the agent commands,
 point your MCP client at it, and your agent can see, target, and act on a Windows desktop in
@@ -308,7 +308,7 @@ modes.
 
 ### 8. What's the technology, and how big is the effort?
 
-No rewrite; it slots into the existing .NET 8 architecture as new `Command` types plus one new
+No rewrite; it slots into the existing .NET 10 architecture as new `Command` types plus one new
 transport/host:
 
 - `capture`: `PrintWindow` + `PW_RENDERFULLCONTENT` (the Win32 P/Invoke layer already exists in
@@ -391,7 +391,7 @@ Windows?* We'll measure it by dogfooding:
 
 ### 14. Pricing, licensing, availability, rollout?
 
-Free and open source under the existing **MIT** license; a single native **.NET 8** Windows
+Free and open source under the existing **MIT** license; a single native **.NET 10** Windows
 executable distributed through [GitHub Releases](https://github.com/tig/mcec/releases), no Python/
 Node runtime. Rolls out as a normal MCEC version bump (3.0), with the agent commands shipped
 **disabled by default** so existing installs are unaffected until a user opts in.
@@ -437,7 +437,7 @@ favor of "multimodal": screen + UI tree + input). We chose *Environment* for the
 | FlaUI / pywinauto | D | No (library) | **Shots + UIA tree** | **Yes** | **No** | No | No | Active / slow |
 | WinAppDriver | D | Server | Shots / partial tree | WebDriver locators | No | No | No | **Abandoned** |
 | CursorTouch/Windows-MCP | E | No (Python) | UIA + shots | UIA + coords | Yes | No | No | Active, ~6.3k★ |
-| **MCEC 3.0 (Model Context Environment Controller, proposed)** | (new) | **Yes (.NET 8)** | **Shots (PrintWindow) + UIA** | **find/wait/invoke** | **Yes** | **TCP + serial + MCP/HTTP** | **Yes (15-yr model)** | Proposed |
+| **MCEC 3.0 (Model Context Environment Controller, proposed)** | (new) | **Yes (.NET 10)** | **Shots (PrintWindow) + UIA** | **find/wait/invoke** | **Yes** | **TCP + serial + MCP/HTTP** | **Yes (15-yr model)** | Proposed |
 
 ## Appendix B: Sources
 
