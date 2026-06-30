@@ -1,0 +1,71 @@
+name: Real Windows (Interactive)
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+env:
+  SOLUTION: 'MCEControl.slnx'
+  CONFIGURATION: 'Release'
+
+jobs:
+  real-windows:
+    name: Build + Test + Smoke (Interactive Desktop)
+    runs-on: [self-hosted, Windows, interactive]   # label your self-hosted runner accordingly
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION }} --configuration ${{ env.CONFIGURATION }} --no-restore
+
+      - name: Test
+        run: >
+          dotnet test ${{ env.SOLUTION }}
+          --configuration ${{ env.CONFIGURATION }}
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ./TestResults
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2
+        if: always()
+        with:
+          files: TestResults/**/*.trx
+          check_name: Test Results (real-windows)
+          comment_mode: off
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results-real-windows
+          path: TestResults/
+          retention-days: 14
+
+      - name: Smoke - launch MCEC + capture non-blank frame
+        shell: pwsh
+        run: pwsh -File scripts/smoke-interactive.ps1
+
+      - name: Upload smoke artifacts
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: smoke-real-windows
+          path: |
+            src/bin/
+          retention-days: 7
