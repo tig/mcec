@@ -1,14 +1,18 @@
-# MCE Controller
+# MCEC
 
-![MCE Controller](mainwindow.png)
+![MCEC](mainwindow.png)
 
-**MCE Controller** (MCEC) provides robust control of Windows PCs for smart home systems. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCE Controller** to control a Windows PC.
+**MCEC** (Model Context Environment Controller) is eyes, hands, and a safe front door for agents on Windows — and the same battle-tested remote control for smart-home systems.
+
+In its long-standing role, **MCEC** provides robust control of Windows PCs for smart home systems. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCEC** to control a Windows PC.
 
 Almost any action a user can perform on Windows can be invoked remotely from another device on the network. This includes key presses (e.g. Alt-Tab or Win-S), mouse movements, and Window management actions (e.g. maximize window or set a window to the foreground)
 
-**MCE Controller** works great with any remote control system that supports TCP/IP or RS-232 connections. Examples include [**Control4**](https://www.control4.com/), [**iRule**](http://www.iruleathome.com/), [**Crestron**](http://www.crestron.com/), and [**Premise Home Control**](http://cocoontech.com/forums/forum/51-premise-home-control/)
+**MCEC** works great with any remote control system that supports TCP/IP or RS-232 connections. Examples include [**Control4**](https://www.control4.com/), [**iRule**](http://www.iruleathome.com/), [**Crestron**](http://www.crestron.com/), and [**Premise Home Control**](http://cocoontech.com/forums/forum/51-premise-home-control/)
 
-**[Full MCE Controller Documentation](documentation.md)**
+New in 3.0, **MCEC** is also an **agent-automation server**: it can see the screen (capture a screenshot), query the UI Automation tree, find and wait for elements, and drive native Windows apps — exposed to AI agents and scripts over the **Model Context Protocol (MCP)** (stdio: `mcec.exe --mcp`) or a localhost HTTP floor. All of these agent capabilities are opt-in and disabled by default; everything below remains unchanged. See the [Agent Server user guide](agent-server.md) and [AGENTS.md](https://github.com/tig/mcec/blob/main/AGENTS.md) (agent guidance + dogfood recipe).
+
+**[Full MCEC Documentation](documentation.md)**
 
 ## Download & Install
 
@@ -19,7 +23,7 @@ Almost any action a user can perform on Windows can be invoked remotely from ano
 * Version 1.0.1 (February 22, 2004) – First publicly released version.
 * Version 1.0.2 (March 24, 2004) - New features: Added support for system shutdown, restart, standby, and hibernate (the Shutdown command type) Renamed a few commands ("mce_start" is now "mcestart" for example) to be more consistent.
 * Version 1.0.3 (March 26, 2004) - Added installer.
-* Version 1.0.4 (February 26, 2005) - Fixed bug that caused MCE Controller to prevent logoffs and shutdowns.
+* Version 1.0.4 (February 26, 2005) - Fixed bug that caused MCEC to prevent logoffs and shutdowns.
 * Version 1.0.5 (April, 2005) – Added support for arbitrary # of characters for the “key:” command.
 * Version 1.1.0 (May 11, 2005) – No functional changes. Changed the source license to the BSD license and posted on Sourceforge.
 * Version 1.3.0 (January 3, 2012) – Added support for "chars:". Removed support for "keys:". Added "enter" command. Now builds with VS2010.

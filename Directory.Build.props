@@ -1,0 +1,40 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Suppress NuGet package pruning advisories. Some legacy transitive deps require
+         explicit package references for runtime resolution and cannot be pruned. -->
+    <NoWarn>$(NoWarn);NU1510</NoWarn>
+
+    <!-- The strict-mode burn-down is COMPLETE: nullable reference types (CS86xx), the house-style
+         analyzers (MCEC0001 one-type-per-file, MCEC0002 no-nested-types), and collection-expression
+         style (IDE0028/IDE0300/IDE0305) are all driven to zero and enforced as ERRORS via
+         TreatWarningsAsErrors. Only the two WinForms platform advisories remain as tracked
+         (non-error) warnings: WFO1000 (source-generator) and WFDEV004 (Form.Closing obsoletion in
+         the designer file). These match WinPrint's posture and are not part of the burn-down. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);WFO1000;WFDEV004</WarningsNotAsErrors>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GitVersion.MsBuild" Version="6.7.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- House-style analyzers (one type per file, no nested types). Excluded from the
+       analyzer project itself to avoid a circular reference. -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'MCEControl.Analyzers'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)tools\MCEControl.Analyzers\MCEControl.Analyzers.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <OutputItemType>Analyzer</OutputItemType>
+      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+      <GlobalPropertiesToRemove>RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained;PublishSingleFile;PublishAot;IsAotCompatible;Platform;PlatformTarget</GlobalPropertiesToRemove>
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

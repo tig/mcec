@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.10.0.schema.json
+# Template for submitting MCEC to microsoft/winget-pkgs.
+# Replace {{version}} (e.g. 2.4.1). Ongoing releases are auto-submitted by CI
+# (the `winget` job in .github/workflows/release.yml) — these files are the
+# source-of-truth template + the one-time bootstrap. See README.md.
+PackageIdentifier: Kindel.mcec
+PackageVersion: "{{version}}"
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.10.0

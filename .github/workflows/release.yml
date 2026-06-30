@@ -1,0 +1,130 @@
+name: Release
+
+# Cuts a release: builds the self-contained installer, signs it with Azure Trusted
+# Signing (Azure Artifact Signing) via GitHub OIDC, and publishes a GitHub Release.
+#
+# Trigger by pushing a version tag:   git push origin v2.5.0
+# Or run manually (workflow_dispatch) with a version, e.g. for a dry run.
+#
+# Signing is GATED on the six AZURE_* secrets (set by scripts/SetupAzure.ps1). Without
+# them the job still builds and publishes an UNSIGNED installer (with a ::warning::), so
+# the release path works on a fork or before signing is configured. See docs/code-signing.md.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. 2.5.0, no v prefix)'
+        required: true
+
+permissions:
+  contents: write   # create the GitHub Release
+  id-token: write   # Azure OIDC federation (no client secret)
+
+env:
+  SIGN: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' && secrets.AZURE_SIGNING_ACCOUNT != '' && secrets.AZURE_SIGNING_PROFILE != '' && secrets.AZURE_SIGNING_ENDPOINT != '' }}
+  HAS_WINGET: ${{ secrets.WINGET_TOKEN != '' }}
+
+jobs:
+  release:
+    name: Build, sign, and publish installer
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Determine version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ github.event.inputs.version }}' } else { '${{ github.ref_name }}' }
+          $v = $v.TrimStart('v')
+          if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Version '$v' must be X.Y.Z (tag like v2.5.0)" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "tag=v$v"    >> $env:GITHUB_OUTPUT
+          Write-Host "Building version $v"
+
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: ./Release.ps1 -Version ${{ steps.ver.outputs.version }}
+
+      - name: Stage installer for signing
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          Copy-Item src/bin/mcec.Setup.exe artifacts/mcec.Setup.exe -Force
+
+      - name: Azure login (OIDC)
+        if: ${{ env.SIGN == 'true' }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign installer (Azure Trusted Signing)
+        if: ${{ env.SIGN == 'true' }}
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\artifacts
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Warn that installer is unsigned
+        if: ${{ env.SIGN != 'true' }}
+        run: echo "::warning::AZURE_* signing secrets not set — installer is UNSIGNED. Run 'pwsh scripts/SetupAzure.ps1 -SetGitHubSecrets' to enable Azure Trusted Signing (see docs/code-signing.md)."
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ steps.ver.outputs.tag }} `
+            --title "MCEC ${{ steps.ver.outputs.tag }}" `
+            --generate-notes `
+            --latest `
+            artifacts/mcec.Setup.exe
+
+  # Auto-submit the new version to winget-pkgs on every STABLE release (skips pre-releases
+  # and is gated on the WINGET_TOKEN secret). Requires a one-time manual bootstrap of the
+  # package into microsoft/winget-pkgs — see packaging/winget/README.md.
+  winget:
+    name: Submit to winget-pkgs
+    needs: release
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && !contains(github.ref_name, '-') }}
+    steps:
+      - name: Derive version (strip leading v)
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Submit to winget-pkgs
+        if: ${{ env.HAS_WINGET == 'true' }}
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: Kindel.mcec
+          version: ${{ steps.ver.outputs.version }}
+          release-tag: ${{ github.ref_name }}
+          installers-regex: 'mcec\.Setup\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
+
+      - name: Skipped (no WINGET_TOKEN)
+        if: ${{ env.HAS_WINGET != 'true' }}
+        run: echo "::notice::WINGET_TOKEN not set — skipping winget-pkgs submission. See packaging/winget/README.md."

@@ -85,7 +85,7 @@
             this.Controls.Add(this.labelNewVersion);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Name = "UpdateDialog";
-            this.Text = "Update MCE Controller";
+            this.Text = "Update MCEC";
             this.VisibleChanged += new System.EventHandler(this.UpdateDialog_VisibleChanged);
             this.ResumeLayout(false);
             this.PerformLayout();

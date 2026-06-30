@@ -29,7 +29,7 @@
             this._labelTitle = new System.Windows.Forms.Label();
             this._linkLabelMceController = new System.Windows.Forms.LinkLabel();
             this._buttonOk = new System.Windows.Forms.Button();
-            this._linkLabelKindelSystems = new System.Windows.Forms.LinkLabel();
+            this._linkLabelKindel = new System.Windows.Forms.LinkLabel();
             this._labelSummary = new System.Windows.Forms.Label();
             this._iconMcec = new System.Windows.Forms.PictureBox();
             this._label1 = new System.Windows.Forms.Label();
@@ -45,7 +45,7 @@
             this._labelTitle.Name = "_labelTitle";
             this._labelTitle.Size = new System.Drawing.Size(410, 63);
             this._labelTitle.TabIndex = 0;
-            this._labelTitle.Text = "MCE Controller";
+            this._labelTitle.Text = "MCEC";
             this._labelTitle.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // _linkLabelMceController
@@ -72,19 +72,19 @@
             this._buttonOk.Text = "OK";
             this._buttonOk.Click += new System.EventHandler(this.ButtonOkClick);
             // 
-            // _linkLabelKindelSystems
+            // _linkLabelKindel
             // 
-            this._linkLabelKindelSystems.AutoSize = true;
-            this._linkLabelKindelSystems.LinkColor = System.Drawing.Color.Moccasin;
-            this._linkLabelKindelSystems.Location = new System.Drawing.Point(330, 135);
-            this._linkLabelKindelSystems.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this._linkLabelKindelSystems.Name = "_linkLabelKindelSystems";
-            this._linkLabelKindelSystems.Size = new System.Drawing.Size(213, 20);
-            this._linkLabelKindelSystems.TabIndex = 1;
-            this._linkLabelKindelSystems.TabStop = true;
-            this._linkLabelKindelSystems.Tag = "http://www.kindel.com";
-            this._linkLabelKindelSystems.Text = "© 2020 Kindel Systems, LLC.";
-            this._linkLabelKindelSystems.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabelCharlieLinkClicked);
+            this._linkLabelKindel.AutoSize = true;
+            this._linkLabelKindel.LinkColor = System.Drawing.Color.Moccasin;
+            this._linkLabelKindel.Location = new System.Drawing.Point(330, 135);
+            this._linkLabelKindel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this._linkLabelKindel.Name = "_linkLabelKindel";
+            this._linkLabelKindel.Size = new System.Drawing.Size(213, 20);
+            this._linkLabelKindel.TabIndex = 1;
+            this._linkLabelKindel.TabStop = true;
+            this._linkLabelKindel.Tag = "http://www.kindel.com";
+            this._linkLabelKindel.Text = "© 2020 Kindel, LLC.";
+            this._linkLabelKindel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabelCharlieLinkClicked);
             // 
             // _labelSummary
             // 
@@ -144,7 +144,7 @@
             this.Controls.Add(this._label1);
             this.Controls.Add(this._iconMcec);
             this.Controls.Add(this._labelSummary);
-            this.Controls.Add(this._linkLabelKindelSystems);
+            this.Controls.Add(this._linkLabelKindel);
             this.Controls.Add(this._buttonOk);
             this.Controls.Add(this._linkLabelMceController);
             this.Controls.Add(this._labelTitle);

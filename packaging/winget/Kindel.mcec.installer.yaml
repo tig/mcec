@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
+# Replace {{version}}, {{installerUrl}}, {{installerSha256}}, {{releaseDate}} with values
+# from the signed release (https://github.com/tig/mcec/releases). See README.md.
+PackageIdentifier: Kindel.mcec
+PackageVersion: "{{version}}"
+# MCEC ships an NSIS installer (per-machine; requires elevation). winget's
+# "nullsoft" type knows the silent switch is /S.
+InstallerType: nullsoft
+Scope: machine
+InstallModes:
+  - interactive
+  - silent
+UpgradeBehavior: install
+ReleaseDate: "{{releaseDate}}"
+Installers:
+  - Architecture: x64
+    InstallerUrl: "{{installerUrl}}"
+    InstallerSha256: "{{installerSha256}}"
+ManifestType: installer
+ManifestVersion: 1.10.0
