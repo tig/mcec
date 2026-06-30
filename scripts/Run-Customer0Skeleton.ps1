@@ -252,16 +252,11 @@ try {
     #     skeleton run surfaced; the expand action + this targeting is the fix.) ---
     Invoke-Tool -Name "invoke" -Arguments @{ handle = $mainHandle; by = "name"; value = "Help"; action = "expand" } | Out-Null
     Start-Sleep -Milliseconds 400
-    # Invoking About... opens a MODAL dialog; because MCEC runs agent commands on its own UI
-    # thread in-process, the invoke call does not return until that modal closes. So fire it with
-    # a short timeout and let the verify step confirm the dialog actually opened. (Known limitation:
-    # synchronous actuation of modal-opening controls — feeds the actions/threading epic.)
-    try {
-        Invoke-Tool -Name "invoke" -Arguments @{ handle = $mainHandle; by = "name"; value = "About..."; action = "invoke" } -TimeoutSec 4 | Out-Null
-        $actNote = "expand Help -> invoke About..."
-    } catch {
-        $actNote = "expand Help -> invoke About... (call blocked on modal, expected; verifying)"
-    }
+    # Invoking About... opens a modal dialog. Since #105 the invoke returns promptly with
+    # modalPending instead of blocking for the dialog's lifetime, so no special timeout handling is
+    # needed; verify confirms the dialog opened.
+    $aboutInvoke = Invoke-Tool -Name "invoke" -Arguments @{ handle = $mainHandle; by = "name"; value = "About..."; action = "invoke" }
+    $actNote = "expand Help -> invoke About... (modalPending=$($aboutInvoke.modalPending))"
 
     $about = Wait-For -TimeoutMs 6000 -Condition {
         $q = Invoke-Tool -Name "query" -Arguments @{ window = "About"; maxDepth = 1 }
