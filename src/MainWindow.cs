@@ -33,6 +33,9 @@ public partial class MainWindow : Form {
     private CommandWindow cmdWindow = null!;
     private CommandFileWatcher watcher = null!;
 
+    // The on-screen command overlay (#119), when enabled. Null in headless mode or when disabled.
+    private CommandOverlayWindow? commandOverlay;
+
     // Indicates whether user hit the close box (minimize)
     // or the app is exiting
     private bool shuttingDown;
@@ -270,6 +273,14 @@ public partial class MainWindow : Form {
             AgentServer.StartHttp();
         }
 
+        // MCEC 3.0: on-screen command overlay (#119) — narrates each command as it executes so anyone
+        // watching sees that MCEC is driving. On by default; never shown headless. Independent (not
+        // owned) so it keeps narrating even when the MCEC window is minimized to the tray.
+        if (Settings.CommandOverlayEnabled && !AgentRuntime.Headless && commandOverlay is null) {
+            commandOverlay = new CommandOverlayWindow();
+            commandOverlay.Show();
+        }
+
         if (Settings.ActivityMonitorEnabled) {
             UserActivityMonitorService.Instance.DebounceTime = Settings.ActivityMonitorDebounceTime;
             UserActivityMonitorService.Instance.ActivityMsg = Settings.ActivityMonitorCommand;
@@ -288,6 +299,8 @@ public partial class MainWindow : Form {
         else {
             UserActivityMonitorService.Instance.Stop();
             AgentServer.StopHttp();
+            commandOverlay?.Dispose();
+            commandOverlay = null;
             StopClient();
             StopServer();
             StopSerialServer();

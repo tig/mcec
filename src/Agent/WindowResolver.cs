@@ -15,19 +15,48 @@ namespace MCEControl;
 /// loops a GUI script otherwise grows.
 /// </summary>
 public static class WindowResolver {
+    // Windows MCEC owns that must never be agent targets — notably the on-screen command overlay (#119).
+    // The overlay annotates the screen; if it could be resolved by handle/foreground/process, an agent
+    // would see and try to drive its own overlay. Handles are registered by the windows themselves.
+    private static readonly HashSet<long> IgnoredHandles = [];
+
+    /// <summary>Marks a window handle as never-a-target (e.g. the command overlay registers itself).</summary>
+    public static void RegisterIgnoredWindow(long handle) {
+        lock (IgnoredHandles) {
+            IgnoredHandles.Add(handle);
+        }
+    }
+
+    /// <summary>Removes a previously-ignored handle (on window close).</summary>
+    public static void UnregisterIgnoredWindow(long handle) {
+        lock (IgnoredHandles) {
+            IgnoredHandles.Remove(handle);
+        }
+    }
+
+    /// <summary>True if the handle is registered as never-a-target.</summary>
+    public static bool IsIgnoredWindow(long handle) {
+        lock (IgnoredHandles) {
+            return IgnoredHandles.Contains(handle);
+        }
+    }
+
     /// <summary>
     /// Resolves a single target window. Returns null if nothing matches. Precedence: handle &gt;
     /// foreground &gt; (title / process / className filters applied to the enumerated top-level set).
     /// </summary>
     public static WindowInfo? Resolve(long? handle, string? title, string? processName, string? className, bool foreground) {
         if (handle is > 0) {
+            if (IsIgnoredWindow(handle.Value)) {
+                return null;
+            }
             IntPtr h = new(handle.Value);
             return AgentNativeMethods.IsWindow(h) ? Describe(h) : null;
         }
 
         if (foreground) {
             IntPtr fg = AgentNativeMethods.GetForegroundWindow();
-            return fg == IntPtr.Zero ? null : Describe(fg);
+            return fg == IntPtr.Zero || IsIgnoredWindow(fg.ToInt64()) ? null : Describe(fg);
         }
 
         // SECURITY/CORRECTNESS: require at least one explicit criterion. Without this, a call with no
@@ -64,6 +93,9 @@ public static class WindowResolver {
             }
             if (AgentNativeMethods.GetWindowTextLength(hwnd) == 0) {
                 return true;
+            }
+            if (IsIgnoredWindow(hwnd.ToInt64())) {
+                return true; // never surface MCEC's own overlay as a candidate target (#119)
             }
             windows.Add(Describe(hwnd));
             return true;
