@@ -186,7 +186,7 @@ public class AgentDesktopE2ETests {
         return isError is not null && isError.GetValue<bool>();
     }
 
-    /// <summary>Parses the first text content block of a tools/call result into its CommandResult.data.</summary>
+    /// <summary>Parses the first text content block of a tools/call result into its envelope's result payload.</summary>
     private static JsonObject? PayloadData(JsonObject toolCallResponse) {
         if (toolCallResponse["result"]?["content"] is not JsonArray content) {
             return null;
@@ -194,7 +194,7 @@ public class AgentDesktopE2ETests {
         foreach (JsonNode? block in content) {
             if (block?["type"]?.GetValue<string>() == "text") {
                 try {
-                    return JsonNode.Parse(block["text"]!.GetValue<string>())?["data"] as JsonObject;
+                    return JsonNode.Parse(block["text"]!.GetValue<string>())?["result"] as JsonObject;
                 }
                 catch (System.Text.Json.JsonException) {
                     return null;
