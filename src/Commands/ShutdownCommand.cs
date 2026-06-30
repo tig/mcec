@@ -114,7 +114,14 @@ public class ShutdownCommand : Command {
     public static void Shutdown(string shutdownArgs) {
         Logger.Instance.Log4.Debug($"ShutdownCommand: Invoking 'shutdown.exe {shutdownArgs}'");
 
-        Process proc = System.Diagnostics.Process.Start("shutdown", shutdownArgs);
+        Process? proc = Process.Start(new ProcessStartInfo {
+            FileName = "shutdown",
+            Arguments = shutdownArgs
+        });
+        if (proc == null) {
+            Logger.Instance.Log4.Error($"ShutdownCommand: failed to start 'shutdown.exe {shutdownArgs}'");
+            throw new System.ComponentModel.Win32Exception("Failed to start shutdown process");
+        }
         proc.WaitForExit(1000 * 2);
         if (proc.ExitCode != 0x0) {
             Logger.Instance.Log4.Error($"ShutdownCommand: 'shutdown.exe {shutdownArgs}' failed ({proc.ExitCode:X})");
