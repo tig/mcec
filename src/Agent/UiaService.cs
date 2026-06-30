@@ -62,8 +62,11 @@ public static class UiaService {
 
     /// <summary>
     /// Finds an element (5s timeout) and dispatches <paramref name="action"/>
-    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>). Returns true on success, false if
-    /// the element wasn't found or the required pattern is unsupported.
+    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>).
+    /// Returns true on success, false if the element wasn't found or the required pattern is
+    /// unsupported. <c>expand</c> opens a collapsed menu/treeitem so its children become reachable —
+    /// a closed WinForms menu's sub-items are not in the UIA tree until the parent is opened. It uses
+    /// the ExpandCollapse pattern, falling back to Invoke for WinForms menu items that lack it.
     /// </summary>
     public static bool Invoke(IntPtr hwnd, string by, string value, string action, string? text) {
         if (hwnd == IntPtr.Zero) {
@@ -87,6 +90,8 @@ public static class UiaService {
                 "toggle" => InvokeToggle(el),
                 "setvalue" => InvokeSetValue(el, text),
                 "setfocus" => InvokeSetFocus(el),
+                "expand" => InvokeExpand(el),
+                "collapse" => InvokeCollapse(el),
                 _ => false,
             };
         }
@@ -100,7 +105,7 @@ public static class UiaService {
     /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>, case-insensitive).</summary>
     public static bool IsSupportedAction(string action) =>
         action?.ToLowerInvariant() switch {
-            "invoke" or "toggle" or "setvalue" or "setfocus" => true,
+            "invoke" or "toggle" or "setvalue" or "setfocus" or "expand" or "collapse" => true,
             _ => false,
         };
 
@@ -176,6 +181,32 @@ public static class UiaService {
 
     private static bool InvokeSetFocus(AutomationElement el) {
         el.Focus();
+        return true;
+    }
+
+    private static bool InvokeExpand(AutomationElement el) {
+        var pattern = el.Patterns.ExpandCollapse.PatternOrDefault;
+        if (pattern is not null) {
+            pattern.Expand();
+            return true;
+        }
+        // WinForms menu items (ToolStripMenuItem) open their dropdown via the Invoke pattern and do
+        // not expose ExpandCollapse. Fall back to Invoke so `expand` opens menus uniformly across
+        // WinForms and WPF/WinUI — letting an agent reach sub-items that aren't yet in the tree.
+        var invoke = el.Patterns.Invoke.PatternOrDefault;
+        if (invoke is not null) {
+            invoke.Invoke();
+            return true;
+        }
+        return false;
+    }
+
+    private static bool InvokeCollapse(AutomationElement el) {
+        var pattern = el.Patterns.ExpandCollapse.PatternOrDefault;
+        if (pattern is null) {
+            return false;
+        }
+        pattern.Collapse();
         return true;
     }
 

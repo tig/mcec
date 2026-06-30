@@ -97,14 +97,22 @@ public static class AgentServer {
         "MCEC (Model Context Environment Controller) lets you see and drive native Windows apps.\n" +
         "Work the loop: observe -> target -> act -> observe.\n" +
         "1. TARGET a window by `window` (title substring), `process` (name without .exe), `className`, " +
-        "or `foreground:true`. You MUST give at least one of these — a call with no target fails.\n" +
+        "or `foreground:true` — you MUST give at least one; a call with no target fails. Reuse the " +
+        "`handle` a `query` returns for follow-up calls: it is stable, and a dialog you open shares the " +
+        "process name, so re-resolving by process/title can match the wrong window. Open menus and other " +
+        "untitled popups are not enumerated by title/process — target them by handle or `foreground:true`.\n" +
         "2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, " +
         "state, value) so you can pick a control instead of guessing pixels; `capture` returns a PNG " +
         "of the window (works on composited WinUI/WPF surfaces).\n" +
-        "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus) " +
-        "over coordinate clicks — it is far more reliable. Use `find`/`wait-for` to wait for a control " +
-        "to appear before acting. `send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
-        "4. VERIFY with another `query` or `capture`.\n" +
+        "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
+        "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
+        "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
+        "until opened), then `invoke` the item. Invoking a control that opens a MODAL dialog (About, " +
+        "Settings, message/file dialogs) may not return until that dialog is dismissed — MCEC runs " +
+        "commands on the app's UI thread — so do not block on it; after firing the invoke, `query`/" +
+        "`capture` the expected window to confirm it opened. Use `find` to wait for a control to appear " +
+        "before acting. `send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
+        "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
         "SECURITY: observation tools (capture/query/find/invoke) only work when the operator has set " +
         "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
         "than retrying. Every action is audit-logged on the host.";
@@ -154,7 +162,7 @@ public static class AgentServer {
         JsonObject invokeProps = WindowTargetProps();
         invokeProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
         invokeProps["value"] = PropSchema("string", "Value to match");
-        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus (default invoke)");
+        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse (default invoke). Use expand to open a menu before invoking its items.");
         invokeProps["text"] = PropSchema("string", "Text for the setvalue action");
         tools.Add(Tool("invoke",
             "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus) — more reliable than coordinate clicks.",
