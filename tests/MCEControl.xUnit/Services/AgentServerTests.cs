@@ -34,7 +34,7 @@ public class AgentServerTests {
     }
 
     [Fact]
-    public void Dispatch_ToolsList_IncludesCaptureAndQuery() {
+    public void Dispatch_ToolsList_IncludesAllAgentTools() {
         JsonObject resp = AgentServer.Dispatch(Request(2, "tools/list"))!;
 
         JsonArray tools = resp["result"]!.AsObject()["tools"]!.AsArray();
@@ -49,6 +49,10 @@ public class AgentServerTests {
 
         Assert.Contains("capture", names);
         Assert.Contains("query", names);
+        Assert.Contains("find", names);
+        Assert.Contains("wait-for", names);
+        Assert.Contains("invoke", names);
+        Assert.Contains("send_command", names);
     }
 
     [Fact]

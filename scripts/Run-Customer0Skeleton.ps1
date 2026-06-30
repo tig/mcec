@@ -206,6 +206,7 @@ try {
   <query Cmd="query" Enabled="true" />
   <capture Cmd="capture" Enabled="true" />
   <find Cmd="find" Enabled="true" />
+  <find Cmd="wait-for" Enabled="true" />
   <invoke Cmd="invoke" Enabled="true" />
 </Commands>
 </MCEController>
@@ -251,7 +252,8 @@ try {
     #     target the main window by handle — not the foreground. (This is the menu gap the first
     #     skeleton run surfaced; the expand action + this targeting is the fix.) ---
     Invoke-Tool -Name "invoke" -Arguments @{ handle = $mainHandle; by = "name"; value = "Help"; action = "expand" } | Out-Null
-    Start-Sleep -Milliseconds 400
+    # Synchronize on the menu item appearing with the first-class wait-for tool (#75) — no sleep.
+    Invoke-Tool -Name "wait-for" -Arguments @{ handle = $mainHandle; by = "name"; value = "About..."; timeout = 3000 } | Out-Null
     # Invoking About... opens a modal dialog. Since #105 the invoke returns promptly with
     # modalPending instead of blocking for the dialog's lifetime, so no special timeout handling is
     # needed; verify confirms the dialog opened.
