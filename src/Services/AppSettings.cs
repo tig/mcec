@@ -132,6 +132,13 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public int McpHttpPort { get; set; } = 5151;
 
+    // --- On-screen command overlay (issue #119) ---
+    // ON by default: the overlay shows each command as it executes so anyone watching can see that MCEC
+    // is driving the machine (auditability), which also makes demos self-documenting. A settings file
+    // without this element deserializes to the initialized default (true).
+    [SafeForTelemetryAttribute]
+    public bool CommandOverlayEnabled { get; set; } = true;
+
     // --- GIF recording limits (issue #80) ---
     // SECURITY/SAFETY: the agent `record` command is bounded by these so it cannot accidentally create
     // an unbounded file. Requests above a limit are CLAMPED (not failed) and the clamp is audited.

@@ -287,6 +287,7 @@ public static class AgentServer {
         if (name == "invoke") {
             if (!TryRunInvokeWithModalGrace(cmd)) {
                 AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
+                PublishOverlay(name, args, CommandOutcome.Pending, null, session.SessionId);
                 return McpResult(AgentToolResult.Success(InvokeModalPendingResult(), session.SessionId));
             }
         }
@@ -327,8 +328,17 @@ public static class AgentServer {
         // observation tool (wait-for included) records its observation + the resolved window as the target.
         session.RecordToolOutcome(name, env);
 
+        PublishOverlay(name, args, env.Ok ? CommandOutcome.Ok : CommandOutcome.Failed, env.Error?.CategoryWire, session.SessionId);
         return McpResult(env, image);
     }
+
+    /// <summary>
+    /// Publishes a command-event for the on-screen overlay (#119). Best-effort and decoupled — the hub
+    /// swallows subscriber faults — so it can never affect the tool result. The overlay window (and its
+    /// <c>CommandOverlayEnabled</c> gate) lives on the subscriber side.
+    /// </summary>
+    private static void PublishOverlay(string name, JsonObject args, CommandOutcome outcome, string? detail, string? sessionId) =>
+        CommandEventHub.Publish(new CommandEvent(name, CommandTersifier.ForAgentTool(name, args, outcome, detail), outcome, sessionId));
 
     // Grace period for an `invoke` to complete before we assume it opened a modal dialog and return.
     // Must stay above UiaService.InvokeFindTimeoutMs so an invoke's element lookup always resolves within
@@ -391,6 +401,7 @@ public static class AgentServer {
         // success payload. (Native success/failure detection for send_command is out of Phase 1 scope.)
         string captured = reply.Captured.Trim();
         JsonObject result = new() { ["output"] = string.IsNullOrEmpty(captured) ? "ok" : captured };
+        CommandEventHub.Publish(new CommandEvent("send_command", CommandTersifier.ForRawCommand(command), CommandOutcome.Ok, session.SessionId));
         return McpResult(AgentToolResult.Success(result, session.SessionId));
     }
 
