@@ -1,12 +1,8 @@
-[![CodeFactor](https://www.codefactor.io/repository/github/tig/mcec/badge)](https://www.codefactor.io/repository/github/tig/mcec)
-
-# MCEC
-
 By Tig Kindel ([@tigkindel on Twitter](http://www.twitter.com/ckindel)) - Copyright © [Kindel](http://www.kindel.com), LLC.
 
 ![mcec](https://tig.github.io/mcec/mainwindow.png "MCEC")
 
-**MCEC** (Model Context Environment Controller) is eyes, hands, and a safe front door for agents on Windows — and the same battle-tested remote control for smart-home systems.
+**MCEC** (Model Context Environment Controller) is eyes, hands, and a safe front door for agents on Windows; and the same battle-tested remote control for smart-home systems.
 
 For its long-standing role, MCEC provides robust control of Windows PCs for smart home systems. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use MCEC to control a Windows PC.
 
