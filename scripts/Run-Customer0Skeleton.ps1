@@ -51,28 +51,30 @@ if (-not (Test-Path $exe)) {
 }
 if (-not $ArtifactRoot) { $ArtifactRoot = Join-Path $repoRoot "artifacts/customer0" }
 
-$sessionId = ([guid]::NewGuid()).ToString("N").Substring(0, 12)
-$stamp = (Get-Date).ToString("yyyyMMdd-HHmmss")
-$artifactDir = Join-Path $ArtifactRoot "$stamp-$sessionId"
+# Standard evidence bundle (session record, JSONL transcript, environment, failure summary, zip)
+# lives in McecEvidence.psm1 so every MCEC-driven runner produces an identical bundle (#87).
+Import-Module (Join-Path $PSScriptRoot "McecEvidence.psm1") -Force
+$session = New-McecSession -Scenario "customer0-walking-skeleton" -Issue 98 -ArtifactRoot $ArtifactRoot
+$sessionId = $session.SessionId
+$artifactDir = $session.ArtifactDir
+$toolCallLog = $session.ToolCallLog
+
 # Stable run dir (NOT a per-run temp path): the mcec.exe path is then constant across runs,
 # so a single Windows Firewall allow rule (scripts/Allow-McecFirewall.ps1) suppresses prompts
 # for every run instead of Windows re-prompting for each new temp copy.
 $runDir = Join-Path $env:LOCALAPPDATA "Kindel\mcec-skeleton-run"
-New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 
-$toolCallLog = Join-Path $artifactDir "tool-calls.jsonl"
 $mcpUrl = "http://127.0.0.1:$Port/mcp"
 $baseUrl = "http://127.0.0.1:$Port/"
 
-$steps = [System.Collections.Generic.List[object]]::new()
 $lastGoodObservation = $null
 $guiProc = $null
 $rpcId = 0
 
+# Thin wrapper so existing call sites stay unchanged.
 function Add-Step {
     param([string]$Name, [string]$Status, [string]$Detail = "")
-    $steps.Add([ordered]@{ name = $Name; status = $Status; detail = $Detail; at = (Get-Date).ToString("o") })
-    Write-Host ("[{0,-7}] {1} {2}" -f $Status.ToUpper(), $Name, $Detail)
+    Add-McecStep $script:session $Name $Status $Detail
 }
 
 # ---------------------------------------------------------------------------
@@ -83,12 +85,10 @@ function Invoke-Mcp {
     $script:rpcId++
     $req = @{ jsonrpc = "2.0"; id = $script:rpcId; method = $Method; params = $Params }
     $body = $req | ConvertTo-Json -Depth 12 -Compress
-    $entry = [ordered]@{ ts = (Get-Date).ToString("o"); sessionId = $sessionId; direction = "request"; method = $Method; payload = $req }
-    ($entry | ConvertTo-Json -Depth 12 -Compress) | Add-Content -Path $toolCallLog -Encoding utf8
+    Write-McecToolCall $script:session "request" $Method $req
 
     $resp = Invoke-RestMethod -Uri $mcpUrl -Method Post -Body $body -ContentType "application/json" -TimeoutSec $TimeoutSec
-    $rentry = [ordered]@{ ts = (Get-Date).ToString("o"); sessionId = $sessionId; direction = "response"; method = $Method; payload = $resp }
-    ($rentry | ConvertTo-Json -Depth 20 -Compress) | Add-Content -Path $toolCallLog -Encoding utf8
+    Write-McecToolCall $script:session "response" $Method $resp
     return $resp
 }
 
@@ -279,63 +279,23 @@ catch {
     Add-Step "error" "fail" $_.Exception.Message
 }
 finally {
-    # --- environment.json ---
-    $screen = $null
-    try { Add-Type -AssemblyName System.Windows.Forms; $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds } catch {}
-    $mcecVer = try { (Get-Item $exe).VersionInfo.ProductVersion } catch { "unknown" }
-    $env = [ordered]@{
-        sessionId   = $sessionId
-        timestamp   = (Get-Date).ToString("o")
-        os          = "$([System.Environment]::OSVersion.VersionString)"
-        dotnet      = "$([System.Environment]::Version)"
-        mcecVersion = $mcecVer
-        display     = if ($screen) { "$($screen.Width)x$($screen.Height)" } else { "unknown" }
-        host        = $env:COMPUTERNAME
-        mcpUrl      = $mcpUrl
-    }
-    ($env | ConvertTo-Json -Depth 5) | Set-Content -Path (Join-Path $artifactDir "environment.json") -Encoding utf8
-
-    # --- session.json ---
-    $session = [ordered]@{
-        sessionId = $sessionId
-        scenario  = "customer0-walking-skeleton"
-        issue     = 98
-        startedAt = $stamp
-        passed    = $passed
-        steps     = $steps
-        artifacts = @("session.json", "tool-calls.jsonl", "screenshot.png", "environment.json", "failure-summary.md")
-    }
-    ($session | ConvertTo-Json -Depth 8) | Set-Content -Path (Join-Path $artifactDir "session.json") -Encoding utf8
-
-    # --- failure-summary.md (always written; says PASS when green) ---
-    $fail = $steps | Where-Object { $_.status -eq "fail" } | Select-Object -First 1
-    $sb = [System.Text.StringBuilder]::new()
-    [void]$sb.AppendLine("# Customer 0 Walking Skeleton — $($(if($passed){'PASS'}else{'FAIL'}))")
-    [void]$sb.AppendLine("")
-    [void]$sb.AppendLine("- Session: ``$sessionId``")
-    [void]$sb.AppendLine("- Scenario: customer0-walking-skeleton (#98)")
-    [void]$sb.AppendLine("- Last good observation: $lastGoodObservation")
-    if ($fail) {
-        [void]$sb.AppendLine("- Failing step: **$($fail.name)** — $($fail.detail)")
-    }
-    [void]$sb.AppendLine("")
-    [void]$sb.AppendLine("## Steps")
-    foreach ($s in $steps) { [void]$sb.AppendLine("- [$($s.status)] $($s.name): $($s.detail)") }
-    $sb.ToString() | Set-Content -Path (Join-Path $artifactDir "failure-summary.md") -Encoding utf8
-
     # --- Cleanup: stop the GUI (also closes the About dialog), remove the run dir ---
     if ($guiProc) { try { Stop-Process -Id $guiProc.Id -Force -ErrorAction SilentlyContinue } catch {} }
     Stop-RunDirMcec $runDir
     try { Remove-Item -Path $runDir -Recurse -Force -ErrorAction SilentlyContinue } catch {}
 
-    # --- Zip the bundle ---
-    $bundle = Join-Path $ArtifactRoot "$stamp-$sessionId.zip"
-    try { Compress-Archive -Path (Join-Path $artifactDir '*') -DestinationPath $bundle -Force; Add-Step "bundle" "pass" $bundle } catch { Add-Step "bundle" "fail" $_.Exception.Message }
+    # --- Write the standard evidence bundle (#87): session.json, environment.json,
+    #     failure-summary.md, and the zip — all produced by McecEvidence.psm1. ---
+    $session.LastObservation = $lastGoodObservation
+    $environment = Get-McecEnvironment -ExePath $exe -McpUrl $mcpUrl
+    $result = Complete-McecSession -Session $session -Passed $passed -Environment $environment
+    $bundle = $result.Bundle
 
     Write-Host ""
     Write-Host "==================================================================="
     Write-Host (" RESULT: {0}" -f $(if ($passed) { "PASS" } else { "FAIL" }))
     Write-Host (" Bundle: {0}" -f $artifactDir)
+    Write-Host (" Zip:    {0}" -f $bundle)
     Write-Host "==================================================================="
 }
 
