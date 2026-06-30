@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Xunit;
@@ -110,6 +111,30 @@ public class AgentServerTests {
         }
         finally {
             AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_ResultCarriesAmbientSessionId() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = null; // exercise the disabled path; it still rides a session
+        AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
+        AgentRuntime.ResetSession();
+        try {
+            JsonObject prms = new() {
+                ["name"] = "capture",
+                ["arguments"] = new JsonObject(),
+            };
+
+            JsonObject resp = AgentServer.Dispatch(Request(5, "tools/call", prms))!;
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
+
+            // Every result — even a refused one — names the session it ran inside (#86).
+            Assert.Equal(AgentRuntime.Session.SessionId, envelope["sessionId"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
         }
     }
 
