@@ -65,11 +65,22 @@ public sealed class AgentToolResult {
     /// — what each agent command writes to its reply today — into the #101 envelope. Success carries
     /// <c>data</c> forward as <see cref="Result"/>; failure maps the free-text error onto the closed
     /// taxonomy via <see cref="Categorize"/>.
+    ///
+    /// <para>One success is reclassified as a failure: <see cref="FindCommand"/> writes
+    /// <c>Ok{found:false}</c> when a <c>wait-for</c> exhausts its timeout, but an agent branches on
+    /// <c>ok</c> — so a wait that never resolved must surface as a <c>timeout</c> failure, not
+    /// <c>ok:true</c>. A one-shot <c>find</c> miss stays a success ("a miss is not an error").</para>
     /// </summary>
     public static AgentToolResult FromLegacy(JsonObject legacy, string toolName, string? sessionId = null) {
         bool success = legacy["success"] is JsonValue sv && sv.TryGetValue(out bool b) && b;
         if (success) {
             JsonObject? data = (legacy["data"] as JsonObject)?.DeepClone() as JsonObject;
+            if (IsWaitForMiss(toolName, data)) {
+                return Failure(
+                    new AgentError("wait-condition-timeout", AgentErrorCategory.Timeout,
+                        "wait-for exhausted its timeout before the element appeared."),
+                    sessionId);
+            }
             return Success(data, sessionId);
         }
 
@@ -78,6 +89,11 @@ public sealed class AgentToolResult {
             : "The command failed without a message.";
         return Failure(Categorize(toolName, message), sessionId);
     }
+
+    /// <summary>True when a <c>wait-for</c> returned <c>found:false</c> — i.e. it timed out.</summary>
+    private static bool IsWaitForMiss(string toolName, JsonObject? data) =>
+        string.Equals(toolName, "wait-for", StringComparison.OrdinalIgnoreCase)
+        && data?["found"] is JsonValue fv && fv.TryGetValue(out bool found) && !found;
 
     /// <summary>
     /// Maps a legacy free-text command error onto the closed <see cref="AgentErrorCategory"/> taxonomy.

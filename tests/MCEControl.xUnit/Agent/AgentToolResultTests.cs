@@ -166,6 +166,44 @@ public class AgentToolResultTests {
     }
 
     [Fact]
+    public void FromLegacy_WaitForMiss_BecomesTimeoutFailure() {
+        // FindCommand writes Ok{found:false} when a wait-for exhausts its timeout. An agent branches on
+        // `ok`, so that must surface as a timeout failure, not ok:true (Codex P2 on #115).
+        JsonObject legacy = CommandResult.Ok("wait-for", new JsonObject { ["found"] = false, ["element"] = null }).ToJsonObject();
+
+        JsonObject env = AgentToolResult.FromLegacy(legacy, "wait-for").ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.False(env["ok"]!.GetValue<bool>());
+        Assert.Equal("timeout", env["error"]!["category"]!.GetValue<string>());
+        Assert.Equal("wait-condition-timeout", env["error"]!["code"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void FromLegacy_WaitForHit_StaysSuccess() {
+        JsonObject legacy = CommandResult.Ok("wait-for",
+            new JsonObject { ["found"] = true, ["element"] = new JsonObject { ["name"] = "OK" } }).ToJsonObject();
+
+        JsonObject env = AgentToolResult.FromLegacy(legacy, "wait-for").ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.True(env["ok"]!.GetValue<bool>());
+        Assert.True(env["result"]!["found"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public void FromLegacy_FindMiss_StaysSuccess() {
+        // A one-shot `find` miss is not an error ("a miss is not an error"); only a timed-out wait-for is.
+        JsonObject legacy = CommandResult.Ok("find", new JsonObject { ["found"] = false }).ToJsonObject();
+
+        JsonObject env = AgentToolResult.FromLegacy(legacy, "find").ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.True(env["ok"]!.GetValue<bool>());
+        Assert.False(env["result"]!["found"]!.GetValue<bool>());
+    }
+
+    [Fact]
     public void Envelope_IsCamelCaseAndOmitsNulls() {
         string json = AgentToolResult.Success(new JsonObject { ["found"] = false }).ToJson();
 
