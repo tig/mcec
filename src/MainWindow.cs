@@ -114,7 +114,7 @@ public partial class MainWindow : Form {
     }
 
     private void mainWindow_Load(object sender, EventArgs e) {
-        Logger.Instance.Log4.Info($"MCE Controller v{System.Windows.Forms.Application.ProductVersion}" +
+        Logger.Instance.Log4.Info($"MCEC v{System.Windows.Forms.Application.ProductVersion}" +
             $" - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")}" +
             $" - .NET: {Environment.Version.ToString()}");
 

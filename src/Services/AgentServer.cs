@@ -123,7 +123,12 @@ public static class AgentServer {
         "element isn't present yet — so `wait-for` (or `find` with a timeout) the control before acting; " +
         "an `invoke` that returns `error.category:no-target` means the control hasn't appeared yet, so " +
         "`wait-for` it rather than blindly retrying. " +
-        "`send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
+        "`send_command` sends any raw MCEC command (keystrokes, mouse, launch). To DRAG — resize a " +
+        "window by its sizing border, move one by its title bar, or drag a slider/handle (there is no " +
+        "`invoke` for these) — `send_command` a press-move-release sequence: `mouse:mt,x,y` to the start " +
+        "point, then `mouse:lbd` (button down), then a STREAM of `mouse:mt,x,y` along the path, then " +
+        "`mouse:lbu` (button up); coords are absolute screen pixels and a short pause between moves keeps " +
+        "the target tracking. Re-`query` afterward — a moved/resized window's controls are at new bounds.\n" +
         "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
         "RESULTS: every tool returns one envelope — `{ ok, result?, warnings?, error? }`. Branch on `ok` " +
         "first: on success read `result`; on failure read `error.category` (a closed set: timeout, " +
