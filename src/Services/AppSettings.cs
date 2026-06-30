@@ -132,6 +132,18 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public int McpHttpPort { get; set; } = 5151;
 
+    // --- GIF recording limits (issue #80) ---
+    // SECURITY/SAFETY: the agent `record` command is bounded by these so it cannot accidentally create
+    // an unbounded file. Requests above a limit are CLAMPED (not failed) and the clamp is audited.
+    [SafeForTelemetryAttribute]
+    public int AgentRecordMaxFps { get; set; } = 30;
+    [SafeForTelemetryAttribute]
+    public int AgentRecordMaxDurationMs { get; set; } = 60000;
+    [SafeForTelemetryAttribute]
+    public int AgentRecordMaxFrames { get; set; } = 600;
+    [SafeForTelemetryAttribute]
+    public int AgentRecordMaxWidth { get; set; } = 1280;
+
     #region ICloneable Members
 
     public object Clone() {

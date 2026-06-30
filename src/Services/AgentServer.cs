@@ -97,15 +97,42 @@ public static class AgentServer {
         "MCEC (Model Context Environment Controller) lets you see and drive native Windows apps.\n" +
         "Work the loop: observe -> target -> act -> observe.\n" +
         "1. TARGET a window by `window` (title substring), `process` (name without .exe), `className`, " +
-        "or `foreground:true`. You MUST give at least one of these — a call with no target fails.\n" +
+        "or `foreground:true` — you MUST give at least one; a call with no target fails. Reuse the " +
+        "`handle` a `query` returns for follow-up calls: it is stable, and a dialog you open shares the " +
+        "process name, so re-resolving by process/title can match the wrong window. Open menus and other " +
+        "untitled popups are not enumerated by title/process — target them by handle or `foreground:true`.\n" +
         "2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, " +
         "state, value) so you can pick a control instead of guessing pixels; `capture` returns a PNG " +
-        "of the window (works on composited WinUI/WPF surfaces).\n" +
-        "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus) " +
-        "over coordinate clicks — it is far more reliable. Use `find`/`wait-for` to wait for a control " +
-        "to appear before acting. `send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
-        "4. VERIFY with another `query` or `capture`.\n" +
-        "SECURITY: observation tools (capture/query/find/invoke) only work when the operator has set " +
+        "of the window (works on composited WinUI/WPF surfaces). Use `capture` for a single state check; " +
+        "use `record` ONLY to show CHANGE over time — a bounded one-shot (`durationMs`) or `action:start` " +
+        "then `action:stop`; keep recordings short (fps/duration are capped and frames downscaled), and " +
+        "remember it captures whatever is on screen for the whole duration. Check results for trouble: a " +
+        "`capture` with errorCategory `capture-blank` is a black/empty frame (minimized, cloaked, " +
+        "occluded, or a locked session) — restore/foreground the window and retry instead of trusting the " +
+        "image; a `capture-fallback` warning means PrintWindow was refused and the picture may be wrong. " +
+        "If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap — " +
+        "raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are " +
+        "non-fatal; errorCategory tells you how to recover.\n" +
+        "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
+        "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
+        "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
+        "until opened), then `invoke` the item. Invoking a control that opens a MODAL dialog (About, " +
+        "Settings, message/file dialogs) returns promptly with `modalPending:true` — the action " +
+        "completes when the dialog closes — so just `query`/`capture` the new window to read it, and " +
+        "`invoke` its buttons to dismiss it. `invoke` does NOT wait for a control — it fast-fails if the " +
+        "element isn't present yet — so `wait-for` (or `find` with a timeout) the control before acting; " +
+        "an `invoke` that returns `error.category:no-target` means the control hasn't appeared yet, so " +
+        "`wait-for` it rather than blindly retrying. " +
+        "`send_command` sends any raw MCEC command (keystrokes, mouse, launch).\n" +
+        "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
+        "RESULTS: every tool returns one envelope — `{ ok, result?, warnings?, error? }`. Branch on `ok` " +
+        "first: on success read `result`; on failure read `error.category` (a closed set: timeout, " +
+        "ambiguous-selector, stale-element, no-target, capture-blank, focus, elevation, foreground, " +
+        "internal) to choose recovery — e.g. `no-target` means broaden the selector or `query` to " +
+        "discover targets, `ambiguous-selector` means add `processName`/`className`/`automationId`, " +
+        "`stale-element` means re-`query`/`find` for a fresh handle. `error.detail` is human-readable and " +
+        "`error.lastObservation`, when present, is the last good state before the failure.\n" +
+        "SECURITY: observation tools (capture/query/find/invoke/record) only work when the operator has set " +
         "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
         "than retrying. Every action is audit-logged on the host.";
 
@@ -134,13 +161,14 @@ public static class AgentServer {
         captureProps["height"] = PropSchema("integer", "Region height");
         captureProps["file"] = PropSchema("string", "Optional path to also save the PNG to");
         tools.Add(Tool("capture",
-            "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG.",
+            "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG. Blank/black frames are detected and reported as a capture-blank error (window) or warning (region) rather than a silent bad image.",
             captureProps, []));
 
         JsonObject queryProps = WindowTargetProps();
         queryProps["maxDepth"] = PropSchema("integer", "Max UI Automation tree depth (default 6)");
+        queryProps["maxNodes"] = PropSchema("integer", "Max UI Automation nodes returned (default 1000); a clipped tree is flagged with a tree-truncated warning");
         tools.Add(Tool("query",
-            "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state.",
+            "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state. Returns nodeCount/truncated and warns when the node cap clips the tree.",
             queryProps, []));
 
         JsonObject findProps = WindowTargetProps();
@@ -151,14 +179,36 @@ public static class AgentServer {
             "Find (or wait for, with a timeout) a UI Automation element by name / automation id / class.",
             findProps, ["value"]));
 
+        JsonObject waitForProps = WindowTargetProps();
+        waitForProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
+        waitForProps["value"] = PropSchema("string", "Value to match");
+        waitForProps["timeout"] = PropSchema("integer", "Milliseconds to wait for the element (default 5000)");
+        tools.Add(Tool("wait-for",
+            "Wait for a UI Automation element to appear: polls until found or the timeout elapses (default 5s).",
+            waitForProps, ["value"]));
+
         JsonObject invokeProps = WindowTargetProps();
         invokeProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
         invokeProps["value"] = PropSchema("string", "Value to match");
-        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus (default invoke)");
+        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse (default invoke). Use expand to open a menu before invoking its items.");
         invokeProps["text"] = PropSchema("string", "Text for the setvalue action");
         tools.Add(Tool("invoke",
             "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus) — more reliable than coordinate clicks.",
             invokeProps, ["value"]));
+
+        JsonObject recordProps = WindowTargetProps();
+        recordProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
+        recordProps["y"] = PropSchema("integer", "Region top");
+        recordProps["width"] = PropSchema("integer", "Region width");
+        recordProps["height"] = PropSchema("integer", "Region height");
+        recordProps["action"] = PropSchema("string", "start | stop | oneshot (default: oneshot if durationMs given, else start)");
+        recordProps["fps"] = PropSchema("integer", "Frames per second (default 5, clamped to the operator limit)");
+        recordProps["durationMs"] = PropSchema("integer", "For a one-shot: how long to record (clamped to the operator limit)");
+        recordProps["maxWidth"] = PropSchema("integer", "Downscale frames so width fits this (default 1280)");
+        recordProps["file"] = PropSchema("string", "Output .gif path (a temp path is generated if omitted)");
+        tools.Add(Tool("record",
+            "Record a window or region to an animated GIF over time (start/stop or a bounded one-shot). Use only to show CHANGE over time; for a single state check use capture.",
+            recordProps, []));
 
         tools.Add(Tool("send_command",
             "Send any raw MCEC command string to the existing command core (e.g. actuation commands).",
@@ -190,15 +240,15 @@ public static class AgentServer {
             return RunSendCommand(args);
         }
 
-        if (name is "capture" or "query" or "find" or "invoke") {
+        if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
-                return ToolError($"Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
+                return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
             }
             return RunAgentCommand(name, args);
         }
 
-        return ToolError($"Unknown tool: {name}");
+        return ToolError($"Unknown tool: {name}", "unknown-tool");
     }
 
     private static JsonObject RunAgentCommand(string name, JsonObject args) {
@@ -207,7 +257,7 @@ public static class AgentServer {
         // the operator opts in per-command via mcec.commands). Fail closed if the table/command is missing.
         if ((AgentRuntime.Invoker?[name] as Command)?.Enabled != true) {
             AgentRuntime.Audit(name, "BLOCKED — command is disabled in mcec.commands");
-            return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").");
+            return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").", "command-disabled");
         }
 
         Command cmd = BuildCommand(name, args);
@@ -217,54 +267,114 @@ public static class AgentServer {
         cmd.Cmd = name;
 
         AgentRuntime.Audit(name, args.ToJsonString(AgentJson.Options));
-        lock (ExecLock) {
+
+        // The ambient session (#86) carries sessionId onto this result and remembers the target/
+        // observation/action/error. Snapshot the prior observation now, before this call records its own,
+        // so a failure can carry the last good state into error.lastObservation.
+        AgentSession session = AgentRuntime.Session;
+        JsonObject? priorObservation = session.LastObservation;
+        session.RecordAction(name);
+
+        // `invoke` can activate a control that opens a MODAL dialog (About, Settings, message/file
+        // dialogs). The UIA Invoke runs the control's click handler synchronously, so the call would
+        // otherwise block — and hold ExecLock — for the dialog's whole lifetime, deadlocking every
+        // later tool call (the agent couldn't even query or dismiss the dialog it just opened). Run it
+        // on a worker and, if it hasn't returned within a short grace, report "modal pending" and
+        // return; the worker finishes when the dialog closes. capture/query/find/send_command keep the
+        // simple serialized path, and the legacy TCP/serial pipeline (MainWindow.ReceivedData ->
+        // CommandInvoker.ExecuteNext on the UI thread) is untouched, so home-automation sequences keep
+        // their in-order, synchronous behavior.
+        if (name == "invoke") {
+            if (!TryRunInvokeWithModalGrace(cmd)) {
+                AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
+                return McpResult(AgentToolResult.Success(InvokeModalPendingResult(), session.SessionId));
+            }
+        }
+        else if (name == "record") {
+            // `record` manages its own background capture thread; a one-shot blocks the caller for the
+            // whole recording duration. Do NOT hold ExecLock for that span or it would stall every
+            // other tool call. Frame grabbing runs off-lock on the recorder thread regardless.
             cmd.Execute();
         }
-
-        string captured = reply.Captured.Trim();
-        JsonObject result = [];
-        JsonArray content = [];
-
-        // For capture, surface the PNG as MCP image content in addition to the JSON text.
-        bool isError = false;
-        if (!string.IsNullOrEmpty(captured)) {
-            string textJson = captured;
-            JsonNode? parsed = TryParse(captured);
-            if (parsed is JsonObject obj) {
-                isError = obj["success"] is JsonValue sv && sv.TryGetValue(out bool ok) && !ok;
-                if (name == "capture" && obj["data"] is JsonObject data && data["base64"] is JsonValue) {
-                    content.Add(new JsonObject {
-                        ["type"] = "image",
-                        ["data"] = data["base64"]!.GetValue<string>(),
-                        ["mimeType"] = "image/png",
-                    });
-                    // Avoid duplicating the (potentially multi-MB) PNG: drop base64 from the text block
-                    // now that it is carried by the image content above.
-                    data.Remove("base64");
-                    textJson = obj.ToJsonString(AgentJson.Options);
-                }
-            }
-            content.Add(TextContent(textJson));
-        }
         else {
-            isError = true;
-            content.Add(TextContent($"{{\"success\":false,\"error\":\"command produced no output\"}}"));
+            lock (ExecLock) {
+                cmd.Execute();
+            }
         }
 
-        result["content"] = content;
-        result["isError"] = isError;
-        return result;
+        // Translate the legacy CommandResult the command wrote into its reply into the #101 envelope.
+        string captured = reply.Captured.Trim();
+        if (string.IsNullOrEmpty(captured)) {
+            AgentError noOutput = new("no-output", AgentErrorCategory.Internal, $"The '{name}' command produced no output.", priorObservation);
+            session.RecordError(noOutput.ToJsonObject());
+            return McpResult(AgentToolResult.Failure(noOutput, session.SessionId));
+        }
+
+        if (TryParse(captured) is not JsonObject legacy) {
+            // An agent command always emits CommandResult JSON; a non-JSON reply is unexpected. Carry the
+            // raw text forward rather than fabricating a structured error.
+            return McpResult(AgentToolResult.Success(new JsonObject { ["output"] = captured }, session.SessionId));
+        }
+
+        AgentToolResult env = AgentToolResult.FromLegacy(legacy, name, session.SessionId, priorObservation);
+
+        // For capture, additionally surface the PNG as an MCP image content block so image-aware clients
+        // render it. The base64 stays in the envelope's result so text-only agents (which do not consume
+        // MCP image blocks) still get the bytes, as the result contract requires.
+        JsonObject? image = name == "capture" && env.Ok ? CaptureContent.TryBuildImageBlock(env.Result) : null;
+
+        // Record this call's outcome so the next call's sessionId/lastObservation reflect it. Every
+        // observation tool (wait-for included) records its observation + the resolved window as the target.
+        session.RecordToolOutcome(name, env);
+
+        return McpResult(env, image);
+    }
+
+    // Grace period for an `invoke` to complete before we assume it opened a modal dialog and return.
+    // Must stay above UiaService.InvokeFindTimeoutMs so an invoke's element lookup always resolves within
+    // the grace — otherwise a missing element would be misreported as a pending modal (see #107).
+    public const int InvokeModalGraceMs = 750;
+
+    private static JsonObject InvokeModalPendingResult() => new() {
+        ["invoked"] = true,
+        ["modalPending"] = true,
+        ["note"] = "The invoke opened a modal dialog (or a long-running action); it completes when the " +
+            "dialog closes. Query or capture the new window to read or dismiss it.",
+    };
+
+    /// <summary>
+    /// Runs an <c>invoke</c> on a background worker and waits up to <see cref="InvokeModalGraceMs"/> ms.
+    /// Returns true if it finished (its result is in the command's reply); false if it is still running,
+    /// which means the invoked control opened a modal dialog. We deliberately do NOT hold
+    /// <see cref="ExecLock"/> for an invoke: a modal opener must not block the later query/capture/invoke
+    /// calls the agent needs to read or dismiss the very dialog it opened. The worker ends on its own
+    /// when the dialog closes.
+    /// </summary>
+    private static bool TryRunInvokeWithModalGrace(Command cmd) {
+        Thread worker = new(() => {
+            try {
+                cmd.Execute();
+            }
+            catch (Exception e) {
+                Logger.Instance.Log4.Error($"AgentServer: invoke worker failed: {e.Message}");
+            }
+        }) {
+            IsBackground = true,
+            Name = "mcec-agent-invoke",
+        };
+        worker.Start();
+        return worker.Join(InvokeModalGraceMs);
     }
 
     private static JsonObject RunSendCommand(JsonObject args) {
         string command = args["command"]?.GetValue<string>() ?? "";
         if (string.IsNullOrWhiteSpace(command)) {
-            return ToolError("send_command requires a non-empty 'command' argument.");
+            return ToolError("send_command requires a non-empty 'command' argument.", "bad-arguments");
         }
 
         CommandInvoker? invoker = AgentRuntime.Invoker;
         if (invoker is null) {
-            return ToolError("Command engine is not available.");
+            return ToolError("Command engine is not available.", "engine-unavailable");
         }
 
         AgentRuntime.Audit("send_command", command);
@@ -274,12 +384,14 @@ public static class AgentServer {
             invoker.ExecuteNext();
         }
 
+        AgentSession session = AgentRuntime.Session;
+        session.RecordAction("send_command");
+
+        // The legacy command path returns opaque text, not a CommandResult; carry it forward as the
+        // success payload. (Native success/failure detection for send_command is out of Phase 1 scope.)
         string captured = reply.Captured.Trim();
-        JsonObject result = new() {
-            ["content"] = new JsonArray { TextContent(string.IsNullOrEmpty(captured) ? "ok" : captured) },
-            ["isError"] = false,
-        };
-        return result;
+        JsonObject result = new() { ["output"] = string.IsNullOrEmpty(captured) ? "ok" : captured };
+        return McpResult(AgentToolResult.Success(result, session.SessionId));
     }
 
     /// <summary>Builds and populates an agent command instance from MCP tool arguments.</summary>
@@ -303,8 +415,9 @@ public static class AgentServer {
             ClassName = Str(args, "className")!,
             Foreground = Bool(args, "foreground"),
             MaxDepth = Int(args, "maxDepth") is int d and > 0 ? d : 6,
+            MaxNodes = Int(args, "maxNodes") is int n and > 0 ? n : 1000,
         },
-        "find" => new FindCommand {
+        "find" or "wait-for" => new FindCommand {
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),
             Process = Str(args, "process")!,
@@ -313,6 +426,22 @@ public static class AgentServer {
             By = Str(args, "by") ?? "name",
             Value = Str(args, "value")!,
             Timeout = Int(args, "timeout"),
+        },
+        "record" => new RecordCommand {
+            Action = Str(args, "action")!,
+            Window = Str(args, "window")!,
+            Handle = Long(args, "handle"),
+            Process = Str(args, "process")!,
+            ClassName = Str(args, "className")!,
+            Foreground = Bool(args, "foreground"),
+            X = Int(args, "x"),
+            Y = Int(args, "y"),
+            Width = Int(args, "width"),
+            Height = Int(args, "height"),
+            Fps = Int(args, "fps"),
+            DurationMs = Int(args, "durationMs"),
+            MaxWidth = Int(args, "maxWidth"),
+            File = Str(args, "file")!,
         },
         _ => new InvokeCommand { // invoke
             Window = Str(args, "window")!,
@@ -486,13 +615,31 @@ public static class AgentServer {
         ["error"] = new JsonObject { ["code"] = code, ["message"] = message },
     };
 
-    private static JsonObject ToolError(string message) {
-        string json = new JsonObject { ["success"] = false, ["error"] = message }.ToJsonString(AgentJson.Options);
+    /// <summary>
+    /// Wraps an <see cref="AgentToolResult"/> envelope in the MCP <c>tools/call</c> transport: the
+    /// envelope rides in a text content block (preceded by an optional image block, e.g. capture's PNG),
+    /// and MCP <c>isError</c> mirrors the envelope (<c>isError = !ok</c>) per the #101 contract.
+    /// </summary>
+    private static JsonObject McpResult(AgentToolResult env, JsonObject? imageContent = null) {
+        JsonArray content = [];
+        if (imageContent is not null) {
+            content.Add(imageContent);
+        }
+        content.Add(TextContent(env.ToJson()));
         return new JsonObject {
-            ["content"] = new JsonArray { TextContent(json) },
-            ["isError"] = true,
+            ["content"] = content,
+            ["isError"] = !env.Ok,
         };
     }
+
+    /// <summary>
+    /// A tool-level failure (a security gate or a bad request) reported as the #101 envelope. These are
+    /// MCEC-side refusals the agent cannot recover from on its own, so they map to the <c>internal</c>
+    /// category; <paramref name="code"/> distinguishes the specific cause. The ambient session's id is
+    /// attached so even a refused call tells the agent which session it belonged to.
+    /// </summary>
+    private static JsonObject ToolError(string message, string code = "internal-error") =>
+        McpResult(AgentToolResult.Failure(new AgentError(code, AgentErrorCategory.Internal, message), AgentRuntime.Session.SessionId));
 
     private static JsonObject TextContent(string text) => new() {
         ["type"] = "text",

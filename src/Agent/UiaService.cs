@@ -3,6 +3,7 @@
 
 using System.Drawing;
 using System.Runtime.InteropServices;
+using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Conditions;
 using FlaUI.Core.Tools;
@@ -18,23 +19,43 @@ namespace MCEControl;
 /// </summary>
 public static class UiaService {
     /// <summary>
-    /// Snapshots the UIA tree rooted at <paramref name="hwnd"/> down to <paramref name="maxDepth"/>
-    /// levels (depth 0 = the root node only). Returns null if the window can't be attached to.
+    /// Timeout for the element lookup an <c>invoke</c> performs before dispatching its action. It is kept
+    /// below <see cref="AgentServer.InvokeModalGraceMs"/> on purpose: the grace assumes that an invoke
+    /// still running afterward is blocked on a modal dialog, so the lookup itself must finish first — a
+    /// missing element must fail fast (no-target) rather than be misreported as a pending modal (#107).
+    /// Agents are instructed to <c>wait-for</c>/<c>find</c> a control before acting on it, so invoke does
+    /// not need a long implicit wait of its own.
     /// </summary>
-    public static UiaElementInfo? DumpTree(IntPtr hwnd, int maxDepth) {
+    public const int InvokeFindTimeoutMs = 500;
+
+    /// <summary>
+    /// Snapshots the UIA tree rooted at <paramref name="hwnd"/> down to <paramref name="maxDepth"/>
+    /// levels (depth 0 = the root node only) and at most <paramref name="maxNodes"/> nodes. The node
+    /// cap keeps the result size bounded and stable for agent reasoning on pathological trees (e.g. a
+    /// virtualized list with thousands of items); when it bites, <see cref="UiaTreeResult.Truncated"/>
+    /// is set so the caller can warn rather than silently return a clipped tree. <paramref name="maxNodes"/>
+    /// &lt;= 0 means unbounded. Returns a result with a null root if the window can't be attached to.
+    /// </summary>
+    public static UiaTreeResult DumpTree(IntPtr hwnd, int maxDepth, int maxNodes) {
         if (hwnd == IntPtr.Zero) {
-            return null;
+            return new UiaTreeResult(null, 0, false);
         }
         try {
             using UIA3Automation automation = new();
             AutomationElement root = automation.FromHandle(hwnd);
-            return BuildNode(root, 0, maxDepth);
+            UiaTreeBudget budget = new() { MaxNodes = maxNodes <= 0 ? int.MaxValue : maxNodes };
+            // Walk children one at a time with the control-view walker rather than materializing every
+            // child up front: a container with thousands of immediate children must not be fully
+            // enumerated just to emit a handful before the node cap bites (#109).
+            ITreeWalker walker = automation.TreeWalkerFactory.GetControlViewWalker();
+            UiaElementInfo node = BuildNode(root, 0, maxDepth, budget, walker);
+            return new UiaTreeResult(node, budget.Count, budget.Truncated);
         }
         catch (Exception e) {
             // FromHandle/UIA can throw COMException or FlaUI-specific exceptions on a window that
             // closes mid-call; never let it escape the command's Execute().
             Logger.Instance.Log4.Error($"UiaService.DumpTree failed: {e.Message}");
-            return null;
+            return new UiaTreeResult(null, 0, false);
         }
     }
 
@@ -62,8 +83,11 @@ public static class UiaService {
 
     /// <summary>
     /// Finds an element (5s timeout) and dispatches <paramref name="action"/>
-    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>). Returns true on success, false if
-    /// the element wasn't found or the required pattern is unsupported.
+    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>).
+    /// Returns true on success, false if the element wasn't found or the required pattern is
+    /// unsupported. <c>expand</c> opens a collapsed menu/treeitem so its children become reachable —
+    /// a closed WinForms menu's sub-items are not in the UIA tree until the parent is opened. It uses
+    /// the ExpandCollapse pattern, falling back to Invoke for WinForms menu items that lack it.
     /// </summary>
     public static bool Invoke(IntPtr hwnd, string by, string value, string action, string? text) {
         if (hwnd == IntPtr.Zero) {
@@ -78,7 +102,7 @@ public static class UiaService {
         try {
             using UIA3Automation automation = new();
             AutomationElement root = automation.FromHandle(hwnd);
-            AutomationElement? el = FindElement(root, by, value, 5000);
+            AutomationElement? el = FindElement(root, by, value, InvokeFindTimeoutMs);
             if (el is null) {
                 return false;
             }
@@ -87,6 +111,8 @@ public static class UiaService {
                 "toggle" => InvokeToggle(el),
                 "setvalue" => InvokeSetValue(el, text),
                 "setfocus" => InvokeSetFocus(el),
+                "expand" => InvokeExpand(el),
+                "collapse" => InvokeCollapse(el),
                 _ => false,
             };
         }
@@ -100,31 +126,45 @@ public static class UiaService {
     /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>, case-insensitive).</summary>
     public static bool IsSupportedAction(string action) =>
         action?.ToLowerInvariant() switch {
-            "invoke" or "toggle" or "setvalue" or "setfocus" => true,
+            "invoke" or "toggle" or "setvalue" or "setfocus" or "expand" or "collapse" => true,
             _ => false,
         };
 
-    private static UiaElementInfo BuildNode(AutomationElement el, int depth, int maxDepth) {
+    private static UiaElementInfo BuildNode(AutomationElement el, int depth, int maxDepth, UiaTreeBudget budget, ITreeWalker walker) {
+        budget.Count++;
         UiaElementInfo info = Describe(el);
         if (depth >= maxDepth) {
             return info;
         }
 
-        AutomationElement[] children;
+        AutomationElement? child;
         try {
-            children = el.FindAllChildren();
+            child = walker.GetFirstChild(el);
         }
         catch (COMException) {
             // Element went stale; return what we have so far.
             return info;
         }
 
-        foreach (AutomationElement child in children) {
+        while (child is not null) {
+            if (budget.Count >= budget.MaxNodes) {
+                // Hit the node cap: stop expanding and flag it so the caller surfaces a warning. Because
+                // we never materialized the remaining siblings, the cap also bounds the UIA enumeration.
+                budget.Truncated = true;
+                break;
+            }
             try {
-                info.Children.Add(BuildNode(child, depth + 1, maxDepth));
+                info.Children.Add(BuildNode(child, depth + 1, maxDepth, budget, walker));
             }
             catch (COMException) {
                 // Skip a node that went stale mid-walk; keep the rest of the tree.
+            }
+            try {
+                child = walker.GetNextSibling(child);
+            }
+            catch (COMException) {
+                // Can't advance past a stale node; stop this level with what we have.
+                break;
             }
         }
         return info;
@@ -176,6 +216,32 @@ public static class UiaService {
 
     private static bool InvokeSetFocus(AutomationElement el) {
         el.Focus();
+        return true;
+    }
+
+    private static bool InvokeExpand(AutomationElement el) {
+        var pattern = el.Patterns.ExpandCollapse.PatternOrDefault;
+        if (pattern is not null) {
+            pattern.Expand();
+            return true;
+        }
+        // WinForms menu items (ToolStripMenuItem) open their dropdown via the Invoke pattern and do
+        // not expose ExpandCollapse. Fall back to Invoke so `expand` opens menus uniformly across
+        // WinForms and WPF/WinUI — letting an agent reach sub-items that aren't yet in the tree.
+        var invoke = el.Patterns.Invoke.PatternOrDefault;
+        if (invoke is not null) {
+            invoke.Invoke();
+            return true;
+        }
+        return false;
+    }
+
+    private static bool InvokeCollapse(AutomationElement el) {
+        var pattern = el.Patterns.ExpandCollapse.PatternOrDefault;
+        if (pattern is null) {
+            return false;
+        }
+        pattern.Collapse();
         return true;
     }
 

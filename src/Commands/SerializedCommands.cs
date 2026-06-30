@@ -49,6 +49,7 @@ public class SerializedCommands {
     [XmlArrayItem("query", typeof(QueryCommand))]
     [XmlArrayItem("find", typeof(FindCommand))]
     [XmlArrayItem("invoke", typeof(InvokeCommand))]
+    [XmlArrayItem("record", typeof(RecordCommand))]
     [XmlArrayItem(typeof(Command))]
 
     // XmlSerialization does not work with List<>. Must use an array.

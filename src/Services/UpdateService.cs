@@ -73,22 +73,19 @@ public class UpdateService {
             GitHubClient github = new GitHubClient(new ProductHeaderValue("tig-mcec"));
             IReadOnlyList<Release> allReleases = await github.Repository.Release.GetAll("tig", "mcec").ConfigureAwait(false);
 
-#if DEBUG
-            var releases =
-allReleases.Where(r => r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v'))).ToArray();
-#else
+            // Ignore bogus historical test releases (the v9 "Fake" pre-release used for testing update mechanism).
+            allReleases = [.. allReleases.Where(r =>
+                !r.TagName.Equals("v9.1.2.3", StringComparison.OrdinalIgnoreCase) &&
+                !r.Name.Contains("Fake", StringComparison.OrdinalIgnoreCase) &&
+                !r.Name.Contains("Testing Update", StringComparison.OrdinalIgnoreCase))];
+
             Release[] releases =
-                [.. allReleases.Where(r => !r.Prerelease).OrderByDescending(r => new Version(r.TagName.Trim('v')))];
-#endif
+                [.. allReleases.Where(r => !r.Prerelease).OrderByDescending(r => new Version(r.TagName.TrimStart('v')))];
             if (releases.Length > 0) {
-#if DEBUG
-                Logger.Instance.Log4.Info($"The latest PRE-RELEASE is tagged at {releases[0].TagName} and is named '{releases[0].Name}' Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
-#else
                 Logger.Instance.Log4.Debug(
                     $"The latest release is tagged at {releases[0].TagName} and is named '{releases[0].Name}'. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
-#endif
 
-                LatestStableVersion = new Version(releases[0].TagName.Replace('v', ' '));
+                LatestStableVersion = new Version(releases[0].TagName.TrimStart('v'));
                 ReleasePageUri = new Uri(releases[0].HtmlUrl);
                 DownloadUri = new Uri(releases[0].Assets[0].BrowserDownloadUrl);
             }

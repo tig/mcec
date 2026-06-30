@@ -55,6 +55,67 @@ public class SerializedCommandsTests
     }
 
     [Fact]
+    public void SaveLoad_RoundTrip_RecordCommand_TopLevel()
+    {
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
+
+        var original = new SerializedCommands
+        {
+            commandArray =
+            [
+                new RecordCommand() { Cmd = "record", Action = "oneshot", Fps = 7, DurationMs = 3000, Enabled = true }
+            ]
+        };
+
+        SerializedCommands.SaveCommands(tempFile, original, "1.0.0.0");
+        var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
+
+        Assert.NotNull(loaded);
+        var rec = Assert.Single(loaded.commandArray) as RecordCommand;
+        Assert.NotNull(rec);
+        Assert.Equal("record", rec.Cmd);
+        Assert.Equal("oneshot", rec.Action);
+        Assert.Equal(7, rec.Fps);
+        Assert.True(rec.Enabled);
+
+        File.Delete(tempFile);
+    }
+
+    [Fact]
+    public void SaveLoad_RoundTrip_RecordCommand_Embedded()
+    {
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
+
+        var original = new SerializedCommands
+        {
+            commandArray =
+            [
+                new StartProcessCommand() {
+                    Cmd = "proc", File = "x.exe", Enabled = true,
+                    EmbeddedCommands = [ new RecordCommand() { Cmd = "record", Action = "start", Enabled = true } ],
+                }
+            ]
+        };
+
+        // Must serialize AND deserialize the nested <record> as a RecordCommand (the EmbeddedCommands
+        // polymorphic map must know the type, same as the top-level commandArray map).
+        SerializedCommands.SaveCommands(tempFile, original, "1.0.0.0");
+        var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
+
+        Assert.NotNull(loaded);
+        var proc = Assert.Single(loaded.commandArray) as StartProcessCommand;
+        Assert.NotNull(proc);
+        Assert.NotNull(proc.EmbeddedCommands);
+        var embedded = Assert.Single(proc.EmbeddedCommands) as RecordCommand;
+        Assert.NotNull(embedded);
+        Assert.Equal("start", embedded.Action);
+
+        File.Delete(tempFile);
+    }
+
+    [Fact]
     public void LoadCommands_NonExistentFile_ReturnsNull()
     {
         string tempFile = Path.GetTempFileName();
