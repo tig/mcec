@@ -51,7 +51,7 @@ ReleaseDate:     2026-06-29
 ## Notes / things to validate on a real install
 
 - **Installer type `nullsoft`** (NSIS), **`Scope: machine`** — installs to
-  `C:\Program Files\Kindel Systems\MCEC` and requires elevation. winget's silent mode
+  `C:\Program Files\Kindel\MCEC` and requires elevation. winget's silent mode
   and the winget-pkgs sandbox use the NSIS `/S` switch.
 - **`winget upgrade` correlation:** the manifests intentionally omit `AppsAndFeaturesEntries`
   for now. The NSIS installer registers its Add/Remove Programs `DisplayName` as

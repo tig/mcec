@@ -20,7 +20,7 @@
         <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
         <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
         <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-        <Copyright>Copyright © Kindel Systems, LLC.</Copyright>
+        <Copyright>Copyright © Kindel, LLC.</Copyright>
         <PlatformTarget>AnyCPU</PlatformTarget>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <EnableWindowsTargeting>true</EnableWindowsTargeting>

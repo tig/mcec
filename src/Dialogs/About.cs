@@ -1,11 +1,10 @@
 ﻿//-------------------------------------------------------------------
-// Copyright � 2018 Kindel Systems, LLC
+// Copyright © 2018 Kindel, LLC
 // http://www.kindel.com
 // charlie@kindel.com
 // 
 // Published under the MIT License.
-// Source control on SourceForge 
-//    http://sourceforge.net/projects/mcecontroller/
+// Source on GitHub: https://github.com/tig/mcec
 //-------------------------------------------------------------------
 
 using System;
@@ -23,7 +22,7 @@ partial class About : Form {
     private Label _labelTitle = null!;
     private Button _buttonOk = null!;
     private LinkLabel _linkLabelMceController = null!;
-    private LinkLabel _linkLabelKindelSystems = null!;
+    private LinkLabel _linkLabelKindel = null!;
     private Label _labelSummary = null!;
     private PictureBox _iconMcec = null!;
     private Label _labelVersion;
@@ -41,7 +40,7 @@ partial class About : Form {
         //Font = System.Drawing.SystemFonts.DialogFont;
         //_label1.Font =
         //_labelSummary.Font = _labelTitle.Font = Font;
-        //_linkLabelKindelSystems.Font = Font;
+        //_linkLabelKindel.Font = Font;
         //_linkLabelMceController.Font = System.Drawing.SystemFonts.;
 
         _labelVersion!.Text = $"Model Context Environment Controller\r\n{Resources.MCE_Controller_Version_label} {Application.ProductVersion}";
@@ -57,7 +56,7 @@ partial class About : Form {
     }
 
     private void LinkLabelCharlieLinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-        TelemetryService.Instance.TrackEvent("About Box Kindel Systems Page Link Clicked");
-        Process.Start(_linkLabelKindelSystems.Tag!.ToString()!);
+        TelemetryService.Instance.TrackEvent("About Box Kindel Page Link Clicked");
+        Process.Start(_linkLabelKindel.Tag!.ToString()!);
     }
 }

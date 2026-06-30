@@ -2,14 +2,14 @@
 PackageIdentifier: Kindel.mcec
 PackageVersion: "{{version}}"
 PackageLocale: en-US
-Publisher: Kindel Systems
+Publisher: Kindel
 PublisherUrl: https://github.com/tig
 PublisherSupportUrl: https://github.com/tig/mcec/issues
-Author: Kindel Systems
+Author: Kindel
 PackageName: MCEC
 PackageUrl: https://github.com/tig/mcec
 License: MIT
-Copyright: Copyright © Kindel Systems, LLC.
+Copyright: Copyright © Kindel, LLC.
 ShortDescription: Control a Windows PC over the network or serial port.
 Description: |-
   MCEC (Model Context Environment Controller) lets you control a Windows PC — Windows Media Center and beyond — over

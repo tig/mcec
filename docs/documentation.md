@@ -53,7 +53,7 @@ By default **MCEC** supports over 250 built-in commands for controlling a Window
 
 To install, go here: **[Download and Install the Latest Version](https://github.com/tig/mcec/releases)**
 
-If **Collect Telemetry** is checked during setup, usage information will be sent to a telemetry service to enable improvements. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller [Telemetry]` registry key (`1` enables and `0` disables). (This registry key keeps its legacy "MCE Controller" name for back-compat, even though the product is now branded MCEC.) See [this page](telemetry.md) for details on what telemetry is collected and how it is used.
+If **Collect Telemetry** is checked during setup, usage information will be sent to a telemetry service to enable improvements. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel\MCE Controller` `Telemetry` DWORD registry key (`1` enables and `0` disables). (This key and "MCE Controller" subkey keep legacy names for back-compat even though the product is now branded MCEC; app code falls back from `Kindel Systems` variants.) See [this page](telemetry.md) for details on what telemetry is collected and how it is used.
 
 Un-install **MCEC** via add/remove programs.
 
@@ -65,7 +65,7 @@ If you would like **MCEC** to automatically hide upon startup, check the _Hide W
 
 To have **MCEC** start automatically do the following:
 
-1. Create a Windows shortcut to `mcec.exe` (found in `C:\Program Files (x86)\Kindel Systems\MCEC` by default).
+1. Create a Windows shortcut to `mcec.exe` (found in `C:\Program Files\Kindel\MCEC` by default for new installs; pre-3.0 installs used `Kindel Systems\MCEC`).
 2. Put the shortcut file into the Windows Startup Folder (`C:\Users\[User Name]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup`).
 
 Run multiple instances of **MCEC** by simply copying the contents of the installation directory to another directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
@@ -78,7 +78,7 @@ Use the **File.Exit** menu to shut down the app.
 
 ![Settings](settings_general.png "Settings")
 
-Configuration settings are stored in `mcec.settings` found in the  `%APPDATA%\Roaming\Kindel Systems\MCEC` directory.
+Configuration settings are stored in `mcec.settings` found in the `%APPDATA%\Kindel\MCEC` directory (new installs; pre-3.0 used `Kindel Systems\MCEC` subfolder; app provides compatibility fallback for legacy paths).
 
 All settings can be configured from **Settings** dialog box the **File.Settings...** menu. The **General** tab shown above supports the following settings:
 
@@ -491,7 +491,7 @@ Pause commands cause a delay _in addition to_ any delay introduced by the `Pacin
 
 ### Disabling All Internal Commands
 
-You can force **MCEC** to only listen to and act on commands defined in the mcec.commands file. To do this use the Windows registry editor to create the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller` registry key (legacy name, kept for back-compat) and set `DisableInternalCommands` (a DWORD value) to anything other than 0.
+You can force **MCEC** to only listen to and act on commands defined in the mcec.commands file. To do this use the Windows registry editor to create the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel\MCE Controller` registry key (legacy "MCE Controller" name + Kindel company kept for back-compat; code falls back from `Kindel Systems` variants) and set `DisableInternalCommands` (a DWORD value) to anything other than 0.
 
 This will disable ALL internal commands.
 
@@ -499,7 +499,7 @@ This is a machine wide setting and will apply to all instances of MCEC.
 
 ## Logging
 
-Informational, debug, and diagnostic events are logged to `mcec.log` while MCEC is operating. These are also shown in the main window . If the program is started from the default location (in Program Files) the log will be written to `%LocalAppData%\Kindel Systems\MCEC\mcec.log`. Otherwise the log will be written to the directory the program is started from.
+Informational, debug, and diagnostic events are logged to `mcec.log` while MCEC is operating. These are also shown in the main window . If the program is started from the default location (in Program Files) the log will be written to `%APPDATA%\Kindel\MCEC\mcec.log` (mirrors the install subfolder; legacy installs used `Kindel Systems`). Otherwise the log will be written to the directory the program is started from.
 
 ## Usage Notes
 

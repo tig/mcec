@@ -406,7 +406,7 @@ InputSimulator (facade)
 
 **File Locations**:
 - **Development**: Same directory as executable
-- **Production Install**: `%APPDATA%\Kindel Systems\MCEC\` (if installed to Program Files)
+- **Production Install**: `%APPDATA%\Kindel\MCEC\` (if installed to Program Files; legacy installs used `Kindel Systems\MCEC` subfolder)
 
 ## Security Considerations
 
