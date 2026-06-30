@@ -1,7 +1,10 @@
 // Copyright © Kindel, LLC - http://www.kindel.com
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
+using System.Drawing;
+using System.IO;
 using System.Text.Json.Nodes;
+using System.Threading;
 using Xunit;
 using MCEControl;
 
@@ -105,6 +108,37 @@ public class RecordCommandTests {
         }
         finally {
             AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void Execute_StopWriteFailure_ReturnsError() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        // A path whose parent is a FILE (not a directory) makes WriteAllBytes throw deterministically.
+        string fileAsDir = Path.GetTempFileName();
+        string badPath = Path.Combine(fileAsDir, "out.gif");
+        try {
+            GifRecorder.Stop(); // clear any prior recording
+            // Record a couple of synthetic frames (no desktop capture needed), then stop to a bad path.
+            GifRecorder.Start(() => new Bitmap(8, 8), fps: 10, maxFrames: 600, maxWidth: 64, maxDurationMs: 60000, target: null);
+            Thread.Sleep(350);
+
+            CapturingReply reply = new();
+            RecordCommand cmd = new() { Cmd = "record", Enabled = true, Reply = reply, Action = "stop", File = badPath };
+
+            bool result = cmd.Execute();
+
+            // No GIF bytes are returned inline, so a failed write means there is no usable output:
+            // the command must report failure rather than success-with-fileError.
+            Assert.False(result);
+            JsonObject json = JsonNode.Parse(reply.Captured.Trim())!.AsObject();
+            Assert.False(json["success"]!.GetValue<bool>());
+        }
+        finally {
+            GifRecorder.Stop();
+            AgentRuntime.Settings = null;
+            File.Delete(fileAsDir);
         }
     }
 

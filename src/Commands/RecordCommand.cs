@@ -238,15 +238,17 @@ public class RecordCommand : Command {
 
         try {
             System.IO.File.WriteAllBytes(path, result.Gif);
-            data["file"] = path;
-            AgentRuntime.Audit(Cmd, $"stop — wrote {result.Frames} frames, {result.Gif.Length} bytes, {result.Width}x{result.Height} to {path}");
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+            // Unlike `capture`, `record` does not return the bytes inline, so a failed write means there
+            // is no usable output — report failure rather than success-with-fileError.
             Logger.Instance.Log4.Error($"{GetType().Name}: could not write GIF to '{path}': {e.Message}");
-            data["fileError"] = e.Message;
-            AgentRuntime.Audit(Cmd, $"stop — encode ok but write failed: {e.Message}");
+            AgentRuntime.Audit(Cmd, $"stop — encode ok ({result.Frames} frames) but write failed: {e.Message}");
+            return FailWith($"Recorded {result.Frames} frames but could not write GIF to '{path}': {e.Message}");
         }
 
+        data["file"] = path;
+        AgentRuntime.Audit(Cmd, $"stop — wrote {result.Frames} frames, {result.Gif.Length} bytes, {result.Width}x{result.Height} to {path}");
         Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
         return true;
     }
