@@ -22,6 +22,22 @@ public class CommandTersifierTests {
     }
 
     [Fact]
+    public void Target_PrefersHandleOverStaleWindowProcess_MatchingResolverPrecedence() {
+        // WindowResolver targets handle > foreground > filters, so when an agent reuses a handle the
+        // overlay must show the handle — not a stale window/process filter that didn't decide the target.
+        JsonObject args = new() { ["handle"] = 0x1234L, ["window"] = "Stale", ["process"] = "old" };
+        string s = CommandTersifier.ForAgentTool("capture", args, CommandOutcome.Ok);
+        Assert.Equal("capture handle=0x1234", s);
+    }
+
+    [Fact]
+    public void Target_PrefersForegroundOverFilters() {
+        JsonObject args = new() { ["foreground"] = true, ["process"] = "old" };
+        string s = CommandTersifier.ForAgentTool("capture", args, CommandOutcome.Ok);
+        Assert.Equal("capture foreground", s);
+    }
+
+    [Fact]
     public void Invoke_ShowsActionAndValue() {
         JsonObject args = new() { ["action"] = "expand", ["value"] = "Help", ["by"] = "name" };
         string s = CommandTersifier.ForAgentTool("invoke", args, CommandOutcome.Ok);

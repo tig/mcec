@@ -43,8 +43,18 @@ public static class CommandTersifier {
         return $"send {c}";
     }
 
-    /// <summary>The most specific target descriptor present, mirroring WindowResolver's precedence.</summary>
+    /// <summary>
+    /// The target descriptor the way <see cref="WindowResolver"/> actually resolves it: handle &gt;
+    /// foreground &gt; window &gt; process &gt; className. Showing the filter text first would mislabel a
+    /// call that reused a handle (or asked for foreground) with a stale title/process the resolver ignored.
+    /// </summary>
     private static string Target(JsonObject args) {
+        if (args["handle"] is JsonValue hv && hv.TryGetValue(out long handle) && handle > 0) {
+            return $"handle=0x{handle:X}";
+        }
+        if (args["foreground"] is JsonValue fv && fv.TryGetValue(out bool fg) && fg) {
+            return "foreground";
+        }
         string? window = Str(args, "window");
         if (window is not null) {
             return $"window=\"{window}\"";
@@ -56,12 +66,6 @@ public static class CommandTersifier {
         string? className = Str(args, "className");
         if (className is not null) {
             return $"class=\"{className}\"";
-        }
-        if (args["handle"] is JsonValue hv && hv.TryGetValue(out long handle) && handle > 0) {
-            return $"handle=0x{handle:X}";
-        }
-        if (args["foreground"] is JsonValue fv && fv.TryGetValue(out bool fg) && fg) {
-            return "foreground";
         }
         return "?";
     }
