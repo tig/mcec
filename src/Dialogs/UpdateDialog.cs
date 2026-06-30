@@ -29,7 +29,7 @@ public partial class UpdateDialog : Form {
     }
 
     private void linkReleasePage_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-        Process.Start((string)linkReleasePage.Links[0].LinkData!);
+        Program.LaunchExternal((string)linkReleasePage.Links[0].LinkData!);
     }
 
     private void UpdateDialog_VisibleChanged(object sender, EventArgs e) {
