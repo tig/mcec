@@ -132,6 +132,10 @@ public static class AgentServer {
         "discover targets, `ambiguous-selector` means add `processName`/`className`/`automationId`, " +
         "`stale-element` means re-`query`/`find` for a fresh handle. `error.detail` is human-readable and " +
         "`error.lastObservation`, when present, is the last good state before the failure.\n" +
+        "OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run " +
+        "so the operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/" +
+        "UIA targeting — you will never see or target it, and it is never a candidate window — but it DOES " +
+        "appear in full-screen/region `capture`s and `record`ings (not in window-targeted captures).\n" +
         "SECURITY: observation tools (capture/query/find/invoke/record) only work when the operator has set " +
         "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
         "than retrying. Every action is audit-logged on the host.";

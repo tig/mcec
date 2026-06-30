@@ -35,6 +35,11 @@ in sync. In short:
 >    appeared yet — `wait-for` it rather than retrying blindly. `send_command` sends any raw MCEC command
 >    (keystrokes, mouse, launch).
 > 4. **Verify** with another `query`/`capture`.
+>
+> **Overlay:** MCEC may show a small on-screen overlay (default on) that narrates each command as it runs,
+> so the operator sees MCEC is driving. It is excluded from `query`/`find`/`capture`/UIA targeting — you
+> never see or target it — but it **does** appear in full-screen/region `capture`s and `record`ings (not
+> in window-targeted captures).
 
 ## Security (do not regress)
 

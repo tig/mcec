@@ -35,6 +35,10 @@ public sealed class CommandOverlayWindow : Form {
     private readonly Action<CommandEvent> _onEvent;
     private readonly System.Windows.Forms.Timer _ageTimer;
 
+    // The handle currently registered as ignored, tracked so a WinForms handle recreation never leaves a
+    // stale HWND in the resolver's ignore set (a recycled value could otherwise hide a real window).
+    private long _registeredHandle;
+
     public CommandOverlayWindow() {
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
@@ -64,8 +68,24 @@ public sealed class CommandOverlayWindow : Form {
 
     protected override void OnHandleCreated(EventArgs e) {
         base.OnHandleCreated(e);
-        WindowResolver.RegisterIgnoredWindow(Handle.ToInt64());
+        // Defensively drop any previously-registered handle (e.g. if the window was recreated) before
+        // registering the current one, so the ignore set never accumulates stale HWNDs.
+        if (_registeredHandle != 0) {
+            WindowResolver.UnregisterIgnoredWindow(_registeredHandle);
+        }
+        _registeredHandle = Handle.ToInt64();
+        WindowResolver.RegisterIgnoredWindow(_registeredHandle);
         Render();
+    }
+
+    protected override void OnHandleDestroyed(EventArgs e) {
+        // Unregister as the handle is destroyed — not just on Dispose — so a recreated handle (or a value
+        // Windows later reuses for a real window) is never left ignored.
+        if (_registeredHandle != 0) {
+            WindowResolver.UnregisterIgnoredWindow(_registeredHandle);
+            _registeredHandle = 0;
+        }
+        base.OnHandleDestroyed(e);
     }
 
     private void OnCommandEvent(CommandEvent ev) {
@@ -199,8 +219,11 @@ public sealed class CommandOverlayWindow : Form {
         if (disposing) {
             CommandEventHub.Unsubscribe(_onEvent);
             _ageTimer?.Dispose();
-            if (IsHandleCreated) {
-                WindowResolver.UnregisterIgnoredWindow(Handle.ToInt64());
+            // OnHandleDestroyed normally clears the registration; unregister defensively in case the
+            // window is disposed without a handle-destroyed notification.
+            if (_registeredHandle != 0) {
+                WindowResolver.UnregisterIgnoredWindow(_registeredHandle);
+                _registeredHandle = 0;
             }
         }
         base.Dispose(disposing);
