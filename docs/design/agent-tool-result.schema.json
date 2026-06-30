@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tig/mcec/blob/develop/docs/design/agent-tool-result.schema.json",
+  "title": "MCEC Agent Tool Result",
+  "description": "The structured result envelope returned by every MCEC 3.0 agent tool (capture, query, find, wait-for, invoke, send_command, session lifecycle). One envelope, one error vocabulary, so an agent can branch on success/failure uniformly. See agent-tool-result-contract.md for prose.",
+  "type": "object",
+  "required": ["ok"],
+  "additionalProperties": false,
+  "properties": {
+    "sessionId": {
+      "type": ["string", "null"],
+      "description": "Identifier of the owning session (see #86). Present whenever the call ran inside a mounted session; null/absent for stateless one-shot calls."
+    },
+    "ok": {
+      "type": "boolean",
+      "description": "True when the tool achieved its goal. False when it did not. This is the single field agents branch on first."
+    },
+    "result": {
+      "type": ["object", "null"],
+      "description": "Tool-specific success payload (e.g. the PNG for capture, the UIA tree for query, the matched element for find). Shape is owned by each tool's epic, not by this contract. Present when ok is true; omitted or null when ok is false."
+    },
+    "warnings": {
+      "type": "array",
+      "description": "Non-fatal conditions surfaced alongside a result. A call can succeed (ok=true) and still carry warnings.",
+      "items": { "$ref": "#/$defs/warning" }
+    },
+    "error": {
+      "$ref": "#/$defs/error",
+      "description": "Populated only when ok is false. Omitted or null on success."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "ok": { "const": false } }, "required": ["ok"] },
+      "then": { "required": ["error"], "properties": { "error": { "$ref": "#/$defs/error" } } }
+    },
+    {
+      "if": { "properties": { "ok": { "const": true } }, "required": ["ok"] },
+      "then": {
+        "not": {
+          "anyOf": [
+            { "required": ["error"], "properties": { "error": { "type": "object" } } }
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "warning": {
+      "type": "object",
+      "required": ["code", "detail"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable machine code for the warning condition (kebab-case). Suitable for an agent to branch on."
+        },
+        "detail": {
+          "type": "string",
+          "description": "Human-readable explanation of the warning."
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["code", "category", "detail"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable, fine-grained machine code (kebab-case). More specific than category; agents may branch on it but must tolerate unknown codes by falling back to category."
+        },
+        "category": {
+          "type": "string",
+          "description": "Coarse failure class from the closed taxonomy. Agents may branch exhaustively on this set.",
+          "enum": [
+            "timeout",
+            "ambiguous-selector",
+            "stale-element",
+            "no-target",
+            "capture-blank",
+            "focus",
+            "elevation",
+            "foreground",
+            "internal"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "description": "Human-readable explanation of what failed and, where possible, how to recover."
+        },
+        "lastObservation": {
+          "type": ["object", "null"],
+          "description": "The last good observation captured before the failure (e.g. the most recent query/capture result, or the resolved target window). Carries debugging state forward and feeds #87's failure-summary.md. Omitted when no prior observation exists."
+        }
+      }
+    }
+  }
+}
