@@ -93,7 +93,7 @@
             this._labelSummary.Name = "_labelSummary";
             this._labelSummary.Size = new System.Drawing.Size(408, 49);
             this._labelSummary.TabIndex = 2;
-            this._labelSummary.Text = "MCE Controller is distributed as freeware and published as open source under the " +
+            this._labelSummary.Text = "MCEC is distributed as freeware and published as open source under the " +
     "MIT License.";
             // 
             // _iconMcec
