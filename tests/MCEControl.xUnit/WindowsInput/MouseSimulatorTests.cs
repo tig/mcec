@@ -7,7 +7,7 @@ namespace MCEControl.xUnit.WindowsInput;
 
 public class MouseSimulatorTests
 {
-    [Fact]
+    [DesktopInputFact]
     public void Constructor_InitializesSimulator()
     {
         var simulator = new InputSimulator();
@@ -15,7 +15,7 @@ public class MouseSimulatorTests
         Assert.NotNull(mouse);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void LeftButtonClick_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -23,7 +23,7 @@ public class MouseSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void LeftButtonDown_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -31,7 +31,7 @@ public class MouseSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void LeftButtonUp_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -39,7 +39,7 @@ public class MouseSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void LeftButtonDoubleClick_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -47,7 +47,7 @@ public class MouseSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void RightButtonClick_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -55,7 +55,7 @@ public class MouseSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void MoveMouseBy_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -63,7 +63,7 @@ public class MouseSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void MoveMouseTo_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -71,7 +71,7 @@ public class MouseSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void VerticalScroll_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -79,7 +79,7 @@ public class MouseSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void HorizontalScroll_DoesNotThrow()
     {
         var simulator = new InputSimulator();

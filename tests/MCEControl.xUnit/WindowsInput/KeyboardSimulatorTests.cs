@@ -7,7 +7,7 @@ namespace MCEControl.xUnit.WindowsInput;
 
 public class KeyboardSimulatorTests
 {
-    [Fact]
+    [DesktopInputFact]
     public void Constructor_InitializesSimulator()
     {
         var simulator = new InputSimulator();
@@ -15,7 +15,7 @@ public class KeyboardSimulatorTests
         Assert.NotNull(keyboard);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void KeyDown_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -23,7 +23,7 @@ public class KeyboardSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void KeyUp_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -31,7 +31,7 @@ public class KeyboardSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void KeyPress_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -39,7 +39,7 @@ public class KeyboardSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void TextEntry_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -47,7 +47,7 @@ public class KeyboardSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void TextEntry_WithEmptyString_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -55,7 +55,7 @@ public class KeyboardSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void ModifiedKeyStroke_DoesNotThrow()
     {
         var simulator = new InputSimulator();
@@ -63,7 +63,7 @@ public class KeyboardSimulatorTests
         Assert.Null(exception);
     }
 
-    [Fact]
+    [DesktopInputFact]
     public void ModifiedKeyStroke_WithMultipleModifiers_DoesNotThrow()
     {
         var simulator = new InputSimulator();
