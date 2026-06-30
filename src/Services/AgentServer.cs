@@ -142,13 +142,14 @@ public static class AgentServer {
         captureProps["height"] = PropSchema("integer", "Region height");
         captureProps["file"] = PropSchema("string", "Optional path to also save the PNG to");
         tools.Add(Tool("capture",
-            "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG.",
+            "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG. Blank/black frames are detected and reported as a capture-blank error (window) or warning (region) rather than a silent bad image.",
             captureProps, []));
 
         JsonObject queryProps = WindowTargetProps();
         queryProps["maxDepth"] = PropSchema("integer", "Max UI Automation tree depth (default 6)");
+        queryProps["maxNodes"] = PropSchema("integer", "Max UI Automation nodes returned (default 1000); a clipped tree is flagged with a tree-truncated warning");
         tools.Add(Tool("query",
-            "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state.",
+            "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state. Returns nodeCount/truncated and warns when the node cap clips the tree.",
             queryProps, []));
 
         JsonObject findProps = WindowTargetProps();
@@ -364,6 +365,7 @@ public static class AgentServer {
             ClassName = Str(args, "className")!,
             Foreground = Bool(args, "foreground"),
             MaxDepth = Int(args, "maxDepth") is int d and > 0 ? d : 6,
+            MaxNodes = Int(args, "maxNodes") is int n and > 0 ? n : 1000,
         },
         "find" => new FindCommand {
             Window = Str(args, "window")!,

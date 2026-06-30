@@ -19,6 +19,10 @@ public class QueryCommand : Command {
     [XmlAttribute("foreground")] public bool Foreground { get; set; }
     [XmlAttribute("maxDepth")] public int MaxDepth { get; set; } = 6;
 
+    /// <summary>Upper bound on UIA nodes returned; keeps the result bounded for huge/virtualized trees.
+    /// A clipped walk is reported via a <c>tree-truncated</c> warning. 0 means unbounded.</summary>
+    [XmlAttribute("maxNodes")] public int MaxNodes { get; set; } = 1000;
+
     public static new List<Command> BuiltInCommands {
         get => [new QueryCommand { Cmd = "query" }];
     }
@@ -30,6 +34,7 @@ public class QueryCommand : Command {
         ClassName = this.ClassName,
         Foreground = this.Foreground,
         MaxDepth = this.MaxDepth,
+        MaxNodes = this.MaxNodes,
     });
 
     public override bool Execute() {
@@ -42,21 +47,27 @@ public class QueryCommand : Command {
             Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
             return false;
         }
-        AgentRuntime.Audit(Cmd, $"query window handle={Handle} title='{Window}' process='{Process}' class='{ClassName}' fg={Foreground} maxDepth={MaxDepth}");
+        AgentRuntime.Audit(Cmd, $"query window handle={Handle} title='{Window}' process='{Process}' class='{ClassName}' fg={Foreground} maxDepth={MaxDepth} maxNodes={MaxNodes}");
 
         WindowInfo? win = WindowResolver.Resolve(Handle > 0 ? Handle : (long?)null, Window, Process, ClassName, Foreground);
         if (win is null) {
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window").ToJson());
+            Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window", "window-not-found", "no-target").ToJson());
             return false;
         }
 
         IntPtr h = new IntPtr(win.Handle);
-        UiaElementInfo? tree = UiaService.DumpTree(h, MaxDepth);
+        UiaTreeResult tree = UiaService.DumpTree(h, MaxDepth, MaxNodes);
         JsonObject data = new() {
             ["window"] = win.ToJsonObject(),
-            ["tree"] = tree?.ToJsonObject(),
+            ["nodeCount"] = tree.NodeCount,
+            ["truncated"] = tree.Truncated,
+            ["tree"] = tree.Root?.ToJsonObject(),
         };
-        Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
+        CommandResult res = CommandResult.Ok(Cmd, data);
+        if (tree.Truncated) {
+            res.Warn("tree-truncated", $"UIA tree exceeded the {MaxNodes}-node cap and was clipped; raise maxNodes or narrow the target for a complete tree.");
+        }
+        Reply?.WriteLine(res.ToJson());
         return true;
     }
 }

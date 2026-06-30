@@ -87,8 +87,8 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 
 | Command    | What it does                                                                      | Key args |
 |------------|-----------------------------------------------------------------------------------|----------|
-| `capture`  | Screenshot a window (`PrintWindow` + `PW_RENDERFULLCONTENT`, captures WinUI/WPF surfaces) or a screen region, returned as base64 PNG. | window target, or region `x`/`y`/`width`/`height`; optional `file` |
-| `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6) |
+| `capture`  | Screenshot a window (`PrintWindow` + `PW_RENDERFULLCONTENT`, captures WinUI/WPF surfaces) or a screen region, returned as base64 PNG. Blank/black frames are detected and flagged (see [Observation hardening](#observation-hardening--known-limitations)). | window target, or region `x`/`y`/`width`/`height`; optional `file` |
+| `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6), `maxNodes` (default 1000) |
 | `find`     | Find a **UI Automation element** by name / automation id / class.                 | window target, `by` (`name`\|`automationid`\|`classname`), `value`, `timeout` |
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
 | `invoke`   | Drive a UI Automation element pattern — far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`), `text` |
@@ -100,9 +100,18 @@ All five return a `CommandResult` JSON object via `Reply.WriteLine`:
   "success": true,
   "command": "query",
   "error": null,
-  "data": { /* command-specific payload */ }
+  "data": { /* command-specific payload */ },
+  "warnings": [ { "code": "tree-truncated", "detail": "…" } ]
 }
 ```
+
+`warnings` is present only when there are non-fatal conditions to report. On failure the
+result additionally carries `errorCode` (a stable, fine-grained string) and `errorCategory`
+(a coarse class from the closed taxonomy: `timeout`, `ambiguous-selector`, `stale-element`,
+`no-target`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`). These fields
+track the shared agent result contract in
+[`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md) (#101);
+they are additive over the legacy `success`/`error`/`data` shape, which still works.
 
 On failure (including when the security gates are off):
 
@@ -132,6 +141,7 @@ geometry:
     "encoding": "png",
     "bytes": 48213,
     "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+    "blankCheck": { "blank": false, "dominantFraction": 0.34, "dominantIsDark": false },
     "window": {
       "handle": 1576490,
       "title": "Untitled - Notepad",
@@ -144,8 +154,15 @@ geometry:
 }
 ```
 
+`blankCheck` reports the blank-frame analysis (see
+[Observation hardening](#observation-hardening--known-limitations)). When a **window** capture
+comes back blank the result is a failure with `errorCategory: "capture-blank"` — but the PNG
+stays in `data` so it is never a *silent* bad image. A blank **region** capture is reported as
+a `capture-blank` warning instead, since a user-specified region can legitimately be empty.
+
 (Over MCP, `capture` additionally returns the PNG as an `image` content block so the
-model can view it directly, in addition to the JSON text above.)
+model can view it directly, in addition to the JSON text above — including for a blank-frame
+failure, so the agent can see what was grabbed.)
 
 ### `query` result example
 
@@ -161,6 +178,8 @@ model can view it directly, in addition to the JSON text above.)
       "className": "Notepad", "processName": "notepad", "processId": 21344,
       "x": 120, "y": 80, "width": 1024, "height": 768
     },
+    "nodeCount": 7,
+    "truncated": false,
     "tree": {
       "controlType": "Window",
       "name": "Untitled - Notepad",
@@ -175,6 +194,73 @@ model can view it directly, in addition to the JSON text above.)
   }
 }
 ```
+
+---
+
+## Observation hardening & known limitations
+
+An agent can only act on what it can reliably see, so `capture` and `query` are built to fail
+loudly rather than hand back a plausible-looking but wrong observation. This section documents
+what is trustworthy and what is not.
+
+### Blank / black frame detection
+
+Every capture is analyzed for blank content: the frame is sampled on a bounded grid, each pixel
+is quantized to 5 bits per channel, and the share held by the single most common color is
+measured. A real application window is busy and scores low; a failed grab is a flat fill and
+scores ~1.0. When the dominant color covers ≥ 99% of the frame it is flagged blank, and a
+near-black dominant color is distinguished from a legitimately empty (e.g. white) surface.
+
+- A **window** capture that comes back blank is a failure (`errorCategory: "capture-blank"`,
+  `errorCode: "frame-all-black"` or `"frame-uniform"`). The PNG is still returned in `data` (and
+  as an MCP image block) so it is never a *silent* bad image and can serve as the failure's last
+  observation.
+- A **region** capture that comes back blank is reported as a `capture-blank` **warning**, since
+  a user-specified region can legitimately be empty.
+- The raw numbers are always in `data.blankCheck` (`blank`, `dominantFraction`, `dominantIsDark`).
+
+### `PrintWindow` and the on-screen-blit fallback
+
+Window capture uses `PrintWindow(PW_RENDERFULLCONTENT)`, which renders DirectComposition / WinUI 3
+/ WPF surfaces that a plain screen grab returns black for, and captures windows even when occluded.
+Known limits:
+
+- **Fallback is degraded.** If the driver refuses `PrintWindow`, capture falls back to an
+  on-screen blit (`Graphics.CopyFromScreen`). That blit grabs whatever pixels are physically on
+  screen, so it returns black for composited/occluded surfaces and cannot see a window that is
+  behind another. When the fallback runs, the result carries a `capture-fallback` warning.
+- **Minimized windows** have no on-screen pixels; `PrintWindow` typically yields a blank frame
+  (caught by blank detection). Restore the window before capturing.
+- **Cloaked windows** (e.g. background virtual-desktop or some UWP states) may not render.
+- **Hardware-overlay/protected content** (some video players, DRM surfaces) renders black by
+  design and cannot be captured.
+
+### Locked sessions and UAC
+
+- **Locked / disconnected sessions:** when the workstation is locked or the session is detached,
+  the desktop cannot be rendered and captures are blank. This is detected (blank frame) but cannot
+  be worked around from user space. Live validation of locked-session behavior is tracked
+  separately in [#78].
+- **Elevation (UAC):** MCEC running at medium integrity cannot read the UIA tree of, drive, or
+  reliably capture a window owned by an elevated (high-integrity) process. Such targets surface as
+  empty/failed observations; run MCEC elevated only if you explicitly need to automate elevated
+  apps, and understand the security trade-off.
+
+### UIA tree size & stability
+
+`query` is bounded on two axes so its output stays stable for agent reasoning even on pathological
+trees (e.g. a virtualized list with thousands of items):
+
+- `maxDepth` (default 6) bounds tree depth.
+- `maxNodes` (default 1000) bounds the total node count. When the cap clips the walk, the result
+  reports `truncated: true` and a `tree-truncated` warning rather than silently returning a partial
+  tree; `nodeCount` always reports how many nodes were captured. Raise `maxNodes` or narrow the
+  target (deeper `window`/`handle` selector) for a complete tree.
+
+Individual stale or unsupported UIA nodes never abort the whole walk — they are skipped and the
+rest of the tree is returned.
+
+[#78]: https://github.com/tig/mcec/issues/78
 
 ---
 
