@@ -92,6 +92,7 @@ Set-Content -Encoding UTF8 -Path $ctrlSettings -Value @'
   <McpServerEnabled>true</McpServerEnabled>
   <CommandOverlayEnabled>true</CommandOverlayEnabled>
   <CommandOverlayPosition>Left</CommandOverlayPosition>
+  <HideOnStartup>true</HideOnStartup>
   <ActAsServer>false</ActAsServer>
 </AppSettings>
 '@
