@@ -108,6 +108,26 @@ public sealed class AgentSession {
         }
     }
 
+    /// <summary>
+    /// Records the outcome of a tool call: a successful <b>observation</b> (query/capture/find/wait-for)
+    /// updates <see cref="LastObservation"/> and, when the payload names a window, <see cref="ActiveTarget"/>;
+    /// a failure updates <see cref="LastError"/>. Actuation tools (invoke/send_command) don't record an
+    /// observation. Centralizing the decision keeps every observation tool — wait-for included — consistent.
+    /// </summary>
+    public void RecordToolOutcome(string toolName, AgentToolResult env) {
+        if (env.Ok) {
+            if (IsObservationTool(toolName)) {
+                RecordObservation(env.Result, env.Result?["window"] as JsonObject);
+            }
+        }
+        else if (env.Error is not null) {
+            RecordError(env.Error.ToJsonObject());
+        }
+    }
+
+    private static bool IsObservationTool(string toolName) =>
+        toolName is "query" or "capture" or "find" or "wait-for";
+
     /// <summary>Creates the per-session artifact directory if it does not yet exist and returns its path.</summary>
     public string EnsureArtifactDir() {
         string dir = ArtifactDir;

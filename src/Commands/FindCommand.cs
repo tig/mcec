@@ -69,6 +69,9 @@ public class FindCommand : Command {
         JsonObject data = new() {
             ["found"] = found,
             ["element"] = info?.ToJsonObject(),
+            // Echo the resolved window so the session can record it as the active target (a find/wait-for
+            // that establishes the current control feeds error.lastObservation for a later failing action).
+            ["window"] = win.ToJsonObject(),
         };
         Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
         return true;

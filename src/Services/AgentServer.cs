@@ -298,15 +298,9 @@ public static class AgentServer {
         // MCP image blocks) still get the bytes, as the result contract requires.
         JsonObject? image = name == "capture" && env.Ok ? CaptureContent.TryBuildImageBlock(env.Result) : null;
 
-        // Record this call's outcome so the next call's sessionId/lastObservation reflect it.
-        if (env.Ok) {
-            if (name is "query" or "capture" or "find") {
-                session.RecordObservation(env.Result, env.Result?["window"] as JsonObject);
-            }
-        }
-        else if (env.Error is not null) {
-            session.RecordError(env.Error.ToJsonObject());
-        }
+        // Record this call's outcome so the next call's sessionId/lastObservation reflect it. Every
+        // observation tool (wait-for included) records its observation + the resolved window as the target.
+        session.RecordToolOutcome(name, env);
 
         return McpResult(env, image);
     }

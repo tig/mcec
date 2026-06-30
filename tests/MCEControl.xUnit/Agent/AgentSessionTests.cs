@@ -93,4 +93,43 @@ public class AgentSessionTests {
         Assert.False(string.IsNullOrEmpty(status["artifactDir"]!.GetValue<string>()));
         Assert.False(string.IsNullOrEmpty(status["startedAt"]!.GetValue<string>()));
     }
+
+    [Theory]
+    [InlineData("query")]
+    [InlineData("capture")]
+    [InlineData("find")]
+    [InlineData("wait-for")]
+    public void RecordToolOutcome_Success_RecordsObservationAndTargetForEveryObservationTool(string tool) {
+        // The Codex P2 on #116: wait-for was skipped and find/wait-for passed a null target. Each
+        // observation tool that resolves a window must record both the observation and the active target.
+        AgentSession session = AgentSession.Create(TempRoot());
+        JsonObject result = new() { ["found"] = true, ["window"] = new JsonObject { ["handle"] = 7 } };
+
+        session.RecordToolOutcome(tool, AgentToolResult.Success(result));
+
+        Assert.NotNull(session.LastObservation);
+        Assert.Equal(7, session.ActiveTarget!["handle"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void RecordToolOutcome_Action_DoesNotRecordObservation() {
+        AgentSession session = AgentSession.Create(TempRoot());
+
+        session.RecordToolOutcome("invoke", AgentToolResult.Success(new JsonObject { ["invoked"] = true }));
+
+        Assert.Null(session.LastObservation);
+        Assert.Null(session.ActiveTarget);
+    }
+
+    [Fact]
+    public void RecordToolOutcome_Failure_RecordsErrorNotObservation() {
+        AgentSession session = AgentSession.Create(TempRoot());
+        AgentToolResult failure = AgentToolResult.Failure(
+            new AgentError("window-not-found", AgentErrorCategory.NoTarget, "no window"));
+
+        session.RecordToolOutcome("query", failure);
+
+        Assert.Null(session.LastObservation);
+        Assert.Equal("no-target", session.LastError!["category"]!.GetValue<string>());
+    }
 }
