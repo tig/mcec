@@ -79,14 +79,14 @@ function Add-Step {
 # MCP JSON-RPC over HTTP, with full request/response logging to tool-calls.jsonl
 # ---------------------------------------------------------------------------
 function Invoke-Mcp {
-    param([string]$Method, [hashtable]$Params)
+    param([string]$Method, [hashtable]$Params, [int]$TimeoutSec = 30)
     $script:rpcId++
     $req = @{ jsonrpc = "2.0"; id = $script:rpcId; method = $Method; params = $Params }
     $body = $req | ConvertTo-Json -Depth 12 -Compress
     $entry = [ordered]@{ ts = (Get-Date).ToString("o"); sessionId = $sessionId; direction = "request"; method = $Method; payload = $req }
     ($entry | ConvertTo-Json -Depth 12 -Compress) | Add-Content -Path $toolCallLog -Encoding utf8
 
-    $resp = Invoke-RestMethod -Uri $mcpUrl -Method Post -Body $body -ContentType "application/json" -TimeoutSec 30
+    $resp = Invoke-RestMethod -Uri $mcpUrl -Method Post -Body $body -ContentType "application/json" -TimeoutSec $TimeoutSec
     $rentry = [ordered]@{ ts = (Get-Date).ToString("o"); sessionId = $sessionId; direction = "response"; method = $Method; payload = $resp }
     ($rentry | ConvertTo-Json -Depth 20 -Compress) | Add-Content -Path $toolCallLog -Encoding utf8
     return $resp
@@ -94,8 +94,8 @@ function Invoke-Mcp {
 
 # Call an MCP tool and return the parsed structured JSON payload (content[0].text).
 function Invoke-Tool {
-    param([string]$Name, [hashtable]$Arguments = @{})
-    $resp = Invoke-Mcp -Method "tools/call" -Params @{ name = $Name; arguments = $Arguments }
+    param([string]$Name, [hashtable]$Arguments = @{}, [int]$TimeoutSec = 30)
+    $resp = Invoke-Mcp -Method "tools/call" -Params @{ name = $Name; arguments = $Arguments } -TimeoutSec $TimeoutSec
     if ($null -ne ($resp.PSObject.Properties['error']) -and $resp.error) {
         throw "MCP tool '$Name' error: $($resp.error | ConvertTo-Json -Compress)"
     }
@@ -150,6 +150,18 @@ function Wait-For {
     return $null
 }
 
+# Force-kill every mcec.exe launched from $dir and wait for them to exit, so a modal dialog left
+# open by a prior run (the invoke-on-modal blocks the call but the process is still killable) can't
+# bleed into the next run.
+function Stop-RunDirMcec {
+    param([string]$dir)
+    $sel = { Get-Process -Name "mcec" -ErrorAction SilentlyContinue |
+        Where-Object { try { $_.Path -and $_.Path.StartsWith($dir) } catch { $false } } }
+    & $sel | Stop-Process -Force -ErrorAction SilentlyContinue
+    $deadline = [DateTime]::UtcNow.AddSeconds(6)
+    while ([DateTime]::UtcNow -lt $deadline -and (& $sel)) { Start-Sleep -Milliseconds 200 }
+}
+
 # ===========================================================================
 # MAIN
 # ===========================================================================
@@ -158,10 +170,7 @@ try {
     # --- Provision an isolated, MCP-enabled config by copying the build output ---
     Add-Step "provision" "run" "copy build output -> $runDir"
     if (Test-Path $runDir) {
-        Get-Process -Name "mcec" -ErrorAction SilentlyContinue |
-            Where-Object { try { $_.Path -and $_.Path.StartsWith($runDir) } catch { $false } } |
-            Stop-Process -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Milliseconds 300
+        Stop-RunDirMcec $runDir
         Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
     }
     New-Item -ItemType Directory -Force -Path (Split-Path $runDir) | Out-Null
@@ -216,45 +225,47 @@ try {
     Invoke-Mcp -Method "tools/list" -Params @{} | Out-Null
     Add-Step "launch" "pass" "MCP HTTP up on $mcpUrl"
 
-    # --- Wait for the main window (selector + wait stubs) ---
+    # --- Wait for the main window (selector + wait stubs). Match the title exactly ("MCEC") and
+    #     capture its handle, then target everything else by that handle — so a stale 'About'
+    #     dialog (which also belongs to process mcec) can never be mistaken for the main window. ---
     $win = Wait-For -TimeoutMs 20000 -Condition {
-        $q = Invoke-Tool -Name "query" -Arguments @{ process = "mcec"; maxDepth = 1 }
-        if ($q -and $q.window -and $q.window.handle) { return $q } else { return $null }
+        $q = Invoke-Tool -Name "query" -Arguments @{ window = "MCEC"; maxDepth = 1 }
+        if ($q -and $q.window -and $q.window.handle -and $q.window.title -eq "MCEC") { return $q } else { return $null }
     }
     if (-not $win) { throw "MCEC main window did not appear via query within 20s" }
-    $lastGoodObservation = "main window: '$($win.window.title)' handle=$($win.window.handle)"
+    $mainHandle = $win.window.handle
+    $lastGoodObservation = "main window: '$($win.window.title)' handle=$mainHandle"
     Add-Step "wait-window" "pass" $lastGoodObservation
 
-    # --- Observe: capture + non-blank validation ---
+    # --- Observe: capture + non-blank validation (target the main window by handle) ---
     $shot = Join-Path $artifactDir "screenshot.png"
-    $cap = Invoke-Tool -Name "capture" -Arguments @{ process = "mcec"; file = $shot }
+    $cap = Invoke-Tool -Name "capture" -Arguments @{ handle = $mainHandle; file = $shot }
     if (-not (Test-Path $shot)) { throw "capture did not produce $shot" }
     if (-not (Test-PngNonBlank $shot)) { throw "captured frame failed non-blank validation (likely black/blank)" }
     $lastGoodObservation = "non-blank capture $($cap.width)x$($cap.height) -> screenshot.png"
     Add-Step "observe" "pass" $lastGoodObservation
 
-    # --- Act: invoke Help > About via UIA. The dropdown is a separate popup HWND, so we
-    #     try the direct invoke first, then a Help-then-About sequence as a fallback. ---
-    $actNote = ""
+    # --- Act: open the Help menu with `expand` (ExpandCollapse, falling back to Invoke for the
+    #     WinForms ToolStripMenuItem), then invoke About... Once Help is expanded its sub-items
+    #     appear as descendants of the SAME main window (MCEC > Help > Menu > About...), so we
+    #     target the main window by handle — not the foreground. (This is the menu gap the first
+    #     skeleton run surfaced; the expand action + this targeting is the fix.) ---
+    Invoke-Tool -Name "invoke" -Arguments @{ handle = $mainHandle; by = "name"; value = "Help"; action = "expand" } | Out-Null
+    Start-Sleep -Milliseconds 400
+    # Invoking About... opens a MODAL dialog; because MCEC runs agent commands on its own UI
+    # thread in-process, the invoke call does not return until that modal closes. So fire it with
+    # a short timeout and let the verify step confirm the dialog actually opened. (Known limitation:
+    # synchronous actuation of modal-opening controls — feeds the actions/threading epic.)
     try {
-        Invoke-Tool -Name "invoke" -Arguments @{ process = "mcec"; by = "name"; value = "About..."; action = "invoke" } | Out-Null
-        $actNote = "invoke About... (direct)"
-    } catch { $actNote = "direct About... invoke threw: $($_.Exception.Message)" }
+        Invoke-Tool -Name "invoke" -Arguments @{ handle = $mainHandle; by = "name"; value = "About..."; action = "invoke" } -TimeoutSec 4 | Out-Null
+        $actNote = "expand Help -> invoke About..."
+    } catch {
+        $actNote = "expand Help -> invoke About... (call blocked on modal, expected; verifying)"
+    }
 
-    $about = Wait-For -TimeoutMs 5000 -Condition {
+    $about = Wait-For -TimeoutMs 6000 -Condition {
         $q = Invoke-Tool -Name "query" -Arguments @{ window = "About"; maxDepth = 1 }
         if ($q -and $q.window -and $q.window.handle) { return $q } else { return $null }
-    }
-    if (-not $about) {
-        # Fallback: open the Help menu, then invoke About...
-        try { Invoke-Tool -Name "invoke" -Arguments @{ process = "mcec"; by = "name"; value = "Help"; action = "invoke" } | Out-Null } catch {}
-        Start-Sleep -Milliseconds 600
-        try { Invoke-Tool -Name "invoke" -Arguments @{ by = "name"; value = "About..."; action = "invoke"; foreground = $true } | Out-Null } catch {}
-        $about = Wait-For -TimeoutMs 5000 -Condition {
-            $q = Invoke-Tool -Name "query" -Arguments @{ window = "About"; maxDepth = 1 }
-            if ($q -and $q.window -and $q.window.handle) { return $q } else { return $null }
-        }
-        $actNote += "; used Help->About fallback"
     }
     Add-Step "act" ($(if ($about) { "pass" } else { "fail" })) $actNote
 
@@ -317,8 +328,7 @@ finally {
 
     # --- Cleanup: stop the GUI (also closes the About dialog), remove the run dir ---
     if ($guiProc) { try { Stop-Process -Id $guiProc.Id -Force -ErrorAction SilentlyContinue } catch {} }
-    Get-Process -Name "mcec" -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -and $_.Path.StartsWith($runDir) } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Milliseconds 500
+    Stop-RunDirMcec $runDir
     try { Remove-Item -Path $runDir -Recurse -Force -ErrorAction SilentlyContinue } catch {}
 
     # --- Zip the bundle ---
