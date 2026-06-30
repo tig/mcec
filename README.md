@@ -1,6 +1,6 @@
 By Tig Kindel ([@tigkindel on Twitter](http://www.twitter.com/ckindel)) - Copyright © [Kindel](http://www.kindel.com), LLC.
 
-![mcec](https://tig.github.io/mcec/hero.gif "MCEC — one agent driving another: launch, Help ▸ About, File ▸ Settings, File ▸ Exit, recorded with MCEC's own agent tools")
+![mcec](https://tig.github.io/mcec/hero.gif "MCEC — one agent driving another: launch, File ▸ Settings (every tab), mouse-resize, drag the title bar in circles, Help ▸ About, recorded with MCEC's own agent tools")
 
 **MCEC** (Model Context Environment Controller) is eyes, hands, and a safe front door for agents on Windows; and the same battle-tested remote control for smart-home systems.
 

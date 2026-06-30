@@ -2,17 +2,21 @@
 <#
 .SYNOPSIS
   Regenerates the MCEC hero GIF (docs/hero.gif): one MCEC instance drives another through
-  launch -> Help > About -> File > Settings -> File > Exit, recording it with the agent `record` tool.
+  launch -> File > Settings (tour every tab) -> mouse-resize the window ~25% smaller ->
+  drag the title bar in small circles -> Help > About -> pause, recording it with the agent
+  `record` tool.
 
 .DESCRIPTION
-  Dogfoods the #80 `record` feature. A headless controller (`mcec.exe --mcp`) runs from the repo
-  build dir; the *controlled* subject is a SEPARATE COPY of the build in its own directory so it reads
-  a co-located config (Program.ConfigPath == the exe's own folder). The subject's config sets
-  ActAsServer=false (so it never binds IPAddress.Any:5150 and never triggers the Windows Firewall
-  prompt that would steal focus) and pins the window location/size so the recorded region is
-  deterministic. All desktop windows are minimized first for a clean backdrop.
+  Dogfoods the #80 `record` feature and exercises the mouse-drag input path (button-down,
+  a stream of absolute moves, button-up) for both a sizing-border resize and a title-bar move.
+  A headless controller (`mcec.exe --mcp`) runs from the repo build dir; the *controlled*
+  subject is a SEPARATE COPY of the build in its own directory so it reads a co-located config
+  (Program.ConfigPath == the exe's own folder). The subject's config sets ActAsServer=false (so
+  it never binds IPAddress.Any:5150 and never triggers the Windows Firewall prompt that would
+  steal focus) and pins the window location/size so the recorded region is deterministic. All
+  desktop windows are minimized first for a clean backdrop.
 
-  This drives the REAL desktop (mouse, keystrokes, launching an app) for ~20s. Run it on an
+  This drives the REAL desktop (mouse, keystrokes, launching an app) for ~30s. Run it on an
   interactive session you can leave alone.
 
 .PARAMETER Config
@@ -114,9 +118,18 @@ function Rpc([string]$method, $prms) {
 }
 function Tool([string]$name, $toolArgs) { Rpc 'tools/call' @{ name = $name; arguments = $toolArgs } }
 function Cmd([string]$command) { Tool 'send_command' @{ command = $command } | Out-Null }
-function ClickAbs([int]$cx, [int]$cy) {
+function MoveAbs([int]$cx, [int]$cy) {
   Cmd ("mouse:mt,{0},{1}" -f [int][math]::Round($cx * 65535.0 / ($sw - 1)), [int][math]::Round($cy * 65535.0 / ($sh - 1)))
-  Cmd 'mouse:lbc'
+}
+function ClickAbs([int]$cx, [int]$cy) { MoveAbs $cx $cy; Cmd 'mouse:lbc' }
+# Drag with the left button held down through a path of absolute screen points: button-down on
+# the first point, a move to each subsequent point (with a dwell so the 4fps recorder catches it),
+# button-up at the end. Used for both the sizing-border resize and the title-bar move.
+function Drag($points) {
+  MoveAbs $points[0][0] $points[0][1]; Start-Sleep -Milliseconds 150
+  Cmd 'mouse:lbd'; Start-Sleep -Milliseconds 200
+  foreach ($p in $points[1..($points.Count - 1)]) { MoveAbs $p[0] $p[1]; Start-Sleep -Milliseconds 130 }
+  Start-Sleep -Milliseconds 150; Cmd 'mouse:lbu'
 }
 function Find($node, [scriptblock]$pred) {
   if (& $pred $node) { return $node }
@@ -124,8 +137,10 @@ function Find($node, [scriptblock]$pred) {
   return $null
 }
 function QueryTree([string]$window, [int]$depth = 5) {
+  # The MCP text block holds the agent envelope { ok, sessionId, result:{ window, tree, ... } }
+  # (AgentToolResult.ToJsonObject). The UIA snapshot is at result.tree.
   foreach ($b in (Tool 'query' @{ window = $window; maxDepth = $depth }).result.content) {
-    if ($b.type -eq 'text') { try { return ($b.text | ConvertFrom-Json).data.tree } catch { return $null } }
+    if ($b.type -eq 'text') { try { return ($b.text | ConvertFrom-Json).result.tree } catch { return $null } }
   }
   return $null
 }
@@ -155,24 +170,64 @@ try {
   $tree = QueryTree 'MCEC' 5        # re-query so the menu bar is fully built before we locate it
 
   $isMenu = { param($n) ($n.controlType -match 'MenuItem') }
-  $help = Find $tree { param($n) (& $isMenu $n) -and $n.name -eq 'Help' }
   $file = Find $tree { param($n) (& $isMenu $n) -and $n.name -eq 'File' }
-  if (-not $help -or -not $file) { throw 'File/Help menu items not found' }
+  if (-not $file) { throw 'File menu item not found' }
 
-  # Help > About
+  # --- File > Settings, then tour every tab (click each header in order) ---
+  ClickAbs ([int]($file.x + $file.width / 2)) ([int]($file.y + $file.height / 2))
+  Start-Sleep -Milliseconds 600; Cmd 'key_s'      # 'S'ettings mnemonic on the open File menu
+
+  $stree = $null
+  for ($i = 0; $i -lt 20; $i++) { Start-Sleep -Milliseconds 300; $stree = QueryTree 'Settings' 8; if ($stree) { break } }
+  if (-not $stree) { throw 'Settings dialog never appeared' }
+  Write-Host 'settings dialog up'
+  foreach ($tn in @('General', 'Client', 'Server', 'Serial Server', 'Activity Monitor')) {
+    $tab = Find $stree { param($n) $n.name -eq $tn -and $n.controlType -match 'TabItem' }
+    if ($tab) {
+      ClickAbs ([int]($tab.x + $tab.width / 2)) ([int]($tab.y + $tab.height / 2))
+      Write-Host "  tab: $tn"; Start-Sleep -Milliseconds 1100
+    }
+    else { Write-Host "  (tab '$tn' not found in tree)" }
+  }
+  Cmd 'key_esc'; Start-Sleep -Milliseconds 1000   # close Settings (modal) before touching the main window
+
+  # --- Resize the main window ~25% smaller by dragging the bottom-right sizing border inward. ---
+  # The window is pinned at ($winX,$winY,$winW,$winH); the recorded region is that same rect, so the
+  # window shrinks toward its top-left corner and stays fully in frame.
+  $newW = [int]($winW * 0.75); $newH = [int]($winH * 0.75)
+  $corner0X = $winX + $winW - 2; $corner0Y = $winY + $winH - 2
+  $corner1X = $winX + $newW;     $corner1Y = $winY + $newH
+  Drag @(
+    , @($corner0X, $corner0Y)
+    , @([int](($corner0X + $corner1X) / 2), [int](($corner0Y + $corner1Y) / 2))
+    , @($corner1X, $corner1Y)
+  )
+  Start-Sleep -Milliseconds 1000
+
+  # --- Move the window by dragging its title bar in small circles. ---
+  # Grab the title bar (offset from the now-resized window's top-left), then walk the cursor around two
+  # small circles. The window follows by (cursor - grab-offset); the circle is sized/centered so the
+  # whole window stays inside the recorded region.
+  $grabX = $winX + [int]($newW / 2); $grabY = $winY + 12     # middle of the title bar
+  $offX = $grabX - $winX; $offY = $grabY - $winY             # cursor-to-window-top-left offset
+  $ccx = $winX + 90 + $offX; $ccy = $winY + 70 + $offY; $r = 55   # circle centre, in cursor space
+  $path = @(, @($grabX, $grabY))                            # button-down on the title bar
+  for ($a = 0; $a -le 720; $a += 30) {
+    $rad = [math]::PI * $a / 180.0
+    $path += , @([int]($ccx + $r * [math]::Cos($rad)), [int]($ccy + $r * [math]::Sin($rad)))
+  }
+  Drag $path
+  Start-Sleep -Milliseconds 1000
+
+  # --- Help > About (re-query: the window moved, so the menu bar is at fresh coordinates). ---
+  $tree = QueryTree 'MCEC' 5
+  $help = Find $tree { param($n) (& $isMenu $n) -and $n.name -eq 'Help' }
+  if (-not $help) { throw 'Help menu item not found after move' }
   ClickAbs ([int]($help.x + $help.width / 2)) ([int]($help.y + $help.height / 2))
-  Start-Sleep -Milliseconds 600; Cmd 'key_a'; Start-Sleep -Milliseconds 1900
-  Cmd 'key_esc'; Start-Sleep -Milliseconds 1000
+  Start-Sleep -Milliseconds 600; Cmd 'key_a'; Start-Sleep -Milliseconds 1800
 
-  # File > Settings
-  ClickAbs ([int]($file.x + $file.width / 2)) ([int]($file.y + $file.height / 2))
-  Start-Sleep -Milliseconds 600; Cmd 'key_s'; Start-Sleep -Milliseconds 2100
-  Cmd 'key_esc'; Start-Sleep -Milliseconds 1000
-
-  # File > Exit
-  ClickAbs ([int]($file.x + $file.width / 2)) ([int]($file.y + $file.height / 2))
-  Start-Sleep -Milliseconds 600; Cmd 'key_x'; Start-Sleep -Milliseconds 1300
-  if (-not $subject.HasExited) { Cmd 'enter'; Start-Sleep -Milliseconds 1000 }
+  # --- Pause on the About box, then stop. ---
+  Start-Sleep -Milliseconds 2500
 
   $stop = Tool 'record' @{ action = 'stop'; file = $outGif }
   Write-Host "record stop: $($stop.result.content[0].text)"
