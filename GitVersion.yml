@@ -1,6 +1,6 @@
 mode: ContinuousDelivery
 tag-prefix: '[vV]'
-next-version: 'v3.0.6'
+next-version: 'v3.0.7'
 semantic-version-format: Loose
 
 branches:
