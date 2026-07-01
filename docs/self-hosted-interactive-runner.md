@@ -45,8 +45,37 @@ To have the runner machine always have an interactive desktop:
 
 4. (Optional) Use a dedicated local account with minimal rights.
 
+## Enabling / Disabling the Lane
+The workflow is committed but **gated off by default** so it never hangs or shows a failing/cancelled
+check while no interactive runner exists. A hosted `preflight` job checks the repo variable
+`INTERACTIVE_RUNNER_READY`; the interactive job runs only when it is `true`, otherwise it is cleanly
+skipped (neutral, not failed) and `preflight` prints a `::notice::` explaining why.
+
+Enable the lane **after** you have registered an interactive runner (see above):
+
+```powershell
+gh variable set INTERACTIVE_RUNNER_READY --repo tig/mcec --body true
+```
+
+Disable it again (e.g. runner offline for maintenance):
+
+```powershell
+gh variable set INTERACTIVE_RUNNER_READY --repo tig/mcec --body false   # or: gh variable delete INTERACTIVE_RUNNER_READY --repo tig/mcec
+```
+
+### One-time bring-up checklist
+1. Provision a Windows 10/11 Pro/Enterprise box or VM (physical console or a VM with a real virtual GPU/console — not headless session 0).
+2. Install prerequisites (.NET SDK per `global.json`, NSIS if building installers).
+3. Configure autologon + auto-unlock so the desktop is always live (see below).
+4. Register the GitHub runner with labels `self-hosted,Windows,interactive` (see above).
+5. Confirm the runner shows **Idle** under repo → Settings → Actions → Runners.
+6. `gh variable set INTERACTIVE_RUNNER_READY --repo tig/mcec --body true`.
+7. Re-run this workflow (`workflow_dispatch`) and confirm the smoke step captures a non-blank frame.
+
 ## Running the Interactive CI Lane
-The lane is triggered on push/PR to develop/main or manually (workflow_dispatch).
+Once enabled, the lane is triggered on push/PR to develop/main or manually (workflow_dispatch).
+The interactive job has a 60-minute `timeout-minutes` backstop so a misconfigured/offline runner
+fails fast instead of the default 24-hour "waiting for a runner" hang.
 
 It will:
 - Build the solution

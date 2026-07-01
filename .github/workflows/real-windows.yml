@@ -1,5 +1,15 @@
 name: Real Windows (Interactive)
 
+# This lane needs a self-hosted, INTERACTIVE (non-session-0) Windows desktop runner
+# (see docs/self-hosted-interactive-runner.md). Until one is registered it must NOT
+# hang or pollute CI: the `preflight` job (hosted, always available) decides whether
+# the interactive job runs, gated on the repo variable INTERACTIVE_RUNNER_READY.
+#
+# To turn this lane on (after registering a runner labelled [self-hosted, Windows, interactive]):
+#   gh variable set INTERACTIVE_RUNNER_READY --repo tig/mcec --body true
+# To turn it back off:
+#   gh variable set INTERACTIVE_RUNNER_READY --repo tig/mcec --body false   (or delete the variable)
+
 on:
   push:
     branches: [develop, main]
@@ -12,9 +22,26 @@ env:
   CONFIGURATION: 'Release'
 
 jobs:
+  preflight:
+    name: Interactive runner available?
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ vars.INTERACTIVE_RUNNER_READY == 'true' }}
+    steps:
+      - name: Report gate state
+        run: |
+          if [ "${{ vars.INTERACTIVE_RUNNER_READY }}" = "true" ]; then
+            echo "::notice title=Real Windows lane ENABLED::INTERACTIVE_RUNNER_READY=true — running the interactive desktop lane on a self-hosted runner."
+          else
+            echo "::notice title=Real Windows lane SKIPPED::No interactive self-hosted runner registered yet (#99). This is expected — the lane is intentionally skipped, not failing. To enable: register a runner labelled [self-hosted, Windows, interactive] (see docs/self-hosted-interactive-runner.md), then set repo variable INTERACTIVE_RUNNER_READY=true."
+          fi
+
   real-windows:
     name: Build + Test + Smoke (Interactive Desktop)
+    needs: preflight
+    if: needs.preflight.outputs.ready == 'true'
     runs-on: [self-hosted, Windows, interactive]   # label your self-hosted runner accordingly
+    timeout-minutes: 60                             # backstop so a misconfigured runner fails fast, never the 24h await-runner hang
 
     steps:
       - name: Checkout
