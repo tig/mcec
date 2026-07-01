@@ -77,13 +77,14 @@ call `provision-session` to get a fresh, disposable, isolated instance: it retur
 launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), and a `sessionId`. Run from
 that directory, do your work there, then call `end-session` with the `sessionId` (after stopping its
 mcec.exe) to delete it — teardown is just removing the directory, so a crash leaves the real install
-untouched. If `provision-session` returns `error.category:provisioning-not-authorized`, the operator has not
-opted in (AllowSessionProvisioning) — tell them, don't retry.
+untouched. If `provision-session` returns `error.code:provisioning-not-authorized` (these feature-specific
+refusals ride in `error.code`, while `error.category` stays `internal`), the operator has not opted in
+(AllowSessionProvisioning) — tell them, don't retry.
 
 EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
-session from any window. If ANY tool returns `error.category:emergency-stopped`, the operator has engaged it
-and deliberately halted you — STOP immediately, tell the user, and do NOT retry; nothing will actuate until
-they re-arm.
+session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category —
+`error.category` stays `internal`), the operator has engaged it and deliberately halted you — STOP
+immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
 SECURITY: the agent tools (capture/query/displays/find/invoke/record/drag/click) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather than retrying.

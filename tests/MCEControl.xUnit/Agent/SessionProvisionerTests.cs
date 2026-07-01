@@ -125,8 +125,27 @@ public class SessionProvisionerTests : IDisposable {
     }
 
     [Fact]
-    public void Teardown_UnknownSession_ReturnsTrue() {
-        Assert.True(SessionProvisioner.Teardown("does-not-exist"));
+    public void Teardown_UnknownButValidId_ReturnsTrue() {
+        // A well-formed but non-existent session id is idempotent success (nothing to remove).
+        Assert.True(SessionProvisioner.Teardown("abc123def456"));
+    }
+
+    [Theory]
+    [InlineData("..")]
+    [InlineData("../..")]
+    [InlineData("a/b")]
+    [InlineData("does-not-exist")]       // wrong shape
+    [InlineData("ABC123DEF456")]         // upper-case hex is not the id shape
+    public void Teardown_RejectsTraversalAndMalformedIds_WithoutDeletingOutsideRoot(string id) {
+        // A sentinel next to the sessions root must survive a traversal-style teardown attempt.
+        string parent = Directory.GetParent(_root)!.FullName;
+        string sentinel = Path.Combine(parent, "install"); // created in the fixture
+        Assert.True(Directory.Exists(sentinel));
+
+        bool removed = SessionProvisioner.Teardown(id);
+
+        Assert.False(removed);
+        Assert.True(Directory.Exists(sentinel), "teardown must not delete anything outside the sessions root");
     }
 
     [Fact]

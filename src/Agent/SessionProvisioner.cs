@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 
 namespace MCEControl;
 
@@ -28,6 +29,12 @@ public static class SessionProvisioner {
     /// <summary>The agent observation/action commands enabled in a provisioned session's co-located command table.</summary>
     public static readonly string[] DefaultCommands =
         ["capture", "query", "displays", "find", "wait-for", "invoke", "drag", "click", "record"];
+
+    // A provisioned session id is a bare 12-char lowercase-hex token (Guid "N"[..12]). end-session accepts
+    // ONLY this shape so a caller can never pass a path/traversal token (e.g. ".." or "a/b") that would make
+    // Teardown delete something outside the sessions root. end-session is exposed over MCP and is not behind
+    // the provisioning-authorization gate, so this validation is the security boundary.
+    private static readonly Regex SessionIdPattern = new("^[0-9a-f]{12}$", RegexOptions.Compiled);
 
     private static string? _sessionsRoot;
 
@@ -108,15 +115,27 @@ public static class SessionProvisioner {
         if (string.IsNullOrWhiteSpace(sessionId)) {
             return false;
         }
-        // Guard against path traversal: a session id is a bare token, never a path.
-        string safeId = Path.GetFileName(sessionId.Trim());
-        string dir = Path.Combine(SessionsRoot, safeId);
+        // Guard against path traversal: only a well-formed session id (bare 12-hex token) is accepted, so a
+        // caller can never point Teardown at a directory outside the sessions root (e.g. "..", "a/b", rooted paths).
+        string id = sessionId.Trim();
+        if (!SessionIdPattern.IsMatch(id)) {
+            AgentRuntime.Audit("end-session", $"REJECTED — '{id}' is not a valid session id (expected 12 hex chars)");
+            return false;
+        }
+        string dir = Path.Combine(SessionsRoot, id);
+        // Defense in depth: confirm the resolved path really is inside the sessions root before deleting.
+        string fullRoot = Path.GetFullPath(SessionsRoot).TrimEnd(Path.DirectorySeparatorChar);
+        string fullDir = Path.GetFullPath(dir);
+        if (!fullDir.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) {
+            AgentRuntime.Audit("end-session", $"REJECTED — '{id}' resolves outside the sessions root");
+            return false;
+        }
         if (!Directory.Exists(dir)) {
-            AgentRuntime.Audit("end-session", $"{safeId} — directory already gone");
+            AgentRuntime.Audit("end-session", $"{id} — directory already gone");
             return true;
         }
         bool ok = TryDeleteDirectory(dir);
-        AgentRuntime.Audit("end-session", ok ? $"{safeId} — torn down ({dir})" : $"{safeId} — could not delete (in use?) {dir}");
+        AgentRuntime.Audit("end-session", ok ? $"{id} — torn down ({dir})" : $"{id} — could not delete (in use?) {dir}");
         return ok;
     }
 
