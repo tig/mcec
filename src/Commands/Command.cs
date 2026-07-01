@@ -48,6 +48,7 @@ public abstract class Command : ICommand {
     [XmlElement("find", typeof(FindCommand))]
     [XmlElement("invoke", typeof(InvokeCommand))]
     [XmlElement("drag", typeof(DragCommand))]
+    [XmlElement("launch", typeof(LaunchCommand))]
     [XmlElement("click", typeof(ClickCommand))]
     [XmlElement("displays", typeof(DisplaysCommand))]
     [XmlElement("record", typeof(RecordCommand))]

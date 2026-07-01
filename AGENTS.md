@@ -18,7 +18,6 @@ The connect-time guidance an MCP client shows the model is authored in
 time** and returned in the MCP `initialize` response (`result.instructions`) via `AgentServer.Instructions`,
 which loads the embedded file and collapses each blank-line-separated paragraph to one line.
 
-<<<<<<< HEAD
 > Work the loop **observe → target → act → observe**.
 > 1. **Target** a window by `window` (title substring), `process` (name without `.exe`), `className`,
 >    or `foreground:true`. At least one is required — a call with no target fails by design.

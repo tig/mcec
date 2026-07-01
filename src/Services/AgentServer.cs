@@ -252,6 +252,16 @@ public static class AgentServer {
             "Record a window or region to an animated GIF over time (start/stop or a bounded one-shot). Use only to show CHANGE over time; for a single state check use capture.",
             recordProps, []));
 
+        JsonObject launchProps = new() {
+            ["path"] = PropSchema("string", "Path to executable, shell: protocol target (e.g. shell:AppsFolder\\...), or .lnk (required)"),
+            ["arguments"] = PropSchema("string", "Command line arguments to pass to the process"),
+            ["workingDirectory"] = PropSchema("string", "Initial working directory for the launched process"),
+            ["timeout"] = PropSchema("integer", "Milliseconds to wait for the app window to appear (default 5000)"),
+        };
+        tools.Add(Tool("launch",
+            "Launch an application directly as a gated agent action. Starts the process and returns its pid plus the primary window (handle + descriptor) when it appears within timeout. Preferred over send_command winr dance for reliability.",
+            launchProps, ["path"]));
+
         tools.Add(Tool("send_command",
             "Send any raw MCEC command string to the existing command core (e.g. actuation commands).",
             new JsonObject { ["command"] = PropSchema("string", "The MCEC command string to enqueue") },
@@ -320,7 +330,7 @@ public static class AgentServer {
             return RunEndSession(args);
         }
 
-        if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "drag" or "click") {
+        if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "launch" or "drag" or "click") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
@@ -640,6 +650,12 @@ public static class AgentServer {
             DurationMs = Int(args, "durationMs"),
             MaxWidth = Int(args, "maxWidth"),
             File = Str(args, "file")!,
+        },
+        "launch" => new LaunchCommand {
+            Path = Str(args, "path")!,
+            Arguments = Str(args, "arguments")!,
+            WorkingDirectory = Str(args, "workingDirectory")!,
+            Timeout = Int(args, "timeout"),
         },
         "drag" => BuildDragCommand(args),
         "click" => BuildClickCommand(args),

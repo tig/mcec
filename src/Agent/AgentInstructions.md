@@ -58,7 +58,7 @@ stale-element, no-target, capture-blank, focus, elevation, foreground, internal)
 the failure.
 
 COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
-an app with `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
+an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region. Wait for a window by polling `query` until
 it appears. Reach for a raw `send_command` before giving up.
@@ -90,7 +90,7 @@ session from any window. If ANY tool returns `error.code:emergency-stopped` (the
 `error.category` stays `internal`), the operator has engaged it and deliberately halted you — STOP
 immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
-SECURITY: the agent tools (capture/query/displays/find/invoke/record/drag/click) only work when the operator has set
+SECURITY: the agent tools (capture/query/displays/find/invoke/record/launch/drag/click) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather than retrying.
 `provision-session` additionally requires AllowSessionProvisioning, and any tool is refused with
 `emergency-stopped` while the operator's emergency stop is engaged. Every action is audit-logged on the host.

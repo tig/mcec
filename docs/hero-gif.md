@@ -38,13 +38,7 @@ It is the executable form of these decisions — replicate them if reproducing b
    (else it binds `IPAddress.Any:5150` and triggers the first-run Windows Firewall prompt that steals focus
    and derails the tour), `DisableUpdatePopup=true`, turns its **own overlay off**
    (`CommandOverlayEnabled=false` — only the controller narrates), and **pins** `WindowLocation`/`WindowSize`.
-3. **Launch it the way an agent would — Win+R, not `Start-Process`.** Dogfooding the composition principle
-   in [Toward script-free recreation](#toward-script-free-recreation): the controller opens the **Win+R**
-   Run dialog and types the subject's path (`winr` → `chars:<path>` → `enter`) via `send_command`, rather
-   than an OS launch API. (`chars:` interprets C-style escapes, so the path's backslashes are doubled.) The
-   freshly-launched window is foreground, so `query { foreground:true }` yields its **handle**; the script
-   then drives the subject by handle (its "MCEC" title is ambiguous with the controller) and the modal
-   dialogs by their unambiguous titles (`Settings`, `About`).
+3. **Launch it the way an agent would — using the direct `launch` tool (not `Start-Process` or Win+R).** Now that #126 is implemented, dogfood the first-class gated launch: the controller calls `launch { "path": "<exe>", "timeout": 10000 }` which starts the process and returns the pid + primary window handle (when it appears). This is more reliable than the Run dialog. (The script falls back to the Win+R composition only if needed for other demos.) The freshly-launched window handle is used to target the subject thereafter (its "MCEC" title is ambiguous with the controller) and the modal dialogs by their unambiguous titles (`Settings`, `About`).
 4. **Overlay docked Left over a wide window → compact capture.** With the overlay on the left of the wide,
    pinned, left-docked subject window, the recorded region is **just the window** — compact, no wallpaper —
    yet still contains the narration. The Settings/About dialogs are `CenterParent`, so they sit to the
@@ -62,7 +56,7 @@ by its `handle`):
 
 | Step | Tool call |
 |------|-----------|
-| Launch | `send_command winr` → `send_command "chars:<path>"` (backslashes doubled) → `send_command enter` → `query { foreground:true }` for the new window's `handle` |
+| Launch | `launch { "path": "<exe path>", "timeout": 10000 }` (returns `handle` + `window` in result; preferred). Fallback composition: `send_command winr` → `send_command "chars:<path>"` ... → `query { foreground:true }`. |
 | Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:560 }` (region = the subject window's pinned rect) |
 | Settings | click **File** → send `S` → `query` the **Settings** window → click each tab header's rect (`mouse:mt,…` + `mouse:lbc`) in turn → `Esc` |
 | Resize | drag the bottom-right sizing border inward with one atomic `mouse:drag,x1,y1,…,xN,yN` (corner → a few waypoints inward) |
@@ -99,7 +93,7 @@ Everything else is **already composable today** — the issues just make the pat
 
 | Step | Already composable today via | Enhancement (issue) |
 |---|---|---|
-| Launch the subject **(the hero already does this)** | Win+R: `send_command winr` → `chars:<path>` → `enter`, then `query { foreground:true }` for its handle | direct gated launch that returns the handle — robustness (#126) |
+| Launch the subject **(the hero now uses this)** | `launch { "path": "...", "timeout": ... }` (direct, returns pid + window handle/info) | direct gated `launch` tool implemented (#126) — robustness; Win+R composition still available via send_command |
 | Drag: resize border / title-bar circles | **one atomic `mouse:drag,x1,y1,…`** — shipped in #123 (pixels in, normalized across the virtual desktop internally); the hand-rolled `mouse:lbd` → path of `mouse:mt` → `mouse:lbu` still works too | ~~first-class `drag`~~ **shipped (#123)** — the agent `drag` tool adds UIA-element endpoints; still open: a window `move`/`resize` with an `animate` mode that still *looks* dragged (#124) |
 | Switch Settings tabs | `query` the tab's bounds → `mouse` click its center | `select` / SelectionItem action (#125) |
 | Record the window | `query` its bounds → `record { x, y, width, height }` | `record { handle }`, optionally following the window (#127) |
