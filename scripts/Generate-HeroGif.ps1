@@ -108,6 +108,9 @@ Set-Content -Encoding UTF8 -Path $ctrlCommands -Value @'
   <find    Cmd="find"    Enabled="true" />
   <record  Cmd="record"  Enabled="true" />
   <mouse   Cmd="mouse:"  Enabled="true" />
+  <drag    Cmd="drag"    Enabled="true" />
+  <launch  Cmd="launch"  Enabled="true" />
+  <invoke  Cmd="invoke"  Enabled="true" />
   <sendinput Cmd="key_a" Vk="a" Enabled="true" />
   <sendinput Cmd="key_s" Vk="s" Enabled="true" />
   <sendinput Cmd="key_esc" Vk="VK_ESCAPE" Enabled="true" />
@@ -174,26 +177,40 @@ try {
   (New-Object -ComObject Shell.Application).MinimizeAll()
   Start-Sleep -Milliseconds 800
 
-  # Subject: launch the isolated copy the way an agent would with only mcec.exe — the Win+R Run dialog,
-  # NOT Start-Process (dogfooding "compose primitives": see docs/hero-gif.md). Win+R -> type the exe path
-  # -> Enter. The freshly-launched window is foreground, so `query { foreground:true }` hands back its
-  # handle; drive by handle thereafter (its "MCEC" title is ambiguous with the controller).
-  Cmd 'winr';                                       Start-Sleep -Milliseconds 1300
-  # `chars:` interprets C-style escapes, so double the path's backslashes (\ -> \\) or `\U`/`\T` fail.
-  Cmd ("chars:" + $subjectExe.Replace('\', '\\'));  Start-Sleep -Milliseconds 900
-  Cmd 'enter'
+  # Subject: launch the isolated copy using the direct gated `launch` tool (see docs/hero-gif.md and #126).
+  # Falls back to the Win+R composition (send_command winr + chars + enter) if launch returns no handle.
+  # NOT raw Start-Process in the agent path (dogfooding the robust primitive).
   $hsub = 0
-  for ($i = 0; $i -lt 30; $i++) {
-    Start-Sleep -Milliseconds 600
-    $w = WindowOf (Tool 'query' @{ foreground = $true; maxDepth = 1 })
-    if ($w -and $w.title -eq 'MCEC' -and $w.handle) { $hsub = [long]$w.handle; break }
+  try {
+    $lr = Tool 'launch' @{ path = $subjectExe; timeout = 8000 }
+    foreach ($b in $lr.result.content) {
+      if ($b.type -eq 'text') {
+        try {
+          $ldata = ($b.text | ConvertFrom-Json).result
+          if ($ldata -and $ldata.handle) { $hsub = [long]$ldata.handle; break }
+          # also check nested window.handle from data shape
+          if ($ldata -and $ldata.data -and $ldata.data.handle) { $hsub = [long]$ldata.data.handle; break }
+        } catch {}
+      }
+    }
+  } catch {}
+  if ($hsub -eq 0) {
+    # Fallback composition (still useful to exercise send_command path)
+    Cmd 'winr';                                       Start-Sleep -Milliseconds 1300
+    Cmd ("chars:" + $subjectExe.Replace('\', '\\'));  Start-Sleep -Milliseconds 900
+    Cmd 'enter'
+    for ($i = 0; $i -lt 30; $i++) {
+      Start-Sleep -Milliseconds 600
+      $w = WindowOf (Tool 'query' @{ foreground = $true; maxDepth = 1 })
+      if ($w -and $w.title -eq 'MCEC' -and $w.handle) { $hsub = [long]$w.handle; break }
+    }
   }
-  if ($hsub -eq 0) { throw 'subject MCEC window never appeared (Win+R launch)' }
+  if ($hsub -eq 0) { throw 'subject MCEC window never appeared after launch (or Win+R fallback)' }
   $tree = $null
   for ($i = 0; $i -lt 25; $i++) { Start-Sleep -Milliseconds 500; $tree = QueryH $hsub 5; if ($tree) { break } }
   if (-not $tree) { throw 'subject UIA tree never came up' }
   Write-Host 'subject window up'
-  Start-Sleep -Milliseconds 700
+  Start-Sleep -Milliseconds 1200   # extra dwell after direct launch to ensure menus are ready and window foregrounded
   $tree = QueryH $hsub 5    # re-query so the menu bar is fully built before we locate it
 
   $isMenu = { param($n) ($n.controlType -match 'MenuItem') }
@@ -212,10 +229,10 @@ try {
 
   # --- File > Settings, then tour every tab (click each header in order) ---
   ClickAbs ([int]($file.x + $file.width / 2)) ([int]($file.y + $file.height / 2))
-  Start-Sleep -Milliseconds 600; Cmd 'key_s'      # 'S'ettings mnemonic on the open File menu
+  Start-Sleep -Milliseconds 900; Cmd 'key_s'      # 'S'ettings mnemonic on the open File menu; longer pause after direct launch
 
   $stree = $null
-  for ($i = 0; $i -lt 20; $i++) { Start-Sleep -Milliseconds 300; $stree = QueryW 'Settings' 8; if ($stree) { break } }
+  for ($i = 0; $i -lt 25; $i++) { Start-Sleep -Milliseconds 400; $stree = QueryW 'Settings' 8; if ($stree) { break } }
   if (-not $stree) { throw 'Settings dialog never appeared' }
   Write-Host 'settings dialog up'
   foreach ($tn in @('General', 'Client', 'Server', 'Serial Server', 'Activity Monitor')) {
