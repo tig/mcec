@@ -148,6 +148,66 @@ public class SerializedCommandsTests
     }
 
     [Fact]
+    public void SaveLoad_RoundTrip_ClickCommand_TopLevel()
+    {
+        // ClickCommand is a built-in, so a real command table contains one and Save() must serialize it —
+        // which only works if the type is in the XmlArrayItem/XmlElement known-type lists (#122).
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
+
+        var original = new SerializedCommands
+        {
+            commandArray =
+            [
+                new ClickCommand() { Cmd = "click", Value = "OK", X = 42, Y = 84, Button = "right", Count = 2, Enabled = true }
+            ]
+        };
+
+        SerializedCommands.SaveCommands(tempFile, original, "1.0.0.0");
+        var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
+
+        Assert.NotNull(loaded);
+        var click = Assert.Single(loaded.commandArray) as ClickCommand;
+        Assert.NotNull(click);
+        Assert.Equal("click", click.Cmd);
+        Assert.Equal("OK", click.Value);
+        Assert.Equal(42, click.X);
+        Assert.Equal(84, click.Y);
+        Assert.Equal("right", click.Button);
+        Assert.Equal(2, click.Count);
+        Assert.True(click.Enabled);
+
+        File.Delete(tempFile);
+    }
+
+    [Fact]
+    public void SaveLoad_RoundTrip_DisplaysCommand_TopLevel()
+    {
+        // DisplaysCommand is a built-in; Save() must serialize it via the known-type lists (#122).
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
+
+        var original = new SerializedCommands
+        {
+            commandArray =
+            [
+                new DisplaysCommand() { Cmd = "displays", Enabled = true }
+            ]
+        };
+
+        SerializedCommands.SaveCommands(tempFile, original, "1.0.0.0");
+        var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
+
+        Assert.NotNull(loaded);
+        var displays = Assert.Single(loaded.commandArray) as DisplaysCommand;
+        Assert.NotNull(displays);
+        Assert.Equal("displays", displays.Cmd);
+        Assert.True(displays.Enabled);
+
+        File.Delete(tempFile);
+    }
+
+    [Fact]
     public void LoadCommands_NonExistentFile_ReturnsNull()
     {
         string tempFile = Path.GetTempFileName();

@@ -14,6 +14,28 @@ public class MouseCommandTests
         Assert.Contains(MouseCommand.BuiltInCommands, c => c.Cmd == "mouse:drag,x1,y1,x2,y2");
     }
 
+    [Fact]
+    public void BuiltInCommands_ContainsPixelMove()
+    {
+        // mtp is the absolute-screen-pixel move added for the agent's observe->act loop (#122).
+        Assert.Contains(MouseCommand.BuiltInCommands, c => c.Cmd == "mouse:mtp,x,y");
+    }
+
+    [Theory]
+    [InlineData("left", "left")]
+    [InlineData("LEFT", "left")]
+    [InlineData("l", "left")]
+    [InlineData("right", "right")]
+    [InlineData("R", "right")]
+    [InlineData("middle", "middle")]
+    [InlineData("m", "middle")]
+    [InlineData("", "left")]      // empty falls back to left
+    [InlineData("bogus", "left")] // unknown falls back to left
+    public void NormalizeButton_MapsAliasesAndDefaults(string input, string expected)
+    {
+        Assert.Equal(expected, MouseCommand.NormalizeButton(input));
+    }
+
     [Theory]
     [InlineData(new[] { "drag", "0", "0", "100", "50" }, 2)]
     [InlineData(new[] { "drag", "-5", "-10", "5", "10", "20", "30" }, 3)]

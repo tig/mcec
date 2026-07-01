@@ -1,0 +1,126 @@
+// Copyright © Kindel, LLC - http://www.kindel.com
+// Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
+
+using System;
+using System.Collections.Generic;
+using System.Text.Json.Nodes;
+using System.Xml.Serialization;
+
+namespace MCEControl;
+
+/// <summary>
+/// Agent actuation command: a single mouse click at a target point (issue #122). The point is either an
+/// absolute screen pixel (<c>x</c>/<c>y</c>) or a UI Automation element in the target window (<c>value</c>,
+/// resolved to the centre of its bounds) — the same pixel space <c>query</c>/<c>find</c> report, so an
+/// agent can click a control it just observed without converting to normalized coordinates itself. The
+/// move-then-click is dispatched atomically by <see cref="MouseCommand.PerformClick"/> so it cannot
+/// interleave with another command's mouse input (the hazard #113 warns about when a caller hand-rolls
+/// <c>mt</c>/<c>lbc</c>). Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited. Disabled
+/// by default (security).
+/// </summary>
+public class ClickCommand : Command {
+    // NOTE: attribute names MUST be all-lowercase. SerializedCommands.Deserialize runs an XSLT that
+    // lower-cases every element/attribute name before deserializing, so a camelCase name would never
+    // bind on load and the value would be silently lost (see DragCommand).
+    [XmlAttribute("window")] public string Window { get; set; } = null!;
+    [XmlAttribute("handle")] public long Handle { get; set; }
+    [XmlAttribute("process")] public string Process { get; set; } = null!;
+    [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
+    [XmlAttribute("foreground")] public bool Foreground { get; set; }
+
+    [XmlAttribute("by")] public string By { get; set; } = "name";
+    [XmlAttribute("value")] public string Value { get; set; } = null!;
+    [XmlAttribute("x")] public int X { get; set; }
+    [XmlAttribute("y")] public int Y { get; set; }
+
+    /// <summary>Which button to click: left | right | middle (default left).</summary>
+    [XmlAttribute("button")] public string Button { get; set; } = "left";
+
+    /// <summary>Click count: 1 = single, 2 = double (default 1).</summary>
+    [XmlAttribute("count")] public int Count { get; set; } = 1;
+
+    // How long to wait for an element endpoint to appear before failing — matches DragCommand's
+    // "wait a beat, then fail cleanly" rather than blocking indefinitely.
+    private const int FindTimeoutMs = 3000;
+
+    public static new List<Command> BuiltInCommands {
+        get => [new ClickCommand { Cmd = "click" }];
+    }
+
+    public override ICommand Clone(Reply reply) => base.Clone(reply, new ClickCommand {
+        Window = this.Window,
+        Handle = this.Handle,
+        Process = this.Process,
+        ClassName = this.ClassName,
+        Foreground = this.Foreground,
+        By = this.By,
+        Value = this.Value,
+        X = this.X,
+        Y = this.Y,
+        Button = this.Button,
+        Count = this.Count,
+    });
+
+    public override bool Execute() {
+        if (!base.Execute()) {
+            return false;
+        }
+
+        if (!AgentRuntime.AgentCommandsEnabled) {
+            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
+            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
+            return false;
+        }
+        AgentRuntime.Audit(Cmd, $"click at (by={By} value='{Value}' {X},{Y}) button={Button} count={Count} window handle={Handle} title='{Window}' process='{Process}'");
+
+        // A window is only needed to resolve an element endpoint; a pure pixel click needs none.
+        IntPtr hwnd = IntPtr.Zero;
+        if (!string.IsNullOrEmpty(Value)) {
+            WindowInfo? win = WindowResolver.Resolve(Handle > 0 ? Handle : (long?)null, Window, Process, ClassName, Foreground);
+            if (win is null) {
+                Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window", "window-not-found", "no-target").ToJson());
+                return false;
+            }
+            hwnd = new IntPtr(win.Handle);
+        }
+
+        if (!TryResolvePoint(hwnd, out (int X, int Y) point, out string? error)) {
+            Reply?.WriteLine(CommandResult.Fail(Cmd, error!, "element-not-found", "no-target").ToJson());
+            return false;
+        }
+
+        int count = Count < 1 ? 1 : Count;
+        MouseCommand.PerformClick(point, Button, count);
+
+        JsonObject data = new() {
+            ["clicked"] = true,
+            ["at"] = new JsonArray { point.X, point.Y },
+            ["button"] = string.IsNullOrEmpty(Button) ? "left" : Button,
+            ["count"] = count,
+        };
+        Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves the click point to an absolute screen pixel: the centre of an element (<see cref="By"/>/
+    /// <see cref="Value"/>) when <see cref="Value"/> is set, else the literal (<see cref="X"/>,
+    /// <see cref="Y"/>). Returns false with <paramref name="error"/> when the element can't be found.
+    /// </summary>
+    private bool TryResolvePoint(IntPtr hwnd, out (int X, int Y) point, out string? error) {
+        error = null;
+        if (string.IsNullOrEmpty(Value)) {
+            point = (X, Y);
+            return true;
+        }
+        // hwnd is guaranteed non-zero here: Execute resolves the window whenever Value is set.
+        UiaElementInfo? el = UiaService.Find(hwnd, string.IsNullOrEmpty(By) ? "name" : By, Value, FindTimeoutMs);
+        if (el is null) {
+            point = default;
+            error = $"element not found ({(string.IsNullOrEmpty(By) ? "name" : By)}='{Value}')";
+            return false;
+        }
+        point = (el.X + (el.Width / 2), el.Y + (el.Height / 2));
+        return true;
+    }
+}

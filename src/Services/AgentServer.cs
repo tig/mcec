@@ -113,7 +113,10 @@ public static class AgentServer {
         "image; a `capture-fallback` warning means PrintWindow was refused and the picture may be wrong. " +
         "If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap — " +
         "raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are " +
-        "non-fatal; errorCategory tells you how to recover.\n" +
+        "non-fatal; errorCategory tells you how to recover. The bounds `query`/`find` report are ABSOLUTE " +
+        "screen pixels; `displays` reports every monitor's pixel bounds and DPI/scale (and the union " +
+        "virtualBounds) so you can interpret those bounds across multiple/scaled monitors and place pixel " +
+        "clicks or drags without measuring the screen yourself.\n" +
         "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
         "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
         "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
@@ -132,8 +135,15 @@ public static class AgentServer {
         "rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands). Coords are " +
         "absolute screen pixels — the same space `query`/`find` bounds report — so you can drag straight " +
         "from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls " +
-        "are at new bounds. `send_command` sends any other raw MCEC command (keystrokes, single mouse " +
-        "actions, launch); the raw `mouse:drag,x1,y1,x2,y2[,...]` is the same atomic gesture in pixels.\n" +
+        "are at new bounds. " +
+        "To CLICK a point `invoke` can't reach — a custom-drawn cell, a canvas/map coordinate, or a bare " +
+        "pixel — use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or " +
+        "an absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and `count` " +
+        "(2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary " +
+        "buttons and menu items — it doesn't depend on the control being on-screen and unobscured. " +
+        "`send_command` sends any other raw MCEC command (keystrokes, single mouse actions, launch); the " +
+        "raw `mouse:drag,x1,y1,x2,y2[,...]` is the same atomic drag in pixels and `mouse:mtp,x,y` moves the " +
+        "pointer to an absolute screen pixel.\n" +
         "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
         "RESULTS: every tool returns one envelope — `{ ok, result?, warnings?, error? }`. Branch on `ok` " +
         "first: on success read `result`; on failure read `error.category` (a closed set: timeout, " +
@@ -145,14 +155,15 @@ public static class AgentServer {
         "COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. " +
         "Launch an app with `send_command winr` then `chars:<path>` then `enter` (the new window is " +
         "foreground: `query {foreground}` for its handle). Drag/resize/move by `send_command mouse:lbd` → a " +
-        "path of `mouse:mt` → `mouse:lbu`. Switch a tab/list item by `query`ing its bounds and clicking its " +
-        "centre. Record a window by `query`ing its bounds and passing them as the `record` region. Wait for " +
+        "path of `mouse:mt` → `mouse:lbu`. Switch a tab/list item invoke can't reach by `click`ing it (its " +
+        "`at` element centre, or its bounds' centre pixel). Record a window by `query`ing its bounds and " +
+        "passing them as the `record` region. Wait for " +
         "a window by polling `query` until it appears. Reach for a raw `send_command` before giving up.\n" +
         "OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run " +
         "so the operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/" +
         "UIA targeting — you will never see or target it, and it is never a candidate window — but it DOES " +
         "appear in full-screen/region `capture`s and `record`ings (not in window-targeted captures).\n" +
-        "SECURITY: observation tools (capture/query/find/invoke/record) only work when the operator has set " +
+        "SECURITY: the agent tools (capture/query/displays/find/invoke/record/drag/click) only work when the operator has set " +
         "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
         "than retrying. Every action is audit-logged on the host.";
 
@@ -203,6 +214,10 @@ public static class AgentServer {
             "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state. Returns nodeCount/truncated and warns when the node cap clips the tree.",
             queryProps, []));
 
+        tools.Add(Tool("displays",
+            "Report display geometry: every monitor's pixel bounds, working area, primary flag, and DPI/scale, plus the union virtualBounds. Use it to interpret the absolute-pixel bounds query/find return and to place pixel clicks/drags — no arguments.",
+            [], []));
+
         JsonObject findProps = WindowTargetProps();
         findProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
         findProps["value"] = PropSchema("string", "Value to match");
@@ -245,6 +260,14 @@ public static class AgentServer {
         tools.Add(Tool("drag",
             "Press → move along a path → release, dispatched atomically (no interleaving). Endpoints are an element (by/value, dragged from/to its centre) or an absolute screen pixel; add path waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee select, drag-reorder. Give a window target when either endpoint is an element.",
             dragProps, ["from", "to"]));
+
+        JsonObject clickProps = WindowTargetProps();
+        clickProps["at"] = EndpointSchema("Where to click: an element ({ by, value }) in the target window (its centre) or an absolute screen pixel ({ x, y }).");
+        clickProps["button"] = PropSchema("string", "Button: left | right | middle (default left)");
+        clickProps["count"] = PropSchema("integer", "Click count: 1 = single, 2 = double (default 1)");
+        tools.Add(Tool("click",
+            "Click at a point — an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
+            clickProps, ["at"]));
 
         JsonObject recordProps = WindowTargetProps();
         recordProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
@@ -290,16 +313,19 @@ public static class AgentServer {
             return RunSendCommand(args);
         }
 
-        if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record" or "drag") {
+        if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "drag" or "click") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
             }
-            // `drag` generates real mouse input from its from/to endpoints, and a missing pixel field would
-            // otherwise default to 0 and drag from a bogus coordinate. Reject an ill-formed endpoint up
+            // `drag`/`click` generate real mouse input from their endpoints, and a missing pixel field would
+            // otherwise default to 0 and actuate at a bogus coordinate. Reject an ill-formed endpoint up
             // front rather than actuating it.
             if (name == "drag" && DragArgsError(args) is string dragError) {
                 return ToolError(dragError, "bad-arguments");
+            }
+            if (name == "click" && ClickArgsError(args) is string clickError) {
+                return ToolError(clickError, "bad-arguments");
             }
             return RunAgentCommand(name, args);
         }
@@ -323,6 +349,24 @@ public static class AgentServer {
             if (!hasElement && !(hasX && hasY)) {
                 return $"drag '{key}' needs an element 'value' or both 'x' and 'y' pixel coordinates.";
             }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Validates the <c>click</c> tool's <c>at</c> argument: it must be an object that is EITHER an element
+    /// (<c>value</c> set) OR a full pixel (<c>x</c> and <c>y</c> both present). Returns a human-readable
+    /// error, or <c>null</c> when the endpoint is well-formed. Mirrors <see cref="DragArgsError"/>.
+    /// </summary>
+    private static string? ClickArgsError(JsonObject args) {
+        if (args["at"] is not JsonObject at) {
+            return "click 'at' must be an object: an element { by?, value } or a pixel { x, y }.";
+        }
+        bool hasElement = !string.IsNullOrEmpty(Str(at, "value"));
+        bool hasX = at["x"] is JsonValue vx && vx.TryGetValue(out int _);
+        bool hasY = at["y"] is JsonValue vy && vy.TryGetValue(out int _);
+        if (!hasElement && !(hasX && hasY)) {
+            return "click 'at' needs an element 'value' or both 'x' and 'y' pixel coordinates.";
         }
         return null;
     }
@@ -531,6 +575,8 @@ public static class AgentServer {
             File = Str(args, "file")!,
         },
         "drag" => BuildDragCommand(args),
+        "click" => BuildClickCommand(args),
+        "displays" => new DisplaysCommand(),
         _ => new InvokeCommand { // invoke
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),
@@ -563,6 +609,24 @@ public static class AgentServer {
             ToX = Int(to, "x"),
             ToY = Int(to, "y"),
             PathSpec = BuildPathSpec(args["path"] as JsonArray),
+        };
+    }
+
+    /// <summary>Maps the click tool's nested <c>at</c> endpoint and button/count onto a <see cref="ClickCommand"/>.</summary>
+    private static ClickCommand BuildClickCommand(JsonObject args) {
+        JsonObject at = args["at"] as JsonObject ?? [];
+        return new ClickCommand {
+            Window = Str(args, "window")!,
+            Handle = Long(args, "handle"),
+            Process = Str(args, "process")!,
+            ClassName = Str(args, "className")!,
+            Foreground = Bool(args, "foreground"),
+            By = Str(at, "by") ?? "name",
+            Value = Str(at, "value")!,
+            X = Int(at, "x"),
+            Y = Int(at, "y"),
+            Button = Str(args, "button") ?? "left",
+            Count = Int(args, "count") is int c and > 0 ? c : 1,
         };
     }
 
