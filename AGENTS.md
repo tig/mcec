@@ -18,6 +18,35 @@ The connect-time guidance an MCP client shows the model is authored in
 time** and returned in the MCP `initialize` response (`result.instructions`) via `AgentServer.Instructions`,
 which loads the embedded file and collapses each blank-line-separated paragraph to one line.
 
+<<<<<<< HEAD
+> Work the loop **observe → target → act → observe**.
+> 1. **Target** a window by `window` (title substring), `process` (name without `.exe`), `className`,
+>    or `foreground:true`. At least one is required — a call with no target fails by design.
+> 2. **Observe** — `query` dumps the UI Automation tree (controlType, name, automationId, bounds,
+>    state, value; bounded by `maxDepth` and `maxNodes`); `capture` returns a PNG (renders composited
+>    WinUI/WPF surfaces correctly). **Check results before trusting them:** a `capture` with
+>    `errorCategory: capture-blank` is a black/empty frame (minimized/cloaked/occluded/locked session) —
+>    restore or foreground the window and retry, don't trust the image; a `capture-fallback` warning
+>    means PrintWindow was refused and the picture may be wrong; a `query` with `truncated:true` (a
+>    `tree-truncated` warning) hit the node cap — raise `maxNodes` or target a deeper window. `warnings`
+>    are non-fatal; `errorCategory` tells you how to recover. (Shape: `docs/design/agent-tool-result-contract.md`.)
+> 3. **Act** — prefer `invoke` (`by` name/automationId/classname; `action` invoke|toggle|setvalue|
+>    setfocus|expand|collapse|select) over coordinate clicks. `invoke` **fast-fails** if the control isn't present (it does not
+>    wait), so `find`/`wait-for` the control first; an `invoke` that returns `no-target` means it hasn't
+>    appeared yet — `wait-for` it rather than retrying blindly. Use `select` for TabItem/ListItem/RadioButton. `send_command` sends any raw MCEC command
+>    (keystrokes, mouse, launch). To **drag** — resize a window by its sizing border, move one by its
+>    title bar, or drag a slider/handle (no `invoke` for these) — send a press-move-release sequence:
+>    `mouse:mt,x,y` to the start, `mouse:lbd`, a stream of `mouse:mt,x,y` along the path, then `mouse:lbu`
+>    (absolute screen pixels; pause briefly between moves). Re-`query` after — bounds have moved.
+> 4. **Verify** with another `query`/`capture`.
+>
+> **Compose creatively.** Many tasks have no single dedicated tool — build them from primitives. Launch an
+> app with the `launch` tool (preferred). Use `invoke` action:select for tabs/list/radios.
+> Drag/resize/move with `mouse:lbd` → a path of `mouse:mt` → `mouse:lbu`; switch a tab by `invoke` select or `query`+click;
+> record a window by passing its `query`'d bounds as the `record` region;
+> wait for a window by polling `query`. A capable agent uses the *full* command set — reach for a raw
+> `send_command` before concluding something can't be done.
+>
 **There is exactly one copy — edit that file.** It is the observe → target → act → observe playbook
 (targeting; observation with `query`/`capture`/`record`/`displays`; `invoke`, `drag`, `click` and
 `send_command`; the result

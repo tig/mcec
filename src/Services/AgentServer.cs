@@ -206,10 +206,10 @@ public static class AgentServer {
         JsonObject invokeProps = WindowTargetProps();
         invokeProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
         invokeProps["value"] = PropSchema("string", "Value to match");
-        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse (default invoke). Use expand to open a menu before invoking its items.");
+        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse | select (default invoke). Use expand to open a menu before invoking its items; use select for TabItem, ListItem, RadioButton etc.");
         invokeProps["text"] = PropSchema("string", "Text for the setvalue action");
         tools.Add(Tool("invoke",
-            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus) — more reliable than coordinate clicks.",
+            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus/Expand/Collapse/Select) — more reliable than coordinate clicks. Use 'select' for tabs, list items, radios (SelectionItem pattern).",
             invokeProps, ["value"]));
 
         JsonObject dragProps = WindowTargetProps();

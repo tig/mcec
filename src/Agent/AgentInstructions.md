@@ -24,9 +24,9 @@ virtualBounds) so you can interpret those bounds across multiple/scaled monitors
 drags without measuring the screen yourself.
 
 3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|expand|
-collapse) over coordinate clicks — it is far more reliable. To click a menu item, first `invoke` its
+collapse|select) over coordinate clicks — it is far more reliable. To click a menu item, first `invoke` its
 parent menu with action `expand` (a closed menu's sub-items are not in the tree until opened), then
-`invoke` the item. Invoking a control that opens a MODAL dialog (About, Settings, message/file dialogs)
+`invoke` the item. Use `select` for TabItem/ListItem/RadioButton (SelectionItem pattern). Invoking a control that opens a MODAL dialog (About, Settings, message/file dialogs)
 returns promptly with `modalPending:true` — the action completes when the dialog closes — so just
 `query`/`capture` the new window to read it, and `invoke` its buttons to dismiss it. `invoke` does NOT
 wait for a control — it fast-fails if the element isn't present yet — so `wait-for` (or `find` with a
@@ -58,10 +58,8 @@ stale-element, no-target, capture-blank, focus, elevation, foreground, internal)
 the failure.
 
 COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
-an app with `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query
-{foreground}` for its handle). Drag/resize/move with the `drag` tool (`from`/`to`, optional `path`
-waypoints). Switch a tab/list item invoke can't reach by `click`ing it (its `at` element centre, or its
-bounds' centre pixel). Record a window by
+an app with `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
+Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region. Wait for a window by polling `query` until
 it appears. Reach for a raw `send_command` before giving up.
 
