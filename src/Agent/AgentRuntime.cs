@@ -44,6 +44,24 @@ public static class AgentRuntime {
         Logger.Instance.Log4.Info($"AGENT-AUDIT: {action} — {detail}");
 
     // -------------------------------------------------------------------------------------------
+    // Emergency stop latch (#135)
+    // -------------------------------------------------------------------------------------------
+
+    private static volatile bool _emergencyStopped;
+
+    /// <summary>
+    /// True while the operator's emergency stop (#135) is engaged. It <b>latches</b>: once set, every
+    /// actuation dispatch is refused until the operator explicitly re-arms — the panic override must not be
+    /// silently cleared by the next tool call. The actuation gate checks this alongside
+    /// <see cref="AgentCommandsEnabled"/>; <see cref="EmergencyStop"/> sets and clears it. <c>volatile</c>
+    /// because it is read on the dispatch thread and written from the global-hook thread.
+    /// </summary>
+    public static bool EmergencyStopped => _emergencyStopped;
+
+    /// <summary>Sets the emergency-stop latch. Called only by <see cref="EmergencyStop"/>.</summary>
+    internal static void SetEmergencyStopped(bool value) => _emergencyStopped = value;
+
+    // -------------------------------------------------------------------------------------------
     // Session runtime (#86)
     // -------------------------------------------------------------------------------------------
 

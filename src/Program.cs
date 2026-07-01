@@ -76,6 +76,10 @@ internal static class Program {
         // v3.0: carry an existing user's MCEControl.settings/.commands forward to the new mcec.* names.
         ConfigMigration.Run(ConfigPath);
 
+        // #138: belt-and-suspenders — reap any stale/abandoned provisioned session directories so a leaked
+        // session (crashed/killed before teardown) never lingers. Running sessions' files are locked and skipped.
+        SessionProvisioner.ReapOrphans(TimeSpan.FromHours(AgentServer.SessionReapAgeHours));
+
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 

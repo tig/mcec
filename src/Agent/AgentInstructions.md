@@ -70,6 +70,22 @@ operator can see MCEC is driving. It is deliberately excluded from `query`/`find
 — you will never see or target it, and it is never a candidate window — but it DOES appear in
 full-screen/region `capture`s and `record`ings (not in window-targeted captures).
 
+PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it and disabling them
+when done — an abnormal exit leaks those security gates enabled. Instead, when the operator has authorized it,
+call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
+`mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
+launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), and a `sessionId`. Run from
+that directory, do your work there, then call `end-session` with the `sessionId` (after stopping its
+mcec.exe) to delete it — teardown is just removing the directory, so a crash leaves the real install
+untouched. If `provision-session` returns `error.category:provisioning-not-authorized`, the operator has not
+opted in (AllowSessionProvisioning) — tell them, don't retry.
+
+EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
+session from any window. If ANY tool returns `error.category:emergency-stopped`, the operator has engaged it
+and deliberately halted you — STOP immediately, tell the user, and do NOT retry; nothing will actuate until
+they re-arm.
+
 SECURITY: the agent tools (capture/query/displays/find/invoke/record/drag/click) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather than retrying.
-Every action is audit-logged on the host.
+`provision-session` additionally requires AllowSessionProvisioning, and any tool is refused with
+`emergency-stopped` while the operator's emergency stop is engaged. Every action is audit-logged on the host.

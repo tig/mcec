@@ -127,6 +127,24 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public bool McpServerEnabled { get; set; } = false;
 
+    // --- Emergency stop (issue #135) ---
+    // SAFETY: a global "dead man's switch" hotkey the operator can hit from ANY window to instantly halt
+    // an agent session. On by default whenever the agent front door is used; reacts to physical input only
+    // (the agent can never trip or defeat it). The default chord is one no app uses and the agent never
+    // synthesizes. See EmergencyStopHotkey for the accepted spec format.
+    [SafeForTelemetryAttribute]
+    public bool EmergencyStopEnabled { get; set; } = true;
+
+    // TELEMETRY: a rebound hotkey is a benign UI preference, but keep it out of telemetry for simplicity.
+    public string EmergencyStopHotkey { get; set; } = MCEControl.EmergencyStopHotkey.DefaultSpec;
+
+    // --- Isolated session provisioning (issue #138) ---
+    // SECURITY: an agent asks MCEC to hand it a fresh, disposable instance dir (agent commands enabled only
+    // inside the copy) instead of mutating the installed config. Provisioning is the ONE thing that cannot
+    // be self-served — it must be an explicit operator opt-in or the isolation is theater. Off by default.
+    [SafeForTelemetryAttribute]
+    public bool AllowSessionProvisioning { get; set; } = false;
+
     // TELEMETRY: A bind address is PII-adjacent, so it is not collected.
     public string McpBindAddress { get; set; } = "127.0.0.1";
     [SafeForTelemetryAttribute]
