@@ -64,17 +64,39 @@ public class LaunchCommand : Command {
             };
 
             Process? p = Process.Start(psi);
-            if (p is null) {
-                Reply?.WriteLine(CommandResult.Fail(Cmd, $"Failed to start process for path '{Path}'.").ToJson());
-                return false;
+
+            // CR resolution (Codex P2 feedback on PR #133):
+            // When `path` is a shell: target, .lnk, or single-instance app, Process.Start(psi)
+            // (even with UseShellExecute=true) can return null even though the launch "succeeded"
+            // via ShellExecute and a window was activated or will appear. We must not fail the
+            // `launch` tool in these cases. We report pid=0 when no Process object and fall back
+            // to foreground window detection. This preserves the advertised behavior for shell
+            // launches while still preferring pid-based discovery when available.
+            // Test-first: LaunchCommandTests.cs was added first (basic coverage + note on this
+            // scenario); the fix was applied after.
+
+            int pid = p?.Id ?? 0;
+            string processName = "";
+            if (p != null) {
+                try { processName = p.ProcessName; } catch { }
             }
 
-            // Best effort: capture the started pid and try to surface its main (or first titled) window.
-            int pid = p.Id;
-            string processName = "";
-            try { processName = p.ProcessName; } catch { }
+            WindowInfo? win = pid > 0 ? WaitForWindowByPid(pid, timeout) : null;
 
-            WindowInfo? win = WaitForWindowByPid(pid, timeout);
+            if (win is null) {
+                // Fallback for shell/null-Process cases: brief pause then use foreground.
+                // (Often the just-activated app window.)
+                Thread.Sleep(250);
+                try {
+                    WindowInfo? fg = WindowResolver.Resolve(null, null, null, null, foreground: true);
+                    if (fg is not null && !string.IsNullOrEmpty(fg.Title)) {
+                        win = fg;
+                    }
+                }
+                catch {
+                    // best-effort only
+                }
+            }
 
             JsonObject data = new JsonObject {
                 ["processId"] = pid,
