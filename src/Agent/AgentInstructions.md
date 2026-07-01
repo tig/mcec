@@ -69,6 +69,13 @@ modal — so a slow observation is safe to start. Physical-input actuation (`dra
 serialized: it runs one-at-a-time (the desktop has a single input stream), so don't expect two input
 actions to overlap.
 
+PACING: raw commands (`send_command`) are queued and executed paced — a per-command delay set by the
+operator's CommandPacing — and the queue is BOUNDED: at most 200 commands may be pending, and one command
+expands to at most 20 embedded commands; anything beyond either bound is DROPPED (logged on the host, no
+error returned to you). Don't flood the queue with long raw input streams — prefer one higher-level call
+(`drag`, `click`, or a single `mouse:drag,...`) over a long hand-rolled `mouse:mt` path, and if a long
+sequence is unavoidable, send it in small chunks and verify between chunks so the queue drains.
+
 OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run so the
 operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/UIA targeting
 — you will never see or target it, and it is never a candidate window — but it DOES appear in
