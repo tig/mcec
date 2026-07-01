@@ -34,6 +34,22 @@ public class AgentServerTests {
         Assert.Equal("MCEC", serverInfo["name"]!.GetValue<string>());
     }
 
+    [Theory]
+    // #113 concurrency contract: only global-input actuation serializes on InputLock. Observation runs
+    // concurrently (so a long wait-for/query never blocks an unrelated capture); invoke is UIA actuation
+    // dispatched on a worker with the modal grace, not under this lock.
+    [InlineData("drag", true)]
+    [InlineData("send_command", true)]
+    [InlineData("query", false)]
+    [InlineData("capture", false)]
+    [InlineData("find", false)]
+    [InlineData("wait-for", false)]
+    [InlineData("record", false)]
+    [InlineData("invoke", false)]
+    public void SerializesOnInputLock_OnlyGlobalInputActuation(string tool, bool expected) {
+        Assert.Equal(expected, AgentServer.SerializesOnInputLock(tool));
+    }
+
     [Fact]
     public void Instructions_LoadsFromEmbeddedResource_CollapsedToParagraphs() {
         // The connect-time guidance is the single source of truth in src/Agent/AgentInstructions.md,
@@ -52,6 +68,45 @@ public class AgentServerTests {
     public void Dispatch_Initialize_IncludesTheInstructions() {
         JsonObject result = AgentServer.Dispatch(Request(1, "initialize"))!["result"]!.AsObject();
         Assert.Equal(AgentServer.Instructions, result["instructions"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void RunStdioLoop_DispatchesRequestsConcurrently_NotOneAtATime() {
+        // #113: the stdio transport must dispatch each request on its own worker, or a slow call blocks
+        // later ones. Two requests rendezvous: each signals its arrival in dispatch and waits for the
+        // other. If the loop dispatched serially, the first would wait alone and time out (met=1); only
+        // concurrent dispatch lets both meet (met=2). Deterministic — the count gates on an actual
+        // rendezvous, not on write order or wall-clock speed.
+        using System.Threading.ManualResetEventSlim aArrived = new(false);
+        using System.Threading.ManualResetEventSlim bArrived = new(false);
+        int metTheOther = 0;
+        Func<JsonObject, JsonObject?> dispatch = req => {
+            long id = req["id"]!.GetValue<long>();
+            bool sawOther;
+            if (id == 1) {
+                aArrived.Set();
+                sawOther = bArrived.Wait(3000);
+            }
+            else {
+                sawOther = aArrived.Wait(3000);
+                bArrived.Set();
+            }
+            if (sawOther) {
+                System.Threading.Interlocked.Increment(ref metTheOther);
+            }
+            return new JsonObject { ["jsonrpc"] = "2.0", ["id"] = id, ["result"] = new JsonObject() };
+        };
+        System.IO.StringReader reader = new(
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"x\"}\n" +
+            "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"x\"}\n");
+        System.IO.StringWriter writer = new();
+
+        AgentServer.RunStdioLoop(reader, writer, dispatch);
+
+        string output = writer.ToString();
+        Assert.Equal(2, metTheOther); // both dispatches were in flight at once => concurrent
+        Assert.Contains("\"id\":1", output, StringComparison.Ordinal);
+        Assert.Contains("\"id\":2", output, StringComparison.Ordinal);
     }
 
     [Fact]

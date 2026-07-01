@@ -65,6 +65,12 @@ bounds' centre pixel). Record a window by
 `query`ing its bounds and passing them as the `record` region. Wait for a window by polling `query` until
 it appears. Reach for a raw `send_command` before giving up.
 
+CONCURRENCY: observation (`query`/`capture`/`find`/`wait-for`/`record`) runs concurrently and never blocks
+another call — a long `wait-for` won't stall a `capture`, and `invoke` returns promptly even if it opens a
+modal — so a slow observation is safe to start. Physical-input actuation (`drag`, `send_command`) is
+serialized: it runs one-at-a-time (the desktop has a single input stream), so don't expect two input
+actions to overlap.
+
 OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run so the
 operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/UIA targeting
 — you will never see or target it, and it is never a candidate window — but it DOES appear in
