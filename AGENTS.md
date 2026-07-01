@@ -13,11 +13,12 @@ stays honest. Each time MCEC changes, re-run the dogfood and refine the guidance
 
 ## The built-in guidance (single source of truth)
 
-The guidance an MCP client surfaces to the model lives in code, in
-[`src/Services/AgentServer.cs`](src/Services/AgentServer.cs) as `AgentServer.Instructions`, and is
-returned in the MCP `initialize` response (`result.instructions`). Keep that string and this section
-in sync. In short:
+The connect-time guidance an MCP client shows the model is authored in
+[`src/Agent/AgentInstructions.md`](src/Agent/AgentInstructions.md). It is **embedded into the exe at build
+time** and returned in the MCP `initialize` response (`result.instructions`) via `AgentServer.Instructions`,
+which loads the embedded file and collapses each blank-line-separated paragraph to one line.
 
+<<<<<<< HEAD
 > Work the loop **observe → target → act → observe**.
 > 1. **Target** a window by `window` (title substring), `process` (name without `.exe`), `className`,
 >    or `foreground:true`. At least one is required — a call with no target fails by design.
@@ -46,10 +47,11 @@ in sync. In short:
 > wait for a window by polling `query`. A capable agent uses the *full* command set — reach for a raw
 > `send_command` before concluding something can't be done.
 >
-> **Overlay:** MCEC may show a small on-screen overlay (default on) that narrates each command as it runs,
-> so the operator sees MCEC is driving. It is excluded from `query`/`find`/`capture`/UIA targeting — you
-> never see or target it — but it **does** appear in full-screen/region `capture`s and `record`ings (not
-> in window-targeted captures).
+**There is exactly one copy — edit that file.** It is the observe → target → act → observe playbook
+(targeting; observation with `query`/`capture`/`record`/`displays`; `invoke`, `drag`, `click` and
+`send_command`; the result
+envelope; creative composition of primitives; the on-screen overlay; and the security gates). Nothing here
+to keep in sync.
 
 ## Security (do not regress)
 
@@ -112,11 +114,12 @@ exe (`winr`, `chars:`, `enter`, `mouse:`, `key_a`, `key_esc`, `alt_f`, `key_x`) 
 
 - **Agent-facing guidance is part of "Done" — not optional, not "later."** Any change to how an agent
   observes/targets/acts — a new tool, arg, failure mode, warning/error category, or driving technique —
-  MUST update `AgentServer.Instructions` (the connect-time observe→target→act playbook in
-  [`src/Services/AgentServer.cs`](src/Services/AgentServer.cs)) **and** the [built-in guidance](#the-built-in-guidance-single-source-of-truth)
-  block in this file, in the same change. Updating a per-tool `Tool(...)` description is **not** a
-  substitute — those describe *args*; `Instructions` teaches *recovery and strategy*. Read the trigger
-  by principle, not keyword: it fires on feature work, not just dogfooding. Treat it like updating tests.
+  MUST update the connect-time playbook in
+  [`src/Agent/AgentInstructions.md`](src/Agent/AgentInstructions.md) (the single source of truth, embedded
+  into the exe and served as `AgentServer.Instructions`) in the same change. Updating a per-tool
+  `Tool(...)` description is **not** a substitute — those describe *args*; the instructions teach *recovery
+  and strategy*. Read the trigger by principle, not keyword: it fires on feature work, not just
+  dogfooding. Treat it like updating tests.
 - Build is strict: `Nullable=enable`, `TreatWarningsAsErrors=true`, and house analyzers **MCEC0001
   (one top-level type per file)** / **MCEC0002 (no nested types)**. New code must be warning-clean.
 - Agent subsystem lives in `src/Agent/` + `src/Services/AgentServer.cs`; commands plug into the

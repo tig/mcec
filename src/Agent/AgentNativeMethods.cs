@@ -20,6 +20,13 @@ internal static class AgentNativeMethods {
     private const string User32 = "user32.dll";
     private const string Dwmapi = "dwmapi.dll";
     private const string Gdi32 = "gdi32.dll";
+    private const string Shcore = "shcore.dll";
+
+    /// <summary>MonitorFromPoint flag: return the monitor nearest the point when it is on none of them.</summary>
+    public const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    /// <summary>GetDpiForMonitor MONITOR_DPI_TYPE: the effective (scaled) DPI, honouring the user's scale.</summary>
+    public const int MDT_EFFECTIVE_DPI = 0;
 
     /// <summary>UpdateLayeredWindow flag: use the per-pixel alpha of the source bitmap.</summary>
     public const int ULW_ALPHA = 0x02;
@@ -77,6 +84,16 @@ internal static class AgentNativeMethods {
 
     [DllImport(Dwmapi)]
     public static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out NativeRect pvAttribute, int cbAttribute);
+
+    // --- Per-monitor DPI for the displays geometry query (#122) ---
+    // System.Drawing.Point is blittable and matches the Win32 POINT layout, so MonitorFromPoint takes it
+    // by value without a dedicated interop struct (which the one-type-per-file analyzer would reject here).
+
+    [DllImport(User32)]
+    public static extern IntPtr MonitorFromPoint(System.Drawing.Point pt, uint dwFlags);
+
+    [DllImport(Shcore)]
+    public static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
 
     // --- Per-pixel-alpha layered window plumbing for the command overlay (#119) ---
 

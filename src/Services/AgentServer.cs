@@ -91,70 +91,34 @@ public static class AgentServer {
     };
 
     /// <summary>
-    /// Built-in guidance handed to an agent at connect time. Keep it short, concrete, and honest about
-    /// the gating — this is the "instructions" an MCP client shows the model.
+    /// Built-in guidance handed to an agent at connect time (the MCP client shows this to the model). It
+    /// is authored in <c>src/Agent/AgentInstructions.md</c> — the single source of truth — and embedded
+    /// into the exe at build time; this loads it once, collapsing each blank-line-separated paragraph to
+    /// a single line (the historical connect-time format).
     /// </summary>
-    public const string Instructions =
-        "MCEC (Model Context Environment Controller) lets you see and drive native Windows apps.\n" +
-        "Work the loop: observe -> target -> act -> observe.\n" +
-        "1. TARGET a window by `window` (title substring), `process` (name without .exe), `className`, " +
-        "or `foreground:true` — you MUST give at least one; a call with no target fails. Reuse the " +
-        "`handle` a `query` returns for follow-up calls: it is stable, and a dialog you open shares the " +
-        "process name, so re-resolving by process/title can match the wrong window. Open menus and other " +
-        "untitled popups are not enumerated by title/process — target them by handle or `foreground:true`.\n" +
-        "2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, " +
-        "state, value) so you can pick a control instead of guessing pixels; `capture` returns a PNG " +
-        "of the window (works on composited WinUI/WPF surfaces). Use `capture` for a single state check; " +
-        "use `record` ONLY to show CHANGE over time — a bounded one-shot (`durationMs`) or `action:start` " +
-        "then `action:stop`; keep recordings short (fps/duration are capped and frames downscaled), and " +
-        "remember it captures whatever is on screen for the whole duration. Check results for trouble: a " +
-        "`capture` with errorCategory `capture-blank` is a black/empty frame (minimized, cloaked, " +
-        "occluded, or a locked session) — restore/foreground the window and retry instead of trusting the " +
-        "image; a `capture-fallback` warning means PrintWindow was refused and the picture may be wrong. " +
-        "If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap — " +
-        "raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are " +
-        "non-fatal; errorCategory tells you how to recover.\n" +
-        "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
-        "expand|collapse|select) over coordinate clicks — it is far more reliable. To click a menu item, first " +
-        "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
-        "until opened), then `invoke` the item. Use `select` for TabItem/ListItem/RadioButton (SelectionItem pattern). " +
-        "Invoking a control that opens a MODAL dialog (About, " +
-        "Settings, message/file dialogs) returns promptly with `modalPending:true` — the action " +
-        "completes when the dialog closes — so just `query`/`capture` the new window to read it, and " +
-        "`invoke` its buttons to dismiss it. `invoke` does NOT wait for a control — it fast-fails if the " +
-        "element isn't present yet — so `wait-for` (or `find` with a timeout) the control before acting; " +
-        "an `invoke` that returns `error.category:no-target` means the control hasn't appeared yet, so " +
-        "`wait-for` it rather than blindly retrying. " +
-        "To DRAG — resize a window by its sizing border, move one by its title bar, drag a slider/handle, " +
-        "marquee-select, or reorder (there is no `invoke` for these) — use the `drag` tool: give a `from` " +
-        "and a `to`, each either an element `{ by, value }` in the target window (dragged from/to its " +
-        "centre) or an absolute screen pixel `{ x, y }`, plus optional `path` waypoints for a curved or " +
-        "multi-stop drag. The whole press→move→release is dispatched ATOMICALLY, so prefer it over hand-" +
-        "rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands). Coords are " +
-        "absolute screen pixels — the same space `query`/`find` bounds report — so you can drag straight " +
-        "from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls " +
-        "are at new bounds. `send_command` sends any other raw MCEC command (keystrokes, single mouse " +
-        "actions, launch); the raw `mouse:drag,x1,y1,x2,y2[,...]` is the same atomic gesture in pixels.\n" +
-        "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
-        "RESULTS: every tool returns one envelope — `{ ok, result?, warnings?, error? }`. Branch on `ok` " +
-        "first: on success read `result`; on failure read `error.category` (a closed set: timeout, " +
-        "ambiguous-selector, stale-element, no-target, capture-blank, focus, elevation, foreground, " +
-        "internal) to choose recovery — e.g. `no-target` means broaden the selector or `query` to " +
-        "discover targets, `ambiguous-selector` means add `processName`/`className`/`automationId`, " +
-        "`stale-element` means re-`query`/`find` for a fresh handle. `error.detail` is human-readable and " +
-        "`error.lastObservation`, when present, is the last good state before the failure.\n" +
-        "COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. " +
-        "Launch an app with the `launch` tool (preferred). Use `invoke { action: \"select\" }` for TabItem/ListItem/RadioButton. " +
-        "Drag/resize/move by `send_command mouse:lbd` → a path of `mouse:mt` → `mouse:lbu`. Switch a tab/list item by `invoke` with select or `query`+click. " +
-        "Record a window by `query`ing its bounds and passing them as the `record` region. Wait for " +
-        "a window by polling `query` until it appears. Reach for a raw `send_command` before giving up.\n" +
-        "OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run " +
-        "so the operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/" +
-        "UIA targeting — you will never see or target it, and it is never a candidate window — but it DOES " +
-        "appear in full-screen/region `capture`s and `record`ings (not in window-targeted captures).\n" +
-        "SECURITY: observation/actuation tools (capture/query/find/invoke/record/launch/drag) only work when the operator has set " +
-        "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
-        "than retrying. Every action is audit-logged on the host.";
+    public static string Instructions => LazyInstructions.Value;
+
+    private static readonly Lazy<string> LazyInstructions = new(LoadInstructions);
+
+    private static string LoadInstructions() {
+        using Stream? stream = typeof(AgentServer).Assembly.GetManifestResourceStream("MCEControl.AgentInstructions.md");
+        if (stream is null) {
+            throw new InvalidOperationException(
+                "Embedded resource 'MCEControl.AgentInstructions.md' not found — check the <EmbeddedResource> item in MCEControl.csproj.");
+        }
+        using StreamReader reader = new(stream);
+        string raw = reader.ReadToEnd().Replace("\r\n", "\n");
+        // Authored wrapped for readability; the model receives one line per blank-line-separated paragraph.
+        string[] paragraphs = raw.Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0; i < paragraphs.Length; i++) {
+            string[] lines = paragraphs[i].Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            for (int j = 0; j < lines.Length; j++) {
+                lines[j] = lines[j].Trim();
+            }
+            paragraphs[i] = string.Join(" ", lines);
+        }
+        return string.Join("\n", paragraphs);
+    }
 
     // -------------------------------------------------------------------------------------------
     // Tool catalog
@@ -203,6 +167,10 @@ public static class AgentServer {
             "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state. Returns nodeCount/truncated and warns when the node cap clips the tree.",
             queryProps, []));
 
+        tools.Add(Tool("displays",
+            "Report display geometry: every monitor's pixel bounds, working area, primary flag, and DPI/scale, plus the union virtualBounds. Use it to interpret the absolute-pixel bounds query/find return and to place pixel clicks/drags — no arguments.",
+            [], []));
+
         JsonObject findProps = WindowTargetProps();
         findProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
         findProps["value"] = PropSchema("string", "Value to match");
@@ -245,6 +213,14 @@ public static class AgentServer {
         tools.Add(Tool("drag",
             "Press → move along a path → release, dispatched atomically (no interleaving). Endpoints are an element (by/value, dragged from/to its centre) or an absolute screen pixel; add path waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee select, drag-reorder. Give a window target when either endpoint is an element.",
             dragProps, ["from", "to"]));
+
+        JsonObject clickProps = WindowTargetProps();
+        clickProps["at"] = EndpointSchema("Where to click: an element ({ by, value }) in the target window (its centre) or an absolute screen pixel ({ x, y }).");
+        clickProps["button"] = PropSchema("string", "Button: left | right | middle (default left)");
+        clickProps["count"] = PropSchema("integer", "Click count: 1 = single, 2 = double (default 1)");
+        tools.Add(Tool("click",
+            "Click at a point — an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
+            clickProps, ["at"]));
 
         JsonObject recordProps = WindowTargetProps();
         recordProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
@@ -290,16 +266,19 @@ public static class AgentServer {
             return RunSendCommand(args);
         }
 
-        if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record" or "drag") {
+        if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "drag" or "click") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
             }
-            // `drag` generates real mouse input from its from/to endpoints, and a missing pixel field would
-            // otherwise default to 0 and drag from a bogus coordinate. Reject an ill-formed endpoint up
+            // `drag`/`click` generate real mouse input from their endpoints, and a missing pixel field would
+            // otherwise default to 0 and actuate at a bogus coordinate. Reject an ill-formed endpoint up
             // front rather than actuating it.
             if (name == "drag" && DragArgsError(args) is string dragError) {
                 return ToolError(dragError, "bad-arguments");
+            }
+            if (name == "click" && ClickArgsError(args) is string clickError) {
+                return ToolError(clickError, "bad-arguments");
             }
             return RunAgentCommand(name, args);
         }
@@ -323,6 +302,24 @@ public static class AgentServer {
             if (!hasElement && !(hasX && hasY)) {
                 return $"drag '{key}' needs an element 'value' or both 'x' and 'y' pixel coordinates.";
             }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Validates the <c>click</c> tool's <c>at</c> argument: it must be an object that is EITHER an element
+    /// (<c>value</c> set) OR a full pixel (<c>x</c> and <c>y</c> both present). Returns a human-readable
+    /// error, or <c>null</c> when the endpoint is well-formed. Mirrors <see cref="DragArgsError"/>.
+    /// </summary>
+    private static string? ClickArgsError(JsonObject args) {
+        if (args["at"] is not JsonObject at) {
+            return "click 'at' must be an object: an element { by?, value } or a pixel { x, y }.";
+        }
+        bool hasElement = !string.IsNullOrEmpty(Str(at, "value"));
+        bool hasX = at["x"] is JsonValue vx && vx.TryGetValue(out int _);
+        bool hasY = at["y"] is JsonValue vy && vy.TryGetValue(out int _);
+        if (!hasElement && !(hasX && hasY)) {
+            return "click 'at' needs an element 'value' or both 'x' and 'y' pixel coordinates.";
         }
         return null;
     }
@@ -531,6 +528,8 @@ public static class AgentServer {
             File = Str(args, "file")!,
         },
         "drag" => BuildDragCommand(args),
+        "click" => BuildClickCommand(args),
+        "displays" => new DisplaysCommand(),
         _ => new InvokeCommand { // invoke
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),
@@ -563,6 +562,24 @@ public static class AgentServer {
             ToX = Int(to, "x"),
             ToY = Int(to, "y"),
             PathSpec = BuildPathSpec(args["path"] as JsonArray),
+        };
+    }
+
+    /// <summary>Maps the click tool's nested <c>at</c> endpoint and button/count onto a <see cref="ClickCommand"/>.</summary>
+    private static ClickCommand BuildClickCommand(JsonObject args) {
+        JsonObject at = args["at"] as JsonObject ?? [];
+        return new ClickCommand {
+            Window = Str(args, "window")!,
+            Handle = Long(args, "handle"),
+            Process = Str(args, "process")!,
+            ClassName = Str(args, "className")!,
+            Foreground = Bool(args, "foreground"),
+            By = Str(at, "by") ?? "name",
+            Value = Str(at, "value")!,
+            X = Int(at, "x"),
+            Y = Int(at, "y"),
+            Button = Str(args, "button") ?? "left",
+            Count = Int(args, "count") is int c and > 0 ? c : 1,
         };
     }
 

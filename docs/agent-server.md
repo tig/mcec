@@ -13,8 +13,9 @@ AI agents and scripts running on a Windows PC. It gives an agent three things:
 - **A front door** — query/find windows and UI elements, wait for conditions, and
   drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
 
-The agent surface is a set of new commands — `capture`, `query`, `find`, `wait-for`,
-and `invoke` — that return **structured JSON** (a `CommandResult`) instead of free text.
+The agent surface is a set of new commands — `capture`, `query`, `displays`, `find`,
+`wait-for`, `invoke`, `drag`, and `click` — that return **structured JSON** (a
+`CommandResult`) instead of free text.
 Those same commands are exposed as tools over MCP/HTTP so an agent can call them
 directly.
 
@@ -89,10 +90,12 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 |------------|-----------------------------------------------------------------------------------|----------|
 | `capture`  | Screenshot a window (`PrintWindow` + `PW_RENDERFULLCONTENT`, captures WinUI/WPF surfaces) or a screen region, returned as base64 PNG. Blank/black frames are detected and flagged (see [Observation hardening](#observation-hardening--known-limitations)). | window target, or region `x`/`y`/`width`/`height`; optional `file` |
 | `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6), `maxNodes` (default 1000) |
+| `displays` | Report **display geometry** — every monitor's pixel `bounds`, `workingArea`, `primary` flag, and `dpi`/`scale`, plus the union `virtualBounds`. Lets an agent interpret the absolute-pixel bounds `query`/`find` return and place pixel clicks/drags without measuring the screen itself. | *(none)* |
 | `find`     | Find a **UI Automation element** by name / automation id / class.                 | window target, `by` (`name`\|`automationid`\|`classname`), `value`, `timeout` |
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
 | `invoke`   | Drive a UI Automation element pattern (incl. select for SelectionItem) — far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`\|`expand`\|`collapse`\|`select`), `text` |
 | `drag`     | Press → move along a path → release, dispatched **atomically** (nothing interleaves). Each endpoint is a UI Automation element (dragged from/to its centre) or an absolute screen pixel; add `path` waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee-select, drag-reorder. | window target (needed when an endpoint is an element); `from`/`to` each `{ by, value }` or `{ x, y }`; optional `path` `[{ x, y }, …]` |
+| `click`    | Click at a point — a UI Automation element (clicked at its centre) or an absolute screen pixel — with move+click dispatched **atomically**. For element types `invoke` can't drive, or when you must target a pixel. Prefer `invoke` for ordinary buttons/menus. | window target (needed when `at` is an element); `at` = `{ by, value }` or `{ x, y }`; `button` (`left`\|`right`\|`middle`, default `left`); `count` (`1`\|`2`, default `1`) |
 | `record`   | Record a window or region to an **animated GIF** over time (start/stop or a bounded one-shot). | window target, or region `x`/`y`/`width`/`height`; `action` (`start`\|`stop`\|`oneshot`), `fps`, `durationMs`, `maxWidth`, `file` |
 
 All return a `CommandResult` JSON object via `Reply.WriteLine`:
@@ -362,10 +365,12 @@ When connected, the server advertises these tools:
 |----------------|----------------------------------------------------------------|
 | `capture`      | The `capture` command (window screenshot → base64 PNG).        |
 | `query`        | The `query` command (describe a window).                       |
+| `displays`     | The `displays` command (per-monitor bounds + DPI/scale, virtual bounds). |
 | `find`         | The `find` command (match a UI element, one-shot).             |
 | `wait-for`     | The `wait-for` command (poll for a UI element until a timeout). |
 | `invoke`       | The `invoke` command (run an existing MCEC command, incl. select for tabs etc). |
 | `drag`         | The `drag` command (atomic press → move-path → release, element or pixel endpoints). |
+| `click`        | The `click` command (atomic click at an element centre or pixel). |
 | `record`       | The `record` command (window/region → animated GIF over time). |
 | `send_command` | Generic raw-command passthrough — send any MCEC command line.  |
 
@@ -392,7 +397,7 @@ is not a general-purpose web API and is not exposed off-box by default.
 
 ## Summary
 
-- New, opt-in agent surface: `capture`, `query`, `find`, `wait-for`, `invoke`, `drag`, `record`.
+- New, opt-in agent surface: `capture`, `query`, `displays`, `find`, `wait-for`, `invoke`, `drag`, `click`, `record`.
 - Structured JSON results; same commands exposed as MCP/HTTP tools.
 - **Three independent off-by-default gates:** `AgentCommandsEnabled`, per-command
   `Enabled`, and `McpServerEnabled` (localhost-bound).

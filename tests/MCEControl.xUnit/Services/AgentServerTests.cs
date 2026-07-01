@@ -35,6 +35,26 @@ public class AgentServerTests {
     }
 
     [Fact]
+    public void Instructions_LoadsFromEmbeddedResource_CollapsedToParagraphs() {
+        // The connect-time guidance is the single source of truth in src/Agent/AgentInstructions.md,
+        // embedded into the exe. This proves it loads (a missing/misnamed resource throws) and is
+        // collapsed to one line per blank-line-separated paragraph (the historical format).
+        string s = AgentServer.Instructions;
+
+        Assert.False(string.IsNullOrWhiteSpace(s));
+        Assert.Contains("observe -> target -> act", s);   // the loop line
+        Assert.Contains("COMPOSE:", s);                    // a mid section survived
+        Assert.Contains("audit-logged on the host.", s);   // the last section survived
+        Assert.DoesNotContain("\n\n", s);                  // paragraphs collapsed, no blank lines
+    }
+
+    [Fact]
+    public void Dispatch_Initialize_IncludesTheInstructions() {
+        JsonObject result = AgentServer.Dispatch(Request(1, "initialize"))!["result"]!.AsObject();
+        Assert.Equal(AgentServer.Instructions, result["instructions"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void Dispatch_ToolsList_IncludesAllAgentTools() {
         JsonObject resp = AgentServer.Dispatch(Request(2, "tools/list"))!;
 
@@ -50,12 +70,94 @@ public class AgentServerTests {
 
         Assert.Contains("capture", names);
         Assert.Contains("query", names);
+        Assert.Contains("displays", names);
         Assert.Contains("find", names);
         Assert.Contains("wait-for", names);
         Assert.Contains("invoke", names);
         Assert.Contains("record", names);
         Assert.Contains("drag", names);
+        Assert.Contains("click", names);
         Assert.Contains("send_command", names);
+    }
+
+    [Fact]
+    public void Dispatch_ToolsList_ClickTool_DeclaresAtEndpoint() {
+        JsonObject resp = AgentServer.Dispatch(Request(2, "tools/list"))!;
+        JsonArray tools = resp["result"]!.AsObject()["tools"]!.AsArray();
+
+        JsonObject? click = null;
+        foreach (JsonNode? tool in tools) {
+            if (tool?["name"]?.GetValue<string>() == "click") {
+                click = tool.AsObject();
+                break;
+            }
+        }
+
+        Assert.NotNull(click);
+        JsonObject schema = click!["inputSchema"]!.AsObject();
+        JsonObject props = schema["properties"]!.AsObject();
+        Assert.True(props.ContainsKey("at"));
+        Assert.True(props.ContainsKey("button"));
+        Assert.True(props.ContainsKey("count"));
+
+        List<string> required = [];
+        foreach (JsonNode? r in schema["required"]!.AsArray()) {
+            required.Add(r!.GetValue<string>());
+        }
+        Assert.Contains("at", required);
+    }
+
+    [Fact]
+    public void Dispatch_Click_IncompletePixelEndpoint_ReportsBadArguments() {
+        // Regression mirror of the drag guard: an 'at' with x but no y (or neither value nor coords) must
+        // be rejected, not silently turned into (x, 0) and clicked — this tool generates real mouse input.
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        try {
+            JsonObject prms = new() {
+                ["name"] = "click",
+                ["arguments"] = new JsonObject {
+                    ["at"] = new JsonObject { ["x"] = 300 }, // missing y
+                },
+            };
+
+            JsonObject resp = AgentServer.Dispatch(Request(8, "tools/call", prms))!;
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
+
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            Assert.Equal("bad-arguments", envelope["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_Click_CompleteEndpoint_PassesValidation() {
+        // A well-formed click (element endpoint) must get PAST argument validation. With no Invoker wired
+        // in the test host it stops at the per-command enable gate — not bad-arguments — which proves
+        // validation accepted the endpoint (and never actuates real input).
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = null;
+        try {
+            JsonObject prms = new() {
+                ["name"] = "click",
+                ["arguments"] = new JsonObject {
+                    ["window"] = "Whatever",
+                    ["at"] = new JsonObject { ["by"] = "name", ["value"] = "OK" },
+                },
+            };
+
+            JsonObject resp = AgentServer.Dispatch(Request(9, "tools/call", prms))!;
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
+
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            Assert.NotEqual("bad-arguments", envelope["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
     }
 
     [Fact]

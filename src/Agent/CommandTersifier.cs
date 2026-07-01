@@ -24,6 +24,8 @@ public static class CommandTersifier {
             "find" or "wait-for" => $"{tool} {Selector(args)}",
             "invoke" => $"invoke {Str(args, "action") ?? "invoke"} \"{Str(args, "value") ?? ""}\"",
             "drag" => $"drag {Endpoint(args, "from")} → {Endpoint(args, "to")}",
+            "click" => $"click {Endpoint(args, "at")}",
+            "displays" => "displays",
             _ => tool,
         };
         if (outcome == CommandOutcome.Pending) {
