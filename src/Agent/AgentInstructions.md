@@ -43,9 +43,11 @@ bounds. To CLICK a point `invoke` can't reach — a custom-drawn cell, a canvas/
 pixel — use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
 absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and `count`
 (2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items
-— it doesn't depend on the control being on-screen and unobscured. `send_command` sends any other raw MCEC
-command (keystrokes, single mouse actions, launch); the raw `mouse:drag,x1,y1,x2,y2[,...]` is the same
-atomic drag in pixels and `mouse:mtp,x,y` moves the pointer to an absolute screen pixel.
+— it doesn't depend on the control being on-screen and unobscured. System file dialogs (Open, Save Print
+Output As) often have no UIA-settable filename — use `clipboard { action:set, text:… }`, focus the filename
+field, then `send_command` Ctrl+V and Enter. `send_command` sends any other raw MCEC command (keystrokes,
+single mouse actions, launch); the raw `mouse:drag,x1,y1,x2,y2[,...]` is the same atomic drag in pixels and
+`mouse:mtp,x,y` moves the pointer to an absolute screen pixel.
 
 4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.
 
@@ -58,10 +60,15 @@ stale-element, no-target, capture-blank, focus, elevation, foreground, internal)
 the failure.
 
 COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
-an app with `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
-Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
-`query`ing its bounds and passing them as the `record` region. Wait for a window by polling `query` until
-it appears. Reach for a raw `send_command` before giving up.
+an app with `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query
+{foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios.
+Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by
+`invoke` `select` (preferred) or `click` its centre. Record a **desktop region** with `record` so Start/search
+and system dialogs are visible. Customer 1 (WinPrint hero, issue #84): harness removes prior
+`winprintdemo.pdf` → disposable MCEC session (#138) → record region → Start Menu WinPrint → file tour →
+Print to PDF → open PDF — see `docs/winprint-hero-gif.md`. Run from winprint repo; installed MCEC
+(`winget install Kindel.mcec`); operator ensures WinPrint is installed. Wait for a window by polling `query`
+until it appears. Reach for a raw `send_command` before giving up.
 
 CONCURRENCY: observation (`query`/`capture`/`find`/`wait-for`/`record`) runs concurrently and never blocks
 another call — a long `wait-for` won't stall a `capture`, and `invoke` returns promptly even if it opens a
@@ -74,6 +81,7 @@ operator can see MCEC is driving. It is deliberately excluded from `query`/`find
 — you will never see or target it, and it is never a candidate window — but it DOES appear in
 full-screen/region `capture`s and `record`ings (not in window-targeted captures).
 
-SECURITY: the agent tools (capture/query/displays/find/invoke/record/drag/click) only work when the operator has set
-AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather than retrying.
+SECURITY: the agent tools (capture/query/displays/find/invoke/record/drag/click/clipboard) only work when the
+operator has set AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather
+than retrying.
 Every action is audit-logged on the host.

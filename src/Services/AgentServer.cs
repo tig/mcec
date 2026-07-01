@@ -238,6 +238,14 @@ public static class AgentServer {
             "Click at a point — an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
             clickProps, ["at"]));
 
+        JsonObject clipboardProps = new() {
+            ["action"] = PropSchema("string", "set | get"),
+            ["text"] = PropSchema("string", "Text to set (required for action=set)"),
+        };
+        tools.Add(Tool("clipboard",
+            "Read or write the system text clipboard. Use set before pasting a path into a system file dialog filename field (Ctrl+V).",
+            clipboardProps, ["action"]));
+
         JsonObject recordProps = WindowTargetProps();
         recordProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
         recordProps["y"] = PropSchema("integer", "Region top");
@@ -282,7 +290,7 @@ public static class AgentServer {
             return RunSendCommand(args);
         }
 
-        if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "drag" or "click") {
+        if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "drag" or "click" or "clipboard") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
@@ -545,6 +553,10 @@ public static class AgentServer {
         "drag" => BuildDragCommand(args),
         "click" => BuildClickCommand(args),
         "displays" => new DisplaysCommand(),
+        "clipboard" => new ClipboardCommand {
+            Action = Str(args, "action")!,
+            Text = Str(args, "text")!,
+        },
         _ => new InvokeCommand { // invoke
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),

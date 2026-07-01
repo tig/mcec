@@ -26,6 +26,7 @@ public static class CommandTersifier {
             "drag" => $"drag {Endpoint(args, "from")} → {Endpoint(args, "to")}",
             "click" => $"click {Endpoint(args, "at")}",
             "displays" => "displays",
+            "clipboard" => $"clipboard {Str(args, "action") ?? "?"}",
             _ => tool,
         };
         if (outcome == CommandOutcome.Pending) {
