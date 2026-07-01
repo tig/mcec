@@ -28,13 +28,16 @@ returns promptly with `modalPending:true` — the action completes when the dial
 `query`/`capture` the new window to read it, and `invoke` its buttons to dismiss it. `invoke` does NOT
 wait for a control — it fast-fails if the element isn't present yet — so `wait-for` (or `find` with a
 timeout) the control before acting; an `invoke` that returns `error.category:no-target` means the control
-hasn't appeared yet, so `wait-for` it rather than blindly retrying. `send_command` sends any raw MCEC
-command (keystrokes, mouse, launch). To DRAG — resize a window by its sizing border, move one by its
-title bar, or drag a slider/handle (there is no `invoke` for these) — `send_command` a press-move-release
-sequence: `mouse:mt,x,y` to the start point, then `mouse:lbd` (button down), then a STREAM of `mouse:mt,x,y`
-along the path, then `mouse:lbu` (button up); coords are absolute screen pixels and a short pause between
-moves keeps the target tracking. Re-`query` afterward — a moved/resized window's controls are at new
-bounds.
+hasn't appeared yet, so `wait-for` it rather than blindly retrying. To DRAG — resize a window by its
+sizing border, move one by its title bar, drag a slider/handle, marquee-select, or reorder (there is no
+`invoke` for these) — use the `drag` tool: give a `from` and a `to`, each either an element `{ by, value }`
+in the target window (dragged from/to its centre) or an absolute screen pixel `{ x, y }`, plus optional
+`path` waypoints for a curved or multi-stop drag. The whole press→move→release is dispatched ATOMICALLY, so
+prefer it over hand-rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands).
+Coords are absolute screen pixels — the same space `query`/`find` bounds report — so you can drag straight
+from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls are at new
+bounds. `send_command` sends any other raw MCEC command (keystrokes, single mouse actions, launch); the raw
+`mouse:drag,x1,y1,x2,y2[,...]` is the same atomic gesture in pixels.
 
 4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.
 
@@ -48,8 +51,8 @@ the failure.
 
 COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
 an app with `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query
-{foreground}` for its handle). Drag/resize/move by `send_command mouse:lbd` → a path of `mouse:mt` →
-`mouse:lbu`. Switch a tab/list item by `query`ing its bounds and clicking its centre. Record a window by
+{foreground}` for its handle). Drag/resize/move with the `drag` tool (`from`/`to`, optional `path`
+waypoints). Switch a tab/list item by `query`ing its bounds and clicking its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region. Wait for a window by polling `query` until
 it appears. Reach for a raw `send_command` before giving up.
 

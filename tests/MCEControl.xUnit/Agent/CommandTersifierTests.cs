@@ -66,6 +66,26 @@ public class CommandTersifierTests {
     }
 
     [Fact]
+    public void Drag_ElementToElement_ShowsQuotedValues() {
+        JsonObject args = new() {
+            ["from"] = new JsonObject { ["value"] = "Volume", ["by"] = "name" },
+            ["to"] = new JsonObject { ["value"] = "Track", ["by"] = "automationId" },
+        };
+        string s = CommandTersifier.ForAgentTool("drag", args, CommandOutcome.Ok);
+        Assert.Equal("drag \"Volume\" → automationId=\"Track\"", s);
+    }
+
+    [Fact]
+    public void Drag_PixelToPixel_ShowsCoordinates() {
+        JsonObject args = new() {
+            ["from"] = new JsonObject { ["x"] = 10, ["y"] = 20 },
+            ["to"] = new JsonObject { ["x"] = 300, ["y"] = 120 },
+        };
+        string s = CommandTersifier.ForAgentTool("drag", args, CommandOutcome.Ok);
+        Assert.Equal("drag 10,20 → 300,120", s);
+    }
+
+    [Fact]
     public void RawCommand_PrefixesSend_AndClipsLongCommands() {
         Assert.Equal("send winr", CommandTersifier.ForRawCommand("winr"));
         Assert.StartsWith("send ", CommandTersifier.ForRawCommand(new string('x', 80)));

@@ -2,6 +2,7 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -134,6 +135,18 @@ public static class AgentServer {
     private static JsonObject PropSchema(string type, string description) =>
         new() { ["type"] = type, ["description"] = description };
 
+    /// <summary>Schema for a drag endpoint: either an element ({ by, value }) or a pixel ({ x, y }).</summary>
+    private static JsonObject EndpointSchema(string description) => new() {
+        ["type"] = "object",
+        ["description"] = description,
+        ["properties"] = new JsonObject {
+            ["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)"),
+            ["value"] = PropSchema("string", "Element value to match (omit for a pixel endpoint)"),
+            ["x"] = PropSchema("integer", "Endpoint X in absolute screen pixels (omit for an element endpoint)"),
+            ["y"] = PropSchema("integer", "Endpoint Y in absolute screen pixels (omit for an element endpoint)"),
+        },
+    };
+
     private static JsonArray BuildToolsList() {
         JsonArray tools = [];
 
@@ -179,6 +192,24 @@ public static class AgentServer {
             "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus) — more reliable than coordinate clicks.",
             invokeProps, ["value"]));
 
+        JsonObject dragProps = WindowTargetProps();
+        dragProps["from"] = EndpointSchema("Drag start: an element ({ by, value }) in the target window, or a pixel ({ x, y }).");
+        dragProps["to"] = EndpointSchema("Drag end: an element ({ by, value }) in the target window, or a pixel ({ x, y }).");
+        dragProps["path"] = new JsonObject {
+            ["type"] = "array",
+            ["description"] = "Optional intermediate waypoints (absolute screen pixels) between from and to.",
+            ["items"] = new JsonObject {
+                ["type"] = "object",
+                ["properties"] = new JsonObject {
+                    ["x"] = PropSchema("integer", "Waypoint X (screen pixels)"),
+                    ["y"] = PropSchema("integer", "Waypoint Y (screen pixels)"),
+                },
+            },
+        };
+        tools.Add(Tool("drag",
+            "Press → move along a path → release, dispatched atomically (no interleaving). Endpoints are an element (by/value, dragged from/to its centre) or an absolute screen pixel; add path waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee select, drag-reorder. Give a window target when either endpoint is an element.",
+            dragProps, ["from", "to"]));
+
         JsonObject recordProps = WindowTargetProps();
         recordProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
         recordProps["y"] = PropSchema("integer", "Region top");
@@ -223,15 +254,41 @@ public static class AgentServer {
             return RunSendCommand(args);
         }
 
-        if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record") {
+        if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record" or "drag") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
+            }
+            // `drag` generates real mouse input from its from/to endpoints, and a missing pixel field would
+            // otherwise default to 0 and drag from a bogus coordinate. Reject an ill-formed endpoint up
+            // front rather than actuating it.
+            if (name == "drag" && DragArgsError(args) is string dragError) {
+                return ToolError(dragError, "bad-arguments");
             }
             return RunAgentCommand(name, args);
         }
 
         return ToolError($"Unknown tool: {name}", "unknown-tool");
+    }
+
+    /// <summary>
+    /// Validates the <c>drag</c> tool's <c>from</c>/<c>to</c> arguments: each must be an object that is
+    /// EITHER an element (<c>value</c> set) OR a full pixel (<c>x</c> and <c>y</c> both present). Returns
+    /// a human-readable error, or <c>null</c> when both endpoints are well-formed.
+    /// </summary>
+    private static string? DragArgsError(JsonObject args) {
+        foreach (string key in (string[])["from", "to"]) {
+            if (args[key] is not JsonObject endpoint) {
+                return $"drag '{key}' must be an object: an element {{ by?, value }} or a pixel {{ x, y }}.";
+            }
+            bool hasElement = !string.IsNullOrEmpty(Str(endpoint, "value"));
+            bool hasX = endpoint["x"] is JsonValue vx && vx.TryGetValue(out int _);
+            bool hasY = endpoint["y"] is JsonValue vy && vy.TryGetValue(out int _);
+            if (!hasElement && !(hasX && hasY)) {
+                return $"drag '{key}' needs an element 'value' or both 'x' and 'y' pixel coordinates.";
+            }
+        }
+        return null;
     }
 
     private static JsonObject RunAgentCommand(string name, JsonObject args) {
@@ -437,6 +494,7 @@ public static class AgentServer {
             MaxWidth = Int(args, "maxWidth"),
             File = Str(args, "file")!,
         },
+        "drag" => BuildDragCommand(args),
         _ => new InvokeCommand { // invoke
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),
@@ -449,6 +507,42 @@ public static class AgentServer {
             Text = Str(args, "text")!,
         },
     };
+
+    /// <summary>Maps the drag tool's nested <c>from</c>/<c>to</c>/<c>path</c> arguments onto a <see cref="DragCommand"/>.</summary>
+    private static DragCommand BuildDragCommand(JsonObject args) {
+        JsonObject from = args["from"] as JsonObject ?? [];
+        JsonObject to = args["to"] as JsonObject ?? [];
+        return new DragCommand {
+            Window = Str(args, "window")!,
+            Handle = Long(args, "handle"),
+            Process = Str(args, "process")!,
+            ClassName = Str(args, "className")!,
+            Foreground = Bool(args, "foreground"),
+            FromBy = Str(from, "by") ?? "name",
+            FromValue = Str(from, "value")!,
+            FromX = Int(from, "x"),
+            FromY = Int(from, "y"),
+            ToBy = Str(to, "by") ?? "name",
+            ToValue = Str(to, "value")!,
+            ToX = Int(to, "x"),
+            ToY = Int(to, "y"),
+            PathSpec = BuildPathSpec(args["path"] as JsonArray),
+        };
+    }
+
+    /// <summary>Flattens the drag tool's <c>path</c> array of <c>{ x, y }</c> points into DragCommand's <c>x,y;x,y</c> spec.</summary>
+    private static string BuildPathSpec(JsonArray? path) {
+        if (path is null || path.Count == 0) {
+            return string.Empty;
+        }
+        List<string> pairs = [];
+        foreach (JsonNode? node in path) {
+            if (node is JsonObject p) {
+                pairs.Add($"{Int(p, "x")},{Int(p, "y")}");
+            }
+        }
+        return string.Join(";", pairs);
+    }
 
     // -------------------------------------------------------------------------------------------
     // stdio transport
