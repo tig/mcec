@@ -123,7 +123,7 @@ public static class AgentServer {
         "element isn't present yet — so `wait-for` (or `find` with a timeout) the control before acting; " +
         "an `invoke` that returns `error.category:no-target` means the control hasn't appeared yet, so " +
         "`wait-for` it rather than blindly retrying. " +
-        "`send_command` sends any raw MCEC command (keystrokes, mouse, launch). To DRAG — resize a " +
+        "`send_command` sends any raw MCEC command (keystrokes, mouse, raw launch). To DRAG — resize a " +
         "window by its sizing border, move one by its title bar, or drag a slider/handle (there is no " +
         "`invoke` for these) — `send_command` a press-move-release sequence: `mouse:mt,x,y` to the start " +
         "point, then `mouse:lbd` (button down), then a STREAM of `mouse:mt,x,y` along the path, then " +
@@ -138,16 +138,16 @@ public static class AgentServer {
         "`stale-element` means re-`query`/`find` for a fresh handle. `error.detail` is human-readable and " +
         "`error.lastObservation`, when present, is the last good state before the failure.\n" +
         "COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. " +
-        "Launch an app with `send_command winr` then `chars:<path>` then `enter` (the new window is " +
-        "foreground: `query {foreground}` for its handle). Drag/resize/move by `send_command mouse:lbd` → a " +
-        "path of `mouse:mt` → `mouse:lbu`. Switch a tab/list item by `query`ing its bounds and clicking its " +
+        "Launch an app with the dedicated `launch` tool (path + optional arguments/workingDirectory; returns pid + window handle when the app appears). " +
+        "Fallback: `send_command winr` then `chars:<path>` then `enter`, then `query {foreground:true}` for its handle. " +
+        "Drag/resize/move by `send_command mouse:lbd` → a path of `mouse:mt` → `mouse:lbu`. Switch a tab/list item by `query`ing its bounds and clicking its " +
         "centre. Record a window by `query`ing its bounds and passing them as the `record` region. Wait for " +
         "a window by polling `query` until it appears. Reach for a raw `send_command` before giving up.\n" +
         "OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run " +
         "so the operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/" +
         "UIA targeting — you will never see or target it, and it is never a candidate window — but it DOES " +
         "appear in full-screen/region `capture`s and `record`ings (not in window-targeted captures).\n" +
-        "SECURITY: observation tools (capture/query/find/invoke/record) only work when the operator has set " +
+        "SECURITY: observation/actuation tools (capture/query/find/invoke/record/launch) only work when the operator has set " +
         "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
         "than retrying. Every action is audit-logged on the host.";
 
@@ -225,6 +225,16 @@ public static class AgentServer {
             "Record a window or region to an animated GIF over time (start/stop or a bounded one-shot). Use only to show CHANGE over time; for a single state check use capture.",
             recordProps, []));
 
+        JsonObject launchProps = new() {
+            ["path"] = PropSchema("string", "Path to executable, shell: protocol target (e.g. shell:AppsFolder\\...), or .lnk (required)"),
+            ["arguments"] = PropSchema("string", "Command line arguments to pass to the process"),
+            ["workingDirectory"] = PropSchema("string", "Initial working directory for the launched process"),
+            ["timeout"] = PropSchema("integer", "Milliseconds to wait for the app window to appear (default 5000)"),
+        };
+        tools.Add(Tool("launch",
+            "Launch an application directly as a gated agent action. Starts the process and returns its pid plus the primary window (handle + descriptor) when it appears within timeout. Preferred over send_command winr dance for reliability.",
+            launchProps, ["path"]));
+
         tools.Add(Tool("send_command",
             "Send any raw MCEC command string to the existing command core (e.g. actuation commands).",
             new JsonObject { ["command"] = PropSchema("string", "The MCEC command string to enqueue") },
@@ -255,7 +265,7 @@ public static class AgentServer {
             return RunSendCommand(args);
         }
 
-        if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record") {
+        if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record" or "launch") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
@@ -468,6 +478,12 @@ public static class AgentServer {
             DurationMs = Int(args, "durationMs"),
             MaxWidth = Int(args, "maxWidth"),
             File = Str(args, "file")!,
+        },
+        "launch" => new LaunchCommand {
+            Path = Str(args, "path")!,
+            Arguments = Str(args, "arguments")!,
+            WorkingDirectory = Str(args, "workingDirectory")!,
+            Timeout = Int(args, "timeout"),
         },
         _ => new InvokeCommand { // invoke
             Window = Str(args, "window")!,

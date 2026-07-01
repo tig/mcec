@@ -33,15 +33,15 @@ in sync. In short:
 >    setfocus) over coordinate clicks. `invoke` **fast-fails** if the control isn't present (it does not
 >    wait), so `find`/`wait-for` the control first; an `invoke` that returns `no-target` means it hasn't
 >    appeared yet — `wait-for` it rather than retrying blindly. `send_command` sends any raw MCEC command
->    (keystrokes, mouse, launch). To **drag** — resize a window by its sizing border, move one by its
+>    (keystrokes, mouse, raw launch). To **drag** — resize a window by its sizing border, move one by its
 >    title bar, or drag a slider/handle (no `invoke` for these) — send a press-move-release sequence:
 >    `mouse:mt,x,y` to the start, `mouse:lbd`, a stream of `mouse:mt,x,y` along the path, then `mouse:lbu`
 >    (absolute screen pixels; pause briefly between moves). Re-`query` after — bounds have moved.
 > 4. **Verify** with another `query`/`capture`.
 >
 > **Compose creatively.** Many tasks have no single dedicated tool — build them from primitives. Launch an
-> app with `send_command winr` → `chars:<path>` → `enter` (then `query {foreground}` for its handle);
-> drag/resize/move with `mouse:lbd` → a path of `mouse:mt` → `mouse:lbu`; switch a tab by `query`ing its
+> app with the dedicated `launch` tool (`path` required + optional `arguments`/`workingDirectory`; returns pid + window handle when it appears). Fallback to `send_command winr` → `chars:<path>` → `enter` (then `query {foreground}` for its handle).
+> Drag/resize/move with `mouse:lbd` → a path of `mouse:mt` → `mouse:lbu`; switch a tab by `query`ing its
 > bounds and clicking the centre; record a window by passing its `query`'d bounds as the `record` region;
 > wait for a window by polling `query`. A capable agent uses the *full* command set — reach for a raw
 > `send_command` before concluding something can't be done.
