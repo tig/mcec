@@ -89,13 +89,17 @@ public class ClickCommand : Command {
             return false;
         }
 
-        int count = Count < 1 ? 1 : Count;
-        MouseCommand.PerformClick(point, Button, count);
+        // Clamp to the {1,2} the contract exposes and normalize the button, then dispatch and echo the
+        // SAME values — so the result faithfully reports the gesture performed (e.g. count 3 is not run as
+        // a double-click while claiming "3", and button "R" is reported as "right", not the raw input).
+        int count = Count >= 2 ? 2 : 1;
+        string button = MouseCommand.NormalizeButton(Button);
+        MouseCommand.PerformClick(point, button, count);
 
         JsonObject data = new() {
             ["clicked"] = true,
             ["at"] = new JsonArray { point.X, point.Y },
-            ["button"] = string.IsNullOrEmpty(Button) ? "left" : Button,
+            ["button"] = button,
             ["count"] = count,
         };
         Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
