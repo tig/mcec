@@ -35,6 +35,26 @@ public class AgentServerTests {
     }
 
     [Fact]
+    public void Instructions_LoadsFromEmbeddedResource_CollapsedToParagraphs() {
+        // The connect-time guidance is the single source of truth in src/Agent/AgentInstructions.md,
+        // embedded into the exe. This proves it loads (a missing/misnamed resource throws) and is
+        // collapsed to one line per blank-line-separated paragraph (the historical format).
+        string s = AgentServer.Instructions;
+
+        Assert.False(string.IsNullOrWhiteSpace(s));
+        Assert.Contains("observe -> target -> act", s);   // the loop line
+        Assert.Contains("COMPOSE:", s);                    // a mid section survived
+        Assert.Contains("audit-logged on the host.", s);   // the last section survived
+        Assert.DoesNotContain("\n\n", s);                  // paragraphs collapsed, no blank lines
+    }
+
+    [Fact]
+    public void Dispatch_Initialize_IncludesTheInstructions() {
+        JsonObject result = AgentServer.Dispatch(Request(1, "initialize"))!["result"]!.AsObject();
+        Assert.Equal(AgentServer.Instructions, result["instructions"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void Dispatch_ToolsList_IncludesAllAgentTools() {
         JsonObject resp = AgentServer.Dispatch(Request(2, "tools/list"))!;
 
