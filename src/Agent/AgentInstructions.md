@@ -18,7 +18,10 @@ frame (minimized, cloaked, occluded, or a locked session) — restore/foreground
 instead of trusting the image; a `capture-fallback` warning means PrintWindow was refused and the picture
 may be wrong. If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap
 — raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are
-non-fatal; errorCategory tells you how to recover.
+non-fatal; errorCategory tells you how to recover. The bounds `query`/`find` report are ABSOLUTE screen
+pixels; the `displays` tool reports every monitor's pixel bounds and DPI/scale (and the union
+virtualBounds) so you can interpret those bounds across multiple/scaled monitors and place pixel clicks or
+drags without measuring the screen yourself.
 
 3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|expand|
 collapse) over coordinate clicks — it is far more reliable. To click a menu item, first `invoke` its
@@ -36,8 +39,13 @@ in the target window (dragged from/to its centre) or an absolute screen pixel `{
 prefer it over hand-rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands).
 Coords are absolute screen pixels — the same space `query`/`find` bounds report — so you can drag straight
 from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls are at new
-bounds. `send_command` sends any other raw MCEC command (keystrokes, single mouse actions, launch); the raw
-`mouse:drag,x1,y1,x2,y2[,...]` is the same atomic gesture in pixels.
+bounds. To CLICK a point `invoke` can't reach — a custom-drawn cell, a canvas/map coordinate, or a bare
+pixel — use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
+absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and `count`
+(2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items
+— it doesn't depend on the control being on-screen and unobscured. `send_command` sends any other raw MCEC
+command (keystrokes, single mouse actions, launch); the raw `mouse:drag,x1,y1,x2,y2[,...]` is the same
+atomic drag in pixels and `mouse:mtp,x,y` moves the pointer to an absolute screen pixel.
 
 4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.
 
@@ -52,7 +60,8 @@ the failure.
 COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
 an app with `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query
 {foreground}` for its handle). Drag/resize/move with the `drag` tool (`from`/`to`, optional `path`
-waypoints). Switch a tab/list item by `query`ing its bounds and clicking its centre. Record a window by
+waypoints). Switch a tab/list item invoke can't reach by `click`ing it (its `at` element centre, or its
+bounds' centre pixel). Record a window by
 `query`ing its bounds and passing them as the `record` region. Wait for a window by polling `query` until
 it appears. Reach for a raw `send_command` before giving up.
 
@@ -61,6 +70,6 @@ operator can see MCEC is driving. It is deliberately excluded from `query`/`find
 — you will never see or target it, and it is never a candidate window — but it DOES appear in
 full-screen/region `capture`s and `record`ings (not in window-targeted captures).
 
-SECURITY: observation tools (capture/query/find/invoke/record) only work when the operator has set
+SECURITY: the agent tools (capture/query/displays/find/invoke/record/drag/click) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather than retrying.
 Every action is audit-logged on the host.

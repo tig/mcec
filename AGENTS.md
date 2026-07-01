@@ -19,7 +19,8 @@ time** and returned in the MCP `initialize` response (`result.instructions`) via
 which loads the embedded file and collapses each blank-line-separated paragraph to one line.
 
 **There is exactly one copy — edit that file.** It is the observe → target → act → observe playbook
-(targeting; observation with `query`/`capture`/`record`; `invoke` and drag/`send_command`; the result
+(targeting; observation with `query`/`capture`/`record`/`displays`; `invoke`, `drag`, `click` and
+`send_command`; the result
 envelope; creative composition of primitives; the on-screen overlay; and the security gates). Nothing here
 to keep in sync.
 
