@@ -429,6 +429,13 @@ The address and port come from `McpBindAddress` (default `127.0.0.1`) and `McpHt
 (default `5151`). This is a deliberately minimal floor for local scripts and agents; it
 is not a general-purpose web API and is not exposed off-box by default.
 
+The floor is hardened against resource exhaustion ([#151]): a request body larger than
+**1 MB** is refused with `413` (the cap is enforced by a bounded read, so chunked bodies
+without a `Content-Length` can't bypass it), and at most **16** requests are served
+concurrently — past that the server answers `503` rather than queueing.
+
+[#151]: https://github.com/tig/mcec/issues/151
+
 ---
 
 ## Summary

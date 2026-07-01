@@ -28,6 +28,31 @@ namespace MCEControl;
 public static class AgentServer {
     public const string ProtocolVersion = "2025-06-18";
 
+    /// <summary>
+    /// Largest HTTP request body the /mcp endpoint accepts, in bytes (#151). Real JSON-RPC requests
+    /// are a few KB; 1 MB leaves generous headroom while making a memory-exhaustion POST impossible
+    /// (the old unbounded read buffered the whole body, then JsonNode.Parse built a second copy).
+    /// Oversized requests are refused with HTTP 413.
+    /// </summary>
+    public const long MaxHttpBodyBytes = 1024 * 1024;
+
+    /// <summary>
+    /// Upper bound on HTTP requests served concurrently (#151). Each accepted request runs on its own
+    /// worker task (#113); without a bound, a request flood spawns unbounded tasks each holding a
+    /// buffered body. Legitimate agent traffic is a handful of in-flight calls; past this cap the
+    /// server answers 503 instead of queueing.
+    /// </summary>
+    public const int MaxConcurrentHttpRequests = 16;
+
+    private static readonly SemaphoreSlim HttpWorkerSlots = new(MaxConcurrentHttpRequests, MaxConcurrentHttpRequests);
+
+    /// <summary>
+    /// Test seam: when set, <see cref="HandleHttp"/> dispatches through this instead of
+    /// <see cref="Dispatch"/> (mirrors the dispatch delegate <see cref="RunStdioLoop"/> takes).
+    /// Production leaves it null.
+    /// </summary>
+    internal static Func<JsonObject, JsonObject?>? HttpDispatchOverride;
+
     private static readonly object HttpLock = new();
     private static HttpListener? _listener;
     private static Thread? _httpThread;
@@ -848,8 +873,27 @@ public static class AgentServer {
             }
             // Serve each request on a worker so a slow call (a long wait-for, a deep query) doesn't block
             // accepting or serving other requests (#113). Each context owns its own response stream, so no
-            // cross-request correlation is needed.
-            _ = Task.Run(() => HandleHttp(context));
+            // cross-request correlation is needed. The fan-out is bounded (#151): past
+            // MaxConcurrentHttpRequests in-flight requests the server answers 503 instead of spawning
+            // unbounded tasks. (WriteHttp here is safe on the accept thread: http.sys buffers the small
+            // response in the kernel, so a slow client can't stall the accept loop.)
+            if (!HttpWorkerSlots.Wait(0)) {
+                try {
+                    WriteHttp(context, 503, new JsonObject { ["error"] = $"Server busy: more than {MaxConcurrentHttpRequests} requests in flight" });
+                }
+                catch (Exception e) {
+                    Logger.Instance.Log4.Error($"AgentServer: failed to write HTTP 503: {e.Message}");
+                }
+                continue;
+            }
+            _ = Task.Run(() => {
+                try {
+                    HandleHttp(context);
+                }
+                finally {
+                    HttpWorkerSlots.Release();
+                }
+            });
         }
     }
 
@@ -859,15 +903,23 @@ public static class AgentServer {
                 WriteHttp(context, 405, new JsonObject { ["error"] = "Only POST /mcp is supported" });
                 return;
             }
-            string body;
-            using (StreamReader sr = new(context.Request.InputStream, context.Request.ContentEncoding)) {
-                body = sr.ReadToEnd();
+            // #151: refuse an oversized body from the header alone — never buffer it. ContentLength64
+            // is -1 for chunked transfer, which passes here and is caught by the bounded read below.
+            if (context.Request.ContentLength64 > MaxHttpBodyBytes) {
+                WriteHttp(context, 413, new JsonObject { ["error"] = $"Request body exceeds {MaxHttpBodyBytes} bytes" });
+                return;
+            }
+            // Bounded read, so a chunked (or lying) client without an honest Content-Length still
+            // cannot make the server buffer more than the cap.
+            if (!TryReadBoundedBody(context.Request.InputStream, context.Request.ContentEncoding, out string body)) {
+                WriteHttp(context, 413, new JsonObject { ["error"] = $"Request body exceeds {MaxHttpBodyBytes} bytes" });
+                return;
             }
             JsonObject response;
             try {
                 JsonNode? node = JsonNode.Parse(body);
                 response = node is JsonObject req
-                    ? Dispatch(req) ?? new JsonObject { ["jsonrpc"] = "2.0" }
+                    ? (HttpDispatchOverride ?? Dispatch)(req) ?? new JsonObject { ["jsonrpc"] = "2.0" }
                     : Error(null, -32600, "Invalid Request")!;
             }
             catch (JsonException e) {
@@ -884,6 +936,27 @@ public static class AgentServer {
                 Logger.Instance.Log4.Error($"AgentServer: failed to write HTTP error: {inner.Message}");
             }
         }
+    }
+
+    /// <summary>
+    /// Reads <paramref name="input"/> to its end into <paramref name="body"/>, refusing to buffer more
+    /// than <see cref="MaxHttpBodyBytes"/> (#151). Returns false — with <paramref name="body"/> empty
+    /// and the stream abandoned — the moment the cap is crossed, so a chunked or lying client cannot
+    /// bypass the Content-Length check and exhaust memory.
+    /// </summary>
+    internal static bool TryReadBoundedBody(Stream input, Encoding encoding, out string body) {
+        using MemoryStream buffer = new();
+        byte[] chunk = new byte[64 * 1024];
+        int read;
+        while ((read = input.Read(chunk, 0, chunk.Length)) > 0) {
+            if (buffer.Length + read > MaxHttpBodyBytes) {
+                body = "";
+                return false;
+            }
+            buffer.Write(chunk, 0, read);
+        }
+        body = encoding.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
+        return true;
     }
 
     private static void WriteHttp(HttpListenerContext context, int status, JsonObject payload) {
