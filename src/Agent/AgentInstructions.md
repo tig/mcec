@@ -58,7 +58,7 @@ stale-element, no-target, capture-blank, focus, elevation, foreground, internal)
 the failure.
 
 COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
-an app with the `launch` tool (preferred; returns handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
+an app with `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region. Wait for a window by polling `query` until
 it appears. Reach for a raw `send_command` before giving up.
