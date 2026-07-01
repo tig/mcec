@@ -391,6 +391,70 @@ public class AgentServerTests {
             $"invoke find timeout ({UiaService.InvokeFindTimeoutMs}ms) must be < modal grace ({AgentServer.InvokeModalGraceMs}ms)");
     }
 
+    // --- #74: MCP tools honor the per-command Enabled gate in mcec.commands (a SECOND gate, independent
+    // of AgentCommandsEnabled). Enabling the observation surface must not enable every individual command.
+
+    private static string ToolErrorCode(JsonObject dispatchResponse) {
+        JsonObject envelope = JsonNode.Parse(FirstTextBlock(dispatchResponse["result"]!.AsObject()))!.AsObject();
+        return envelope["error"]?["code"]?.GetValue<string>() ?? "";
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_WhenCommandDisabledInTable_IsRefused_EvenWithAgentCommandsEnabled() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = new CommandInvoker { ["capture"] = new CaptureCommand { Cmd = "capture", Enabled = false } };
+        try {
+            JsonObject resp = AgentServer.Dispatch(Request(20, "tools/call",
+                new JsonObject { ["name"] = "capture", ["arguments"] = new JsonObject() }))!;
+
+            // AgentCommandsEnabled is on, but the per-command gate is off — the call must be refused.
+            Assert.Equal("command-disabled", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_WhenCommandEnabledInTable_PassesThePerCommandGate() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = new CommandInvoker { ["capture"] = new CaptureCommand { Cmd = "capture", Enabled = true } };
+        try {
+            JsonObject resp = AgentServer.Dispatch(Request(21, "tools/call",
+                new JsonObject { ["name"] = "capture", ["arguments"] = new JsonObject() }))!;
+
+            // With the command enabled the tool runs; with no target it fails no-target — the point is it
+            // gets PAST the gate, so the error is not the gate refusal.
+            Assert.NotEqual("command-disabled", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_SendCommand_IsNotGatedByAgentCommandsEnabled() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = null; // AgentCommandsEnabled = false
+        try {
+            // send_command is a raw pass-through routed to RunSendCommand BEFORE the AgentCommandsEnabled
+            // check (unlike the agent tools). An empty command therefore returns bad-arguments — proving it
+            // reached RunSendCommand — not agent-commands-disabled. (The raw command it runs is still gated
+            // by that command's own Enabled flag in the table; this only asserts the agent gate is skipped.)
+            JsonObject resp = AgentServer.Dispatch(Request(22, "tools/call",
+                new JsonObject { ["name"] = "send_command", ["arguments"] = new JsonObject { ["command"] = "" } }))!;
+
+            Assert.Equal("bad-arguments", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
     private static string FirstTextBlock(JsonObject toolResult) {
         foreach (JsonNode? block in toolResult["content"]!.AsArray()) {
             if (block?["type"]?.GetValue<string>() == "text") {
