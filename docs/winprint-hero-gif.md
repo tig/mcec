@@ -59,6 +59,7 @@ operator/harness has provisioned it (agent commands enabled in the session copy 
 | Save PDF | `clipboard { action:"set", text:"…winprintdemo.pdf" }` → Ctrl+V → Enter |
 | Open PDF | `send_command winr` → `send_command chars:<pdf path>` (backslashes doubled) → Enter |
 | Stop | `record { action:"stop", file:"docs/hero-gui-win.gif" }` |
+| Close PDF | `send_command alt_f4` — release the file lock so the next run's harness `Remove-Item` succeeds |
 
 **Not in the agent recipe:** deleting the old PDF (harness `Remove-Item` before connect), installing
 MCEC/WinPrint, copying the session dir, evidence zip — see [issue #138](https://github.com/tig/mcec/issues/138).

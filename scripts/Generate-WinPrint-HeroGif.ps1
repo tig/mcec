@@ -161,6 +161,7 @@ Set-Content -Encoding UTF8 -Path $ctrlCommands -Value @'
   <sendinput Cmd="desktop" Vk="VK_D" Win="true" Enabled="true" />
   <sendinput Cmd="winsearch" Vk="VK_S" Win="true" Enabled="true" />
   <sendinput Cmd="winr" Vk="r" Win="true" Enabled="true" />
+  <sendinput Cmd="alt_f4" Vk="VK_F4" Alt="true" Enabled="true" />
 </Commands>
 </MCEController>
 '@
@@ -172,6 +173,26 @@ $passed = $false
 function Step([string]$name, [string]$status, [string]$detail) {
     Add-McecStep -Session $session $name $status $detail
     if ($status -eq 'pass') { $script:session.LastObservation = $detail }
+}
+
+function Stop-PdfViewerHoldingFile {
+    param([string]$Path)
+    $leaf = [System.IO.Path]::GetFileName($Path)
+    foreach ($name in @('Acrobat', 'AcroRd32', 'AcrobatDC', 'SumatraPDF', 'FoxitReader', 'PDFXEdit', 'msedge', 'MicrosoftEdge')) {
+        foreach ($proc in Get-Process -Name $name -ErrorAction SilentlyContinue) {
+            $title = $proc.MainWindowTitle
+            if ($name -match 'edge' -and $title -and $title -notmatch 'winprintdemo' -and $title -notmatch [regex]::Escape($leaf)) {
+                continue
+            }
+            try {
+                if ($proc.MainWindowHandle -ne [IntPtr]::Zero) {
+                    $proc.CloseMainWindow() | Out-Null
+                    Start-Sleep -Milliseconds 400
+                }
+                if (-not $proc.HasExited) { $proc.Kill($true) }
+            } catch {}
+        }
+    }
 }
 
 try {
@@ -289,6 +310,11 @@ try {
 
     Invoke-McecTool 'record' @{ action = 'stop'; file = $outGif } -Session $session | Out-Null
     Step 'record-stop' 'pass' "wrote $outGif"
+
+    # Dismiss the PDF viewer so the next run's harness-only Remove-Item winprintdemo.pdf can succeed.
+    Send-McecCommand 'alt_f4' $session; Start-Sleep -Milliseconds 700
+    Step 'close-pdf' 'pass' 'PDF viewer dismissed'
+
     $passed = $true
 }
 catch {
@@ -302,6 +328,7 @@ catch {
     throw
 }
 finally {
+    Stop-PdfViewerHoldingFile -Path $PdfPath
     if ($ctrl -and -not $ctrl.HasExited) { try { $ctrl.Kill($true) } catch {} }
     foreach ($p in Get-Process -Name winprint -ErrorAction SilentlyContinue) {
         try { $p.Kill($true) } catch {}
