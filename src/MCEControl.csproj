@@ -54,6 +54,9 @@
     <ItemGroup>
         <!-- Only include non-standard resx files explicitly -->
         <EmbeddedResource Include="Resources\MCEControl.xslt" />
+        <!-- Single source of truth for the agent connect-time guidance (AgentServer.Instructions). -->
+        <None Remove="Agent\AgentInstructions.md" />
+        <EmbeddedResource Include="Agent\AgentInstructions.md" LogicalName="MCEControl.AgentInstructions.md" />
     </ItemGroup>
 
     <ItemGroup>
