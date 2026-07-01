@@ -347,6 +347,7 @@ public partial class MainWindow : Form {
         if (Server != null) {
             Logger.Instance.Log4.Info("Server: Stopping...");
             // remove our notification handler
+            Server.Notifications -= serverSocketCallbackHandler;
             Server.Stop();
             Server = null;
             sendAwakeMenuItem.Enabled = false;
@@ -383,6 +384,7 @@ public partial class MainWindow : Form {
         if (SerialServer != null) {
             Logger.Instance.Log4.Info("Serial: Stopping...");
             // remove our notification handler
+            SerialServer.Notifications -= HandleSerialServerNotifications;
             SerialServer.Stop();
             SerialServer = null;
         }
@@ -407,6 +409,7 @@ public partial class MainWindow : Form {
         if (Client != null) {
             cmdWindow!.Visible = false;
             Logger.Instance.Log4.Info("Client: Stopping...");
+            Client.Notifications -= clientSocketNotificationHandler;
             Client.Stop();
             Client = null;
         }
