@@ -23,6 +23,7 @@ public sealed class UiaElementInfo {
     public bool IsEnabled { get; set; }
     public bool IsOffscreen { get; set; }
     public string? Value { get; set; }
+    public bool? IsSelected { get; set; }
     public List<UiaElementInfo> Children { get; } = [];
 
     /// <summary>Serializes this node (and its children) to a compact, camelCase JSON object.</summary>
@@ -47,6 +48,9 @@ public sealed class UiaElementInfo {
         }
         if (Value is not null) {
             obj["value"] = Value;
+        }
+        if (IsSelected is not null) {
+            obj["isSelected"] = IsSelected;
         }
 
         JsonArray children = [];

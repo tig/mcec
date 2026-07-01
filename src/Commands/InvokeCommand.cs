@@ -8,7 +8,7 @@ namespace MCEControl;
 
 /// <summary>
 /// Agent actuation command: resolves a target window, finds a single UIA element, then runs a UIA
-/// pattern action against it (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>). Gated by
+/// pattern action against it (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>/<c>select</c>). Gated by
 /// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited. Disabled by default (security).
 /// </summary>
 public class InvokeCommand : Command {
