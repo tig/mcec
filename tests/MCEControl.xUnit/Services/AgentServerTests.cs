@@ -71,20 +71,28 @@ public class AgentServerTests {
     }
 
     [Fact]
-    public void RunStdioLoop_DispatchesConcurrently_ASlowRequestDoesNotBlockALaterOne() {
-        // #113: the stdio transport must dispatch each request on a worker, or a slow call blocks later
-        // ones. Two pipelined requests: id=1's dispatch blocks until id=2's runs and releases it. Under
-        // concurrent dispatch, id=2 finishes first, so its response is written before id=1's. A serial
-        // loop would run id=1 first, block waiting for id=2 (never dispatched), and time out — reversing
-        // (and delaying) the order.
-        using System.Threading.ManualResetEventSlim gate = new(false);
+    public void RunStdioLoop_DispatchesRequestsConcurrently_NotOneAtATime() {
+        // #113: the stdio transport must dispatch each request on its own worker, or a slow call blocks
+        // later ones. Two requests rendezvous: each signals its arrival in dispatch and waits for the
+        // other. If the loop dispatched serially, the first would wait alone and time out (met=1); only
+        // concurrent dispatch lets both meet (met=2). Deterministic — the count gates on an actual
+        // rendezvous, not on write order or wall-clock speed.
+        using System.Threading.ManualResetEventSlim aArrived = new(false);
+        using System.Threading.ManualResetEventSlim bArrived = new(false);
+        int metTheOther = 0;
         Func<JsonObject, JsonObject?> dispatch = req => {
             long id = req["id"]!.GetValue<long>();
+            bool sawOther;
             if (id == 1) {
-                gate.Wait(3000);
+                aArrived.Set();
+                sawOther = bArrived.Wait(3000);
             }
             else {
-                gate.Set();
+                sawOther = aArrived.Wait(3000);
+                bArrived.Set();
+            }
+            if (sawOther) {
+                System.Threading.Interlocked.Increment(ref metTheOther);
             }
             return new JsonObject { ["jsonrpc"] = "2.0", ["id"] = id, ["result"] = new JsonObject() };
         };
@@ -96,10 +104,9 @@ public class AgentServerTests {
         AgentServer.RunStdioLoop(reader, writer, dispatch);
 
         string output = writer.ToString();
-        int p1 = output.IndexOf("\"id\":1", StringComparison.Ordinal);
-        int p2 = output.IndexOf("\"id\":2", StringComparison.Ordinal);
-        Assert.True(p1 >= 0 && p2 >= 0, $"both responses present; got: {output}");
-        Assert.True(p2 < p1, $"id=2 (fast) must be written before id=1 (blocked) — proves concurrent dispatch; got: {output}");
+        Assert.Equal(2, metTheOther); // both dispatches were in flight at once => concurrent
+        Assert.Contains("\"id\":1", output, StringComparison.Ordinal);
+        Assert.Contains("\"id\":2", output, StringComparison.Ordinal);
     }
 
     [Fact]
