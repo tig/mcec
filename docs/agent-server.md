@@ -437,3 +437,16 @@ is not a general-purpose web API and is not exposed off-box by default.
   `Enabled`, and `McpServerEnabled` (localhost-bound).
 - Loud `AGENT-AUDIT:` logging for every agent action.
 - Fully additive — nothing about the existing HTPC behavior changes.
+
+## Agent safety features
+
+Two operator-safety features build on the gates above — see
+[`safety-emergency-stop-and-provisioning.md`](safety-emergency-stop-and-provisioning.md):
+
+- **Emergency stop (#135):** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
+  `EmergencyStopHotkey`) that instantly halts a session from any window — latching the actuation gate
+  (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
+  reacts to physical input only, so the agent can never trip or defeat it.
+- **Isolated session provisioning (#138):** `provision-session` (gated by `AllowSessionProvisioning`) hands
+  an agent a disposable, isolated MCEC directory instead of it mutating the installed config; `end-session`
+  (or launch-time reaping) tears it down.

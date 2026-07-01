@@ -270,7 +270,7 @@ public static partial class HookManager {
     private static event KeyEventHandler s_KeyDown = null!;
 
     /// <summary>
-    /// Occurs when a key is preseed. 
+    /// Occurs when a key is preseed.
     /// </summary>
     public static event KeyEventHandler KeyDown {
         add {
@@ -279,6 +279,41 @@ public static partial class HookManager {
         }
         remove {
             s_KeyDown -= value;
+            TryUnsubscribeFromGlobalKeyboardEvents();
+        }
+    }
+
+    internal static event EventHandler<GlobalKeyEventArgs>? s_KeyDownExt;
+
+    /// <summary>
+    /// Occurs when a key is pressed, with the software-injected flag exposed (see
+    /// <see cref="GlobalKeyEventArgs.Injected"/>). Used by the emergency-stop (#135) so the panic hotkey
+    /// reacts to real hardware input only and can never be tripped or defeated by injected keystrokes.
+    /// </summary>
+    public static event EventHandler<GlobalKeyEventArgs> KeyDownExt {
+        add {
+            EnsureSubscribedToGlobalKeyboardEvents();
+            s_KeyDownExt += value;
+        }
+        remove {
+            s_KeyDownExt -= value;
+            TryUnsubscribeFromGlobalKeyboardEvents();
+        }
+    }
+
+    internal static event EventHandler<GlobalKeyEventArgs>? s_KeyUpExt;
+
+    /// <summary>
+    /// Occurs when a key is released, with the software-injected flag exposed. The emergency-stop tracks
+    /// physically-held modifiers via this so a released modifier never leaves the chord half-armed.
+    /// </summary>
+    public static event EventHandler<GlobalKeyEventArgs> KeyUpExt {
+        add {
+            EnsureSubscribedToGlobalKeyboardEvents();
+            s_KeyUpExt += value;
+        }
+        remove {
+            s_KeyUpExt -= value;
             TryUnsubscribeFromGlobalKeyboardEvents();
         }
     }

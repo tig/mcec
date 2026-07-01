@@ -344,6 +344,12 @@ public class MouseCommand : Command {
         sim.Mouse.LeftButtonDown();
         Thread.Sleep(DragPressDwellMs);
         for (int i = 1; i < path.Count; i++) {
+            // Emergency stop (#135): if the operator engaged the panic hotkey mid-drag, stop advancing and
+            // fall through to release the button now, so the gesture can't drag on with the button held.
+            if (AgentRuntime.EmergencyStopped) {
+                Logger.Instance.Log4.Warn($"{nameof(MouseCommand)}: drag aborted by emergency stop at point {i}/{path.Count}.");
+                break;
+            }
             MoveToPixel(sim, path[i], vs);
             Thread.Sleep(DragMoveDwellMs);
         }

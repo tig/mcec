@@ -215,6 +215,19 @@ public class CommandInvoker : Hashtable {
         // TODO: This is simple and just dequeues and executes anything on the queue
         // needs to be smarter? Will this block incoming?
         while (executeQueue.TryDequeue(out ICommand? icmd)) {
+            // Emergency stop (#135): if the operator engaged the panic hotkey, drop the rest of the queue
+            // instead of actuating it. A paced/embedded command sequence (a macro, or commands after a
+            // `pause`) must not keep firing after the stop — checking the latch BETWEEN commands is what
+            // makes "the queue is dropped" true rather than only latching future tool calls.
+            if (AgentRuntime.EmergencyStopped) {
+                int dropped = 1; // the command we just dequeued and are NOT running
+                while (executeQueue.TryDequeue(out _)) {
+                    dropped++;
+                }
+                Logger.Instance.Log4.Warn($"{GetType().Name}: emergency stop engaged — dropped {dropped} queued command(s) without executing.");
+                break;
+            }
+
             ((Command)icmd).Execute();
             // Read pacing via the UI-agnostic AgentRuntime seam so the engine works headless
             // (--mcp) where there is no MainWindow. In GUI mode this is the same settings object.

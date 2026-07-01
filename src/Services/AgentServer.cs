@@ -257,6 +257,25 @@ public static class AgentServer {
             new JsonObject { ["command"] = PropSchema("string", "The MCEC command string to enqueue") },
             ["command"]));
 
+        // Isolated session provisioning (#138). Requires the operator to have opted in
+        // (AllowSessionProvisioning); it never mutates the installed config.
+        JsonObject provisionProps = new() {
+            ["mcpServer"] = PropSchema("boolean", "Enable the provisioned instance's localhost MCP/HTTP server (default true)"),
+            ["commands"] = new JsonObject {
+                ["type"] = "array",
+                ["description"] = "Command names to enable in the session (default: the agent observation/action set)",
+                ["items"] = new JsonObject { ["type"] = "string" },
+            },
+        };
+        tools.Add(Tool("provision-session",
+            "Get a fresh, disposable, isolated MCEC instance to run from instead of enabling the installed one. Returns a directory containing mcec.exe + an agent-ready co-located config (agent commands enabled ONLY inside the copy), plus how to launch/connect and the sessionId to tear it down. Requires the operator to have enabled AllowSessionProvisioning; the installed config is never touched. Call end-session (or delete the directory) when finished.",
+            provisionProps, []));
+
+        tools.Add(Tool("end-session",
+            "Tear down a provisioned session (from provision-session) by deleting its directory. Stop the session's mcec.exe first, or its files stay locked. MCEC also reaps stale session dirs on launch.",
+            new JsonObject { ["sessionId"] = PropSchema("string", "The sessionId returned by provision-session") },
+            ["sessionId"]));
+
         return tools;
     }
 
@@ -278,8 +297,27 @@ public static class AgentServer {
         string name = AsString(prms?["name"]);
         JsonObject args = prms?["arguments"] as JsonObject ?? [];
 
+        // Emergency stop (#135): once the operator engages the panic hotkey, EVERY tool call is refused
+        // (actuation, observation, and raw send_command alike) until they explicitly re-arm — the human
+        // override latches and is checked before anything else. A distinct error code tells the agent to
+        // stop and surface it, not retry.
+        if (AgentRuntime.EmergencyStopped) {
+            AgentRuntime.Audit(name, "BLOCKED — emergency stop engaged; operator must re-arm");
+            return ToolError(
+                "Emergency stop is engaged — the operator halted this session. All tool calls are refused until they re-arm. Stop and tell the user; do not retry.",
+                "emergency-stopped");
+        }
+
         if (name == "send_command") {
             return RunSendCommand(args);
+        }
+
+        if (name == "provision-session") {
+            return RunProvisionSession(args);
+        }
+
+        if (name == "end-session") {
+            return RunEndSession(args);
         }
 
         if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "drag" or "click") {
@@ -491,6 +529,67 @@ public static class AgentServer {
         JsonObject result = new() { ["output"] = string.IsNullOrEmpty(captured) ? "ok" : captured };
         CommandEventHub.Publish(new CommandEvent("send_command", CommandTersifier.ForRawCommand(command), CommandOutcome.Ok, session.SessionId));
         return McpResult(AgentToolResult.Success(result, session.SessionId));
+    }
+
+    /// <summary>
+    /// Provisions a fresh, disposable, isolated MCEC instance (#138) and returns the handoff. Gated behind
+    /// the operator's <see cref="AppSettings.AllowSessionProvisioning"/> opt-in — the one thing that cannot
+    /// be self-served — and never touches the installed config. Also reaps stale session dirs opportunistically.
+    /// </summary>
+    private static JsonObject RunProvisionSession(JsonObject args) {
+        if (AgentRuntime.Settings?.AllowSessionProvisioning != true) {
+            AgentRuntime.Audit("provision-session", "BLOCKED — session provisioning is not authorized");
+            return ToolError(
+                "Session provisioning is not authorized. The operator must enable AllowSessionProvisioning to opt in; it cannot be self-served.",
+                "provisioning-not-authorized");
+        }
+
+        bool mcpServer = args["mcpServer"] is not JsonValue mv || !mv.TryGetValue(out bool m) || m; // default true
+        List<string>? commands = StrArray(args["commands"] as JsonArray);
+
+        try {
+            SessionProvisioner.ReapOrphans(TimeSpan.FromHours(SessionReapAgeHours));
+            ProvisionedSession session = SessionProvisioner.Provision(mcpServer, commands);
+            return McpResult(AgentToolResult.Success(session.ToJsonObject(), AgentRuntime.Session.SessionId));
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"AgentServer: provision-session failed: {e.Message}");
+            return ToolError($"Failed to provision a session: {e.Message}", "provisioning-failed");
+        }
+    }
+
+    /// <summary>Tears down a provisioned session directory by id (#138).</summary>
+    private static JsonObject RunEndSession(JsonObject args) {
+        string? sessionId = Str(args, "sessionId");
+        if (string.IsNullOrWhiteSpace(sessionId)) {
+            return ToolError("end-session requires a non-empty 'sessionId' argument.", "bad-arguments");
+        }
+        bool removed = SessionProvisioner.Teardown(sessionId);
+        JsonObject result = new() {
+            ["sessionId"] = sessionId,
+            ["removed"] = removed,
+        };
+        if (!removed) {
+            result["note"] = "The session directory could not be deleted — its mcec.exe may still be running. Stop it and retry, or MCEC will reap it on a later launch.";
+        }
+        return McpResult(AgentToolResult.Success(result, AgentRuntime.Session.SessionId));
+    }
+
+    /// <summary>Age after which an orphaned/abandoned provisioned session directory is reaped on launch/provision.</summary>
+    public const int SessionReapAgeHours = 12;
+
+    /// <summary>Reads a JSON array of strings into a list, or null when the node is absent/empty.</summary>
+    private static List<string>? StrArray(JsonArray? array) {
+        if (array is null || array.Count == 0) {
+            return null;
+        }
+        List<string> items = [];
+        foreach (JsonNode? node in array) {
+            if (node is JsonValue v && v.TryGetValue(out string? s) && !string.IsNullOrWhiteSpace(s)) {
+                items.Add(s);
+            }
+        }
+        return items.Count > 0 ? items : null;
     }
 
     /// <summary>Builds and populates an agent command instance from MCP tool arguments.</summary>

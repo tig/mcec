@@ -60,6 +60,19 @@ Three independent, **off-by-default** gates — see [`docs/agent-server.md`](doc
 `McpServerEnabled` (HTTP floor, localhost-bound). Every agent action is logged with an `AGENT-AUDIT:`
 line. An agent that hits "agent commands are disabled" should tell the user, not retry.
 
+Two safety features layer on top (see [`docs/safety-emergency-stop-and-provisioning.md`](docs/safety-emergency-stop-and-provisioning.md)):
+
+- **Emergency stop (#135)** — a global "dead man's switch" hotkey (default `Ctrl+Alt+Shift+S`) the operator
+  can hit from **any** window to instantly halt a session: it latches the actuation gate (every tool call is
+  refused with `emergency-stopped` until the operator re-arms), aborts in-flight actuation, and releases held
+  input. It reacts to **physical input only** (injected keys are ignored via `LLKHF_INJECTED`), so the agent
+  can never trip or defeat it. Do not weaken the injected-key filter or the latch.
+- **Isolated session provisioning (#138)** — agents must **not** enable/disable commands in the installed
+  instance (a crash leaks enabled gates). Instead, `provision-session` (gated by the operator's
+  `AllowSessionProvisioning` opt-in) hands the agent a disposable directory with its own agent-ready config;
+  teardown is deleting the directory, and MCEC reaps orphaned session dirs on launch. The installed config is
+  never touched.
+
 ## Dogfood — test MCEC using MCEC (mcec drives mcec)
 
 This is the proposal's success metric ("an MCP client mounts MCEC and completes a multi-step GUI

@@ -308,12 +308,34 @@ public static partial class HookManager {
         if (nCode >= 0) {
             //read structure KeyboardHookStruct at lParam
             KeyboardHookStruct MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct))!;
+
+            // LLKHF_INJECTED (0x10): the event was synthesized by SendInput rather than pressed on real
+            // hardware. Surfaced on the *Ext events so the emergency-stop (#135) can react to physical
+            // input only — MCEC's own agent actuation injects keys, and the panic hotkey must be immune to
+            // both accidental self-trip and deliberate self-defeat.
+            const int LLKHF_INJECTED = 0x10;
+            bool injected = (MyKeyboardHookStruct.Flags & LLKHF_INJECTED) != 0;
+
             //raise KeyDown
             if (s_KeyDown != null && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
                 Keys keyData = (Keys)MyKeyboardHookStruct.VirtualKeyCode;
                 KeyEventArgs e = new KeyEventArgs(keyData);
                 s_KeyDown.Invoke(null, e);
                 handled = e.Handled;
+            }
+
+            //raise KeyDownExt (with injected flag)
+            if (s_KeyDownExt != null && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
+                GlobalKeyEventArgs ge = new((Keys)MyKeyboardHookStruct.VirtualKeyCode, injected);
+                s_KeyDownExt.Invoke(null, ge);
+                handled = handled || ge.Handled;
+            }
+
+            //raise KeyUpExt (with injected flag)
+            if (s_KeyUpExt != null && (wParam == WM_KEYUP || wParam == WM_SYSKEYUP)) {
+                GlobalKeyEventArgs ge = new((Keys)MyKeyboardHookStruct.VirtualKeyCode, injected);
+                s_KeyUpExt.Invoke(null, ge);
+                handled = handled || ge.Handled;
             }
 
             // raise KeyPress
@@ -392,7 +414,9 @@ public static partial class HookManager {
         //if no subsribers are registered unsubsribe from hook
         if (s_KeyDown == null &&
             s_KeyUp == null &&
-            s_KeyPress == null) {
+            s_KeyPress == null &&
+            s_KeyDownExt == null &&
+            s_KeyUpExt == null) {
             ForceUnsunscribeFromGlobalKeyboardEvents();
         }
     }
