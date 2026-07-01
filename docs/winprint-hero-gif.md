@@ -50,13 +50,13 @@ operator/harness has provisioned it (agent commands enabled in the session copy 
 | Step | Tool call |
 |------|-----------|
 | Start record | `record { action:"start", x, y, width, height, fps:4, maxWidth:880 }` (desktop region) |
-| Launch | `send_command winkey` → `send_command chars:winprint` → `send_command enter` → `wait-for` / `query { process:"winprint" }` |
-| Open sample | `click` File button → `clipboard { action:"set", text:"…SheetViewModel.cs" }` → Ctrl+V → Enter |
+| Launch | `send_command desktop` (Win+D) → `send_command winsearch` (Win+S) → `chars:WinPrint` → Enter → `query { process:"winprint" }` |
+| Open sample | `query` tree → `click` File… button by bounds → `clipboard { action:"set", text:"…SheetViewModel.cs" }` → Ctrl+V → Enter |
 | Settings | `click` **Line Numbers** (twice), **Landscape** (twice) |
 | Zoom | `click` preview → `key_equals` ×4 → arrows → `key_0` |
 | Second file | File → clipboard `README.md` → Ctrl+V → Enter |
-| Print | `click` **Microsoft Print to PDF** → `click` **Print** |
-| Save PDF | `clipboard { action:"set", text:"…winprintdemo.pdf" }` → Ctrl+V → Enter |
+| Print | `query` tree → `click` toolbar **Print…** button by bounds (printer already **Microsoft Print to PDF**) |
+| Save PDF | `query` **Save Print Output As** by `handle` → `click` filename field → `chars:C:\\…\\winprintdemo.pdf` (backslashes doubled) → Enter |
 | Open PDF | `send_command winr` → `send_command chars:<pdf path>` (backslashes doubled) → Enter |
 | Stop | `record { action:"stop", file:"docs/hero-gui-win.gif" }` |
 | Close PDF | `send_command alt_f4` — release the file lock so the next run's harness `Remove-Item` succeeds |
