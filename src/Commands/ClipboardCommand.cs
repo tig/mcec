@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
+using System.Threading;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
@@ -48,14 +49,15 @@ public class ClipboardCommand : Command {
                         Reply?.WriteLine(CommandResult.Fail(Cmd, "clipboard set requires text.").ToJson());
                         return false;
                     }
-                    Clipboard.SetText(Text);
+                    RunSta(() => Clipboard.SetText(Text));
                     Reply?.WriteLine(CommandResult.Ok(Cmd, new JsonObject { ["set"] = true, ["length"] = Text.Length }).ToJson());
                     return true;
 
-                case "get":
-                    string text = Clipboard.ContainsText() ? Clipboard.GetText() : string.Empty;
+                case "get": {
+                    string text = RunSta(() => Clipboard.ContainsText() ? Clipboard.GetText() : string.Empty);
                     Reply?.WriteLine(CommandResult.Ok(Cmd, new JsonObject { ["text"] = text, ["length"] = text.Length }).ToJson());
                     return true;
+                }
 
                 default:
                     Reply?.WriteLine(CommandResult.Fail(Cmd, $"Unknown clipboard action '{action}'. Use set or get.").ToJson());
@@ -67,5 +69,35 @@ public class ClipboardCommand : Command {
             Reply?.WriteLine(CommandResult.Fail(Cmd, e.Message).ToJson());
             return false;
         }
+    }
+
+    /// <summary>
+    /// Clipboard is STA-only. Agent tools may run on the MCP HTTP thread (MTA), so hop to an STA thread
+    /// when the caller is not already STA — same constraint as WinForms OLE clipboard APIs.
+    /// </summary>
+    private static void RunSta(Action action) => RunSta<object?>(() => { action(); return null; });
+
+    private static T RunSta<T>(Func<T> func) {
+        if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA) {
+            return func();
+        }
+
+        T result = default!;
+        Exception? error = null;
+        Thread thread = new(() => {
+            try {
+                result = func();
+            }
+            catch (Exception ex) {
+                error = ex;
+            }
+        }) { IsBackground = true };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (error is not null) {
+            throw error;
+        }
+        return result;
     }
 }

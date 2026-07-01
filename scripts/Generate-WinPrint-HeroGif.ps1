@@ -150,6 +150,7 @@ Set-Content -Encoding UTF8 -Path $ctrlCommands -Value @'
   <sendinput Cmd="winkey" Vk="VK_LWIN" Enabled="true" />
   <sendinput Cmd="enter" Vk="VK_RETURN" Enabled="true" />
   <sendinput Cmd="key_esc" Vk="VK_ESCAPE" Enabled="true" />
+  <sendinput Cmd="ctrl-a" Vk="VK_A" Ctrl="true" Enabled="true" />
   <sendinput Cmd="ctrl-v" Vk="VK_V" Ctrl="true" Enabled="true" />
   <sendinput Cmd="key_equals" Vk="0xBB" Enabled="true" />
   <sendinput Cmd="key_0" Vk="0x30" Enabled="true" />
@@ -157,6 +158,8 @@ Set-Content -Encoding UTF8 -Path $ctrlCommands -Value @'
   <sendinput Cmd="key_right" Vk="VK_RIGHT" Enabled="true" />
   <sendinput Cmd="key_up" Vk="VK_UP" Enabled="true" />
   <sendinput Cmd="key_down" Vk="VK_DOWN" Enabled="true" />
+  <sendinput Cmd="desktop" Vk="VK_D" Win="true" Enabled="true" />
+  <sendinput Cmd="winsearch" Vk="VK_S" Win="true" Enabled="true" />
   <sendinput Cmd="winr" Vk="r" Win="true" Enabled="true" />
 </Commands>
 </MCEController>
@@ -190,19 +193,21 @@ try {
     Step 'record-start' 'pass' 'region record started'
     Start-Sleep -Milliseconds 500
 
-    Send-McecCommand 'winkey' $session; Start-Sleep -Milliseconds 900
-    Send-McecCommand 'chars:winprint' $session; Start-Sleep -Milliseconds 700
+    # Show desktop (Win+D) so Start/search keystrokes are not swallowed by an IDE shell.
+    Send-McecCommand 'desktop' $session; Start-Sleep -Milliseconds 1000
+    Send-McecCommand 'winsearch' $session; Start-Sleep -Milliseconds 1200
+    Send-McecCommand 'chars:WinPrint' $session; Start-Sleep -Milliseconds 1200
     Send-McecCommand 'enter' $session
-    $hWin = Wait-McecWindow @{ process = 'winprint' }
+    $hWin = Wait-McecWindow @{ process = 'winprint' } -Attempts 45 -DelayMs 800
     if ($hWin -eq 0) { throw 'WinPrint did not appear (is it installed and Start-searchable?)' }
     Step 'launch' 'pass' "WinPrint up handle=$hWin"
     Start-Sleep -Milliseconds 2000
 
     $wt = @{ handle = $hWin }
 
-    Invoke-McecClickElement $wt 'name' 'File' $session
+    Invoke-McecClickNameLike $wt '*File*' $session
     Start-Sleep -Milliseconds 1200
-    Invoke-McecTool 'clipboard' @{ action = 'set'; text = $samplePath } -Session $session | Out-Null
+    Assert-McecToolOk (Invoke-McecTool 'clipboard' @{ action = 'set'; text = $samplePath } -Session $session) 'clipboard set sample'
     Start-Sleep -Milliseconds 300
     Send-McecCommand 'ctrl-v' $session; Start-Sleep -Milliseconds 400
     Send-McecCommand 'enter' $session; Start-Sleep -Seconds 3
@@ -232,20 +237,47 @@ try {
     Send-McecCommand 'key_0' $session; Start-Sleep -Milliseconds 500
     Step 'zoom' 'pass' 'zoom pan reset'
 
-    Invoke-McecClickElement $wt 'name' 'File' $session; Start-Sleep -Milliseconds 1200
-    Invoke-McecTool 'clipboard' @{ action = 'set'; text = $readmePath } -Session $session | Out-Null
+    Invoke-McecClickNameLike $wt '*File*' $session; Start-Sleep -Milliseconds 1200
+    Assert-McecToolOk (Invoke-McecTool 'clipboard' @{ action = 'set'; text = $readmePath } -Session $session) 'clipboard set readme'
     Send-McecCommand 'ctrl-v' $session; Start-Sleep -Milliseconds 400
     Send-McecCommand 'enter' $session; Start-Sleep -Seconds 3
     Step 'open-readme' 'pass' 'README.md loaded'
 
-    Invoke-McecClickElement $wt 'name' 'Microsoft Print to PDF' $session
-    Start-Sleep -Milliseconds 800
-    Invoke-McecClickElement $wt 'name' 'Print' $session
-    Start-Sleep -Milliseconds 2000
-    Invoke-McecTool 'clipboard' @{ action = 'set'; text = $PdfPath } -Session $session | Out-Null
-    Start-Sleep -Milliseconds 500
-    Send-McecCommand 'ctrl-v' $session; Start-Sleep -Milliseconds 500
-    Send-McecCommand 'enter' $session; Start-Sleep -Seconds 4
+    Send-McecCommand 'key_esc' $session; Start-Sleep -Milliseconds 600
+
+    $tree = Get-McecTree (Invoke-McecTool 'query' ($wt + @{ maxDepth = 8 }) -Session $session)
+    $printBtn = Find-McecNode $tree {
+        param($n)
+        $n.controlType -eq 'Button' -and $n.name -match 'Print' -and $n.y -lt 260
+    }
+    if (-not $printBtn) { throw 'Print toolbar button not found in WinPrint UIA tree' }
+    Invoke-McecTool 'click' ($wt + @{
+        at = @{
+            x = [int]($printBtn.x + $printBtn.width / 2)
+            y = [int]($printBtn.y + $printBtn.height / 2)
+        }
+    }) -Session $session | Out-Null
+    Start-Sleep -Milliseconds 2500
+    $hSave = Wait-McecWindow @{ window = 'Save Print Output As' } -Attempts 30 -DelayMs 600
+    if ($hSave -eq 0) { $hSave = Wait-McecWindow @{ window = 'Save As' } -Attempts 15 -DelayMs 600 }
+    $saveTarget = if ($hSave -ne 0) { @{ handle = $hSave } } else { @{ foreground = $true } }
+    $saveTree = Get-McecTree (Invoke-McecTool 'query' ($saveTarget + @{ maxDepth = 6 }) -Session $session)
+    $fileNameEdit = Find-McecNode $saveTree {
+        param($n)
+        $n.controlType -eq 'Edit' -and ($n.name -match 'File name' -or $n.automationId -eq '1148')
+    }
+    if ($fileNameEdit) {
+        Invoke-McecTool 'click' ($saveTarget + @{
+            at = @{
+                x = [int]($fileNameEdit.x + $fileNameEdit.width / 2)
+                y = [int]($fileNameEdit.y + $fileNameEdit.height / 2)
+            }
+        }) -Session $session | Out-Null
+        Start-Sleep -Milliseconds 500
+    }
+    Send-McecCommand 'ctrl-a' $session; Start-Sleep -Milliseconds 200
+    Send-McecCommand ("chars:" + $PdfPath.Replace('\', '\\')) $session; Start-Sleep -Milliseconds 800
+    Send-McecCommand 'enter' $session; Start-Sleep -Seconds 6
     if (-not (Test-Path -LiteralPath $PdfPath)) { throw "PDF not saved at $PdfPath" }
     Step 'print-pdf' 'pass' "saved $PdfPath"
 

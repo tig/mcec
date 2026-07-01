@@ -88,6 +88,32 @@ function Invoke-McecClickElement {
     Invoke-McecTool 'click' $args -Session $Session | Out-Null
 }
 
+function Invoke-McecClickNameLike {
+    param(
+        [Parameter(Mandatory)]$WindowTarget,
+        [Parameter(Mandatory)][string]$NameLike,
+        $Session = $null
+    )
+    $tree = Get-McecTree (Invoke-McecTool 'query' ($WindowTarget + @{ maxDepth = 8 }) -Session $Session)
+    $node = Find-McecNode $tree { param($n) $n.name -and ($n.name -like $NameLike) }
+    if (-not $node) { throw "No UIA element matches '$NameLike'" }
+    Invoke-McecTool 'click' ($WindowTarget + @{
+        at = @{
+            x = [int]($node.x + $node.width / 2)
+            y = [int]($node.y + $node.height / 2)
+        }
+    }) -Session $Session | Out-Null
+}
+
+function Assert-McecToolOk {
+    param($ToolResponse, [string]$Label = 'tool call')
+    $env = Get-McecAgentEnvelope $ToolResponse
+    if (-not $env -or -not $env.ok) {
+        $detail = if ($env.error) { $env.error.detail } else { 'unknown error' }
+        throw "$Label failed: $detail"
+    }
+}
+
 function Wait-McecWindow {
     param(
         $WindowTarget,
@@ -115,4 +141,4 @@ function Wait-McecMcp {
 
 Export-ModuleMember -Function Set-McecMcpUrl, Invoke-McecRpc, Invoke-McecTool, Send-McecCommand,
     Get-McecAgentEnvelope, Get-McecTree, Get-McecWindow, Find-McecNode, Invoke-McecClickElement,
-    Wait-McecWindow, Wait-McecMcp
+    Invoke-McecClickNameLike, Assert-McecToolOk, Wait-McecWindow, Wait-McecMcp
