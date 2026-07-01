@@ -65,8 +65,8 @@ by its `handle`):
 | Launch | `send_command winr` → `send_command "chars:<path>"` (backslashes doubled) → `send_command enter` → `query { foreground:true }` for the new window's `handle` |
 | Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:560 }` (region = the subject window's pinned rect) |
 | Settings | click **File** → send `S` → `query` the **Settings** window → click each tab header's rect (`mouse:mt,…` + `mouse:lbc`) in turn → `Esc` |
-| Resize | drag the bottom-right sizing border inward: `mouse:mt` to the corner → `mouse:lbd` → a few `mouse:mt` moves → `mouse:lbu` |
-| Move | drag the title bar in circles: `mouse:mt` onto the title bar → `mouse:lbd` → `mouse:mt` around a small circle → `mouse:lbu` |
+| Resize | drag the bottom-right sizing border inward with one atomic `mouse:drag,x1,y1,…,xN,yN` (corner → a few waypoints inward) |
+| Move | drag the title bar in a circle with one atomic `mouse:drag,x1,y1,…` (title bar → points around a small circle → back) |
 | About | re-`query` the (moved) window by `handle` → click the **Help** menu item's rect → send `A` → `capture` `{ window:"About" }` |
 | Stop | pause on the About box → `record` `{ action:"stop", file:"docs/hero.gif" }` |
 
@@ -100,7 +100,7 @@ Everything else is **already composable today** — the issues just make the pat
 | Step | Already composable today via | Enhancement (issue) |
 |---|---|---|
 | Launch the subject **(the hero already does this)** | Win+R: `send_command winr` → `chars:<path>` → `enter`, then `query { foreground:true }` for its handle | direct gated launch that returns the handle — robustness (#126) |
-| Drag: resize border / title-bar circles | `mouse:lbd` → a path of `mouse:mt` → `mouse:lbu` (all existing commands) | first-class `drag` (#123); or window `move`/`resize` with an `animate` mode that still *looks* dragged (#124) |
+| Drag: resize border / title-bar circles | **one atomic `mouse:drag,x1,y1,…`** — shipped in #123 (pixels in, normalized across the virtual desktop internally); the hand-rolled `mouse:lbd` → path of `mouse:mt` → `mouse:lbu` still works too | ~~first-class `drag`~~ **shipped (#123)** — the agent `drag` tool adds UIA-element endpoints; still open: a window `move`/`resize` with an `animate` mode that still *looks* dragged (#124) |
 | Switch Settings tabs | `query` the tab's bounds → `mouse` click its center | `select` / SelectionItem action (#125) |
 | Record the window | `query` its bounds → `record { x, y, width, height }` | `record { handle }`, optionally following the window (#127) |
 | Wait for a window/dialog | poll `query` until it appears | first-class wait-for-**window** predicate (#112) |
