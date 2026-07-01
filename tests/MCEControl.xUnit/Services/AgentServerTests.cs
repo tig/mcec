@@ -436,6 +436,25 @@ public class AgentServerTests {
         }
     }
 
+    [Fact]
+    public void Dispatch_ToolsCall_SendCommand_IsNotGatedByAgentCommandsEnabled() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = null; // AgentCommandsEnabled = false
+        try {
+            // send_command is a raw pass-through routed to RunSendCommand BEFORE the AgentCommandsEnabled
+            // check (unlike the agent tools). An empty command therefore returns bad-arguments — proving it
+            // reached RunSendCommand — not agent-commands-disabled. (The raw command it runs is still gated
+            // by that command's own Enabled flag in the table; this only asserts the agent gate is skipped.)
+            JsonObject resp = AgentServer.Dispatch(Request(22, "tools/call",
+                new JsonObject { ["name"] = "send_command", ["arguments"] = new JsonObject { ["command"] = "" } }))!;
+
+            Assert.Equal("bad-arguments", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
     private static string FirstTextBlock(JsonObject toolResult) {
         foreach (JsonNode? block in toolResult["content"]!.AsArray()) {
             if (block?["type"]?.GetValue<string>() == "text") {

@@ -54,11 +54,14 @@ does **not** turn the others on.
 If any one of these switches is off, the corresponding capability simply refuses to run
 and returns a JSON failure (for commands) — it never silently proceeds.
 
-**Which gate applies where.** `AgentCommandsEnabled` **and** the per-command `Enabled` flag gate every
-agent tool over **both** MCP transports — `mcec.exe --mcp` (stdio) and the HTTP floor — so an MCP
-`tools/call` for a command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
-`AgentCommandsEnabled=true`. `McpServerEnabled` gates only the HTTP floor; it has no bearing on stdio or on
-which individual tools may run.
+**Which gate applies where.** The agent *tools* — `capture`/`query`/`displays`/`find`/`wait-for`/`invoke`/
+`record`/`drag`/`click` — are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
+flag, over **both** MCP transports (`mcec.exe --mcp` stdio and the HTTP floor): a `tools/call` for a
+command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
+`AgentCommandsEnabled=true`. **`send_command` is the exception** — it is a raw pass-through to the existing
+command engine and does **not** require `AgentCommandsEnabled`; the raw command it runs is still subject to
+that command's own `Enabled` flag in `mcec.commands` (the normal MCEC gate). `McpServerEnabled` gates only
+the HTTP floor; it has no bearing on stdio or on which individual tools may run.
 
 ---
 
