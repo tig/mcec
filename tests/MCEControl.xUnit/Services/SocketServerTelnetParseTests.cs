@@ -62,6 +62,27 @@ public class SocketServerTelnetParseTests {
     }
 
     [Fact]
+    public void TrailingLoneIac_DoesNotThrow_AndProducesNoReply() {
+        // A chunk ending in a bare IAC (no verb byte follows): must be ignored, no reply, no throw.
+        var buffer = new byte[] { (byte)'x', IAC };
+
+        var replies = Parse(buffer, buffer.Length, out _);
+
+        Assert.Empty(replies);
+    }
+
+    [Fact]
+    public void LiteralIacEscape_DoesNotThrow_AndProducesNoReply() {
+        // IAC IAC is the escape for a literal 0xFF; it is appended to the command buffer, not
+        // treated as negotiation, so it must emit no telnet reply and must not throw.
+        var buffer = new byte[] { IAC, IAC };
+
+        var replies = Parse(buffer, buffer.Length, out _);
+
+        Assert.Empty(replies);
+    }
+
+    [Fact]
     public void CompleteDoSga_RepliesWill() {
         // IAC DO SGA -> server replies IAC WILL SGA.
         var buffer = new byte[] { IAC, DO, SGA };
