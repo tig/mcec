@@ -30,7 +30,22 @@ public static class AgentServer {
     private static readonly object HttpLock = new();
     private static HttpListener? _listener;
     private static Thread? _httpThread;
-    private static readonly object ExecLock = new();
+
+    // Concurrency contract (#113): the ONE physical desktop input stream is a shared resource, so
+    // global-input actuation (drag, send_command) serializes on this lock. Observation
+    // (query/capture/find/wait-for/record) runs UNLOCKED — a long/blocking read never stalls another
+    // tool call. See SerializesOnInputLock and docs/agent-server.md#concurrency.
+    private static readonly object InputLock = new();
+
+    /// <summary>
+    /// Whether <paramref name="tool"/> serializes on <see cref="InputLock"/> (the #113 contract).
+    /// Global-input actuation (<c>drag</c>, <c>send_command</c>) does — it synthesizes physical
+    /// mouse/keyboard, one shared stream that concurrent requests must not interleave. Observation
+    /// (<c>query</c>/<c>capture</c>/<c>find</c>/<c>wait-for</c>/<c>record</c>) does not (it runs
+    /// concurrently); <c>invoke</c> is UIA-pattern actuation dispatched on a worker with the modal grace,
+    /// not under this lock (#105).
+    /// </summary>
+    public static bool SerializesOnInputLock(string tool) => tool is "drag" or "send_command";
 
     // -------------------------------------------------------------------------------------------
     // JSON-RPC dispatch (shared by stdio + HTTP)
@@ -351,15 +366,16 @@ public static class AgentServer {
         JsonObject? priorObservation = session.LastObservation;
         session.RecordAction(name);
 
-        // `invoke` can activate a control that opens a MODAL dialog (About, Settings, message/file
-        // dialogs). The UIA Invoke runs the control's click handler synchronously, so the call would
-        // otherwise block — and hold ExecLock — for the dialog's whole lifetime, deadlocking every
-        // later tool call (the agent couldn't even query or dismiss the dialog it just opened). Run it
-        // on a worker and, if it hasn't returned within a short grace, report "modal pending" and
-        // return; the worker finishes when the dialog closes. capture/query/find/send_command keep the
-        // simple serialized path, and the legacy TCP/serial pipeline (MainWindow.ReceivedData ->
-        // CommandInvoker.ExecuteNext on the UI thread) is untouched, so home-automation sequences keep
-        // their in-order, synchronous behavior.
+        // Dispatch under the #113 concurrency contract. `invoke` can activate a control that opens a
+        // MODAL dialog (About, Settings, message/file dialogs); the UIA Invoke runs the click handler
+        // synchronously, so the call would block for the dialog's whole lifetime and — if it held a lock
+        // — deadlock every later tool call (the agent couldn't even query or dismiss the dialog it just
+        // opened, #105). So run `invoke` on a worker and, if it hasn't returned within a short grace,
+        // report "modal pending" and return; the worker finishes when the dialog closes. `drag` and
+        // `send_command` synthesize physical input and serialize on InputLock. Observation
+        // (query/capture/find/wait-for) and `record` (its own bounded background thread) run UNLOCKED, so
+        // a long/blocking read never stalls another tool call. The legacy TCP/serial pipeline
+        // (MainWindow.ReceivedData -> CommandInvoker.ExecuteNext on the UI thread) is untouched.
         if (name == "invoke") {
             if (!TryRunInvokeWithModalGrace(cmd)) {
                 AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
@@ -367,16 +383,13 @@ public static class AgentServer {
                 return McpResult(AgentToolResult.Success(InvokeModalPendingResult(), session.SessionId));
             }
         }
-        else if (name == "record") {
-            // `record` manages its own background capture thread; a one-shot blocks the caller for the
-            // whole recording duration. Do NOT hold ExecLock for that span or it would stall every
-            // other tool call. Frame grabbing runs off-lock on the recorder thread regardless.
-            cmd.Execute();
-        }
-        else {
-            lock (ExecLock) {
+        else if (SerializesOnInputLock(name)) {
+            lock (InputLock) {
                 cmd.Execute();
             }
+        }
+        else {
+            cmd.Execute();
         }
 
         // Translate the legacy CommandResult the command wrote into its reply into the #101 envelope.
@@ -432,7 +445,7 @@ public static class AgentServer {
     /// Runs an <c>invoke</c> on a background worker and waits up to <see cref="InvokeModalGraceMs"/> ms.
     /// Returns true if it finished (its result is in the command's reply); false if it is still running,
     /// which means the invoked control opened a modal dialog. We deliberately do NOT hold
-    /// <see cref="ExecLock"/> for an invoke: a modal opener must not block the later query/capture/invoke
+    /// <see cref="InputLock"/> for an invoke: a modal opener must not block the later query/capture/invoke
     /// calls the agent needs to read or dismiss the very dialog it opened. The worker ends on its own
     /// when the dialog closes.
     /// </summary>
@@ -465,7 +478,8 @@ public static class AgentServer {
 
         AgentRuntime.Audit("send_command", command);
         CapturingReply reply = new();
-        lock (ExecLock) {
+        // send_command drives physical input through the shared invoker — serialize on InputLock (#113).
+        lock (InputLock) {
             invoker.Enqueue(reply, command);
             invoker.ExecuteNext();
         }

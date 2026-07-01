@@ -371,6 +371,25 @@ When connected, the server advertises these tools:
 
 ---
 
+## Concurrency
+
+Agent tool calls follow a simple contract so one slow call never stalls the others:
+
+- **Observation runs concurrently.** `query`, `capture`, `find`, `wait-for`, and `record` take **no
+  shared lock** — a deep `query`, a large `capture`, or a long `wait-for` never blocks another tool call,
+  even one from a different session. They snapshot state (each UIA read uses its own automation instance;
+  screen capture is stateless) and don't mutate the desktop.
+- **Global-input actuation serializes.** `drag` and `send_command` synthesize physical mouse/keyboard —
+  the one input stream is a shared resource, so they run one-at-a-time under a single `InputLock`
+  (concurrent requests can't interleave keystrokes/mouse).
+- **`invoke` is UIA-pattern actuation**, dispatched on a worker with a short *modal grace*: because
+  invoking a control can open a modal dialog that blocks synchronously, `invoke` never holds the input
+  lock for the dialog's lifetime — otherwise the agent couldn't `query`/`capture`/`invoke` to dismiss the
+  very dialog it opened (see the `invoke` notes above).
+- **The legacy TCP/serial command pipeline is untouched.** Home-automation commands still run in order,
+  synchronously, on the UI thread (`CommandInvoker.ExecuteNext`) — this contract governs only the agent
+  (MCP) tools.
+
 ## HTTP floor
 
 When `McpServerEnabled = true`, MCEC also accepts a single JSON-RPC request per `POST`

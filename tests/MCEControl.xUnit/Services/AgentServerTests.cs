@@ -34,6 +34,22 @@ public class AgentServerTests {
         Assert.Equal("MCEC", serverInfo["name"]!.GetValue<string>());
     }
 
+    [Theory]
+    // #113 concurrency contract: only global-input actuation serializes on InputLock. Observation runs
+    // concurrently (so a long wait-for/query never blocks an unrelated capture); invoke is UIA actuation
+    // dispatched on a worker with the modal grace, not under this lock.
+    [InlineData("drag", true)]
+    [InlineData("send_command", true)]
+    [InlineData("query", false)]
+    [InlineData("capture", false)]
+    [InlineData("find", false)]
+    [InlineData("wait-for", false)]
+    [InlineData("record", false)]
+    [InlineData("invoke", false)]
+    public void SerializesOnInputLock_OnlyGlobalInputActuation(string tool, bool expected) {
+        Assert.Equal(expected, AgentServer.SerializesOnInputLock(tool));
+    }
+
     [Fact]
     public void Dispatch_ToolsList_IncludesAllAgentTools() {
         JsonObject resp = AgentServer.Dispatch(Request(2, "tools/list"))!;
