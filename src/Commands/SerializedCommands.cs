@@ -49,6 +49,7 @@ public class SerializedCommands {
     [XmlArrayItem("query", typeof(QueryCommand))]
     [XmlArrayItem("find", typeof(FindCommand))]
     [XmlArrayItem("invoke", typeof(InvokeCommand))]
+    [XmlArrayItem("drag", typeof(DragCommand))]
     [XmlArrayItem("launch", typeof(LaunchCommand))]
     [XmlArrayItem("record", typeof(RecordCommand))]
     [XmlArrayItem(typeof(Command))]

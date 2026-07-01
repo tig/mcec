@@ -7,8 +7,9 @@
   every command, and records it all with the agent `record` tool (#80).
 
 .DESCRIPTION
-  Dogfoods the agent stack end to end and exercises the mouse-drag input path (button-down, a stream of
-  absolute moves, button-up) for both a sizing-border resize and a title-bar move. The controller is a
+  Dogfoods the agent stack end to end and exercises the atomic `mouse:drag` input path (#123 — one
+  command does press, the whole move path, and release) for both a sizing-border resize and a title-bar
+  move. The controller is a
   GUI MCEC (not headless `--mcp`, so it renders the overlay) with the localhost MCP HTTP floor on
   (McpServerEnabled), the agent commands enabled (AgentCommandsEnabled), and the overlay on and docked
   Left (CommandOverlayEnabled / CommandOverlayPosition). The *controlled* subject is a SEPARATE COPY of
@@ -130,14 +131,14 @@ function MoveAbs([int]$cx, [int]$cy) {
   Cmd ("mouse:mt,{0},{1}" -f [int][math]::Round($cx * 65535.0 / ($sw - 1)), [int][math]::Round($cy * 65535.0 / ($sh - 1)))
 }
 function ClickAbs([int]$cx, [int]$cy) { MoveAbs $cx $cy; Cmd 'mouse:lbc' }
-# Drag with the left button held down through a path of absolute screen points: button-down on the first
-# point, a move to each subsequent point (with a dwell so the 4fps recorder catches it), button-up at the
-# end. Used for both the sizing-border resize and the title-bar move.
+# Drag with the left button held down through a path of absolute screen points, as ONE atomic MCEC
+# command (issue #123). `mouse:drag` takes pixels and normalizes across the virtual desktop itself and
+# smooths the motion between waypoints, so a single `send_command` replaces the old button-down /
+# stream-of-moves / button-up choreography — and, being atomic, it can't interleave with anything else.
+# Used for both the sizing-border resize and the title-bar move.
 function Drag($points) {
-  MoveAbs $points[0][0] $points[0][1]; Start-Sleep -Milliseconds 150
-  Cmd 'mouse:lbd'; Start-Sleep -Milliseconds 200
-  foreach ($p in $points[1..($points.Count - 1)]) { MoveAbs $p[0] $p[1]; Start-Sleep -Milliseconds 90 }
-  Start-Sleep -Milliseconds 150; Cmd 'mouse:lbu'
+  $coords = ($points | ForEach-Object { '{0},{1}' -f [int]$_[0], [int]$_[1] }) -join ','
+  Cmd "mouse:drag,$coords"
 }
 function Find($node, [scriptblock]$pred) {
   if (& $pred $node) { return $node }

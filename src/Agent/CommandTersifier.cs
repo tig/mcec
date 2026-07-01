@@ -23,6 +23,7 @@ public static class CommandTersifier {
             "query" => $"query {Target(args)}",
             "find" or "wait-for" => $"{tool} {Selector(args)}",
             "invoke" => $"invoke {Str(args, "action") ?? "invoke"} \"{Str(args, "value") ?? ""}\"",
+            "drag" => $"drag {Endpoint(args, "from")} → {Endpoint(args, "to")}",
             _ => tool,
         };
         if (outcome == CommandOutcome.Pending) {
@@ -78,6 +79,22 @@ public static class CommandTersifier {
             ? $"\"{value}\""
             : $"{by}=\"{value}\"";
     }
+
+    /// <summary>A drag endpoint label: an element value (quoted) if present, else a pixel pair.</summary>
+    private static string Endpoint(JsonObject args, string key) {
+        if (args[key] is not JsonObject ep) {
+            return "?";
+        }
+        string? value = Str(ep, key: "value");
+        if (value is not null) {
+            string by = Str(ep, "by") ?? "name";
+            return by.Equals("name", StringComparison.OrdinalIgnoreCase) ? $"\"{value}\"" : $"{by}=\"{value}\"";
+        }
+        return $"{Int(ep, "x")},{Int(ep, "y")}";
+    }
+
+    private static int Int(JsonObject args, string key) =>
+        args[key] is JsonValue v && v.TryGetValue(out int i) ? i : 0;
 
     private static string? Str(JsonObject args, string key) =>
         args[key] is JsonValue v && v.TryGetValue(out string? s) && !string.IsNullOrEmpty(s) ? s : null;
