@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace MCEControl;
 
@@ -570,35 +571,57 @@ public static class AgentServer {
         using StreamReader reader = new(input, new UTF8Encoding(false));
         using StreamWriter writer = new(output, new UTF8Encoding(false)) { AutoFlush = true };
         Logger.Instance.Log4.Info("AgentServer: MCP stdio transport started.");
+        RunStdioLoop(reader, writer, Dispatch);
+        Logger.Instance.Log4.Info("AgentServer: MCP stdio transport ended (EOF).");
+    }
 
+    /// <summary>
+    /// The stdio read/dispatch/write loop, factored so it is testable. Each request line is dispatched on
+    /// a worker so a slow call (a long <c>wait-for</c>, a deep <c>query</c>) never blocks later requests
+    /// (#113). JSON-RPC responses carry the request <c>id</c>, so out-of-order completion is valid;
+    /// writes are serialized so response lines never interleave.
+    /// </summary>
+    public static void RunStdioLoop(TextReader reader, TextWriter writer, Func<JsonObject, JsonObject?> dispatch) {
+        object writeLock = new();
+        List<Task> pending = [];
         string? line;
         while ((line = reader.ReadLine()) is not null) {
             if (line.Length == 0) {
                 continue;
             }
-            JsonObject? response;
-            try {
-                JsonNode? node = JsonNode.Parse(line);
-                if (node is not JsonObject request) {
-                    response = Error(null, -32600, "Invalid Request");
+            string requestLine = line;
+            pending.Add(Task.Run(() => {
+                JsonObject? response = ProcessStdioLine(requestLine, dispatch);
+                if (response is not null) {
+                    lock (writeLock) {
+                        writer.WriteLine(response.ToJsonString(AgentJson.Options));
+                    }
                 }
-                else {
-                    response = Dispatch(request);
-                }
-            }
-            catch (JsonException e) {
-                response = Error(null, -32700, $"Parse error: {e.Message}");
-            }
-            catch (Exception e) {
-                Logger.Instance.Log4.Error($"AgentServer: dispatch error: {e}");
-                response = Error(null, -32603, $"Internal error: {e.Message}");
-            }
-
-            if (response is not null) {
-                writer.WriteLine(response.ToJsonString(AgentJson.Options));
-            }
+            }));
         }
-        Logger.Instance.Log4.Info("AgentServer: MCP stdio transport ended (EOF).");
+        try {
+            Task.WaitAll([.. pending]);
+        }
+        catch (AggregateException) {
+            // Per-request faults are already turned into JSON-RPC error responses below; nothing to do.
+        }
+    }
+
+    private static JsonObject? ProcessStdioLine(string line, Func<JsonObject, JsonObject?> dispatch) {
+        try {
+            JsonNode? node = JsonNode.Parse(line);
+            if (node is not JsonObject request) {
+                return Error(null, -32600, "Invalid Request");
+            }
+            return dispatch(request);
+        }
+        catch (JsonException e) {
+            return Error(null, -32700, $"Parse error: {e.Message}");
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"AgentServer: dispatch error: {e}");
+            return Error(null, -32603, $"Internal error: {e.Message}");
+        }
     }
 
     // -------------------------------------------------------------------------------------------
@@ -655,7 +678,10 @@ public static class AgentServer {
             catch (InvalidOperationException) {
                 break;
             }
-            HandleHttp(context);
+            // Serve each request on a worker so a slow call (a long wait-for, a deep query) doesn't block
+            // accepting or serving other requests (#113). Each context owns its own response stream, so no
+            // cross-request correlation is needed.
+            _ = Task.Run(() => HandleHttp(context));
         }
     }
 

@@ -390,6 +390,12 @@ Agent tool calls follow a simple contract so one slow call never stalls the othe
   synchronously, on the UI thread (`CommandInvoker.ExecuteNext`) — this contract governs only the agent
   (MCP) tools.
 
+Both MCP transports honor this by dispatching each request on a worker: the HTTP floor serves every
+`POST` on a thread-pool task, and the stdio loop dispatches each line concurrently (writes are serialized;
+JSON-RPC responses carry the request `id`, so out-of-order completion is fine). So a slow call from one
+client/session never blocks another's requests — not just callers that invoke `Dispatch` on their own
+threads.
+
 ## HTTP floor
 
 When `McpServerEnabled = true`, MCEC also accepts a single JSON-RPC request per `POST`
