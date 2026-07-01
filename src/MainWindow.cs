@@ -26,12 +26,12 @@ public partial class MainWindow : Form {
     private static readonly Lazy<MainWindow> _lazy = new(() => new MainWindow());
     public static MainWindow Instance { get { return _lazy.Value; } }
 
-    public SocketServer Server { get; private set; } = null!;
-    public SocketClient Client { get; private set; } = null!;
-    public SerialServer SerialServer { get; private set; } = null!;
+    public SocketServer? Server { get; private set; }
+    public SocketClient? Client { get; private set; }
+    public SerialServer? SerialServer { get; private set; }
     public CommandInvoker Invoker { get; set; } = null!;
-    private CommandWindow cmdWindow = null!;
-    private CommandFileWatcher watcher = null!;
+    private CommandWindow? cmdWindow;
+    private CommandFileWatcher? watcher;
 
     // The on-screen command overlay (#119), when enabled. Null in headless mode or when disabled.
     private CommandOverlayWindow? commandOverlay;
@@ -146,7 +146,7 @@ public partial class MainWindow : Form {
         LoadCommands();
         // watch .command file for changes
         watcher = new CommandFileWatcher($@"{Program.ConfigPath}mcec.commands");
-        watcher.ChangedEvent += (o, a) => CmdTable_CommandsChangedEvent(o!, a);
+        watcher!.ChangedEvent += (o, a) => CmdTable_CommandsChangedEvent(o!, a);
 
         if (Settings.HideOnStartup) {
             Opacity = 0;
@@ -203,8 +203,8 @@ public partial class MainWindow : Form {
 
     private void CmdTable_CommandsChangedEvent(object sender, EventArgs e) {
 
-        if (cmdWindow.InvokeRequired) {
-            cmdWindow.BeginInvoke((Action)(() => { CmdTable_CommandsChangedEvent(sender, e); }));
+        if (cmdWindow!.InvokeRequired) {
+            cmdWindow!.BeginInvoke((Action)(() => { CmdTable_CommandsChangedEvent(sender, e); }));
         }
         else {
             LoadCommands();
@@ -222,7 +222,7 @@ public partial class MainWindow : Form {
             notifyIcon.Visible = false;
         }
         else {
-            cmdWindow.RefreshList();
+            cmdWindow!.RefreshList();
             Logger.Instance.Log4.Info($"CommandInvoker: {Invoker.Values.Cast<Command>().Count(cmd => (cmd.Enabled))} " +
                 $"commands enabled ({Invoker.Values.Cast<Command>().Count(cmd => (!cmd.Enabled))} commands disabled).");
         }
@@ -243,8 +243,8 @@ public partial class MainWindow : Form {
             Logger.Instance.Log4.Info("Closing Main Window...");
             // Save Commands
             // Stop file system watcher
-            watcher.Dispose();
-            watcher = null!;
+            watcher!.Dispose();
+            watcher = null;
 
             // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
             //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
@@ -334,8 +334,8 @@ public partial class MainWindow : Form {
         if (Server == null) {
             Logger.Instance.Log4.Info("Server: Starting...");
             Server = new SocketServer();
-            Server.Notifications += serverSocketCallbackHandler;
-            Server.Start(Settings.ServerPort);
+            Server!.Notifications += serverSocketCallbackHandler;
+            Server!.Start(Settings.ServerPort);
             sendAwakeMenuItem.Enabled = Settings.WakeupEnabled;
         }
         else {
@@ -348,7 +348,7 @@ public partial class MainWindow : Form {
             Logger.Instance.Log4.Info("Server: Stopping...");
             // remove our notification handler
             Server.Stop();
-            Server = null!;
+            Server = null;
             sendAwakeMenuItem.Enabled = false;
         }
     }
@@ -366,8 +366,8 @@ public partial class MainWindow : Form {
         if (SerialServer == null) {
             Logger.Instance.Log4.Info("Serial: Starting...");
             SerialServer = new SerialServer();
-            SerialServer.Notifications += HandleSerialServerNotifications;
-            SerialServer.Start(Settings.SerialServerPortName,
+            SerialServer!.Notifications += HandleSerialServerNotifications;
+            SerialServer!.Start(Settings.SerialServerPortName,
                 Settings.SerialServerBaudRate,
                 Settings.SerialServerParity,
                 Settings.SerialServerDataBits,
@@ -384,7 +384,7 @@ public partial class MainWindow : Form {
             Logger.Instance.Log4.Info("Serial: Stopping...");
             // remove our notification handler
             SerialServer.Stop();
-            SerialServer = null!;
+            SerialServer = null;
         }
     }
 
@@ -393,8 +393,8 @@ public partial class MainWindow : Form {
             if (Client == null) {
                 Logger.Instance.Log4.Info($"Client: Starting (delay = {delay})");
                 Client = new SocketClient(Settings);
-                Client.Notifications += clientSocketNotificationHandler;
-                Client.Start(delay);
+                Client!.Notifications += clientSocketNotificationHandler;
+                Client!.Start(delay);
             }
         }
         else {
@@ -405,10 +405,10 @@ public partial class MainWindow : Form {
 
     private void StopClient() {
         if (Client != null) {
-            cmdWindow.Visible = false;
+            cmdWindow!.Visible = false;
             Logger.Instance.Log4.Info("Client: Stopping...");
             Client.Stop();
-            Client = null!;
+            Client = null;
         }
     }
 
@@ -443,7 +443,7 @@ public partial class MainWindow : Form {
             this.BeginInvoke((MethodInvoker)delegate () { ShowCommandWindow(); });
         }
         else {
-            cmdWindow.Visible = Settings.ShowCommandWindow = true;
+            cmdWindow!.Visible = Settings.ShowCommandWindow = true;
         }
     }
 
@@ -453,7 +453,7 @@ public partial class MainWindow : Form {
             this.BeginInvoke((MethodInvoker)delegate () { HideCommandWindow(); });
         }
         else {
-            Settings.ShowCommandWindow = cmdWindow.Visible = false;
+            Settings.ShowCommandWindow = cmdWindow!.Visible = false;
         }
     }
 
@@ -674,7 +674,7 @@ public partial class MainWindow : Form {
                 s = $"Started on port {Settings.ServerPort}";
                 //SetStatus(s);
                 if (Settings.WakeupEnabled) {
-                    Server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
+                    Server!.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
                         Settings.WakeupPort);
                 }
 
@@ -692,7 +692,7 @@ public partial class MainWindow : Form {
                 s = "Stopped";
                 //SetStatus("Client/Sever Not Active");
                 if (Settings.WakeupEnabled) {
-                    Server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost,
+                    Server!.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost,
                         Settings.WakeupPort);
                 }
 
@@ -843,7 +843,7 @@ public partial class MainWindow : Form {
     private void sendAwakeMenuItem_Click(object sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("sendAwakeMenuItem");
 
-        Server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
+        Server!.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
     }
 
     private void commandsMenuItem_Click(object sender, EventArgs e) {
