@@ -39,6 +39,13 @@ in sync. In short:
 >    (absolute screen pixels; pause briefly between moves). Re-`query` after — bounds have moved.
 > 4. **Verify** with another `query`/`capture`.
 >
+> **Compose creatively.** Many tasks have no single dedicated tool — build them from primitives. Launch an
+> app with `send_command winr` → `chars:<path>` → `enter` (then `query {foreground}` for its handle);
+> drag/resize/move with `mouse:lbd` → a path of `mouse:mt` → `mouse:lbu`; switch a tab by `query`ing its
+> bounds and clicking the centre; record a window by passing its `query`'d bounds as the `record` region;
+> wait for a window by polling `query`. A capable agent uses the *full* command set — reach for a raw
+> `send_command` before concluding something can't be done.
+>
 > **Overlay:** MCEC may show a small on-screen overlay (default on) that narrates each command as it runs,
 > so the operator sees MCEC is driving. It is excluded from `query`/`find`/`capture`/UIA targeting — you
 > never see or target it — but it **does** appear in full-screen/region `capture`s and `record`ings (not

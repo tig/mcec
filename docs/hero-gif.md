@@ -33,15 +33,18 @@ It is the executable form of these decisions — replicate them if reproducing b
    `CommandOverlayEnabled=true`, and `CommandOverlayPosition=Left`; the driver POSTs JSON-RPC tool calls
    to `http://127.0.0.1:5151/mcp`.
 2. **Separate, isolated subject copy.** The controlled MCEC is a *copy* of the build in
-   `%TEMP%\mcec-hero-subject`, launched from there so it reads its own co-located `mcec.settings`
-   (`Program.ConfigPath` == the exe's folder) — isolated from the controller and your installed MCEC. Its
-   config sets `ActAsServer=false` (else it binds `IPAddress.Any:5150` and triggers the first-run Windows
-   Firewall prompt that steals focus and derails the tour), `DisableUpdatePopup=true`, turns its **own
-   overlay off** (`CommandOverlayEnabled=false` — only the controller narrates), and **pins**
-   `WindowLocation`/`WindowSize`.
-3. **Target the subject by handle.** The controller now also has an "MCEC"-titled window, so a title match
-   is ambiguous; the script drives the subject's main window by **handle** (`query`/`capture` `{ handle }`)
-   and the modal dialogs by their unambiguous titles (`Settings`, `About`).
+   `%TEMP%\mcec-hero-subject` so it reads its own co-located `mcec.settings` (`Program.ConfigPath` == the
+   exe's folder) — isolated from the controller and your installed MCEC. Its config sets `ActAsServer=false`
+   (else it binds `IPAddress.Any:5150` and triggers the first-run Windows Firewall prompt that steals focus
+   and derails the tour), `DisableUpdatePopup=true`, turns its **own overlay off**
+   (`CommandOverlayEnabled=false` — only the controller narrates), and **pins** `WindowLocation`/`WindowSize`.
+3. **Launch it the way an agent would — Win+R, not `Start-Process`.** Dogfooding the composition principle
+   in [Toward script-free recreation](#toward-script-free-recreation): the controller opens the **Win+R**
+   Run dialog and types the subject's path (`winr` → `chars:<path>` → `enter`) via `send_command`, rather
+   than an OS launch API. (`chars:` interprets C-style escapes, so the path's backslashes are doubled.) The
+   freshly-launched window is foreground, so `query { foreground:true }` yields its **handle**; the script
+   then drives the subject by handle (its "MCEC" title is ambiguous with the controller) and the modal
+   dialogs by their unambiguous titles (`Settings`, `About`).
 4. **Overlay docked Left over a wide window → compact capture.** With the overlay on the left of the wide,
    pinned, left-docked subject window, the recorded region is **just the window** — compact, no wallpaper —
    yet still contains the narration. The Settings/About dialogs are `CenterParent`, so they sit to the
@@ -59,6 +62,7 @@ by its `handle`):
 
 | Step | Tool call |
 |------|-----------|
+| Launch | `send_command winr` → `send_command "chars:<path>"` (backslashes doubled) → `send_command enter` → `query { foreground:true }` for the new window's `handle` |
 | Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:560 }` (region = the subject window's pinned rect) |
 | Settings | click **File** → send `S` → `query` the **Settings** window → click each tab header's rect (`mouse:mt,…` + `mouse:lbc`) in turn → `Esc` |
 | Resize | drag the bottom-right sizing border inward: `mouse:mt` to the corner → `mouse:lbd` → a few `mouse:mt` moves → `mouse:lbu` |
@@ -95,7 +99,7 @@ Everything else is **already composable today** — the issues just make the pat
 
 | Step | Already composable today via | Enhancement (issue) |
 |---|---|---|
-| Launch the subject | Win+R: `send_command winr` → `chars:<path>` → `enter`, then `query { foreground:true }` for its handle | direct gated launch that returns the handle — robustness (#126) |
+| Launch the subject **(the hero already does this)** | Win+R: `send_command winr` → `chars:<path>` → `enter`, then `query { foreground:true }` for its handle | direct gated launch that returns the handle — robustness (#126) |
 | Drag: resize border / title-bar circles | `mouse:lbd` → a path of `mouse:mt` → `mouse:lbu` (all existing commands) | first-class `drag` (#123); or window `move`/`resize` with an `animate` mode that still *looks* dragged (#124) |
 | Switch Settings tabs | `query` the tab's bounds → `mouse` click its center | `select` / SelectionItem action (#125) |
 | Record the window | `query` its bounds → `record { x, y, width, height }` | `record { handle }`, optionally following the window (#127) |
