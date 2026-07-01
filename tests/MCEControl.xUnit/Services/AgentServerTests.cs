@@ -169,6 +169,61 @@ public class AgentServerTests {
     }
 
     [Fact]
+    public void Dispatch_Drag_IncompletePixelEndpoint_ReportsBadArguments() {
+        // Regression: an endpoint with x but no y (or neither value nor coords) must be rejected, not
+        // silently turned into (x, 0) and dragged — this tool generates real mouse input.
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        try {
+            JsonObject prms = new() {
+                ["name"] = "drag",
+                ["arguments"] = new JsonObject {
+                    ["from"] = new JsonObject { ["x"] = 300 }, // missing y
+                    ["to"] = new JsonObject { ["x"] = 400, ["y"] = 400 },
+                },
+            };
+
+            JsonObject resp = AgentServer.Dispatch(Request(6, "tools/call", prms))!;
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
+
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            Assert.Equal("bad-arguments", envelope["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_Drag_CompleteEndpoints_PassValidation() {
+        // A well-formed drag (element + pixel endpoints) must get PAST argument validation. With no
+        // Invoker wired in the test host it stops at the per-command enable gate — not bad-arguments —
+        // which proves validation accepted the endpoints.
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = null;
+        try {
+            JsonObject prms = new() {
+                ["name"] = "drag",
+                ["arguments"] = new JsonObject {
+                    ["window"] = "Whatever",
+                    ["from"] = new JsonObject { ["by"] = "name", ["value"] = "Slider" },
+                    ["to"] = new JsonObject { ["x"] = 400, ["y"] = 400 },
+                },
+            };
+
+            JsonObject resp = AgentServer.Dispatch(Request(7, "tools/call", prms))!;
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
+
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            Assert.NotEqual("bad-arguments", envelope["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
     public void InvokeFindTimeout_StaysBelowModalGrace_SoMissesAreNotReportedAsPendingModals() {
         // #107: invoke runs on a worker and is declared "modal pending" if it outlives the grace. If the
         // element lookup could take longer than the grace, an ordinary lookup miss (misspelled name, menu

@@ -47,6 +47,7 @@ public abstract class Command : ICommand {
     [XmlElement("query", typeof(QueryCommand))]
     [XmlElement("find", typeof(FindCommand))]
     [XmlElement("invoke", typeof(InvokeCommand))]
+    [XmlElement("drag", typeof(DragCommand))]
     [XmlElement("record", typeof(RecordCommand))]
     [XmlElement(typeof(Command))]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]

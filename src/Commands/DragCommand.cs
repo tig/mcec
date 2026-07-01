@@ -18,21 +18,24 @@ namespace MCEControl;
 /// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited. Disabled by default (security).
 /// </summary>
 public class DragCommand : Command {
+    // NOTE: attribute names MUST be all-lowercase. SerializedCommands.Deserialize runs an XSLT that
+    // lower-cases every element/attribute name before deserializing, so a camelCase name (e.g. "fromValue")
+    // would never bind on load and the value would be silently lost.
     [XmlAttribute("window")] public string Window { get; set; } = null!;
     [XmlAttribute("handle")] public long Handle { get; set; }
     [XmlAttribute("process")] public string Process { get; set; } = null!;
-    [XmlAttribute("className")] public string ClassName { get; set; } = null!;
+    [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
     [XmlAttribute("foreground")] public bool Foreground { get; set; }
 
-    [XmlAttribute("fromBy")] public string FromBy { get; set; } = "name";
-    [XmlAttribute("fromValue")] public string FromValue { get; set; } = null!;
-    [XmlAttribute("fromX")] public int FromX { get; set; }
-    [XmlAttribute("fromY")] public int FromY { get; set; }
+    [XmlAttribute("fromby")] public string FromBy { get; set; } = "name";
+    [XmlAttribute("fromvalue")] public string FromValue { get; set; } = null!;
+    [XmlAttribute("fromx")] public int FromX { get; set; }
+    [XmlAttribute("fromy")] public int FromY { get; set; }
 
-    [XmlAttribute("toBy")] public string ToBy { get; set; } = "name";
-    [XmlAttribute("toValue")] public string ToValue { get; set; } = null!;
-    [XmlAttribute("toX")] public int ToX { get; set; }
-    [XmlAttribute("toY")] public int ToY { get; set; }
+    [XmlAttribute("toby")] public string ToBy { get; set; } = "name";
+    [XmlAttribute("tovalue")] public string ToValue { get; set; } = null!;
+    [XmlAttribute("tox")] public int ToX { get; set; }
+    [XmlAttribute("toy")] public int ToY { get; set; }
 
     /// <summary>Optional intermediate waypoints as <c>x,y;x,y;...</c> in absolute screen pixels.</summary>
     [XmlAttribute("path")] public string PathSpec { get; set; } = null!;

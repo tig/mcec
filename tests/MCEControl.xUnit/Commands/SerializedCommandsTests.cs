@@ -116,6 +116,38 @@ public class SerializedCommandsTests
     }
 
     [Fact]
+    public void SaveLoad_RoundTrip_DragCommand_TopLevel()
+    {
+        // Regression: DragCommand is a built-in, so a real command table contains one and Save() must be
+        // able to serialize it. That only works if the type is in the XmlArrayItem/XmlElement known-type
+        // lists (like every other agent command). Without the registration this throws at Save.
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
+
+        var original = new SerializedCommands
+        {
+            commandArray =
+            [
+                new DragCommand() { Cmd = "drag", FromValue = "Volume", ToX = 300, ToY = 120, PathSpec = "10,10;20,20", Enabled = true }
+            ]
+        };
+
+        SerializedCommands.SaveCommands(tempFile, original, "1.0.0.0");
+        var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
+
+        Assert.NotNull(loaded);
+        var drag = Assert.Single(loaded.commandArray) as DragCommand;
+        Assert.NotNull(drag);
+        Assert.Equal("drag", drag.Cmd);
+        Assert.Equal("Volume", drag.FromValue);
+        Assert.Equal(300, drag.ToX);
+        Assert.Equal("10,10;20,20", drag.PathSpec);
+        Assert.True(drag.Enabled);
+
+        File.Delete(tempFile);
+    }
+
+    [Fact]
     public void LoadCommands_NonExistentFile_ReturnsNull()
     {
         string tempFile = Path.GetTempFileName();

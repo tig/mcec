@@ -80,6 +80,24 @@ public class MouseCommandTests
     }
 
     [Fact]
+    public void InterpolatePath_CapsPointsEvenWithManyTinyWaypoints()
+    {
+        // Regression: a caller passing more waypoints than maxPoints (each 1px apart) must still be
+        // capped — otherwise the drag holds ExecLock and keeps the button down for path.Count*dwell.
+        List<(int X, int Y)> waypoints = [];
+        for (int i = 0; i <= 500; i++)
+        {
+            waypoints.Add((i, 0));
+        }
+
+        List<(int X, int Y)> path = MouseCommand.InterpolatePath(waypoints, stepPx: 1, maxPoints: 400);
+
+        Assert.True(path.Count <= 400, $"expected <= 400 points, got {path.Count}");
+        // The destination is still honored so the drag releases at the intended endpoint.
+        Assert.Equal((500, 0), path[^1]);
+    }
+
+    [Fact]
     public void PixelToVirtualDesktopNormalized_MapsCornersAndClamps()
     {
         // A screen whose width-1/height-1 is exactly 65535 makes pixels map 1:1 to normalized units.

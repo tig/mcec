@@ -244,12 +244,23 @@ public class MouseCommand : Command {
         int budget = Math.Max(1, maxPoints - 1);
         int effStep = Math.Max(Math.Max(1, stepPx), (int)Math.Ceiling(total / budget));
 
+        // Hard ceiling on emitted points. effStep bounds the count for long segments, but a caller can
+        // still pass MORE waypoints than maxPoints (each forces at least one point), so enforce the cap
+        // directly. maxPoints must leave room for the starting point and the guaranteed destination.
+        int cap = Math.Max(2, maxPoints);
+        bool capped = false;
+
         path.Add(waypoints[0]);
-        for (int i = 1; i < waypoints.Count; i++) {
+        for (int i = 1; i < waypoints.Count && !capped; i++) {
             (int X, int Y) a = waypoints[i - 1];
             (int X, int Y) b = waypoints[i];
             int segSteps = Math.Max(1, (int)Math.Ceiling(Distance(a, b) / effStep));
             for (int s = 1; s <= segSteps; s++) {
+                // Stop before the last slot so we can always append the true destination below.
+                if (path.Count >= cap - 1) {
+                    capped = true;
+                    break;
+                }
                 double t = (double)s / segSteps;
                 (int X, int Y) p = (
                     (int)Math.Round(a.X + (b.X - a.X) * t),
@@ -258,6 +269,13 @@ public class MouseCommand : Command {
                     path.Add(p);
                 }
             }
+        }
+
+        // Guarantee the gesture ends exactly at the caller's final waypoint, even when the cap cut the
+        // path short — the button must release at the intended destination, not wherever we stopped.
+        (int X, int Y) dest = waypoints[^1];
+        if (path[^1] != dest) {
+            path.Add(dest);
         }
         return path;
     }

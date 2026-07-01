@@ -289,10 +289,36 @@ public static class AgentServer {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
             }
+            // `drag` generates real mouse input from its from/to endpoints, and a missing pixel field would
+            // otherwise default to 0 and drag from a bogus coordinate. Reject an ill-formed endpoint up
+            // front rather than actuating it.
+            if (name == "drag" && DragArgsError(args) is string dragError) {
+                return ToolError(dragError, "bad-arguments");
+            }
             return RunAgentCommand(name, args);
         }
 
         return ToolError($"Unknown tool: {name}", "unknown-tool");
+    }
+
+    /// <summary>
+    /// Validates the <c>drag</c> tool's <c>from</c>/<c>to</c> arguments: each must be an object that is
+    /// EITHER an element (<c>value</c> set) OR a full pixel (<c>x</c> and <c>y</c> both present). Returns
+    /// a human-readable error, or <c>null</c> when both endpoints are well-formed.
+    /// </summary>
+    private static string? DragArgsError(JsonObject args) {
+        foreach (string key in (string[])["from", "to"]) {
+            if (args[key] is not JsonObject endpoint) {
+                return $"drag '{key}' must be an object: an element {{ by?, value }} or a pixel {{ x, y }}.";
+            }
+            bool hasElement = !string.IsNullOrEmpty(Str(endpoint, "value"));
+            bool hasX = endpoint["x"] is JsonValue vx && vx.TryGetValue(out int _);
+            bool hasY = endpoint["y"] is JsonValue vy && vy.TryGetValue(out int _);
+            if (!hasElement && !(hasX && hasY)) {
+                return $"drag '{key}' needs an element 'value' or both 'x' and 'y' pixel coordinates.";
+            }
+        }
+        return null;
     }
 
     private static JsonObject RunAgentCommand(string name, JsonObject args) {
