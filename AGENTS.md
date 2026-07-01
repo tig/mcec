@@ -38,6 +38,11 @@ in sync. In short:
 >    `mouse:mt,x,y` to the start, `mouse:lbd`, a stream of `mouse:mt,x,y` along the path, then `mouse:lbu`
 >    (absolute screen pixels; pause briefly between moves). Re-`query` after — bounds have moved.
 > 4. **Verify** with another `query`/`capture`.
+>
+> **Overlay:** MCEC may show a small on-screen overlay (default on) that narrates each command as it runs,
+> so the operator sees MCEC is driving. It is excluded from `query`/`find`/`capture`/UIA targeting — you
+> never see or target it — but it **does** appear in full-screen/region `capture`s and `record`ings (not
+> in window-targeted captures).
 
 ## Security (do not regress)
 
