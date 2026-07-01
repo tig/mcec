@@ -115,9 +115,10 @@ public static class AgentServer {
         "raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are " +
         "non-fatal; errorCategory tells you how to recover.\n" +
         "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
-        "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
+        "expand|collapse|select) over coordinate clicks — it is far more reliable. To click a menu item, first " +
         "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
-        "until opened), then `invoke` the item. Invoking a control that opens a MODAL dialog (About, " +
+        "until opened), then `invoke` the item. Use `select` for TabItem/ListItem/RadioButton (SelectionItem pattern). " +
+        "Invoking a control that opens a MODAL dialog (About, " +
         "Settings, message/file dialogs) returns promptly with `modalPending:true` — the action " +
         "completes when the dialog closes — so just `query`/`capture` the new window to read it, and " +
         "`invoke` its buttons to dismiss it. `invoke` does NOT wait for a control — it fast-fails if the " +
@@ -143,16 +144,15 @@ public static class AgentServer {
         "`stale-element` means re-`query`/`find` for a fresh handle. `error.detail` is human-readable and " +
         "`error.lastObservation`, when present, is the last good state before the failure.\n" +
         "COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. " +
-        "Launch an app with `send_command winr` then `chars:<path>` then `enter` (the new window is " +
-        "foreground: `query {foreground}` for its handle). Drag/resize/move by `send_command mouse:lbd` → a " +
-        "path of `mouse:mt` → `mouse:lbu`. Switch a tab/list item by `query`ing its bounds and clicking its " +
-        "centre. Record a window by `query`ing its bounds and passing them as the `record` region. Wait for " +
+        "Launch an app with the `launch` tool (preferred). Use `invoke { action: \"select\" }` for TabItem/ListItem/RadioButton. " +
+        "Drag/resize/move by `send_command mouse:lbd` → a path of `mouse:mt` → `mouse:lbu`. Switch a tab/list item by `invoke` with select or `query`+click. " +
+        "Record a window by `query`ing its bounds and passing them as the `record` region. Wait for " +
         "a window by polling `query` until it appears. Reach for a raw `send_command` before giving up.\n" +
         "OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run " +
         "so the operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/" +
         "UIA targeting — you will never see or target it, and it is never a candidate window — but it DOES " +
         "appear in full-screen/region `capture`s and `record`ings (not in window-targeted captures).\n" +
-        "SECURITY: observation tools (capture/query/find/invoke/record) only work when the operator has set " +
+        "SECURITY: observation/actuation tools (capture/query/find/invoke/record/launch/drag) only work when the operator has set " +
         "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
         "than retrying. Every action is audit-logged on the host.";
 
@@ -222,10 +222,10 @@ public static class AgentServer {
         JsonObject invokeProps = WindowTargetProps();
         invokeProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
         invokeProps["value"] = PropSchema("string", "Value to match");
-        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse (default invoke). Use expand to open a menu before invoking its items.");
+        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse | select (default invoke). Use expand to open a menu before invoking its items; use select for TabItem, ListItem, RadioButton etc.");
         invokeProps["text"] = PropSchema("string", "Text for the setvalue action");
         tools.Add(Tool("invoke",
-            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus) — more reliable than coordinate clicks.",
+            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus/Expand/Collapse/Select) — more reliable than coordinate clicks. Use 'select' for tabs, list items, radios (SelectionItem pattern).",
             invokeProps, ["value"]));
 
         JsonObject dragProps = WindowTargetProps();
