@@ -142,6 +142,12 @@ public static class AgentServer {
         "discover targets, `ambiguous-selector` means add `processName`/`className`/`automationId`, " +
         "`stale-element` means re-`query`/`find` for a fresh handle. `error.detail` is human-readable and " +
         "`error.lastObservation`, when present, is the last good state before the failure.\n" +
+        "COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. " +
+        "Launch an app with `send_command winr` then `chars:<path>` then `enter` (the new window is " +
+        "foreground: `query {foreground}` for its handle). Drag/resize/move by `send_command mouse:lbd` → a " +
+        "path of `mouse:mt` → `mouse:lbu`. Switch a tab/list item by `query`ing its bounds and clicking its " +
+        "centre. Record a window by `query`ing its bounds and passing them as the `record` region. Wait for " +
+        "a window by polling `query` until it appears. Reach for a raw `send_command` before giving up.\n" +
         "OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run " +
         "so the operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/" +
         "UIA targeting — you will never see or target it, and it is never a candidate window — but it DOES " +
