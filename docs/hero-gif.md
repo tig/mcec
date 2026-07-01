@@ -33,15 +33,18 @@ It is the executable form of these decisions — replicate them if reproducing b
    `CommandOverlayEnabled=true`, and `CommandOverlayPosition=Left`; the driver POSTs JSON-RPC tool calls
    to `http://127.0.0.1:5151/mcp`.
 2. **Separate, isolated subject copy.** The controlled MCEC is a *copy* of the build in
-   `%TEMP%\mcec-hero-subject`, launched from there so it reads its own co-located `mcec.settings`
-   (`Program.ConfigPath` == the exe's folder) — isolated from the controller and your installed MCEC. Its
-   config sets `ActAsServer=false` (else it binds `IPAddress.Any:5150` and triggers the first-run Windows
-   Firewall prompt that steals focus and derails the tour), `DisableUpdatePopup=true`, turns its **own
-   overlay off** (`CommandOverlayEnabled=false` — only the controller narrates), and **pins**
-   `WindowLocation`/`WindowSize`.
-3. **Target the subject by handle.** The controller now also has an "MCEC"-titled window, so a title match
-   is ambiguous; the script drives the subject's main window by **handle** (`query`/`capture` `{ handle }`)
-   and the modal dialogs by their unambiguous titles (`Settings`, `About`).
+   `%TEMP%\mcec-hero-subject` so it reads its own co-located `mcec.settings` (`Program.ConfigPath` == the
+   exe's folder) — isolated from the controller and your installed MCEC. Its config sets `ActAsServer=false`
+   (else it binds `IPAddress.Any:5150` and triggers the first-run Windows Firewall prompt that steals focus
+   and derails the tour), `DisableUpdatePopup=true`, turns its **own overlay off**
+   (`CommandOverlayEnabled=false` — only the controller narrates), and **pins** `WindowLocation`/`WindowSize`.
+3. **Launch it the way an agent would — Win+R, not `Start-Process`.** Dogfooding the composition principle
+   in [Toward script-free recreation](#toward-script-free-recreation): the controller opens the **Win+R**
+   Run dialog and types the subject's path (`winr` → `chars:<path>` → `enter`) via `send_command`, rather
+   than an OS launch API. (`chars:` interprets C-style escapes, so the path's backslashes are doubled.) The
+   freshly-launched window is foreground, so `query { foreground:true }` yields its **handle**; the script
+   then drives the subject by handle (its "MCEC" title is ambiguous with the controller) and the modal
+   dialogs by their unambiguous titles (`Settings`, `About`).
 4. **Overlay docked Left over a wide window → compact capture.** With the overlay on the left of the wide,
    pinned, left-docked subject window, the recorded region is **just the window** — compact, no wallpaper —
    yet still contains the narration. The Settings/About dialogs are `CenterParent`, so they sit to the
@@ -59,6 +62,7 @@ by its `handle`):
 
 | Step | Tool call |
 |------|-----------|
+| Launch | `send_command winr` → `send_command "chars:<path>"` (backslashes doubled) → `send_command enter` → `query { foreground:true }` for the new window's `handle` |
 | Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:560 }` (region = the subject window's pinned rect) |
 | Settings | click **File** → send `S` → `query` the **Settings** window → click each tab header's rect (`mouse:mt,…` + `mouse:lbc`) in turn → `Esc` |
 | Resize | drag the bottom-right sizing border inward: `mouse:mt` to the corner → `mouse:lbd` → a few `mouse:mt` moves → `mouse:lbu` |
@@ -74,25 +78,37 @@ per-step dwell `Start-Sleep`s; to make it richer, raise them.
 
 ## Toward script-free recreation
 
-The point of MCEC is that an **agent** drives complex GUI tasks easily — so the goal is that an agent
-reads *this file* and recreates the hero with **nothing but `mcec.exe`**, no `.ps1`. The script is a
-stopgap for the steps MCEC can't yet express as agent tool calls. What it does outside the agent
-surface, and the capability that would remove each (tracking issues):
+A key aspect of MCEC is that a capable **agent composes the full command set creatively** — so the right
+question isn't "can an agent recreate the hero?" but "how *robustly*?" The honest answer: **an agent can
+already recreate almost all of this today with nothing but `mcec.exe`**, by combining existing primitives.
+The `.ps1` reaches outside MCEC mainly for **determinism and convenience**, not because MCEC can't express
+the step. The tracking issues below are about turning common compositions into first-class, robust actions
+— not about unlocking the impossible.
 
-| Script does (not via MCEC) | Needed capability | Issue |
+**The one genuine primitive gap — the keystone (#122).** `query` reports control bounds in **pixels**,
+but `mouse:mt` wants **normalized** 0–65535 coordinates, and there is no clean way to read the screen
+geometry to bridge them; the script uses `GetSystemMetrics` for that. Give MCEC a **`displays`/geometry
+query** (or pixel-/element-relative mouse targeting) and every mouse step below becomes composable from
+commands that already exist.
+
+**One bug, not a missing capability (#128).** Invoking a menu item that opens a **modal** wedges later UIA
+queries of that dialog, so the tour opens Settings with a keystroke (`key_s`) rather than `invoke`. Fixing
+it makes menu navigation fully `invoke`-based. (Meanwhile the keystroke *is* a valid creative composition.)
+
+Everything else is **already composable today** — the issues just make the pattern first-class/robust:
+
+| Step | Already composable today via | Enhancement (issue) |
 |---|---|---|
-| `GetSystemMetrics`/`SetProcessDPIAware`, then normalizes every pixel to `mouse:mt`'s 0–65535 space | pixel-/element-relative mouse targeting + a `displays` query (the keystone — `query` gives pixels, `mouse` wants normalized) | #122 |
-| `mouse:lbd` + a stream of `mouse:mt` + `mouse:lbu` for the resize and the circular move | a first-class `drag` action | #123 |
-| Resize 25% / move by dragging the chrome; pins `WindowLocation`/`WindowSize`; `Shell.MinimizeAll()` | window-management actions (move/resize/min/max/foreground; clean-desktop) | #124 |
-| Clicks each Settings tab header by computed pixel center | a `select` action (SelectionItem) — `invoke` is a no-op on tabs | #125 |
-| `Start-Process` to launch the subject | a gated launch action | #126 |
-| Computes a fixed `{x,y,w,h}` record region | `record { handle }`, optionally following the window | #127 |
-| Polls `query` for the subject window / Settings dialog to appear | wait-for-**window** predicate | #112 |
+| Launch the subject **(the hero already does this)** | Win+R: `send_command winr` → `chars:<path>` → `enter`, then `query { foreground:true }` for its handle | direct gated launch that returns the handle — robustness (#126) |
+| Drag: resize border / title-bar circles | `mouse:lbd` → a path of `mouse:mt` → `mouse:lbu` (all existing commands) | first-class `drag` (#123); or window `move`/`resize` with an `animate` mode that still *looks* dragged (#124) |
+| Switch Settings tabs | `query` the tab's bounds → `mouse` click its center | `select` / SelectionItem action (#125) |
+| Record the window | `query` its bounds → `record { x, y, width, height }` | `record { handle }`, optionally following the window (#127) |
+| Wait for a window/dialog | poll `query` until it appears | first-class wait-for-**window** predicate (#112) |
 
-Menus **are** already script-free in principle (`invoke … action:expand` then `invoke` the item), but
-the tour still opens Settings with a keystroke because invoking a menu item that opens a **modal**
-dialog currently wedges later UIA queries of that dialog (#128) — needed here to read the tab bounds.
+Every mouse row above still depends on the keystone (#122) for pixel→normalized conversion; give MCEC the
+geometry query and the compositions in the middle column work as written.
 
-Deliberately **out of scope** for the agent: provisioning the isolated subject and enabling the
-actuation gates (`AgentCommandsEnabled`, per-command `Enabled`). An agent enabling its own input would
-defeat the security model, so an operator does that first; the agent's recipe begins after.
+Deliberately **out of scope** for the agent: provisioning the isolated subject (copy + config) and
+enabling the actuation gates (`AgentCommandsEnabled`, per-command `Enabled`, and the overlay settings). An
+agent enabling its own input would defeat the security model, so an operator does that first; the agent's
+recipe begins after.

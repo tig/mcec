@@ -111,6 +111,8 @@ Set-Content -Encoding UTF8 -Path $ctrlCommands -Value @'
   <sendinput Cmd="key_s" Vk="s" Enabled="true" />
   <sendinput Cmd="key_esc" Vk="VK_ESCAPE" Enabled="true" />
   <sendinput Cmd="enter" Vk="VK_RETURN" Enabled="true" />
+  <sendinput Cmd="winr" Vk="r" Win="true" Enabled="true" />
+  <chars   Cmd="chars:" Enabled="true" />
 </Commands>
 </MCEController>
 '@
@@ -149,6 +151,10 @@ function TreeOf($resp) {
   foreach ($b in $resp.result.content) { if ($b.type -eq 'text') { try { return ($b.text | ConvertFrom-Json).result.tree } catch { return $null } } }
   return $null
 }
+function WindowOf($resp) {
+  foreach ($b in $resp.result.content) { if ($b.type -eq 'text') { try { return ($b.text | ConvertFrom-Json).result.window } catch { return $null } } }
+  return $null
+}
 function QueryH([long]$handle, [int]$depth = 5) { TreeOf (Tool 'query' @{ handle = $handle; maxDepth = $depth }) }
 function QueryW([string]$window, [int]$depth = 5) { TreeOf (Tool 'query' @{ window = $window; maxDepth = $depth }) }
 
@@ -167,11 +173,21 @@ try {
   (New-Object -ComObject Shell.Application).MinimizeAll()
   Start-Sleep -Milliseconds 800
 
-  # Subject: launch the isolated copy and wait for its window handle, then for its UIA menu bar.
-  $subject = Start-Process -FilePath $subjectExe -WorkingDirectory $subjectDir -PassThru
+  # Subject: launch the isolated copy the way an agent would with only mcec.exe — the Win+R Run dialog,
+  # NOT Start-Process (dogfooding "compose primitives": see docs/hero-gif.md). Win+R -> type the exe path
+  # -> Enter. The freshly-launched window is foreground, so `query { foreground:true }` hands back its
+  # handle; drive by handle thereafter (its "MCEC" title is ambiguous with the controller).
+  Cmd 'winr';                                       Start-Sleep -Milliseconds 1300
+  # `chars:` interprets C-style escapes, so double the path's backslashes (\ -> \\) or `\U`/`\T` fail.
+  Cmd ("chars:" + $subjectExe.Replace('\', '\\'));  Start-Sleep -Milliseconds 900
+  Cmd 'enter'
   $hsub = 0
-  for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Milliseconds 500; $subject.Refresh(); if ($subject.MainWindowHandle -ne 0) { $hsub = $subject.MainWindowHandle.ToInt64(); break } }
-  if ($hsub -eq 0) { throw 'subject MCEC window never appeared' }
+  for ($i = 0; $i -lt 30; $i++) {
+    Start-Sleep -Milliseconds 600
+    $w = WindowOf (Tool 'query' @{ foreground = $true; maxDepth = 1 })
+    if ($w -and $w.title -eq 'MCEC' -and $w.handle) { $hsub = [long]$w.handle; break }
+  }
+  if ($hsub -eq 0) { throw 'subject MCEC window never appeared (Win+R launch)' }
   $tree = $null
   for ($i = 0; $i -lt 25; $i++) { Start-Sleep -Milliseconds 500; $tree = QueryH $hsub 5; if ($tree) { break } }
   if (-not $tree) { throw 'subject UIA tree never came up' }
