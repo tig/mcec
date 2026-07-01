@@ -61,8 +61,8 @@ by its `handle`):
 |------|-----------|
 | Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:560 }` (region = the subject window's pinned rect) |
 | Settings | click **File** → send `S` → `query` the **Settings** window → click each tab header's rect (`mouse:mt,…` + `mouse:lbc`) in turn → `Esc` |
-| Resize | drag the bottom-right sizing border inward: `mouse:mt` to the corner → `mouse:lbd` → a few `mouse:mt` moves → `mouse:lbu` |
-| Move | drag the title bar in circles: `mouse:mt` onto the title bar → `mouse:lbd` → `mouse:mt` around a small circle → `mouse:lbu` |
+| Resize | drag the bottom-right sizing border inward with one atomic `mouse:drag,x1,y1,…,xN,yN` (corner → a few waypoints inward) |
+| Move | drag the title bar in a circle with one atomic `mouse:drag,x1,y1,…` (title bar → points around a small circle → back) |
 | About | re-`query` the (moved) window by `handle` → click the **Help** menu item's rect → send `A` → `capture` `{ window:"About" }` |
 | Stop | pause on the About box → `record` `{ action:"stop", file:"docs/hero.gif" }` |
 
@@ -82,7 +82,7 @@ surface, and the capability that would remove each (tracking issues):
 | Script does (not via MCEC) | Needed capability | Issue |
 |---|---|---|
 | `GetSystemMetrics`/`SetProcessDPIAware`, then normalizes every pixel to `mouse:mt`'s 0–65535 space | pixel-/element-relative mouse targeting + a `displays` query (the keystone — `query` gives pixels, `mouse` wants normalized) | #122 |
-| `mouse:lbd` + a stream of `mouse:mt` + `mouse:lbu` for the resize and the circular move | a first-class `drag` action | #123 |
+| ~~`mouse:lbd` + a stream of `mouse:mt` + `mouse:lbu` for the resize and the circular move~~ **Done (#123):** the resize and circular move are now single atomic `mouse:drag` commands (pixels in, normalized internally — so the drag path no longer needs the #122 normalization). Agents get an even higher-level `drag` tool with element endpoints. | ~~a first-class `drag` action~~ | #123 |
 | Resize 25% / move by dragging the chrome; pins `WindowLocation`/`WindowSize`; `Shell.MinimizeAll()` | window-management actions (move/resize/min/max/foreground; clean-desktop) | #124 |
 | Clicks each Settings tab header by computed pixel center | a `select` action (SelectionItem) — `invoke` is a no-op on tabs | #125 |
 | `Start-Process` to launch the subject | a gated launch action | #126 |

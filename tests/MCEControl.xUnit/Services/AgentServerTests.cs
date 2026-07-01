@@ -54,7 +54,36 @@ public class AgentServerTests {
         Assert.Contains("wait-for", names);
         Assert.Contains("invoke", names);
         Assert.Contains("record", names);
+        Assert.Contains("drag", names);
         Assert.Contains("send_command", names);
+    }
+
+    [Fact]
+    public void Dispatch_ToolsList_DragTool_DeclaresFromToEndpoints() {
+        JsonObject resp = AgentServer.Dispatch(Request(2, "tools/list"))!;
+        JsonArray tools = resp["result"]!.AsObject()["tools"]!.AsArray();
+
+        JsonObject? drag = null;
+        foreach (JsonNode? tool in tools) {
+            if (tool?["name"]?.GetValue<string>() == "drag") {
+                drag = tool.AsObject();
+                break;
+            }
+        }
+
+        Assert.NotNull(drag);
+        JsonObject schema = drag!["inputSchema"]!.AsObject();
+        JsonObject props = schema["properties"]!.AsObject();
+        Assert.True(props.ContainsKey("from"));
+        Assert.True(props.ContainsKey("to"));
+        Assert.True(props.ContainsKey("path"));
+
+        List<string> required = [];
+        foreach (JsonNode? r in schema["required"]!.AsArray()) {
+            required.Add(r!.GetValue<string>());
+        }
+        Assert.Contains("from", required);
+        Assert.Contains("to", required);
     }
 
     [Fact]
