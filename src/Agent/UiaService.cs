@@ -113,6 +113,7 @@ public static class UiaService {
                 "setfocus" => InvokeSetFocus(el),
                 "expand" => InvokeExpand(el),
                 "collapse" => InvokeCollapse(el),
+                "select" => InvokeSelect(el),
                 _ => false,
             };
         }
@@ -123,10 +124,10 @@ public static class UiaService {
     }
 
     /// <summary>True if <paramref name="action"/> is one of the supported invoke actions
-    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>, case-insensitive).</summary>
+    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>/<c>select</c>, case-insensitive).</summary>
     public static bool IsSupportedAction(string action) =>
         action?.ToLowerInvariant() switch {
-            "invoke" or "toggle" or "setvalue" or "setfocus" or "expand" or "collapse" => true,
+            "invoke" or "toggle" or "setvalue" or "setfocus" or "expand" or "collapse" or "select" => true,
             _ => false,
         };
 
@@ -245,6 +246,19 @@ public static class UiaService {
         return true;
     }
 
+    /// <summary>
+    /// Selects the element using the SelectionItem pattern (for TabItem, ListItem, RadioButton, etc.).
+    /// Returns false if the pattern is not supported.
+    /// </summary>
+    private static bool InvokeSelect(AutomationElement el) {
+        var pattern = el.Patterns.SelectionItem.PatternOrDefault;
+        if (pattern is null) {
+            return false;
+        }
+        pattern.Select();
+        return true;
+    }
+
     private static UiaElementInfo Describe(AutomationElement el) {
         UiaElementInfo info = new();
 
@@ -303,6 +317,16 @@ public static class UiaService {
 
         try {
             info.Value = CleanString(el.Patterns.Value.PatternOrDefault?.Value?.ValueOrDefault);
+        }
+        catch (COMException) {
+            // Leave null.
+        }
+
+        try {
+            var sel = el.Patterns.SelectionItem.PatternOrDefault;
+            if (sel is not null) {
+                info.IsSelected = sel.IsSelected.ValueOrDefault;
+            }
         }
         catch (COMException) {
             // Leave null.

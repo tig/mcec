@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace MCEControl;
 
@@ -30,7 +31,22 @@ public static class AgentServer {
     private static readonly object HttpLock = new();
     private static HttpListener? _listener;
     private static Thread? _httpThread;
-    private static readonly object ExecLock = new();
+
+    // Concurrency contract (#113): the ONE physical desktop input stream is a shared resource, so
+    // global-input actuation (drag, send_command) serializes on this lock. Observation
+    // (query/capture/find/wait-for/record) runs UNLOCKED — a long/blocking read never stalls another
+    // tool call. See SerializesOnInputLock and docs/agent-server.md#concurrency.
+    private static readonly object InputLock = new();
+
+    /// <summary>
+    /// Whether <paramref name="tool"/> serializes on <see cref="InputLock"/> (the #113 contract).
+    /// Global-input actuation (<c>drag</c>, <c>send_command</c>) does — it synthesizes physical
+    /// mouse/keyboard, one shared stream that concurrent requests must not interleave. Observation
+    /// (<c>query</c>/<c>capture</c>/<c>find</c>/<c>wait-for</c>/<c>record</c>) does not (it runs
+    /// concurrently); <c>invoke</c> is UIA-pattern actuation dispatched on a worker with the modal grace,
+    /// not under this lock (#105).
+    /// </summary>
+    public static bool SerializesOnInputLock(string tool) => tool is "drag" or "send_command";
 
     // -------------------------------------------------------------------------------------------
     // JSON-RPC dispatch (shared by stdio + HTTP)
@@ -91,70 +107,34 @@ public static class AgentServer {
     };
 
     /// <summary>
-    /// Built-in guidance handed to an agent at connect time. Keep it short, concrete, and honest about
-    /// the gating — this is the "instructions" an MCP client shows the model.
+    /// Built-in guidance handed to an agent at connect time (the MCP client shows this to the model). It
+    /// is authored in <c>src/Agent/AgentInstructions.md</c> — the single source of truth — and embedded
+    /// into the exe at build time; this loads it once, collapsing each blank-line-separated paragraph to
+    /// a single line (the historical connect-time format).
     /// </summary>
-    public const string Instructions =
-        "MCEC (Model Context Environment Controller) lets you see and drive native Windows apps.\n" +
-        "Work the loop: observe -> target -> act -> observe.\n" +
-        "1. TARGET a window by `window` (title substring), `process` (name without .exe), `className`, " +
-        "or `foreground:true` — you MUST give at least one; a call with no target fails. Reuse the " +
-        "`handle` a `query` returns for follow-up calls: it is stable, and a dialog you open shares the " +
-        "process name, so re-resolving by process/title can match the wrong window. Open menus and other " +
-        "untitled popups are not enumerated by title/process — target them by handle or `foreground:true`.\n" +
-        "2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, " +
-        "state, value) so you can pick a control instead of guessing pixels; `capture` returns a PNG " +
-        "of the window (works on composited WinUI/WPF surfaces). Use `capture` for a single state check; " +
-        "use `record` ONLY to show CHANGE over time — a bounded one-shot (`durationMs`) or `action:start` " +
-        "then `action:stop`; keep recordings short (fps/duration are capped and frames downscaled), and " +
-        "remember it captures whatever is on screen for the whole duration. Check results for trouble: a " +
-        "`capture` with errorCategory `capture-blank` is a black/empty frame (minimized, cloaked, " +
-        "occluded, or a locked session) — restore/foreground the window and retry instead of trusting the " +
-        "image; a `capture-fallback` warning means PrintWindow was refused and the picture may be wrong. " +
-        "If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap — " +
-        "raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are " +
-        "non-fatal; errorCategory tells you how to recover.\n" +
-        "3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|" +
-        "expand|collapse) over coordinate clicks — it is far more reliable. To click a menu item, first " +
-        "`invoke` its parent menu with action `expand` (a closed menu's sub-items are not in the tree " +
-        "until opened), then `invoke` the item. Invoking a control that opens a MODAL dialog (About, " +
-        "Settings, message/file dialogs) returns promptly with `modalPending:true` — the action " +
-        "completes when the dialog closes — so just `query`/`capture` the new window to read it, and " +
-        "`invoke` its buttons to dismiss it. `invoke` does NOT wait for a control — it fast-fails if the " +
-        "element isn't present yet — so `wait-for` (or `find` with a timeout) the control before acting; " +
-        "an `invoke` that returns `error.category:no-target` means the control hasn't appeared yet, so " +
-        "`wait-for` it rather than blindly retrying. " +
-        "To DRAG — resize a window by its sizing border, move one by its title bar, drag a slider/handle, " +
-        "marquee-select, or reorder (there is no `invoke` for these) — use the `drag` tool: give a `from` " +
-        "and a `to`, each either an element `{ by, value }` in the target window (dragged from/to its " +
-        "centre) or an absolute screen pixel `{ x, y }`, plus optional `path` waypoints for a curved or " +
-        "multi-stop drag. The whole press→move→release is dispatched ATOMICALLY, so prefer it over hand-" +
-        "rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands). Coords are " +
-        "absolute screen pixels — the same space `query`/`find` bounds report — so you can drag straight " +
-        "from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls " +
-        "are at new bounds. `send_command` sends any other raw MCEC command (keystrokes, single mouse " +
-        "actions, launch); the raw `mouse:drag,x1,y1,x2,y2[,...]` is the same atomic gesture in pixels.\n" +
-        "4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.\n" +
-        "RESULTS: every tool returns one envelope — `{ ok, result?, warnings?, error? }`. Branch on `ok` " +
-        "first: on success read `result`; on failure read `error.category` (a closed set: timeout, " +
-        "ambiguous-selector, stale-element, no-target, capture-blank, focus, elevation, foreground, " +
-        "internal) to choose recovery — e.g. `no-target` means broaden the selector or `query` to " +
-        "discover targets, `ambiguous-selector` means add `processName`/`className`/`automationId`, " +
-        "`stale-element` means re-`query`/`find` for a fresh handle. `error.detail` is human-readable and " +
-        "`error.lastObservation`, when present, is the last good state before the failure.\n" +
-        "COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. " +
-        "Launch an app with the dedicated `launch` tool (path + optional arguments/workingDirectory; returns pid + window handle when the app appears). " +
-        "Fallback: `send_command winr` then `chars:<path>` then `enter`, then `query {foreground:true}` for its handle. " +
-        "Use the `drag` tool for atomic drags/resizes. Switch a tab/list item by `query`ing its bounds and clicking its " +
-        "centre. Record a window by `query`ing its bounds and passing them as the `record` region. Wait for " +
-        "a window by polling `query` until it appears. Reach for a raw `send_command` before giving up.\n" +
-        "OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run " +
-        "so the operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/" +
-        "UIA targeting — you will never see or target it, and it is never a candidate window — but it DOES " +
-        "appear in full-screen/region `capture`s and `record`ings (not in window-targeted captures).\n" +
-        "SECURITY: observation/actuation tools (capture/query/find/invoke/record/launch/drag) only work when the operator has set " +
-        "AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather " +
-        "than retrying. Every action is audit-logged on the host.";
+    public static string Instructions => LazyInstructions.Value;
+
+    private static readonly Lazy<string> LazyInstructions = new(LoadInstructions);
+
+    private static string LoadInstructions() {
+        using Stream? stream = typeof(AgentServer).Assembly.GetManifestResourceStream("MCEControl.AgentInstructions.md");
+        if (stream is null) {
+            throw new InvalidOperationException(
+                "Embedded resource 'MCEControl.AgentInstructions.md' not found — check the <EmbeddedResource> item in MCEControl.csproj.");
+        }
+        using StreamReader reader = new(stream);
+        string raw = reader.ReadToEnd().Replace("\r\n", "\n");
+        // Authored wrapped for readability; the model receives one line per blank-line-separated paragraph.
+        string[] paragraphs = raw.Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0; i < paragraphs.Length; i++) {
+            string[] lines = paragraphs[i].Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            for (int j = 0; j < lines.Length; j++) {
+                lines[j] = lines[j].Trim();
+            }
+            paragraphs[i] = string.Join(" ", lines);
+        }
+        return string.Join("\n", paragraphs);
+    }
 
     // -------------------------------------------------------------------------------------------
     // Tool catalog
@@ -203,6 +183,10 @@ public static class AgentServer {
             "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state. Returns nodeCount/truncated and warns when the node cap clips the tree.",
             queryProps, []));
 
+        tools.Add(Tool("displays",
+            "Report display geometry: every monitor's pixel bounds, working area, primary flag, and DPI/scale, plus the union virtualBounds. Use it to interpret the absolute-pixel bounds query/find return and to place pixel clicks/drags — no arguments.",
+            [], []));
+
         JsonObject findProps = WindowTargetProps();
         findProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
         findProps["value"] = PropSchema("string", "Value to match");
@@ -222,10 +206,10 @@ public static class AgentServer {
         JsonObject invokeProps = WindowTargetProps();
         invokeProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
         invokeProps["value"] = PropSchema("string", "Value to match");
-        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse (default invoke). Use expand to open a menu before invoking its items.");
+        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse | select (default invoke). Use expand to open a menu before invoking its items; use select for TabItem, ListItem, RadioButton etc.");
         invokeProps["text"] = PropSchema("string", "Text for the setvalue action");
         tools.Add(Tool("invoke",
-            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus) — more reliable than coordinate clicks.",
+            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus/Expand/Collapse/Select) — more reliable than coordinate clicks. Use 'select' for tabs, list items, radios (SelectionItem pattern).",
             invokeProps, ["value"]));
 
         JsonObject dragProps = WindowTargetProps();
@@ -245,6 +229,14 @@ public static class AgentServer {
         tools.Add(Tool("drag",
             "Press → move along a path → release, dispatched atomically (no interleaving). Endpoints are an element (by/value, dragged from/to its centre) or an absolute screen pixel; add path waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee select, drag-reorder. Give a window target when either endpoint is an element.",
             dragProps, ["from", "to"]));
+
+        JsonObject clickProps = WindowTargetProps();
+        clickProps["at"] = EndpointSchema("Where to click: an element ({ by, value }) in the target window (its centre) or an absolute screen pixel ({ x, y }).");
+        clickProps["button"] = PropSchema("string", "Button: left | right | middle (default left)");
+        clickProps["count"] = PropSchema("integer", "Click count: 1 = single, 2 = double (default 1)");
+        tools.Add(Tool("click",
+            "Click at a point — an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
+            clickProps, ["at"]));
 
         JsonObject recordProps = WindowTargetProps();
         recordProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
@@ -275,6 +267,25 @@ public static class AgentServer {
             new JsonObject { ["command"] = PropSchema("string", "The MCEC command string to enqueue") },
             ["command"]));
 
+        // Isolated session provisioning (#138). Requires the operator to have opted in
+        // (AllowSessionProvisioning); it never mutates the installed config.
+        JsonObject provisionProps = new() {
+            ["mcpServer"] = PropSchema("boolean", "Enable the provisioned instance's localhost MCP/HTTP server (default true)"),
+            ["commands"] = new JsonObject {
+                ["type"] = "array",
+                ["description"] = "Command names to enable in the session (default: the agent observation/action set)",
+                ["items"] = new JsonObject { ["type"] = "string" },
+            },
+        };
+        tools.Add(Tool("provision-session",
+            "Get a fresh, disposable, isolated MCEC instance to run from instead of enabling the installed one. Returns a directory containing mcec.exe + an agent-ready co-located config (agent commands enabled ONLY inside the copy), plus how to launch/connect and the sessionId to tear it down. Requires the operator to have enabled AllowSessionProvisioning; the installed config is never touched. Call end-session (or delete the directory) when finished.",
+            provisionProps, []));
+
+        tools.Add(Tool("end-session",
+            "Tear down a provisioned session (from provision-session) by deleting its directory. Stop the session's mcec.exe first, or its files stay locked. MCEC also reaps stale session dirs on launch.",
+            new JsonObject { ["sessionId"] = PropSchema("string", "The sessionId returned by provision-session") },
+            ["sessionId"]));
+
         return tools;
     }
 
@@ -296,20 +307,42 @@ public static class AgentServer {
         string name = AsString(prms?["name"]);
         JsonObject args = prms?["arguments"] as JsonObject ?? [];
 
+        // Emergency stop (#135): once the operator engages the panic hotkey, EVERY tool call is refused
+        // (actuation, observation, and raw send_command alike) until they explicitly re-arm — the human
+        // override latches and is checked before anything else. A distinct error code tells the agent to
+        // stop and surface it, not retry.
+        if (AgentRuntime.EmergencyStopped) {
+            AgentRuntime.Audit(name, "BLOCKED — emergency stop engaged; operator must re-arm");
+            return ToolError(
+                "Emergency stop is engaged — the operator halted this session. All tool calls are refused until they re-arm. Stop and tell the user; do not retry.",
+                "emergency-stopped");
+        }
+
         if (name == "send_command") {
             return RunSendCommand(args);
         }
 
-        if (name is "capture" or "query" or "find" or "wait-for" or "invoke" or "record" or "launch" or "drag") {
+        if (name == "provision-session") {
+            return RunProvisionSession(args);
+        }
+
+        if (name == "end-session") {
+            return RunEndSession(args);
+        }
+
+        if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "launch" or "drag" or "click") {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
             }
-            // `drag` generates real mouse input from its from/to endpoints, and a missing pixel field would
-            // otherwise default to 0 and drag from a bogus coordinate. Reject an ill-formed endpoint up
+            // `drag`/`click` generate real mouse input from their endpoints, and a missing pixel field would
+            // otherwise default to 0 and actuate at a bogus coordinate. Reject an ill-formed endpoint up
             // front rather than actuating it.
             if (name == "drag" && DragArgsError(args) is string dragError) {
                 return ToolError(dragError, "bad-arguments");
+            }
+            if (name == "click" && ClickArgsError(args) is string clickError) {
+                return ToolError(clickError, "bad-arguments");
             }
             return RunAgentCommand(name, args);
         }
@@ -333,6 +366,24 @@ public static class AgentServer {
             if (!hasElement && !(hasX && hasY)) {
                 return $"drag '{key}' needs an element 'value' or both 'x' and 'y' pixel coordinates.";
             }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Validates the <c>click</c> tool's <c>at</c> argument: it must be an object that is EITHER an element
+    /// (<c>value</c> set) OR a full pixel (<c>x</c> and <c>y</c> both present). Returns a human-readable
+    /// error, or <c>null</c> when the endpoint is well-formed. Mirrors <see cref="DragArgsError"/>.
+    /// </summary>
+    private static string? ClickArgsError(JsonObject args) {
+        if (args["at"] is not JsonObject at) {
+            return "click 'at' must be an object: an element { by?, value } or a pixel { x, y }.";
+        }
+        bool hasElement = !string.IsNullOrEmpty(Str(at, "value"));
+        bool hasX = at["x"] is JsonValue vx && vx.TryGetValue(out int _);
+        bool hasY = at["y"] is JsonValue vy && vy.TryGetValue(out int _);
+        if (!hasElement && !(hasX && hasY)) {
+            return "click 'at' needs an element 'value' or both 'x' and 'y' pixel coordinates.";
         }
         return null;
     }
@@ -361,15 +412,16 @@ public static class AgentServer {
         JsonObject? priorObservation = session.LastObservation;
         session.RecordAction(name);
 
-        // `invoke` can activate a control that opens a MODAL dialog (About, Settings, message/file
-        // dialogs). The UIA Invoke runs the control's click handler synchronously, so the call would
-        // otherwise block — and hold ExecLock — for the dialog's whole lifetime, deadlocking every
-        // later tool call (the agent couldn't even query or dismiss the dialog it just opened). Run it
-        // on a worker and, if it hasn't returned within a short grace, report "modal pending" and
-        // return; the worker finishes when the dialog closes. capture/query/find/send_command keep the
-        // simple serialized path, and the legacy TCP/serial pipeline (MainWindow.ReceivedData ->
-        // CommandInvoker.ExecuteNext on the UI thread) is untouched, so home-automation sequences keep
-        // their in-order, synchronous behavior.
+        // Dispatch under the #113 concurrency contract. `invoke` can activate a control that opens a
+        // MODAL dialog (About, Settings, message/file dialogs); the UIA Invoke runs the click handler
+        // synchronously, so the call would block for the dialog's whole lifetime and — if it held a lock
+        // — deadlock every later tool call (the agent couldn't even query or dismiss the dialog it just
+        // opened, #105). So run `invoke` on a worker and, if it hasn't returned within a short grace,
+        // report "modal pending" and return; the worker finishes when the dialog closes. `drag` and
+        // `send_command` synthesize physical input and serialize on InputLock. Observation
+        // (query/capture/find/wait-for) and `record` (its own bounded background thread) run UNLOCKED, so
+        // a long/blocking read never stalls another tool call. The legacy TCP/serial pipeline
+        // (MainWindow.ReceivedData -> CommandInvoker.ExecuteNext on the UI thread) is untouched.
         if (name == "invoke") {
             if (!TryRunInvokeWithModalGrace(cmd)) {
                 AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
@@ -377,16 +429,13 @@ public static class AgentServer {
                 return McpResult(AgentToolResult.Success(InvokeModalPendingResult(), session.SessionId));
             }
         }
-        else if (name == "record") {
-            // `record` manages its own background capture thread; a one-shot blocks the caller for the
-            // whole recording duration. Do NOT hold ExecLock for that span or it would stall every
-            // other tool call. Frame grabbing runs off-lock on the recorder thread regardless.
-            cmd.Execute();
-        }
-        else {
-            lock (ExecLock) {
+        else if (SerializesOnInputLock(name)) {
+            lock (InputLock) {
                 cmd.Execute();
             }
+        }
+        else {
+            cmd.Execute();
         }
 
         // Translate the legacy CommandResult the command wrote into its reply into the #101 envelope.
@@ -442,7 +491,7 @@ public static class AgentServer {
     /// Runs an <c>invoke</c> on a background worker and waits up to <see cref="InvokeModalGraceMs"/> ms.
     /// Returns true if it finished (its result is in the command's reply); false if it is still running,
     /// which means the invoked control opened a modal dialog. We deliberately do NOT hold
-    /// <see cref="ExecLock"/> for an invoke: a modal opener must not block the later query/capture/invoke
+    /// <see cref="InputLock"/> for an invoke: a modal opener must not block the later query/capture/invoke
     /// calls the agent needs to read or dismiss the very dialog it opened. The worker ends on its own
     /// when the dialog closes.
     /// </summary>
@@ -475,7 +524,8 @@ public static class AgentServer {
 
         AgentRuntime.Audit("send_command", command);
         CapturingReply reply = new();
-        lock (ExecLock) {
+        // send_command drives physical input through the shared invoker — serialize on InputLock (#113).
+        lock (InputLock) {
             invoker.Enqueue(reply, command);
             invoker.ExecuteNext();
         }
@@ -489,6 +539,67 @@ public static class AgentServer {
         JsonObject result = new() { ["output"] = string.IsNullOrEmpty(captured) ? "ok" : captured };
         CommandEventHub.Publish(new CommandEvent("send_command", CommandTersifier.ForRawCommand(command), CommandOutcome.Ok, session.SessionId));
         return McpResult(AgentToolResult.Success(result, session.SessionId));
+    }
+
+    /// <summary>
+    /// Provisions a fresh, disposable, isolated MCEC instance (#138) and returns the handoff. Gated behind
+    /// the operator's <see cref="AppSettings.AllowSessionProvisioning"/> opt-in — the one thing that cannot
+    /// be self-served — and never touches the installed config. Also reaps stale session dirs opportunistically.
+    /// </summary>
+    private static JsonObject RunProvisionSession(JsonObject args) {
+        if (AgentRuntime.Settings?.AllowSessionProvisioning != true) {
+            AgentRuntime.Audit("provision-session", "BLOCKED — session provisioning is not authorized");
+            return ToolError(
+                "Session provisioning is not authorized. The operator must enable AllowSessionProvisioning to opt in; it cannot be self-served.",
+                "provisioning-not-authorized");
+        }
+
+        bool mcpServer = args["mcpServer"] is not JsonValue mv || !mv.TryGetValue(out bool m) || m; // default true
+        List<string>? commands = StrArray(args["commands"] as JsonArray);
+
+        try {
+            SessionProvisioner.ReapOrphans(TimeSpan.FromHours(SessionReapAgeHours));
+            ProvisionedSession session = SessionProvisioner.Provision(mcpServer, commands);
+            return McpResult(AgentToolResult.Success(session.ToJsonObject(), AgentRuntime.Session.SessionId));
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"AgentServer: provision-session failed: {e.Message}");
+            return ToolError($"Failed to provision a session: {e.Message}", "provisioning-failed");
+        }
+    }
+
+    /// <summary>Tears down a provisioned session directory by id (#138).</summary>
+    private static JsonObject RunEndSession(JsonObject args) {
+        string? sessionId = Str(args, "sessionId");
+        if (string.IsNullOrWhiteSpace(sessionId)) {
+            return ToolError("end-session requires a non-empty 'sessionId' argument.", "bad-arguments");
+        }
+        bool removed = SessionProvisioner.Teardown(sessionId);
+        JsonObject result = new() {
+            ["sessionId"] = sessionId,
+            ["removed"] = removed,
+        };
+        if (!removed) {
+            result["note"] = "The session directory could not be deleted — its mcec.exe may still be running. Stop it and retry, or MCEC will reap it on a later launch.";
+        }
+        return McpResult(AgentToolResult.Success(result, AgentRuntime.Session.SessionId));
+    }
+
+    /// <summary>Age after which an orphaned/abandoned provisioned session directory is reaped on launch/provision.</summary>
+    public const int SessionReapAgeHours = 12;
+
+    /// <summary>Reads a JSON array of strings into a list, or null when the node is absent/empty.</summary>
+    private static List<string>? StrArray(JsonArray? array) {
+        if (array is null || array.Count == 0) {
+            return null;
+        }
+        List<string> items = [];
+        foreach (JsonNode? node in array) {
+            if (node is JsonValue v && v.TryGetValue(out string? s) && !string.IsNullOrWhiteSpace(s)) {
+                items.Add(s);
+            }
+        }
+        return items.Count > 0 ? items : null;
     }
 
     /// <summary>Builds and populates an agent command instance from MCP tool arguments.</summary>
@@ -547,6 +658,8 @@ public static class AgentServer {
             Timeout = Int(args, "timeout"),
         },
         "drag" => BuildDragCommand(args),
+        "click" => BuildClickCommand(args),
+        "displays" => new DisplaysCommand(),
         _ => new InvokeCommand { // invoke
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),
@@ -582,6 +695,24 @@ public static class AgentServer {
         };
     }
 
+    /// <summary>Maps the click tool's nested <c>at</c> endpoint and button/count onto a <see cref="ClickCommand"/>.</summary>
+    private static ClickCommand BuildClickCommand(JsonObject args) {
+        JsonObject at = args["at"] as JsonObject ?? [];
+        return new ClickCommand {
+            Window = Str(args, "window")!,
+            Handle = Long(args, "handle"),
+            Process = Str(args, "process")!,
+            ClassName = Str(args, "className")!,
+            Foreground = Bool(args, "foreground"),
+            By = Str(at, "by") ?? "name",
+            Value = Str(at, "value")!,
+            X = Int(at, "x"),
+            Y = Int(at, "y"),
+            Button = Str(args, "button") ?? "left",
+            Count = Int(args, "count") is int c and > 0 ? c : 1,
+        };
+    }
+
     /// <summary>Flattens the drag tool's <c>path</c> array of <c>{ x, y }</c> points into DragCommand's <c>x,y;x,y</c> spec.</summary>
     private static string BuildPathSpec(JsonArray? path) {
         if (path is null || path.Count == 0) {
@@ -608,35 +739,57 @@ public static class AgentServer {
         using StreamReader reader = new(input, new UTF8Encoding(false));
         using StreamWriter writer = new(output, new UTF8Encoding(false)) { AutoFlush = true };
         Logger.Instance.Log4.Info("AgentServer: MCP stdio transport started.");
+        RunStdioLoop(reader, writer, Dispatch);
+        Logger.Instance.Log4.Info("AgentServer: MCP stdio transport ended (EOF).");
+    }
 
+    /// <summary>
+    /// The stdio read/dispatch/write loop, factored so it is testable. Each request line is dispatched on
+    /// a worker so a slow call (a long <c>wait-for</c>, a deep <c>query</c>) never blocks later requests
+    /// (#113). JSON-RPC responses carry the request <c>id</c>, so out-of-order completion is valid;
+    /// writes are serialized so response lines never interleave.
+    /// </summary>
+    public static void RunStdioLoop(TextReader reader, TextWriter writer, Func<JsonObject, JsonObject?> dispatch) {
+        object writeLock = new();
+        List<Task> pending = [];
         string? line;
         while ((line = reader.ReadLine()) is not null) {
             if (line.Length == 0) {
                 continue;
             }
-            JsonObject? response;
-            try {
-                JsonNode? node = JsonNode.Parse(line);
-                if (node is not JsonObject request) {
-                    response = Error(null, -32600, "Invalid Request");
+            string requestLine = line;
+            pending.Add(Task.Run(() => {
+                JsonObject? response = ProcessStdioLine(requestLine, dispatch);
+                if (response is not null) {
+                    lock (writeLock) {
+                        writer.WriteLine(response.ToJsonString(AgentJson.Options));
+                    }
                 }
-                else {
-                    response = Dispatch(request);
-                }
-            }
-            catch (JsonException e) {
-                response = Error(null, -32700, $"Parse error: {e.Message}");
-            }
-            catch (Exception e) {
-                Logger.Instance.Log4.Error($"AgentServer: dispatch error: {e}");
-                response = Error(null, -32603, $"Internal error: {e.Message}");
-            }
-
-            if (response is not null) {
-                writer.WriteLine(response.ToJsonString(AgentJson.Options));
-            }
+            }));
         }
-        Logger.Instance.Log4.Info("AgentServer: MCP stdio transport ended (EOF).");
+        try {
+            Task.WaitAll([.. pending]);
+        }
+        catch (AggregateException) {
+            // Per-request faults are already turned into JSON-RPC error responses below; nothing to do.
+        }
+    }
+
+    private static JsonObject? ProcessStdioLine(string line, Func<JsonObject, JsonObject?> dispatch) {
+        try {
+            JsonNode? node = JsonNode.Parse(line);
+            if (node is not JsonObject request) {
+                return Error(null, -32600, "Invalid Request");
+            }
+            return dispatch(request);
+        }
+        catch (JsonException e) {
+            return Error(null, -32700, $"Parse error: {e.Message}");
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"AgentServer: dispatch error: {e}");
+            return Error(null, -32603, $"Internal error: {e.Message}");
+        }
     }
 
     // -------------------------------------------------------------------------------------------
@@ -693,7 +846,10 @@ public static class AgentServer {
             catch (InvalidOperationException) {
                 break;
             }
-            HandleHttp(context);
+            // Serve each request on a worker so a slow call (a long wait-for, a deep query) doesn't block
+            // accepting or serving other requests (#113). Each context owns its own response stream, so no
+            // cross-request correlation is needed.
+            _ = Task.Run(() => HandleHttp(context));
         }
     }
 

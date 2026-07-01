@@ -51,6 +51,8 @@ public class SerializedCommands {
     [XmlArrayItem("invoke", typeof(InvokeCommand))]
     [XmlArrayItem("drag", typeof(DragCommand))]
     [XmlArrayItem("launch", typeof(LaunchCommand))]
+    [XmlArrayItem("click", typeof(ClickCommand))]
+    [XmlArrayItem("displays", typeof(DisplaysCommand))]
     [XmlArrayItem("record", typeof(RecordCommand))]
     [XmlArrayItem(typeof(Command))]
 

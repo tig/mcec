@@ -44,6 +44,7 @@ public class MouseCommand : Command {
             new MouseCommand{ Cmd = $"{CmdPrefix }xbu,n" },
             new MouseCommand{ Cmd = $"{CmdPrefix }mm,x,y" },
             new MouseCommand{ Cmd = $"{CmdPrefix }mt,x,y" },
+            new MouseCommand{ Cmd = $"{CmdPrefix }mtp,x,y" },
             new MouseCommand{ Cmd = $"{CmdPrefix }hs,x" },
             new MouseCommand{ Cmd = $"{CmdPrefix }vs,y" },
             new MouseCommand{ Cmd = $"{CmdPrefix }drag,x1,y1,x2,y2" },
@@ -59,6 +60,7 @@ public class MouseCommand : Command {
     private const int DragPressDwellMs = 90;    // dwell after moving to the start and after button-down
     private const int DragMoveDwellMs = 12;     // dwell between successive move points
     private const int DragReleaseDwellMs = 90;  // dwell before button-up so the drop registers
+    private const int ClickMoveDwellMs = 40;    // settle after moving before a click so the target registers hover
 
     public MouseCommand() { }
 
@@ -169,7 +171,29 @@ public class MouseCommand : Command {
                 sim.Mouse.XButtonUp(mb);
                 break;
 
-            // "mouse:mb,15,20" - Move mouse 15 in X direction, and 20 in Y direction
+            // "mouse:drag,x1,y1,x2,y2[,x3,y3,...]" - Press the left button at the first point, move
+            // through every subsequent point with the button held, release at the last. The whole
+            // gesture runs here, synchronously, so it can never interleave with another command's
+            // mouse input (issue #123; the hazard #113 warns about with hand-rolled lbd/mt/lbu).
+            // Coordinates are ABSOLUTE SCREEN PIXELS (unlike mt's 0-65535 units); they are normalized
+            // across the virtual desktop internally, so negative/secondary-monitor points work.
+            case "drag": ExecuteDrag(param); break;
+
+            // Pointer moves and scrolls (mm/mt/mtv/mtp/hs/vs) are grouped in a helper to keep this
+            // dispatch switch's complexity in check as the command set grows.
+            default: ExecuteMoveOrScroll(param[0], param, sim); break;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Handles the pointer-move and scroll actions: <c>mm</c> (relative), <c>mt</c>/<c>mtv</c> (raw
+    /// 0-65535 units), <c>mtp</c> (absolute screen pixels, normalized across the virtual desktop like
+    /// drag/click), and <c>hs</c>/<c>vs</c> (scroll). Unknown actions are ignored.
+    /// </summary>
+    private static void ExecuteMoveOrScroll(string action, string[] param, InputSimulator sim) {
+        switch (action) {
+            // "mouse:mm,15,20" - Move mouse 15 in X direction, and 20 in Y direction
             case "mm": sim.Mouse.MoveMouseBy(GetIntOrZero(param, 1), GetIntOrZero(param, 2)); break;
 
             // "mouse:mt,812,562" - Move mouse to (812,562) on the screen
@@ -178,18 +202,17 @@ public class MouseCommand : Command {
             // "mouse:mtv,812,562" - Move mouse to (812,562) on the virtual desktop screen
             case "mtv": sim.Mouse.MoveMouseToPositionOnVirtualDesktop(GetIntOrZero(param, 1), GetIntOrZero(param, 2)); break;
 
+            // "mouse:mtp,812,562" - Move mouse to the ABSOLUTE SCREEN PIXEL (812,562) — the same space
+            // query/find bounds report — normalized across the virtual desktop internally (unlike mt/mtv's
+            // raw 0-65535 units), so negative/secondary-monitor coordinates land correctly (#122).
+            case "mtp":
+                (int nx, int ny) = PixelToVirtualDesktopNormalized(GetIntOrZero(param, 1), GetIntOrZero(param, 2), SystemInformation.VirtualScreen);
+                sim.Mouse.MoveMouseToPositionOnVirtualDesktop(nx, ny);
+                break;
+
             case "hs": sim.Mouse.HorizontalScroll(GetIntOrZero(param, 1)); break;
             case "vs": sim.Mouse.VerticalScroll(GetIntOrZero(param, 1)); break;
-
-            // "mouse:drag,x1,y1,x2,y2[,x3,y3,...]" - Press the left button at the first point, move
-            // through every subsequent point with the button held, release at the last. The whole
-            // gesture runs here, synchronously, so it can never interleave with another command's
-            // mouse input (issue #123; the hazard #113 warns about with hand-rolled lbd/mt/lbu).
-            // Coordinates are ABSOLUTE SCREEN PIXELS (unlike mt's 0-65535 units); they are normalized
-            // across the virtual desktop internally, so negative/secondary-monitor points work.
-            case "drag": ExecuteDrag(param); break;
         }
-        return true;
     }
 
     /// <summary>Handles <c>mouse:drag,x1,y1,x2,y2[,...]</c> — parse the pixel points, then drag through them.</summary>
@@ -321,6 +344,12 @@ public class MouseCommand : Command {
         sim.Mouse.LeftButtonDown();
         Thread.Sleep(DragPressDwellMs);
         for (int i = 1; i < path.Count; i++) {
+            // Emergency stop (#135): if the operator engaged the panic hotkey mid-drag, stop advancing and
+            // fall through to release the button now, so the gesture can't drag on with the button held.
+            if (AgentRuntime.EmergencyStopped) {
+                Logger.Instance.Log4.Warn($"{nameof(MouseCommand)}: drag aborted by emergency stop at point {i}/{path.Count}.");
+                break;
+            }
             MoveToPixel(sim, path[i], vs);
             Thread.Sleep(DragMoveDwellMs);
         }
@@ -332,6 +361,38 @@ public class MouseCommand : Command {
         (int nx, int ny) = PixelToVirtualDesktopNormalized(pixel.X, pixel.Y, virtualScreen);
         sim.Mouse.MoveMouseToPositionOnVirtualDesktop(nx, ny);
     }
+
+    /// <summary>
+    /// Moves to <paramref name="pixel"/> (absolute screen pixels) and clicks <paramref name="button"/>
+    /// (left|right|middle) — a double-click when <paramref name="count"/> is 2 or more — all on this
+    /// thread so the move-then-click is atomic and cannot interleave with another command's mouse input.
+    /// Shared by the agent <see cref="ClickCommand"/> so raw and agent clicks dispatch the same gesture.
+    /// </summary>
+    public static void PerformClick((int X, int Y) pixel, string button, int count) {
+        Rectangle vs = SystemInformation.VirtualScreen;
+        InputSimulator sim = new InputSimulator();
+        MoveToPixel(sim, pixel, vs);
+        Thread.Sleep(ClickMoveDwellMs);
+        bool dbl = count >= 2;
+        switch (NormalizeButton(button)) {
+            case "right":
+                if (dbl) { sim.Mouse.RightButtonDoubleClick(); } else { sim.Mouse.RightButtonClick(); }
+                break;
+            case "middle":
+                if (dbl) { sim.Mouse.MiddleButtonDoubleClick(); } else { sim.Mouse.MiddleButtonClick(); }
+                break;
+            default:
+                if (dbl) { sim.Mouse.LeftButtonDoubleClick(); } else { sim.Mouse.LeftButtonClick(); }
+                break;
+        }
+    }
+
+    /// <summary>Normalizes a button name to <c>left</c>|<c>right</c>|<c>middle</c>; unknown/empty maps to <c>left</c>.</summary>
+    public static string NormalizeButton(string? button) => (button ?? string.Empty).Trim().ToLowerInvariant() switch {
+        "right" or "r" => "right",
+        "middle" or "m" => "middle",
+        _ => "left",
+    };
 
     private static int GetIntOrZero(String[] s, int index) {
         int val = 0;

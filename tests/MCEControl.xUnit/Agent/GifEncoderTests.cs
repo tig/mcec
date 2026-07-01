@@ -18,7 +18,7 @@ namespace MCEControl.xUnit.Agent;
 /// </summary>
 public class GifEncoderTests {
     private static Bitmap SolidBitmap(int w, int h, Color color) {
-        Bitmap bmp = new(w, h);
+        Bitmap bmp = new(w, h, PixelFormat.Format24bppRgb);
         using Graphics g = Graphics.FromImage(bmp);
         g.Clear(color);
         return bmp;

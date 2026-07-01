@@ -26,7 +26,15 @@ public class InvokeCommandTests {
 
     [Fact]
     public void Clone_CopiesBaseProperties_AndIsIndependent() {
-        InvokeCommand original = new() { Cmd = "invoke", Args = "name=OK", Enabled = true };
+        InvokeCommand original = new() {
+            Cmd = "invoke",
+            Args = "name=OK",
+            Enabled = true,
+            By = "name",
+            Value = "General",
+            Action = "select",
+            Text = ""
+        };
 
         InvokeCommand clone = (InvokeCommand)original.Clone(null!);
 
@@ -34,6 +42,8 @@ public class InvokeCommandTests {
         Assert.Equal("invoke", clone.Cmd);
         Assert.Equal("name=OK", clone.Args);
         Assert.True(clone.Enabled);
+        Assert.Equal("select", clone.Action);
+        Assert.Equal("General", clone.Value);
 
         clone.Cmd = "changed";
         Assert.Equal("invoke", original.Cmd);
@@ -56,5 +66,13 @@ public class InvokeCommandTests {
         finally {
             AgentRuntime.Settings = null;
         }
+    }
+
+    [Fact]
+    public void IsSupportedAction_IncludesSelect() {
+        Assert.True(UiaService.IsSupportedAction("select"));
+        Assert.True(UiaService.IsSupportedAction("SELECT"));
+        Assert.False(UiaService.IsSupportedAction("click"));
+        Assert.False(UiaService.IsSupportedAction(""));
     }
 }

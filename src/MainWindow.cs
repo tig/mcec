@@ -36,6 +36,10 @@ public partial class MainWindow : Form {
     // The on-screen command overlay (#119), when enabled. Null in headless mode or when disabled.
     private CommandOverlayWindow? commandOverlay;
 
+    // Emergency stop (#135): the "Re-arm" affordance, shown on the menu only while a stop is engaged.
+    private ToolStripMenuItem? rearmMenuItem;
+    private bool emergencyStopArmed;
+
     // Indicates whether user hit the close box (minimize)
     // or the app is exiting
     private bool shuttingDown;
@@ -91,6 +95,12 @@ public partial class MainWindow : Form {
             }
 
             UpdateService.Instance.GotLatestVersion -= UpdateService_GotLatestVersion;
+
+            EmergencyStop.StateChanged -= OnEmergencyStopStateChanged;
+            if (emergencyStopArmed) {
+                EmergencyStop.Stop();
+                emergencyStopArmed = false;
+            }
         }
         base.Dispose(disposing);
     }
@@ -171,7 +181,40 @@ public partial class MainWindow : Form {
 
         UpdateService.Instance.GotLatestVersion += UpdateService_GotLatestVersion;
 
+        SetUpEmergencyStopUi();
+
         Start();
+    }
+
+    /// <summary>
+    /// Adds the emergency-stop (#135) "Re-arm" menu item and wires it to <see cref="EmergencyStop"/>. The
+    /// item is a clear operator affordance that appears only while a stop is engaged; the latch is never
+    /// cleared automatically. Built in code (not the designer) so the safety UI travels with the feature.
+    /// </summary>
+    private void SetUpEmergencyStopUi() {
+        rearmMenuItem = new ToolStripMenuItem("⛔ &Re-arm (Emergency Stop)") {
+            Visible = false,
+            ForeColor = System.Drawing.Color.Firebrick,
+        };
+        rearmMenuItem.Click += (_, _) => EmergencyStop.Rearm();
+        menuStrip.Items.Add(rearmMenuItem);
+
+        EmergencyStop.StateChanged += OnEmergencyStopStateChanged;
+    }
+
+    private void OnEmergencyStopStateChanged(bool stopped) {
+        // StateChanged fires on the global-hook thread; marshal to the UI thread to touch the menu.
+        if (rearmMenuItem is null) {
+            return;
+        }
+        if (menuStrip.InvokeRequired) {
+            menuStrip.BeginInvoke((Action)(() => OnEmergencyStopStateChanged(stopped)));
+            return;
+        }
+        rearmMenuItem.Visible = stopped;
+        SetStatus(stopped
+            ? $"⛔ STOPPED by operator — Re-arm to resume ({EmergencyStop.StoppedReason})"
+            : $"Version: {Application.ProductVersion}");
     }
 
     private void UpdateService_GotLatestVersion(object? sender, Version version) {
@@ -273,6 +316,20 @@ public partial class MainWindow : Form {
             AgentServer.StartHttp();
         }
 
+        // MCEC 3.0: emergency stop (#135) — a global panic hotkey that halts an agent session from ANY
+        // focused window. Arm it here in the GUI host (the low-level keyboard hook needs this thread's
+        // message loop) whenever the agent front door could be driving. It reacts to physical input only,
+        // so the agent can never trip or defeat it.
+        if (!AgentRuntime.Headless && Settings.EmergencyStopEnabled && (Settings.McpServerEnabled || Settings.AgentCommandsEnabled)) {
+            EmergencyStopHotkey? parsed = EmergencyStopHotkey.Parse(Settings.EmergencyStopHotkey);
+            if (parsed is null) {
+                Logger.Instance.Log4.Warn($"EmergencyStop: could not parse hotkey '{Settings.EmergencyStopHotkey}'; using default {EmergencyStopHotkey.DefaultSpec}.");
+                parsed = EmergencyStopHotkey.Default;
+            }
+            EmergencyStop.Start(parsed);
+            emergencyStopArmed = true;
+        }
+
         // MCEC 3.0: on-screen command overlay (#119) — narrates each command as it executes so anyone
         // watching sees that MCEC is driving. On by default; never shown headless. Independent (not
         // owned) so it keeps narrating even when the MCEC window is minimized to the tray.
@@ -299,6 +356,10 @@ public partial class MainWindow : Form {
         else {
             UserActivityMonitorService.Instance.Stop();
             AgentServer.StopHttp();
+            if (emergencyStopArmed) {
+                EmergencyStop.Stop();
+                emergencyStopArmed = false;
+            }
             commandOverlay?.Dispose();
             commandOverlay = null;
             StopClient();

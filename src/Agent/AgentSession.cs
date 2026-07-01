@@ -30,6 +30,8 @@ public sealed class AgentSession {
     private JsonObject? _lastObservation;
     private string? _lastAction;
     private JsonObject? _lastError;
+    private DateTime? _emergencyStopAtUtc;
+    private string? _emergencyStopSource;
 
     private AgentSession(string sessionId, DateTime startedAtUtc, string artifactRoot) {
         SessionId = sessionId;
@@ -109,6 +111,25 @@ public sealed class AgentSession {
     }
 
     /// <summary>
+    /// Stamps the operator emergency stop (#135) into the session — who/what triggered it and when — so a
+    /// run's evidence bundle shows that a human halted it. Only the first stop of a latched span is kept.
+    /// </summary>
+    public void RecordEmergencyStop(string source, DateTime atUtc) {
+        lock (_gate) {
+            _emergencyStopAtUtc ??= atUtc;
+            _emergencyStopSource ??= source;
+        }
+    }
+
+    /// <summary>Clears the recorded emergency stop when the operator re-arms.</summary>
+    public void ClearEmergencyStop() {
+        lock (_gate) {
+            _emergencyStopAtUtc = null;
+            _emergencyStopSource = null;
+        }
+    }
+
+    /// <summary>
     /// Records the outcome of a tool call: a successful <b>observation</b> (query/capture/find/wait-for)
     /// updates <see cref="LastObservation"/> and, when the payload names a window, <see cref="ActiveTarget"/>;
     /// a failure updates <see cref="LastError"/>. Actuation tools (invoke/send_command) don't record an
@@ -154,6 +175,12 @@ public sealed class AgentSession {
             }
             if (_lastError is not null) {
                 obj["lastError"] = _lastError.DeepClone();
+            }
+            if (_emergencyStopAtUtc is not null) {
+                obj["emergencyStop"] = new JsonObject {
+                    ["at"] = _emergencyStopAtUtc.Value.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                    ["source"] = _emergencyStopSource,
+                };
             }
             return obj;
         }

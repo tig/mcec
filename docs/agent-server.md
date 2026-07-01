@@ -13,8 +13,9 @@ AI agents and scripts running on a Windows PC. It gives an agent three things:
 - **A front door** — query/find windows and UI elements, wait for conditions, and
   drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
 
-The agent surface is a set of new commands — `capture`, `query`, `find`, `wait-for`,
-and `invoke` — that return **structured JSON** (a `CommandResult`) instead of free text.
+The agent surface is a set of new commands — `capture`, `query`, `displays`, `find`,
+`wait-for`, `invoke`, `drag`, and `click` — that return **structured JSON** (a
+`CommandResult`) instead of free text.
 Those same commands are exposed as tools over MCP/HTTP so an agent can call them
 directly.
 
@@ -53,6 +54,15 @@ does **not** turn the others on.
 If any one of these switches is off, the corresponding capability simply refuses to run
 and returns a JSON failure (for commands) — it never silently proceeds.
 
+**Which gate applies where.** The agent *tools* — `capture`/`query`/`displays`/`find`/`wait-for`/`invoke`/
+`record`/`drag`/`click` — are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
+flag, over **both** MCP transports (`mcec.exe --mcp` stdio and the HTTP floor): a `tools/call` for a
+command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
+`AgentCommandsEnabled=true`. **`send_command` is the exception** — it is a raw pass-through to the existing
+command engine and does **not** require `AgentCommandsEnabled`; the raw command it runs is still subject to
+that command's own `Enabled` flag in `mcec.commands` (the normal MCEC gate). `McpServerEnabled` gates only
+the HTTP floor; it has no bearing on stdio or on which individual tools may run.
+
 ---
 
 ## How to enable
@@ -89,11 +99,13 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 |------------|-----------------------------------------------------------------------------------|----------|
 | `capture`  | Screenshot a window (`PrintWindow` + `PW_RENDERFULLCONTENT`, captures WinUI/WPF surfaces) or a screen region, returned as base64 PNG. Blank/black frames are detected and flagged (see [Observation hardening](#observation-hardening--known-limitations)). | window target, or region `x`/`y`/`width`/`height`; optional `file` |
 | `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6), `maxNodes` (default 1000) |
+| `displays` | Report **display geometry** — every monitor's pixel `bounds`, `workingArea`, `primary` flag, and `dpi`/`scale`, plus the union `virtualBounds`. Lets an agent interpret the absolute-pixel bounds `query`/`find` return and place pixel clicks/drags without measuring the screen itself. | *(none)* |
 | `find`     | Find a **UI Automation element** by name / automation id / class.                 | window target, `by` (`name`\|`automationid`\|`classname`), `value`, `timeout` |
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
-| `invoke`   | Drive a UI Automation element pattern — far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`), `text` |
+| `invoke`   | Drive a UI Automation element pattern (incl. select for SelectionItem) — far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`\|`expand`\|`collapse`\|`select`), `text` |
 | `drag`     | Press → move along a path → release, dispatched **atomically** (nothing interleaves). Each endpoint is a UI Automation element (dragged from/to its centre) or an absolute screen pixel; add `path` waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee-select, drag-reorder. | window target (needed when an endpoint is an element); `from`/`to` each `{ by, value }` or `{ x, y }`; optional `path` `[{ x, y }, …]` |
 | `launch`   | Launch an app directly (path + args + working dir); gated. Returns pid and primary window handle/info when the window appears. Preferred over Win+R composition. | `path` (required), `arguments`, `workingDirectory`, `timeout` |
+| `click`    | Click at a point — a UI Automation element (clicked at its centre) or an absolute screen pixel — with move+click dispatched **atomically**. For element types `invoke` can't drive, or when you must target a pixel. Prefer `invoke` for ordinary buttons/menus. | window target (needed when `at` is an element); `at` = `{ by, value }` or `{ x, y }`; `button` (`left`\|`right`\|`middle`, default `left`); `count` (`1`\|`2`, default `1`) |
 | `record`   | Record a window or region to an **animated GIF** over time (start/stop or a bounded one-shot). | window target, or region `x`/`y`/`width`/`height`; `action` (`start`\|`stop`\|`oneshot`), `fps`, `durationMs`, `maxWidth`, `file` |
 
 All return a `CommandResult` JSON object via `Reply.WriteLine`:
@@ -363,15 +375,42 @@ When connected, the server advertises these tools:
 |----------------|----------------------------------------------------------------|
 | `capture`      | The `capture` command (window screenshot → base64 PNG).        |
 | `query`        | The `query` command (describe a window).                       |
+| `displays`     | The `displays` command (per-monitor bounds + DPI/scale, virtual bounds). |
 | `find`         | The `find` command (match a UI element, one-shot).             |
 | `wait-for`     | The `wait-for` command (poll for a UI element until a timeout). |
-| `invoke`       | The `invoke` command (run an existing MCEC command).           |
+| `invoke`       | The `invoke` command (run an existing MCEC command, incl. select for tabs etc). |
 | `drag`         | The `drag` command (atomic press → move-path → release, element or pixel endpoints). |
 | `launch`       | Direct gated app launch (returns pid + window handle).         |
+| `click`        | The `click` command (atomic click at an element centre or pixel). |
 | `record`       | The `record` command (window/region → animated GIF over time). |
 | `send_command` | Generic raw-command passthrough — send any MCEC command line.  |
 
 ---
+
+## Concurrency
+
+Agent tool calls follow a simple contract so one slow call never stalls the others:
+
+- **Observation runs concurrently.** `query`, `capture`, `find`, `wait-for`, and `record` take **no
+  shared lock** — a deep `query`, a large `capture`, or a long `wait-for` never blocks another tool call,
+  even one from a different session. They snapshot state (each UIA read uses its own automation instance;
+  screen capture is stateless) and don't mutate the desktop.
+- **Global-input actuation serializes.** `drag` and `send_command` synthesize physical mouse/keyboard —
+  the one input stream is a shared resource, so they run one-at-a-time under a single `InputLock`
+  (concurrent requests can't interleave keystrokes/mouse).
+- **`invoke` is UIA-pattern actuation**, dispatched on a worker with a short *modal grace*: because
+  invoking a control can open a modal dialog that blocks synchronously, `invoke` never holds the input
+  lock for the dialog's lifetime — otherwise the agent couldn't `query`/`capture`/`invoke` to dismiss the
+  very dialog it opened (see the `invoke` notes above).
+- **The legacy TCP/serial command pipeline is untouched.** Home-automation commands still run in order,
+  synchronously, on the UI thread (`CommandInvoker.ExecuteNext`) — this contract governs only the agent
+  (MCP) tools.
+
+Both MCP transports honor this by dispatching each request on a worker: the HTTP floor serves every
+`POST` on a thread-pool task, and the stdio loop dispatches each line concurrently (writes are serialized;
+JSON-RPC responses carry the request `id`, so out-of-order completion is fine). So a slow call from one
+client/session never blocks another's requests — not just callers that invoke `Dispatch` on their own
+threads.
 
 ## HTTP floor
 
@@ -394,9 +433,22 @@ is not a general-purpose web API and is not exposed off-box by default.
 
 ## Summary
 
-- New, opt-in agent surface: `capture`, `query`, `find`, `wait-for`, `invoke`, `drag`, `record`.
+- New, opt-in agent surface: `capture`, `query`, `displays`, `find`, `wait-for`, `invoke`, `drag`, `click`, `record`.
 - Structured JSON results; same commands exposed as MCP/HTTP tools.
 - **Three independent off-by-default gates:** `AgentCommandsEnabled`, per-command
   `Enabled`, and `McpServerEnabled` (localhost-bound).
 - Loud `AGENT-AUDIT:` logging for every agent action.
 - Fully additive — nothing about the existing HTPC behavior changes.
+
+## Agent safety features
+
+Two operator-safety features build on the gates above — see
+[`safety-emergency-stop-and-provisioning.md`](safety-emergency-stop-and-provisioning.md):
+
+- **Emergency stop (#135):** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
+  `EmergencyStopHotkey`) that instantly halts a session from any window — latching the actuation gate
+  (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
+  reacts to physical input only, so the agent can never trip or defeat it.
+- **Isolated session provisioning (#138):** `provision-session` (gated by `AllowSessionProvisioning`) hands
+  an agent a disposable, isolated MCEC directory instead of it mutating the installed config; `end-session`
+  (or launch-time reaping) tears it down.
