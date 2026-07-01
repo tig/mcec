@@ -12,6 +12,22 @@ env:
   CONFIGURATION: 'Release'
 
 jobs:
+  conflict-markers:
+    name: No conflict markers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Scan tracked files for leftover merge conflict markers
+        run: |
+          # The {7} quantifiers are deliberate: they mean "seven of this char" without the
+          # literal 7-char marker ever appearing in this file, so the scan never flags itself.
+          if git grep -nE '^(<{7} |={7}$|>{7} |\|{7} )' -- .; then
+            echo "::error::Leftover merge conflict markers found (see matches above). Resolve the merge before pushing."
+            exit 1
+          fi
+          echo "No conflict markers found."
+
   build-and-test:
     name: Build and Test
     runs-on: windows-latest
