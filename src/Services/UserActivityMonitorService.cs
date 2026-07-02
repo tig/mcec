@@ -311,7 +311,7 @@ public sealed class UserActivityMonitorService : IDisposable {
             // what: the count of activity detected
             // why: to understand how frequently activity is detected
             // how is PII protected: the frequency of activity is not PII
-            TelemetryService.Instance.TelemetryClient!.GetMetric("activity Sent").TrackValue(1);
+            TelemetryService.Instance.TrackMetric("activity Sent", 1);
 
             MainWindow.Instance.SendLine(ActivityMsg);
 

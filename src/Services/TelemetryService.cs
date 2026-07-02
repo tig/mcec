@@ -29,8 +29,12 @@ public partial class TelemetryService {
     public bool TelemetryEnabled { get; set; }
     public Stopwatch? RunTime { get; set; }
 
-    // internal setter so tests can substitute a client backed by a stub channel (#156).
-    public TelemetryClient? TelemetryClient { get; internal set; }
+    // Internal (not public) so no caller outside this class can send telemetry with the raw
+    // client, bypassing the TelemetryEnabled opt-in gate (#199). Production code must go through
+    // TrackEvent/TrackException/TrackMetric, which all gate on the user's registry opt-in.
+    // The property exists solely as a test seam (InternalsVisibleTo MCEControl.xUnit) so tests
+    // can substitute a client backed by a stub channel (#156).
+    internal TelemetryClient? TelemetryClient { get; set; }
 
     public void Start(string appName, IDictionary<string, string>? startProperties = null) {
         RunTime = Stopwatch.StartNew();
@@ -92,18 +96,33 @@ public partial class TelemetryService {
         // why: to understand how long the app stays running
         // how is PII protected: the time the app runs is not PII
         TrackEvent("Application Stopped",
-            metrics: new Dictionary<string, double> { { "runTime", RunTime!.Elapsed.TotalMilliseconds } });
+            metrics: new Dictionary<string, double> { { "runTime", RunTime?.Elapsed.TotalMilliseconds ?? 0 } });
 
-        // before exit, flush the remaining data
-        Flush();
-        // Flush is not blocking so wait a bit
-        Task.Delay(1000).Wait();
+        // Only flush (and pay the shutdown delay) when there can actually be pending data (#199).
+        if (TelemetryEnabled && TelemetryClient != null) {
+            // before exit, flush the remaining data
+            Flush();
+            // Flush is not blocking so wait a bit
+            Task.Delay(1000).Wait();
+        }
     }
 
     public void TrackEvent(string key, IDictionary<string, string>? properties = null,
         IDictionary<string, double>? metrics = null) {
         if (TelemetryEnabled && TelemetryClient != null) {
             TelemetryClient.TrackEvent(key, properties, metrics);
+        }
+    }
+
+    /// <summary>
+    /// Records a value for a metric, subject to the user's telemetry opt-in. This is the only
+    /// supported way to send metrics: it applies the same <c>TelemetryEnabled</c> gate as
+    /// <see cref="TrackEvent"/> and is a safe no-op before <see cref="Start"/> constructs the
+    /// client (#199).
+    /// </summary>
+    public void TrackMetric(string name, double value) {
+        if (TelemetryEnabled && TelemetryClient != null) {
+            TelemetryClient.GetMetric(name).TrackValue(value);
         }
     }
 
