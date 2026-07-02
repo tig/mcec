@@ -63,6 +63,16 @@ command engine and does **not** require `AgentCommandsEnabled`; the raw command 
 that command's own `Enabled` flag in `mcec.commands` (the normal MCEC gate). `McpServerEnabled` gates only
 the HTTP floor; it has no bearing on stdio or on which individual tools may run.
 
+**The command queue is bounded.** Commands (from any client — network, serial, or an agent's
+`send_command`) are queued and executed paced (`CommandPacing` delay between items). To prevent a remote
+memory/CPU DoS the queue is capped at **200** pending commands, and a single command's whole tree — the
+command itself plus all recursively embedded commands — at **50**. Enqueue is **all-or-nothing**: a command
+that breaks either bound, or whose tree doesn't fit in the queue's remaining capacity, is **dropped whole
+and logged** (a `CommandInvoker` warning in the MCEC log) — never partially enqueued, since a split tree
+could separate paired input commands (e.g. `shiftdown:`/`shiftup:`) and leave a modifier key latched.
+Agents should batch or pace long input sequences (e.g. prefer `drag`/`mouse:drag` over long `mouse:mt`
+streams) rather than flooding the queue.
+
 ---
 
 ## How to enable
