@@ -16,8 +16,9 @@ namespace MCEControl;
 /// Not every command resolves unconditionally: <c>click</c>/<c>drag</c> only need a window for
 /// element endpoints, <c>capture</c> supports a window-less region grab, and <c>record</c> resolves
 /// inside its (test-overridable) grabber factory — those override <see cref="RequiresWindowTarget"/>
-/// and receive <c>null</c>. When resolution fails, <see cref="OnWindowNotFound"/> emits each
-/// command's historical failure envelope (they differ — result unification is #206).
+/// and receive <c>null</c>. When resolution fails, <see cref="OnWindowNotFound"/> returns the ONE
+/// structured window-not-found failure (#206 unified the per-command shapes); a command overrides it
+/// only to add behavior (e.g. <c>capture</c> audits the miss).
 /// </summary>
 public abstract class WindowTargetingAgentCommand : AgentCommand {
     // NOTE: attribute names MUST be all-lowercase. SerializedCommands.Deserialize runs an XSLT that
@@ -49,16 +50,15 @@ public abstract class WindowTargetingAgentCommand : AgentCommand {
         WindowResolver.Resolve(Handle > 0 ? Handle : (long?)null, Window, Process, ClassName, Foreground);
 
     /// <summary>
-    /// Emits the command's window-not-found failure and returns false. The base emission is the
-    /// historical majority shape; commands that emit a coded envelope (or audit the miss) override.
+    /// Builds the command's window-not-found failure: one structured shape for every window-targeting
+    /// command (#206) — code <c>window-not-found</c>, category <c>no-target</c>. Commands override
+    /// only to ADD behavior (e.g. <c>capture</c> audits the miss), not to change the envelope.
     /// </summary>
-    protected virtual bool OnWindowNotFound() {
-        Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window").ToJson());
-        return false;
-    }
+    protected virtual CommandResult OnWindowNotFound() =>
+        CommandResult.Fail(Cmd, "No matching window", "window-not-found", "no-target");
 
     /// <summary>Resolve-once template: resolve (when required), fail via <see cref="OnWindowNotFound"/>, dispatch.</summary>
-    protected sealed override bool ExecuteCore() {
+    protected sealed override CommandResult ExecuteCore() {
         if (!RequiresWindowTarget) {
             return ExecuteCore(null);
         }
@@ -73,9 +73,10 @@ public abstract class WindowTargetingAgentCommand : AgentCommand {
 
     /// <summary>
     /// The command body. <paramref name="target"/> is the resolved window, or <c>null</c> only when
-    /// <see cref="RequiresWindowTarget"/> returned false for this invocation.
+    /// <see cref="RequiresWindowTarget"/> returned false for this invocation. Returns the structured
+    /// result; the <see cref="AgentCommand"/> template owns emitting it.
     /// </summary>
-    protected abstract bool ExecuteCore(WindowInfo? target);
+    protected abstract CommandResult ExecuteCore(WindowInfo? target);
 
     // No Clone override: the shared selectors are value/string-typed, so the base
     // MemberwiseClone-based Command.Clone (#207) copies them by construction.

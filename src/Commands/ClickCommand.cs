@@ -44,17 +44,11 @@ public class ClickCommand : WindowTargetingAgentCommand {
     // A window is only needed to resolve an element endpoint; a pure pixel click needs none.
     protected override bool RequiresWindowTarget => !string.IsNullOrEmpty(Value);
 
-    protected override bool OnWindowNotFound() {
-        Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window", "window-not-found", "no-target").ToJson());
-        return false;
-    }
-
-    protected override bool ExecuteCore(WindowInfo? target) {
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr hwnd = target is null ? IntPtr.Zero : new IntPtr(target.Handle);
 
         if (!TryResolvePoint(hwnd, out (int X, int Y) point, out string? error)) {
-            Reply?.WriteLine(CommandResult.Fail(Cmd, error!, "element-not-found", "no-target").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, error!, "element-not-found", "no-target");
         }
 
         // Clamp to the {1,2} the contract exposes and normalize the button, then dispatch and echo the
@@ -70,8 +64,7 @@ public class ClickCommand : WindowTargetingAgentCommand {
             ["button"] = button,
             ["count"] = count,
         };
-        Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
-        return true;
+        return CommandResult.Ok(Cmd, data);
     }
 
     /// <summary>

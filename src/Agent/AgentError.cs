@@ -14,11 +14,12 @@ namespace MCEControl;
 /// #87's failure-summary). See <c>docs/design/agent-tool-result-contract.md</c> (#101).
 /// </summary>
 public sealed class AgentError {
-    public AgentError(string code, AgentErrorCategory category, string detail, JsonObject? lastObservation = null) {
+    public AgentError(string code, AgentErrorCategory category, string detail, JsonObject? lastObservation = null, JsonObject? partialResult = null) {
         Code = code;
         Category = category;
         Detail = detail;
         LastObservation = lastObservation;
+        PartialResult = partialResult;
     }
 
     /// <summary>Stable, fine-grained machine code (kebab-case); narrows <see cref="Category"/>.</summary>
@@ -33,12 +34,20 @@ public sealed class AgentError {
     /// <summary>The last good observation captured before the failure, or null when none exists.</summary>
     public JsonObject? LastObservation { get; }
 
+    /// <summary>
+    /// The failing call's OWN partial payload, when the command deliberately kept one — e.g. a blank
+    /// <c>capture</c> still carries the (suspect) PNG it grabbed so the evidence is not lost (#206).
+    /// Distinct from <see cref="LastObservation"/>, which is the last GOOD state from a prior call.
+    /// </summary>
+    public JsonObject? PartialResult { get; }
+
     /// <summary>The kebab-case wire string for <see cref="Category"/> that goes into <c>error.category</c>.</summary>
     public string CategoryWire => Category switch {
         AgentErrorCategory.Timeout => "timeout",
         AgentErrorCategory.AmbiguousSelector => "ambiguous-selector",
         AgentErrorCategory.StaleElement => "stale-element",
         AgentErrorCategory.NoTarget => "no-target",
+        AgentErrorCategory.InvalidArgument => "invalid-argument",
         AgentErrorCategory.CaptureBlank => "capture-blank",
         AgentErrorCategory.Focus => "focus",
         AgentErrorCategory.Elevation => "elevation",
@@ -55,6 +64,9 @@ public sealed class AgentError {
         };
         if (LastObservation is not null) {
             obj["lastObservation"] = LastObservation.DeepClone();
+        }
+        if (PartialResult is not null) {
+            obj["partialResult"] = PartialResult.DeepClone();
         }
         return obj;
     }

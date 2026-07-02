@@ -78,7 +78,8 @@ falling back to `category`.
 | `ambiguous-selector` | A selector matched more than one candidate and the tool refused to guess. | Add disambiguators (`processName`, `className`, `automationId`) and retry. |
 | `stale-element`      | A previously resolved element/handle is no longer valid (window closed, tree re-rendered). | Re-`query`/`find` to get a fresh reference, then retry. |
 | `no-target`          | A selector matched nothing (no window/element). | Broaden the selector, `query` to discover targets, or wait for the target to appear. |
-| `capture-blank`      | A screenshot was produced but detected as black/blank (composited/occluded/locked-session). | Try foreground/region capture; restore/foreground the window; surface the limitation. |
+| `invalid-argument`   | The request itself is malformed or inapplicable (#191): a client-supplied argument is invalid (unknown action, oversized region, ill-formed endpoint) or cannot apply to the target (an element that lacks the pattern an action needs). | Fix the arguments and re-issue. Do **not** retry the same call, broaden a selector, or re-find the target — the request will keep failing until it changes. |
+| `capture-blank`      | A screenshot was produced but detected as black/blank (composited/occluded/locked-session). | Try foreground/region capture; restore/foreground the window; surface the limitation. The suspect image still rides in `error.partialResult`. |
 | `focus`              | An action required input focus that could not be set. | `invoke` `setfocus` first, or foreground the window, then retry. |
 | `elevation`          | The target runs at a higher integrity level (UAC) than MCEC and cannot be driven. | Surface to the operator; the action cannot proceed without elevation. |
 | `foreground`         | An action required the target to be foreground and it could not be brought forward. | Foreground the window (subject to OS foreground-lock rules), then retry. |
@@ -96,6 +97,8 @@ not recoverable by the agent at all.
 - `ambiguous-selector` → `selector-matched-N`
 - `stale-element` → `element-stale`, `window-closed`
 - `no-target` → `window-not-found`, `element-not-found`
+- `invalid-argument` → `region-too-large`, `action-unknown`, `pattern-unsupported`, `bad-arguments`,
+  `launch-path-missing`, `recording-in-progress`, `no-recording`
 - `capture-blank` → `frame-all-black`, `frame-mostly-blank`
 - `focus` → `set-focus-failed`
 - `elevation` → `target-elevated`
@@ -123,6 +126,13 @@ result or the resolved target `WindowInfo`. It is the primary input to #87's `fa
 
 When no prior observation exists (e.g. the very first call in a session failed at selector
 resolution), `lastObservation` is omitted.
+
+## `partialResult`
+
+`error.partialResult` carries the failing call's **own** partial payload when the tool deliberately
+kept one — e.g. a `capture-blank` failure still carries the (suspect) PNG it grabbed, so the evidence
+the command paid to produce is not discarded (#206). It is distinct from `lastObservation`, which is
+the last *good* state from a *prior* call. Omitted when the failure produced nothing.
 
 ## Mapping onto the MCP tool-result transport
 

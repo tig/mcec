@@ -132,7 +132,8 @@ public class RecordCommandTests {
             JsonObject json = JsonNode.Parse(reply.Captured.Trim())!.AsObject();
             Assert.False(json["success"]!.GetValue<bool>());
             Assert.Equal("region-too-large", json["errorCode"]!.GetValue<string>());
-            Assert.Equal("no-target", json["errorCategory"]!.GetValue<string>());
+            // #191: an oversized region is a malformed request — invalid-argument, not no-target.
+            Assert.Equal("invalid-argument", json["errorCategory"]!.GetValue<string>());
             Assert.Contains(ScreenCapture.MaxRegionDimension.ToString(), json["error"]!.GetValue<string>());
         }
         finally {
