@@ -29,8 +29,48 @@ public class AgentServerBindAddressTests {
     [InlineData("::1")]
     [InlineData("[::1]")] // bracketed IPv6 literal, as it appears inside a URL
     [InlineData(" 127.0.0.1 ")] // stray whitespace from hand-edited XML settings
+    // Obfuscated-but-loopback forms IPAddress.TryParse blesses (see the normalized-host theory for why
+    // they must be canonicalized, not passed raw, before reaching http.sys):
+    [InlineData("0x7f.0.0.1")]
+    [InlineData("127.1")]
+    [InlineData("2130706433")]
+    [InlineData("127.00.00.01")]
+    [InlineData("::ffff:127.0.0.1")] // IPv4-mapped IPv6 loopback
     public void IsLoopbackBindAddress_LoopbackValues_Accepted(string address) {
         Assert.True(AgentServer.IsLoopbackBindAddress(address));
+    }
+
+    [Theory]
+    // The prefix host StartHttp feeds HttpListener must ALWAYS be a canonical loopback literal, never
+    // the raw obfuscated string (#152 review follow-up). http.sys parses forms like 0x7f.0.0.1 and
+    // ::ffff:127.0.0.1 as hostname/wildcard registrations that, under an elevated MCEC, bind
+    // non-loopback — so a LAN attacker with a matching Host header would reach the unauthenticated
+    // endpoint. Canonicalizing via the parsed IPAddress collapses every accepted form to a literal
+    // http.sys binds to loopback.
+    [InlineData("localhost", "localhost")]
+    [InlineData("LOCALHOST", "localhost")]
+    [InlineData(" 127.0.0.1 ", "127.0.0.1")]
+    [InlineData("127.0.0.2", "127.0.0.2")]
+    [InlineData("0x7f.0.0.1", "127.0.0.1")]
+    [InlineData("127.1", "127.0.0.1")]
+    [InlineData("2130706433", "127.0.0.1")]
+    [InlineData("127.00.00.01", "127.0.0.1")]
+    [InlineData("::1", "[::1]")]
+    [InlineData("[::1]", "[::1]")]
+    [InlineData("::ffff:127.0.0.1", "127.0.0.1")] // IPv4-mapped IPv6 collapses to its IPv4 literal
+    public void TryGetLoopbackPrefixHost_AcceptedValue_NormalizesToCanonicalLoopbackLiteral(string address, string expectedHost) {
+        Assert.True(AgentServer.TryGetLoopbackPrefixHost(address, out string host));
+        Assert.Equal(expectedHost, host);
+    }
+
+    [Theory]
+    [InlineData("0.0.0.0")]
+    [InlineData("192.168.1.5")]
+    [InlineData("evil.example.com")]
+    [InlineData("")]
+    public void TryGetLoopbackPrefixHost_RejectedValue_ReturnsFalseAndEmptyHost(string address) {
+        Assert.False(AgentServer.TryGetLoopbackPrefixHost(address, out string host));
+        Assert.Equal("", host);
     }
 
     [Theory]

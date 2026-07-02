@@ -42,10 +42,15 @@ does **not** turn the others on.
    The network-facing server (`McpServerEnabled`) is off unless you opt in. Even when
    enabled, the HTTP floor **binds to localhost only** — and this is **enforced**, not
    just a default ([#152]): `McpBindAddress` must be `localhost` or a literal loopback
-   IP (any `127.x.y.z`, or `::1` / `[::1]`). Anything else — the `HttpListener`
-   wildcards `+` and `*`, the all-interfaces addresses `0.0.0.0` and `::`, non-loopback
-   IPs, or any other hostname (names are never DNS-resolved) — makes MCEC **refuse to
-   start the HTTP listener at all**, logging a loud error instead. So the endpoint is
+   IP (any `127.x.y.z`, or `::1` / `[::1]`). Any accepted address is **canonicalized**
+   before it reaches the listener — so obfuscated loopback spellings the OS parser still
+   reads as loopback (e.g. `127.1`, `0x7f.0.0.1`, `2130706433`, `::ffff:127.0.0.1`) are
+   normalized to a plain loopback literal (`127.0.0.1` / `[::1]`) rather than passed
+   through raw, closing a path where the underlying HTTP stack could treat the raw form
+   as a wildcard binding. Anything else — the `HttpListener` wildcards `+` and `*`, the
+   all-interfaces addresses `0.0.0.0` and `::`, non-loopback IPs, or any other hostname
+   (names are never DNS-resolved) — makes MCEC **refuse to start the HTTP listener at
+   all**, logging a loud error instead. So the endpoint is
    never reachable from other machines. If you need off-box access, front it with your
    own reverse proxy and auth (native remote exposure, if ever added, is gated on the
    authentication work in [#143]).
@@ -434,7 +439,8 @@ The address and port come from `McpBindAddress` (default `127.0.0.1`) and `McpHt
 (default `5151`). This is a deliberately minimal floor for local scripts and agents; it
 is not a general-purpose web API and is never exposed off-box: the bind address is
 validated at startup ([#152]) and only `localhost` or a literal loopback IP (`127.x.y.z`,
-`::1`, `[::1]`) is accepted — with any other value the listener refuses to start and MCEC
+`::1`, `[::1]`) is accepted — accepted addresses are canonicalized to a plain loopback
+literal before binding, and any other value makes the listener refuse to start while MCEC
 logs a loud error explaining what to change.
 
 The floor is hardened against resource exhaustion ([#151]): a request body larger than

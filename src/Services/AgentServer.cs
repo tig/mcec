@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -825,29 +826,58 @@ public static class AgentServer {
     // -------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// Whether <paramref name="address"/> is a bind address <see cref="StartHttp"/> will accept (#152):
-    /// the literal hostname <c>localhost</c>, or a literal IP address that
-    /// <see cref="IPAddress.IsLoopback"/> confirms is loopback (any 127.0.0.0/8 address, or <c>::1</c>,
-    /// optionally bracketed as <c>[::1]</c>). Everything else is rejected: the HttpListener wildcards
-    /// <c>+</c> and <c>*</c>, the all-interfaces addresses <c>0.0.0.0</c> and <c>::</c>, any
-    /// non-loopback IP, and any hostname other than <c>localhost</c>. Hostnames are deliberately NOT
-    /// resolved via DNS — a name could resolve to a non-loopback interface, so only the one literal
-    /// name is trusted.
+    /// Validates <paramref name="address"/> as a loopback bind address AND canonicalizes it into the
+    /// exact host string <see cref="StartHttp"/> puts in the <see cref="HttpListener"/> prefix (#152).
+    /// Returns true only for the literal hostname <c>localhost</c> or a literal IP that
+    /// <see cref="IPAddress.IsLoopback"/> confirms is loopback; on success <paramref name="prefixHost"/>
+    /// is the CANONICAL form — <c>localhost</c>, a dotted IPv4 literal (<c>127.0.0.1</c>), or a bracketed
+    /// IPv6 literal (<c>[::1]</c>).
+    /// <para>
+    /// Canonicalizing is load-bearing, not cosmetic. <see cref="IPAddress.TryParse"/> also blesses
+    /// obfuscated loopback spellings — <c>0x7f.0.0.1</c>, <c>127.1</c>, <c>2130706433</c>,
+    /// <c>127.00.00.01</c>, <c>::ffff:127.0.0.1</c> — as loopback, but <c>http.sys</c> parses those RAW
+    /// strings differently: some register as hostname/wildcard bindings that, under an elevated MCEC,
+    /// bind non-loopback, so a LAN attacker with a matching <c>Host</c> header would reach the
+    /// unauthenticated (#143) endpoint. Building the prefix from <c>ip.ToString()</c> instead collapses
+    /// every accepted form to a literal <c>http.sys</c> binds to loopback (an IPv4-mapped IPv6 loopback
+    /// is folded to its IPv4 literal). Everything else is rejected: the HttpListener wildcards <c>+</c>
+    /// and <c>*</c>, the all-interfaces addresses <c>0.0.0.0</c> and <c>::</c>, any non-loopback IP, and
+    /// any hostname other than <c>localhost</c>. Hostnames are deliberately NOT resolved via DNS — a
+    /// name could resolve to a non-loopback interface, so only the one literal name is trusted.
+    /// </para>
     /// </summary>
-    internal static bool IsLoopbackBindAddress(string? address) {
+    internal static bool TryGetLoopbackPrefixHost(string? address, out string prefixHost) {
+        prefixHost = string.Empty;
         if (string.IsNullOrWhiteSpace(address)) {
             return false;
         }
         string candidate = address.Trim();
         if (string.Equals(candidate, "localhost", StringComparison.OrdinalIgnoreCase)) {
+            prefixHost = "localhost";
             return true;
         }
         // An IPv6 literal may be written bracketed ([::1]), as it appears inside a URL/prefix.
         if (candidate.Length >= 2 && candidate[0] == '[' && candidate[^1] == ']') {
             candidate = candidate[1..^1];
         }
-        return IPAddress.TryParse(candidate, out IPAddress? ip) && IPAddress.IsLoopback(ip);
+        if (!IPAddress.TryParse(candidate, out IPAddress? ip) || !IPAddress.IsLoopback(ip)) {
+            return false;
+        }
+        // Fold an IPv4-mapped IPv6 loopback (::ffff:127.0.0.1) to its IPv4 literal so the prefix
+        // http.sys sees is an unambiguous 127.x.y.z, not a form it may treat as a hostname registration.
+        if (ip.IsIPv4MappedToIPv6) {
+            ip = ip.MapToIPv4();
+        }
+        prefixHost = ip.AddressFamily == AddressFamily.InterNetworkV6 ? $"[{ip}]" : ip.ToString();
+        return true;
     }
+
+    /// <summary>
+    /// Whether <paramref name="address"/> is a bind address <see cref="StartHttp"/> will accept (#152):
+    /// the thin predicate over <see cref="TryGetLoopbackPrefixHost"/>. See that method for the accepted
+    /// set and why an accepted address is canonicalized before it ever reaches <see cref="HttpListener"/>.
+    /// </summary>
+    internal static bool IsLoopbackBindAddress(string? address) => TryGetLoopbackPrefixHost(address, out _);
 
     public static void StartHttp() {
         AppSettings? settings = AgentRuntime.Settings;
@@ -859,10 +889,13 @@ public static class AgentServer {
                 return;
             }
             // SECURITY (#152): enforce the documented "localhost only" contract BEFORE the address ever
-            // reaches HttpListener. The MCP endpoint has no authentication (#143), so binding all
-            // interfaces (a config typo like "+", "*", or "0.0.0.0") would hand unauthenticated UI
-            // automation + screen capture to the whole network. Refuse to start rather than bind.
-            if (!IsLoopbackBindAddress(settings.McpBindAddress)) {
+            // reaches HttpListener, and build the prefix from the CANONICALIZED host (not the raw
+            // settings string) so obfuscated loopback spellings http.sys would treat as wildcard
+            // hostname registrations can't slip through. The MCP endpoint has no authentication (#143),
+            // so binding all interfaces (a config typo like "+", "*", or "0.0.0.0") would hand
+            // unauthenticated UI automation + screen capture to the whole network. Refuse to start
+            // rather than bind.
+            if (!TryGetLoopbackPrefixHost(settings.McpBindAddress, out string prefixHost)) {
                 Logger.Instance.Log4.Error(
                     $"AgentServer: REFUSING to start the MCP HTTP transport: McpBindAddress '{settings.McpBindAddress}' " +
                     "is not a loopback address. The agent endpoint has no authentication, so a non-loopback bind would " +
@@ -872,13 +905,7 @@ public static class AgentServer {
                     "hostnames are rejected. Remote exposure, if ever supported, requires the auth work tracked in #143.");
                 return;
             }
-            // Normalize the validated address for the prefix: trim stray whitespace and bracket a bare
-            // IPv6 literal ("::1" must appear as "[::1]" in an HttpListener prefix).
-            string host = settings.McpBindAddress.Trim();
-            if (host.Contains(':') && !host.StartsWith('[')) {
-                host = $"[{host}]";
-            }
-            string prefix = $"http://{host}:{settings.McpHttpPort}/";
+            string prefix = $"http://{prefixHost}:{settings.McpHttpPort}/";
             HttpListener listener = new();
             listener.Prefixes.Add(prefix);
             try {
