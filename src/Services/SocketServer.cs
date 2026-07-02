@@ -227,21 +227,9 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                 return;
             }
 
-            // Parse the received chunk. Guard the parse loop so a malformed/crafted packet can
-            // never escape as an unhandled exception on this ThreadPool callback and terminate
-            // the process (issue #144 — unauthenticated remote crash). Any parse failure closes
-            // the offending client instead.
-            try {
-                ParseReceivedData(
-                    clientContext.DataBuffer,
-                    iRx,
-                    clientContext.CmdBuilder,
-                    reply => clientContext.Socket.Send(reply),
-                    command => SendNotification(ServiceNotification.ReceivedData, CurrentStatus, clientContext, command));
-            }
-            catch (Exception ex) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: parse error: {ex.Message}");
-                CloseSocket(clientContext);
+            // Parse the received chunk; if it closed the client (parse failure or
+            // command-length overflow), stop receiving.
+            if (!ProcessReceivedData(clientContext, iRx)) {
                 return;
             }
 
@@ -261,9 +249,44 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     }
 
     /// <summary>
+    /// Parses the chunk currently in <paramref name="clientContext"/>'s DataBuffer. Guards the
+    /// parse loop so a malformed/crafted packet can never escape as an unhandled exception on a
+    /// ThreadPool callback and terminate the process (issue #144 — unauthenticated remote crash):
+    /// any parse failure closes the offending client. Likewise, a client that streams more than
+    /// <see cref="CommandAccumulator.MaxCommandLength"/> chars without a delimiter (issue #148 —
+    /// memory-exhaustion DoS) is hostile or broken, so it is closed rather than buffered further.
+    /// Internal so tests can drive the receive path without a live listener (InternalsVisibleTo).
+    /// </summary>
+    /// <returns>false if the client was closed and receiving must stop.</returns>
+    internal bool ProcessReceivedData(ServerReplyContext clientContext, int count) {
+        try {
+            if (!ParseReceivedData(
+                    clientContext.DataBuffer,
+                    count,
+                    clientContext.CmdBuilder,
+                    reply => clientContext.Socket.Send(reply),
+                    command => SendNotification(ServiceNotification.ReceivedData, CurrentStatus, clientContext, command))) {
+                SendNotification(ServiceNotification.Error, CurrentStatus, clientContext,
+                    $"OnDataReceived: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); closing connection");
+                CloseSocket(clientContext);
+                return false;
+            }
+        }
+        catch (Exception ex) {
+            SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: parse error: {ex.Message}");
+            CloseSocket(clientContext);
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Parses a received chunk of bytes: strips inline telnet negotiation (IAC …) and emits a
     /// command via <paramref name="onCommand"/> on each CR/LF/NUL delimiter. Extracted from
     /// <see cref="OnDataReceived"/> so it can be unit tested and hardened against malformed input.
+    /// Returns false when the accumulated command exceeds
+    /// <see cref="CommandAccumulator.MaxCommandLength"/> (issue #148); the builder is cleared and
+    /// parsing stops — the caller is expected to close the connection.
     /// </summary>
     /// <remarks>
     /// Issue #144: the telnet option byte was read <b>before</b> its bounds check, so a crafted
@@ -271,7 +294,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// out-of-bounds read → unhandled exception → process crash. Every buffer access here is now
     /// bounds-checked first: a truncated IAC/verb/option sequence is silently ignored.
     /// </remarks>
-    internal static void ParseReceivedData(
+    internal static bool ParseReceivedData(
             byte[] buffer,
             int count,
             StringBuilder cmdBuilder,
@@ -289,8 +312,14 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                     byte verb = buffer[i];
                     switch (verb) {
                         case (int)TelnetVerbs.IAC:
-                            //literal IAC = 255 escaped, so append char 255 to string
-                            cmdBuilder.Append(verb);
+                            //literal IAC = 255 escaped, so append char 255 to string.
+                            // The (char) cast matters: Append(byte) would format the NUMBER
+                            // as the 3-char string "255" (#148 review follow-up).
+                            if (cmdBuilder.Length >= CommandAccumulator.MaxCommandLength) {
+                                cmdBuilder.Clear(); // #148: drop the oversized partial command
+                                return false;
+                            }
+                            cmdBuilder.Append((char)verb);
                             break;
                         case (int)TelnetVerbs.DO:
                         case (int)TelnetVerbs.DONT:
@@ -331,10 +360,15 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                     break;
 
                 default:
+                    if (cmdBuilder.Length >= CommandAccumulator.MaxCommandLength) {
+                        cmdBuilder.Clear(); // #148: drop the oversized partial command
+                        return false;
+                    }
                     cmdBuilder.Append((char)b);
                     break;
             }
         }
+        return true;
     }
 
     public void SendAwakeCommand(String cmd, String host, int port) {
