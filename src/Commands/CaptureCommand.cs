@@ -89,6 +89,15 @@ public class CaptureCommand : Command {
             JsonObject data;
 
             if (Width > 0 && Height > 0 && !hasWindowTarget) {
+                // SECURITY (#158): region dimensions are agent-controlled — reject oversized
+                // requests BEFORE any bitmap/PNG/base64 allocation, with a diagnosable envelope.
+                string? sizeError = ScreenCapture.ValidateRegionSize(Width, Height);
+                if (sizeError is not null) {
+                    AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height} REJECTED — {sizeError}");
+                    Reply?.WriteLine(CommandResult.Fail(Cmd, sizeError, "region-too-large", "no-target").ToJson());
+                    return false;
+                }
+
                 AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height}");
 
                 CaptureResult regionCap = ScreenCapture.CaptureRegion(X, Y, Width, Height);

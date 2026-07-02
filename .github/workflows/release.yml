@@ -45,8 +45,14 @@ jobs:
       - name: Determine version
         id: ver
         shell: pwsh
+        # Untrusted values (dispatch input, ref name) are passed via env: so pwsh never
+        # parses them as code (#164). A literal '${{ ... }}' interpolation would let a
+        # value containing a quote inject PowerShell into this privileged job.
+        env:
+          RAW_VERSION: ${{ github.event.inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          $v = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ github.event.inputs.version }}' } else { '${{ github.ref_name }}' }
+          $v = if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') { $env:RAW_VERSION } else { $env:REF_NAME }
           $v = $v.TrimStart('v')
           if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Version '$v' must be X.Y.Z (tag like v2.5.0)" }
           "version=$v" >> $env:GITHUB_OUTPUT
@@ -86,7 +92,9 @@ jobs:
 
       - name: Sign installer (Azure Trusted Signing)
         if: ${{ env.SIGN == 'true' }}
-        continue-on-error: true
+        # SECURITY (#160): do NOT swallow signing failures. When signing is expected (SIGN == 'true')
+        # a failed/rotated secret or service outage must FAIL the job, not silently publish an unsigned
+        # installer that every client's auto-updater (#146) would fetch and run.
         uses: azure/artifact-signing-action@v2
         with:
           endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
@@ -97,6 +105,27 @@ jobs:
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
+
+      - name: Verify installer is Authenticode-signed
+        if: ${{ env.SIGN == 'true' }}
+        shell: pwsh
+        # SECURITY (#160): defense in depth — even if the signing action reports success, prove the
+        # artifact is actually signed by the expected publisher before publishing. Fails the job otherwise.
+        run: |
+          $sig = Get-AuthenticodeSignature artifacts/mcec.Setup.exe
+          Write-Host "Signature status: $($sig.Status); signer: $($sig.SignerCertificate.Subject)"
+          # HARD gate (the #160 fix): a non-Valid signature must never publish. This catches signing
+          # failures and no-ops alike.
+          if ($sig.Status -ne 'Valid') {
+            throw "mcec.Setup.exe is not validly signed (status: $($sig.Status)). Refusing to publish."
+          }
+          # SOFT check: warn (don't block) if the signer subject doesn't look like the Kindel publisher.
+          # The Trusted Signing certificate CN is set by Microsoft from the validated legal entity, so a
+          # formatting difference must not false-negative-block a legitimately signed release.
+          if ($sig.SignerCertificate.Subject -notmatch 'Kindel') {
+            Write-Host "::warning::mcec.Setup.exe signer '$($sig.SignerCertificate.Subject)' does not contain 'Kindel' — verify the signing certificate identity."
+          }
+          Write-Host "::notice::Installer signature verified (status: Valid)."
 
       - name: Warn that installer is unsigned
         if: ${{ env.SIGN != 'true' }}

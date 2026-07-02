@@ -103,10 +103,31 @@ public class RecordCommand : Command {
         }
     }
 
+    /// <summary>True when the command targets an explicit screen region (no window selector given).</summary>
+    private bool IsRegionTarget => Width > 0 && Height > 0 && !HasWindowTarget;
+
+    /// <summary>True when any window selector (title/handle/process/class/foreground) is given.</summary>
+    private bool HasWindowTarget => !string.IsNullOrEmpty(Window)
+        || Handle > 0
+        || !string.IsNullOrEmpty(Process)
+        || !string.IsNullOrEmpty(ClassName)
+        || Foreground;
+
     /// <summary>Starts a recording; for a one-shot, also waits the duration and stops/encodes/writes.</summary>
     private bool DoStart(bool oneshot) {
         if (GifRecorder.IsRecording) {
             return FailWith("A recording is already in progress. Stop it first (action=stop).");
+        }
+
+        // SECURITY (#158): an explicit record region feeds the same CaptureRegionBitmap as
+        // `capture`, so its agent-controlled dimensions get the same fail-fast cap — reject
+        // before any recording starts (window targets are naturally bounded by window size).
+        if (IsRegionTarget) {
+            string? sizeError = ScreenCapture.ValidateRegionSize(Width, Height);
+            if (sizeError is not null) {
+                AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height} REJECTED — {sizeError}");
+                return FailWith(sizeError, code: "region-too-large", category: "no-target");
+            }
         }
 
         RecordLimits limits = ResolveLimits(oneshot);
@@ -185,13 +206,7 @@ public class RecordCommand : Command {
     /// </summary>
     protected virtual Func<Bitmap>? BuildGrabber(out JsonNode? target, out string? error) {
         error = null;
-        bool hasWindowTarget = !string.IsNullOrEmpty(Window)
-            || Handle > 0
-            || !string.IsNullOrEmpty(Process)
-            || !string.IsNullOrEmpty(ClassName)
-            || Foreground;
-
-        if (Width > 0 && Height > 0 && !hasWindowTarget) {
+        if (IsRegionTarget) {
             int rx = X, ry = Y, rw = Width, rh = Height;
             target = new JsonObject {
                 ["type"] = "region",
@@ -278,10 +293,13 @@ public class RecordCommand : Command {
         return true;
     }
 
-    /// <summary>Writes a failure envelope; the discard warning still rides along when set — warnings
-    /// are valid on failure too, and the discard already happened regardless of this call's outcome.</summary>
-    private bool FailWith(string error, bool warnDiscardedUnfetched = false) {
-        CommandResult result = CommandResult.Fail(Cmd, error);
+    /// <summary>Writes a failure envelope (with the structured code/category taxonomy when given);
+    /// the discard warning still rides along when set — warnings are valid on failure too, and the
+    /// discard already happened regardless of this call's outcome.</summary>
+    private bool FailWith(string error, bool warnDiscardedUnfetched = false, string? code = null, string? category = null) {
+        CommandResult result = code is not null && category is not null
+            ? CommandResult.Fail(Cmd, error, code, category)
+            : CommandResult.Fail(Cmd, error);
         if (warnDiscardedUnfetched) {
             result.Warn(DiscardedWarningCode, DiscardedWarningDetail);
         }

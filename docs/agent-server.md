@@ -14,10 +14,10 @@ AI agents and scripts running on a Windows PC. It gives an agent three things:
   drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
 
 The agent surface is a set of new commands — `capture`, `query`, `displays`, `find`,
-`wait-for`, `invoke`, `drag`, and `click` — that return **structured JSON** (a
-`CommandResult`) instead of free text.
-Those same commands are exposed as tools over MCP/HTTP so an agent can call them
-directly.
+`wait-for`, `invoke`, `launch`, `drag`, and `click` — exposed as **tools over MCP/HTTP**
+so an agent can call them directly. Each tool call returns a **structured JSON result
+envelope** (`{ ok, result, … }`) instead of free text, so an agent can reason about
+success and failure uniformly.
 
 > **This release is purely additive.** No existing HTPC command, transport, or default
 > is changed. If you do nothing, MCEC behaves exactly as it did before — every new
@@ -55,7 +55,7 @@ If any one of these switches is off, the corresponding capability simply refuses
 and returns a JSON failure (for commands) — it never silently proceeds.
 
 **Which gate applies where.** The agent *tools* — `capture`/`query`/`displays`/`find`/`wait-for`/`invoke`/
-`record`/`drag`/`click` — are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
+`record`/`launch`/`drag`/`click` — are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
 flag, over **both** MCP transports (`mcec.exe --mcp` stdio and the HTTP floor): a `tools/call` for a
 command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
 `AgentCommandsEnabled=true`.
@@ -67,8 +67,9 @@ client — no network/CSRF surface) it keeps the documented pass-through and doe
 gate as every other tool**: with `McpServerEnabled=true` but `AgentCommandsEnabled=false`, a `send_command`
 `tools/call` is refused (`error.code: agent-commands-disabled`) and never executed. This is deliberate
 secure-by-default hardening — enabling the HTTP floor alone must not expose a raw-command surface with no
-agent opt-in, which chained with the missing origin/auth checks ([#143]) is reachable by browser CSRF /
-DNS-rebinding. In **both** cases the raw command it runs is still subject to that command's own `Enabled`
+agent opt-in. Before [#143]'s front-door validation landed, such a request was reachable by browser CSRF /
+DNS-rebinding; with #143's `Host`/`Origin`/token gate now in place **and** this `AgentCommandsEnabled` gate,
+that surface is closed. In **both** cases the raw command it runs is still subject to that command's own `Enabled`
 flag in `mcec.commands` (the normal MCEC gate). `McpServerEnabled` gates only the HTTP floor; it has no
 bearing on stdio or on which individual tools may run.
 
@@ -130,36 +131,52 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 | `click`    | Click at a point — a UI Automation element (clicked at its centre) or an absolute screen pixel — with move+click dispatched **atomically**. For element types `invoke` can't drive, or when you must target a pixel. Prefer `invoke` for ordinary buttons/menus. | window target (needed when `at` is an element); `at` = `{ by, value }` or `{ x, y }`; `button` (`left`\|`right`\|`middle`, default `left`); `count` (`1`\|`2`, default `1`) |
 | `record`   | Record a window or region to an **animated GIF** over time (start/stop or a bounded one-shot). | window target, or region `x`/`y`/`width`/`height`; `action` (`start`\|`stop`\|`oneshot`), `fps`, `durationMs`, `maxWidth`, `file` |
 
-All return a `CommandResult` JSON object via `Reply.WriteLine`:
+Every MCP **tool call** returns one result envelope. An agent branches on `ok` first; on
+success it reads `result`, on failure it reads `error`:
 
 ```json
 {
-  "success": true,
-  "command": "query",
-  "error": null,
-  "data": { /* command-specific payload */ },
-  "warnings": [ { "code": "tree-truncated", "detail": "…" } ]
+  "ok": true,
+  "result": { /* tool-specific payload */ },
+  "warnings": [ { "code": "tree-truncated", "detail": "…" } ],
+  "sessionId": "5f19c9c01a3f"
 }
 ```
 
-`warnings` is present only when there are non-fatal conditions to report. On failure the
-result additionally carries `errorCode` (a stable, fine-grained string) and `errorCategory`
-(a coarse class from the closed taxonomy: `timeout`, `ambiguous-selector`, `stale-element`,
-`no-target`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`). These fields
-track the shared agent result contract in
-[`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md) (#101);
-they are additive over the legacy `success`/`error`/`data` shape, which still works.
+A result is **either** a success (`ok: true`, `result` present, no `error`) **or** a failure
+(`ok: false`, `error` present, no `result`) — never both. `warnings` (non-fatal conditions)
+may appear on either. `sessionId` is present when the call ran inside a mounted session.
+Over MCP, the transport's `isError` flag mirrors the envelope (`isError = !ok`).
 
-On failure (including when the security gates are off):
+On failure the `error` object carries a stable, fine-grained `code`, a coarse `category` from
+the closed taxonomy (`timeout`, `ambiguous-selector`, `stale-element`, `no-target`,
+`capture-blank`, `focus`, `elevation`, `foreground`, `internal`), a human-readable `detail`,
+and — when available — a `lastObservation` (the last good state before the failure, so a
+failed call is debuggable without rerunning it):
 
 ```json
 {
-  "success": false,
-  "command": "capture",
-  "error": "Agent commands are disabled (AgentCommandsEnabled=false).",
-  "data": null
+  "ok": false,
+  "error": {
+    "code": "window-not-found",
+    "category": "no-target",
+    "detail": "No matching window for selector window='Settings'.",
+    "lastObservation": { /* the last good query/capture */ }
+  },
+  "sessionId": "5f19c9c01a3f"
 }
 ```
+
+> **Where the shape comes from.** Internally each agent command still emits the thinner legacy
+> `CommandResult` (`{ success, command, error, data, warnings }`, in `src/Commands/CommandResult.cs`).
+> The `AgentServer` translates that into the `{ ok, result, error, … }` envelope at the MCP
+> boundary (`AgentToolResult.FromLegacy`), which is the shape an MCP client actually receives and
+> the one specified by the shared result contract in
+> [`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md). A
+> couple of feature-specific refusals ride in `error.code` while `error.category` stays `internal`:
+> `emergency-stopped` (the operator engaged the [emergency stop](safety-emergency-stop-and-provisioning.md)),
+> `provisioning-not-authorized` (`AllowSessionProvisioning` is off), and `command-disabled` (the
+> per-command `Enabled` gate).
 
 ### `capture` result example
 
@@ -169,9 +186,8 @@ geometry:
 
 ```json
 {
-  "success": true,
-  "command": "capture",
-  "data": {
+  "ok": true,
+  "result": {
     "handle": 1576490,
     "width": 1024,
     "height": 768,
@@ -193,13 +209,22 @@ geometry:
 
 `blankCheck` reports the blank-frame analysis (see
 [Observation hardening](#observation-hardening--known-limitations)). When a **window** capture
-comes back blank the result is a failure with `errorCategory: "capture-blank"` — but the PNG
-stays in `data` so it is never a *silent* bad image. A blank **region** capture is reported as
-a `capture-blank` warning instead, since a user-specified region can legitimately be empty.
+comes back blank the result is a failure with `error.category: "capture-blank"`, so an agent
+never trusts a silent bad image. A blank **region** capture is reported as a `capture-blank`
+warning instead, since a user-specified region can legitimately be empty.
 
-(Over MCP, `capture` additionally returns the PNG as an `image` content block so the
-model can view it directly, in addition to the JSON text above — including for a blank-frame
-failure, so the agent can see what was grabbed.)
+**Region size limits.** Region `width`/`height` are agent-controlled, so they are capped — an
+unbounded region (e.g. `40000x40000` ≈ 6.4 GB of raw ARGB, before PNG encoding and base64) could
+otherwise exhaust the host's memory. A region may be at most **16384 px per side** and
+**64,000,000 px total** (64 MP ≈ 256 MB raw — roughly eight 4K frames). An oversized region is
+**rejected before anything is allocated or captured** — the call fails with
+`errorCode: "region-too-large"` (`errorCategory: "no-target"`) and a detail stating the limit,
+and the rejection is `AGENT-AUDIT:`-logged. The same caps apply to `record` regions (window
+targets need no cap: they are bounded by the window's own size). These limits are fixed, not
+settings: they are an anti-DoS bound sized well beyond real desktop geometry, not a tuning knob.
+
+On a successful `capture`, MCEC additionally returns the PNG as an MCP `image` content block so
+the model can view it directly, alongside the JSON envelope above.
 
 ### `record` — capturing change over time
 
@@ -242,13 +267,17 @@ not failed) keep an agent from producing an unbounded file:
 | `AgentRecordMaxFrames`     | 600      | Hard cap on captured frames. |
 | `AgentRecordMaxWidth`      | 1280     | Frames are downscaled so width fits this. |
 
+A `record` **region** target is additionally subject to the fixed capture region size limits
+(max 16384 px per side, 64,000,000 px total — see
+[Region size limits](#capture-result-example)): an oversized region fails fast with
+`errorCode: "region-too-large"` before any recording starts, rather than being clamped.
+
 A finished `record` (one-shot or `stop`) returns the output path and metadata:
 
 ```json
 {
-  "success": true,
-  "command": "record",
-  "data": {
+  "ok": true,
+  "result": {
     "file": "C:\\Users\\me\\AppData\\Local\\Temp\\mcec-rec-20260629-141503.gif",
     "frames": 73,
     "durationMs": 14600,
@@ -279,9 +308,8 @@ the frames are stitched into one GIF89a (Netscape loop extension + per-frame del
 
 ```json
 {
-  "success": true,
-  "command": "query",
-  "data": {
+  "ok": true,
+  "result": {
     "window": {
       "handle": 1576490, "title": "Untitled - Notepad",
       "className": "Notepad", "processName": "notepad", "processId": 21344,
@@ -320,13 +348,12 @@ measured. A real application window is busy and scores low; a failed grab is a f
 scores ~1.0. When the dominant color covers ≥ 99% of the frame it is flagged blank, and a
 near-black dominant color is distinguished from a legitimately empty (e.g. white) surface.
 
-- A **window** capture that comes back blank is a failure (`errorCategory: "capture-blank"`,
-  `errorCode: "frame-all-black"` or `"frame-uniform"`). The PNG is still returned in `data` (and
-  as an MCP image block) so it is never a *silent* bad image and can serve as the failure's last
-  observation.
+- A **window** capture that comes back blank is a failure (`error.category: "capture-blank"`,
+  `error.code: "frame-all-black"` or `"frame-uniform"`), so it is never a *silent* bad image — an
+  agent branches on the failure rather than trusting the frame.
 - A **region** capture that comes back blank is reported as a `capture-blank` **warning**, since
   a user-specified region can legitimately be empty.
-- The raw numbers are always in `data.blankCheck` (`blank`, `dominantFraction`, `dominantIsDark`).
+- The raw numbers are in the success payload's `blankCheck` (`blank`, `dominantFraction`, `dominantIsDark`).
 
 ### `PrintWindow` and the on-screen-blit fallback
 
@@ -348,8 +375,7 @@ Known limits:
 
 - **Locked / disconnected sessions:** when the workstation is locked or the session is detached,
   the desktop cannot be rendered and captures are blank. This is detected (blank frame) but cannot
-  be worked around from user space. Live validation of locked-session behavior is tracked
-  separately in [#78].
+  be worked around from user space.
 - **Elevation (UAC):** MCEC running at medium integrity cannot read the UIA tree of, drive, or
   reliably capture a window owned by an elevated (high-integrity) process. Such targets surface as
   empty/failed observations; run MCEC elevated only if you explicitly need to automate elevated
@@ -369,7 +395,6 @@ trees (e.g. a virtualized list with thousands of items):
 Individual stale or unsupported UIA nodes never abort the whole walk — they are skipped and the
 rest of the tree is returned.
 
-[#78]: https://github.com/tig/mcec/issues/78
 
 ---
 
@@ -467,21 +492,50 @@ Over this HTTP transport, `send_command` requires `AgentCommandsEnabled=true` (s
 where*, above): enabling the floor alone does **not** expose the raw-command pass-through. To drive
 `send_command` without opting into the agent surface, use the local stdio transport (`mcec.exe --mcp`).
 
-The floor is hardened against resource exhaustion ([#151]): a request body larger than
+### Front-door request validation (defeats CSRF and DNS rebinding)
+
+A localhost HTTP service is still reachable by a browser: any web page the operator visits
+can issue a cross-origin `POST` to `127.0.0.1:5151` (CSRF), and a DNS-rebinding attacker can
+make the browser treat the endpoint as same-origin to read responses. To close both, every
+HTTP request is validated **before** its body is read or any tool runs:
+
+- **Method + path** — only `POST /mcp` is served; anything else is rejected (`405`/`404`).
+- **`Host` header** — must be a loopback authority (`127.0.0.1`, `localhost`, or `[::1]`, and,
+  if a port is present, the configured `McpHttpPort`). A request with `Host: evil.com` — the
+  hallmark of DNS rebinding — is refused (`403`).
+- **`Origin` header** — must be absent (a normal non-browser MCP client sends none) or a
+  loopback origin. A cross-site `Origin` (`http://evil.com`) or an opaque `null` origin is
+  refused (`403`), which stops the drive-by CSRF case.
+- **`Authorization` (optional, defense in depth)** — set `McpAuthToken` to a non-empty secret
+  and every request must carry `Authorization: Bearer <token>` (constant-time compared), which
+  additionally protects against a hostile process on the same machine. Empty (default) relies on
+  the `Host`/`Origin` checks above.
+
+Every rejected request is logged with an `AGENT-AUDIT:` line (decision, method, path, host,
+origin, remote endpoint) so drive-by and rebinding attempts are visible to the operator.
+
+> **Binding off-box requires a token.** The `Host` check is a browser/rebinding defense, not a
+> network control — a remote client can send `Host: 127.0.0.1`. So if `McpBindAddress` is set to a
+> non-loopback address (e.g. `0.0.0.0`) **and** `McpAuthToken` is empty, MCEC **refuses to start** the
+> HTTP listener and logs an error. To expose the door off-box, set a bearer token (and prefer a
+> network-level control too).
+
+The floor is hardened against resource exhaustion: a request body larger than
 **1 MB** is refused with `413` (the cap is enforced by a bounded read, so chunked bodies
 without a `Content-Length` can't bypass it), and at most **16** requests are served
 concurrently — past that the server answers `503` rather than queueing.
 
-[#151]: https://github.com/tig/mcec/issues/151
 
 ---
 
 ## Summary
 
-- New, opt-in agent surface: `capture`, `query`, `displays`, `find`, `wait-for`, `invoke`, `drag`, `click`, `record`.
-- Structured JSON results; same commands exposed as MCP/HTTP tools.
+- New, opt-in agent surface: `capture`, `query`, `displays`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `record` (plus `send_command`, and `provision-session`/`end-session`).
+- Structured `{ ok, result, error, … }` JSON result envelope; the commands are exposed as MCP/HTTP tools.
 - **Three independent off-by-default gates:** `AgentCommandsEnabled`, per-command
   `Enabled`, and `McpServerEnabled` (localhost-bound).
+- **HTTP front-door validation:** `POST /mcp` only, loopback `Host` and absent-or-loopback
+  `Origin` required, optional `McpAuthToken` bearer token — defeats browser CSRF and DNS rebinding.
 - Loud `AGENT-AUDIT:` logging for every agent action.
 - Fully additive — nothing about the existing HTPC behavior changes.
 
@@ -490,10 +544,10 @@ concurrently — past that the server answers `503` rather than queueing.
 Two operator-safety features build on the gates above — see
 [`safety-emergency-stop-and-provisioning.md`](safety-emergency-stop-and-provisioning.md):
 
-- **Emergency stop (#135):** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
+- **Emergency stop:** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
   `EmergencyStopHotkey`) that instantly halts a session from any window — latching the actuation gate
   (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
   reacts to physical input only, so the agent can never trip or defeat it.
-- **Isolated session provisioning (#138):** `provision-session` (gated by `AllowSessionProvisioning`) hands
+- **Isolated session provisioning:** `provision-session` (gated by `AllowSessionProvisioning`) hands
   an agent a disposable, isolated MCEC directory instead of it mutating the installed config; `end-session`
   (or launch-time reaping) tears it down.

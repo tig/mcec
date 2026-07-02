@@ -61,10 +61,13 @@ public sealed class AgentToolResult {
         Failure(new AgentError(code, category, detail), sessionId);
 
     /// <summary>
-    /// Translates a legacy <see cref="CommandResult"/> JSON object (<c>{ success, command, error, data }</c>)
-    /// — what each agent command writes to its reply today — into the #101 envelope. Success carries
-    /// <c>data</c> forward as <see cref="Result"/>; failure maps the free-text error onto the closed
-    /// taxonomy via <see cref="Categorize"/>. When a failure has no observation of its own,
+    /// Translates a legacy <see cref="CommandResult"/> JSON object
+    /// (<c>{ success, command, error, errorCode?, errorCategory?, data?, warnings? }</c>) — what each agent
+    /// command writes to its reply today — into the #101 envelope. Success carries <c>data</c> forward as
+    /// <see cref="Result"/>. On failure, the command's own structured <c>errorCategory</c>/<c>errorCode</c>
+    /// (e.g. <c>capture-blank</c>) are preserved when present; only a bare free-text error is mapped onto
+    /// the closed taxonomy via <see cref="Categorize"/> (the Phase 1 shim). Legacy <c>warnings</c> are
+    /// carried through on success or failure. When a failure has no observation of its own,
     /// <paramref name="lastObservation"/> (the session's last good state before this call) is attached to
     /// <c>error.lastObservation</c> so the failure is debuggable without rerunning it.
     ///
@@ -74,6 +77,7 @@ public sealed class AgentToolResult {
     /// <c>ok:true</c>. A one-shot <c>find</c> miss stays a success ("a miss is not an error").</para>
     /// </summary>
     public static AgentToolResult FromLegacy(JsonObject legacy, string toolName, string? sessionId = null, JsonObject? lastObservation = null) {
+        IReadOnlyList<AgentWarning> warnings = ReadWarnings(legacy);
         bool success = legacy["success"] is JsonValue sv && sv.TryGetValue(out bool b) && b;
         if (success) {
             JsonObject? data = (legacy["data"] as JsonObject)?.DeepClone() as JsonObject;
@@ -81,25 +85,68 @@ public sealed class AgentToolResult {
                 return Failure(
                     new AgentError("wait-condition-timeout", AgentErrorCategory.Timeout,
                         "wait-for exhausted its timeout before the element appeared.", lastObservation),
-                    sessionId);
+                    sessionId, warnings);
             }
-            return Success(data, sessionId);
+            return Success(data, sessionId, warnings);
         }
 
-        string message = legacy["error"] is JsonValue ev && ev.TryGetValue(out string? s) && s is not null
-            ? s
-            : "The command failed without a message.";
-        AgentError error = Categorize(toolName, message);
-        if (lastObservation is not null) {
-            error = new AgentError(error.Code, error.Category, error.Detail, lastObservation);
+        string message = LegacyString(legacy, "error") ?? "The command failed without a message.";
+
+        // Prefer the structured taxonomy the command already emitted (e.g. capture-blank / frame-all-black)
+        // over re-deriving it from free text. Only fall back to Categorize when the command wrote a bare
+        // error string with no code/category (the Phase 1 shim path).
+        AgentError error;
+        string? code = LegacyString(legacy, "errorCode");
+        if (code is not null && LegacyString(legacy, "errorCategory") is string wire && TryParseCategory(wire, out AgentErrorCategory category)) {
+            error = new AgentError(code, category, message, lastObservation);
         }
-        return Failure(error, sessionId);
+        else {
+            error = Categorize(toolName, message);
+            if (lastObservation is not null) {
+                error = new AgentError(error.Code, error.Category, error.Detail, lastObservation);
+            }
+        }
+        return Failure(error, sessionId, warnings);
     }
 
     /// <summary>True when a <c>wait-for</c> returned <c>found:false</c> — i.e. it timed out.</summary>
     private static bool IsWaitForMiss(string toolName, JsonObject? data) =>
         string.Equals(toolName, "wait-for", StringComparison.OrdinalIgnoreCase)
         && data?["found"] is JsonValue fv && fv.TryGetValue(out bool found) && !found;
+
+    /// <summary>Reads a string property from a legacy result object, or null if absent/non-string.</summary>
+    private static string? LegacyString(JsonObject legacy, string key) =>
+        legacy[key] is JsonValue v && v.TryGetValue(out string? s) ? s : null;
+
+    /// <summary>Maps a wire category string back onto the closed taxonomy; false for an unknown string.</summary>
+    private static bool TryParseCategory(string wire, out AgentErrorCategory category) {
+        switch (wire) {
+            case "timeout": category = AgentErrorCategory.Timeout; return true;
+            case "ambiguous-selector": category = AgentErrorCategory.AmbiguousSelector; return true;
+            case "stale-element": category = AgentErrorCategory.StaleElement; return true;
+            case "no-target": category = AgentErrorCategory.NoTarget; return true;
+            case "capture-blank": category = AgentErrorCategory.CaptureBlank; return true;
+            case "focus": category = AgentErrorCategory.Focus; return true;
+            case "elevation": category = AgentErrorCategory.Elevation; return true;
+            case "foreground": category = AgentErrorCategory.Foreground; return true;
+            case "internal": category = AgentErrorCategory.Internal; return true;
+            default: category = AgentErrorCategory.Internal; return false;
+        }
+    }
+
+    /// <summary>Carries the legacy result's <c>warnings</c> (<c>{ code, detail }</c>) into the envelope.</summary>
+    private static IReadOnlyList<AgentWarning> ReadWarnings(JsonObject legacy) {
+        if (legacy["warnings"] is not JsonArray arr || arr.Count == 0) {
+            return [];
+        }
+        List<AgentWarning> list = [];
+        foreach (JsonNode? n in arr) {
+            if (n is JsonObject w && LegacyString(w, "code") is string code && LegacyString(w, "detail") is string detail) {
+                list.Add(new AgentWarning(code, detail));
+            }
+        }
+        return list;
+    }
 
     /// <summary>
     /// Maps a legacy free-text command error onto the closed <see cref="AgentErrorCategory"/> taxonomy.

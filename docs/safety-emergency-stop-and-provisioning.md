@@ -3,16 +3,16 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# Agent safety: Emergency Stop (#135) and Isolated Session Provisioning (#138)
+# Agent safety: Emergency Stop and Isolated Session Provisioning
 
 Two related safety features for MCEC's Agent Mode. When MCEC is agent-driving the desktop, the **target
 app has focus, not MCEC** — so the operator needs (a) a way to instantly intervene when a run goes wrong,
-and (b) assurance that a session can't leave the machine in an unsafe state. This document is the design
-of record for both; they ship together because both are about the operator staying in control.
+and (b) assurance that a session can't leave the machine in an unsafe state. Both features exist so the
+operator stays in control.
 
 ---
 
-## 1. Emergency Stop — a global dead-man's-switch hotkey (#135)
+## 1. Emergency Stop — a global dead-man's-switch hotkey
 
 ### Goal
 
@@ -40,7 +40,7 @@ Engaging the stop (`EmergencyStop.Trigger`):
    neutralizes anything left held.
 3. **Releases held input.** All mouse buttons up; shift/ctrl/alt/win reset (the same reset `MainWindow`
    runs on exit) — no stuck drag or chord.
-4. **Loud feedback.** A persistent red `⛔ STOPPED by operator` banner on the overlay (#119), an
+4. **Loud feedback.** A persistent red `⛔ STOPPED by operator` banner on the overlay, an
    `AGENT-AUDIT:` log line, a status-bar message, and a stamp into the `AgentSession` record.
 5. **Latches until re-armed.** The operator clicks the **⛔ Re-arm (Emergency Stop)** menu item (visible
    only while stopped); the latch is never cleared automatically.
@@ -80,7 +80,7 @@ agent front door could be driving (`McpServerEnabled || AgentCommandsEnabled`).
 
 ---
 
-## 2. Isolated session provisioning (#138)
+## 2. Isolated session provisioning
 
 ### Problem
 
@@ -139,29 +139,8 @@ existing manual practice (`scripts/Run-Customer0Skeleton.ps1`) and is isolated b
 ### Limitations / follow-ups
 
 - **Authorization depth.** `AllowSessionProvisioning` is a single operator opt-in. A richer per-session
-  authorization / token-scoping model ties into epics #92 (safety UX) and #74 (per-command enable) — future work.
+  authorization / token-scoping model is future work.
 - **Auto-launch.** `provision-session` returns a directory + how to launch; it does not spawn the process
   (the caller/host does). An optional MCEC-side launch is a candidate follow-up.
-- **Artifacts** (#87) live under the session directory so teardown collects them.
+- **Artifacts** (evidence bundles) live under the session directory so teardown collects them.
 
----
-
-## Acceptance criteria coverage
-
-**#135**
-
-- [x] Configured combo from any focused app instantly halts the session.
-- [x] In-flight command aborted, queue dropped, no actuation until re-armed (latch + gate + cooperative drag/record abort).
-- [x] No stuck input: mouse buttons + modifiers released.
-- [x] Fires on real physical input only; MCEC's injected keys never trigger it.
-- [x] Feedback on overlay + audit log + session record; tool calls refused with `emergency-stopped` until re-arm.
-- [x] Hotkey configurable; default easy, rare, not agent-synthesized.
-
-**#138**
-
-- [x] Documented tool that provisions an isolated instance and returns its path + connect info.
-- [x] Running a provisioned session never reads/writes the installed `mcec.commands` / settings.
-- [x] Agent commands enabled only within the provisioned instance.
-- [x] Teardown removes the dir; orphaned dirs are reaped; abnormal exit leaves no enabled state in the install.
-- [x] Provisioning gated behind an explicit operator authorization, not self-served.
-- [x] Agent guidance tells agents to provision + tear down rather than touching the installed instance.

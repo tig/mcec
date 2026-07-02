@@ -112,6 +112,36 @@ public class RecordCommandTests {
     }
 
     [Fact]
+    public void Execute_StartOversizedRegion_FailsWithRegionTooLarge_WithoutRecording() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        try {
+            GifRecorder.Stop(); // clear any prior recording
+            // A record region flows into the same CaptureRegionBitmap as capture (#158): an
+            // oversized region must be rejected up front — no recording may start.
+            CapturingReply reply = new();
+            RecordCommand cmd = new() {
+                Cmd = "record", Enabled = true, Reply = reply, Action = "start",
+                X = 0, Y = 0, Width = 40000, Height = 40000,
+            };
+
+            bool result = cmd.Execute();
+
+            Assert.False(result);
+            Assert.False(GifRecorder.IsRecording);
+            JsonObject json = JsonNode.Parse(reply.Captured.Trim())!.AsObject();
+            Assert.False(json["success"]!.GetValue<bool>());
+            Assert.Equal("region-too-large", json["errorCode"]!.GetValue<string>());
+            Assert.Equal("no-target", json["errorCategory"]!.GetValue<string>());
+            Assert.Contains(ScreenCapture.MaxRegionDimension.ToString(), json["error"]!.GetValue<string>());
+        }
+        finally {
+            GifRecorder.Stop();
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
     public void Execute_StopWriteFailure_ReturnsError() {
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
