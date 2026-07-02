@@ -69,6 +69,15 @@ public class SerializedCommands {
     static public SerializedCommands LoadCommands(string userCommandsFile, string currentVersion) {
         SerializedCommands? cmds = null;
         FileStream? fs = null;
+
+        // First run (and provisioned/demo subject copies): create the default commands file, the
+        // same way SettingsStore creates a default mcec.settings — the full built-in catalog with
+        // every command Enabled="false" (nothing enabled, so no actuation surface changes), per the
+        // long-documented contract in docs/home-automation.md.
+        if (!File.Exists(userCommandsFile)) {
+            TryCreateDefaultCommandsFile(userCommandsFile, currentVersion);
+        }
+
         try {
             Logger.Instance.Log4.Info($"SerializedCommands: Loading user-defined commands from {userCommandsFile}");
             fs = new FileStream(userCommandsFile, FileMode.Open, FileAccess.Read);
@@ -103,10 +112,9 @@ public class SerializedCommands {
             }
         }
         catch (FileNotFoundException) {
-            // Expected, not an error: fresh installs and provisioned/demo subject copies have no
-            // user commands file, and MCEC runs fine on built-ins alone. Only a present-but-unreadable
-            // file (the catch below) is a real problem.
-            Logger.Instance.Log4.Info($"SerializedCommands: No user commands file ({userCommandsFile}); using built-in commands only. Create it to add your own commands.");
+            // Only reachable when TryCreateDefaultCommandsFile above could not write (e.g. a
+            // read-only location). Not an error: MCEC runs fully on built-ins without the file.
+            Logger.Instance.Log4.Info($"SerializedCommands: No user commands file ({userCommandsFile}); using built-in commands only.");
         }
         catch (Exception ex) {
             string msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
@@ -158,6 +166,39 @@ public class SerializedCommands {
             if (ucFS != null) {
                 ucFS.Close();
             }
+        }
+    }
+
+    /// <summary>
+    /// Creates the default commands file on first run: every built-in command from
+    /// <see cref="CommandRegistry"/>, all with <c>Enabled="false"</c>, version-stamped, and carrying
+    /// the standard guidance comments. This is the contract docs/home-automation.md has always
+    /// described ("containing all built-in commands with Enabled=false") and it is what makes the
+    /// security model's enable-a-command workflow real: the user flips Enabled on an existing entry
+    /// instead of authoring XML from scratch. Nothing enabled → the actuation surface is unchanged.
+    /// Mirrors SettingsStore's create-default-settings behavior. Quiet on failure (Info/Warn logs
+    /// only, never a dialog): a location we cannot write to just means MCEC keeps running on
+    /// built-ins, and LoadCommands' FileNotFoundException fallback reports that.
+    /// Internal so tests can exercise the failure path directly (InternalsVisibleTo MCEControl.xUnit).
+    /// </summary>
+    internal static void TryCreateDefaultCommandsFile(string userCommandsFile, string currentVersion) {
+        try {
+            SerializedCommands defaults = new() {
+                Version = currentVersion,
+                // The registry's built-in factories produce Enabled=false instances
+                // (pinned by CommandRegistryTests) — serialize them as-is.
+                commandArray = [.. CommandRegistry.Entries.SelectMany(e => e.BuiltIns())],
+            };
+            // CreateNew: if another instance raced us to it, theirs wins and our load proceeds.
+            using FileStream fs = new(userCommandsFile, FileMode.CreateNew, FileAccess.Write);
+            Serializer.Serialize(fs, defaults);
+            Logger.Instance.Log4.Info($"SerializedCommands: Created default commands file ({defaults.Count} built-in commands, all disabled): {userCommandsFile}");
+        }
+        catch (IOException e) {
+            Logger.Instance.Log4.Warn($"SerializedCommands: Could not create default commands file ({userCommandsFile}): {e.Message}");
+        }
+        catch (UnauthorizedAccessException e) {
+            Logger.Instance.Log4.Warn($"SerializedCommands: Could not create default commands file ({userCommandsFile}): {e.Message}");
         }
     }
 
