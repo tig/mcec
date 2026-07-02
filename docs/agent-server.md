@@ -198,6 +198,18 @@ Two ways to bound a recording:
 - **Segment:** `action: "start"` begins recording and returns immediately; `action: "stop"`
   ends it, encodes, writes the file, and returns metadata. Only one recording runs at a time.
 
+**Recording lifecycle.** An open `start` is never unbounded: the capture loop *auto-stops*
+when it hits the operator's max duration or max frames (or the target vanishes mid-record).
+An auto-stopped recording is **completed, not lost**:
+
+- `action: "stop"` still returns the buffered GIF — exactly once. A second `stop` fails with
+  "No recording is in progress or awaiting fetch", and fetching releases the buffered frames.
+- A new recording (`start` **or** a one-shot) is allowed after an auto-stop. If the
+  auto-stopped GIF was never fetched, the new recording **replaces** it: the discarded output
+  is gone, and that command's result carries an `unfetched-recording-discarded` warning (for
+  a one-shot, on its single final reply) — also audit-logged. Fetch with `stop` promptly if
+  you want the output.
+
 Safety limits (operator-configurable in `mcec.settings`, requests above them are *clamped*,
 not failed) keep an agent from producing an unbounded file:
 
@@ -456,6 +468,13 @@ origin, remote endpoint) so drive-by and rebinding attempts are visible to the o
 > non-loopback address (e.g. `0.0.0.0`) **and** `McpAuthToken` is empty, MCEC **refuses to start** the
 > HTTP listener and logs an error. To expose the door off-box, set a bearer token (and prefer a
 > network-level control too).
+
+The floor is hardened against resource exhaustion ([#151]): a request body larger than
+**1 MB** is refused with `413` (the cap is enforced by a bounded read, so chunked bodies
+without a `Content-Length` can't bypass it), and at most **16** requests are served
+concurrently — past that the server answers `503` rather than queueing.
+
+[#151]: https://github.com/tig/mcec/issues/151
 
 ---
 

@@ -27,13 +27,52 @@ public class AppSettings : ICloneable {
 
     /// <summary>
     /// Read a registry value preferring the current (Kindel) key, falling back to legacy (Kindel Systems) key.
+    /// SECURITY (issue #155): a registry problem (deny-read ACE, key marked for deletion) must never
+    /// crash startup — such failures return <paramref name="defaultValue"/> and are logged.
     /// </summary>
     public static object? GetRegistryValue(string valueName, object? defaultValue) {
-        object? val = Registry.GetValue(RegistryKeyPath, valueName, null);
-        if (val == null) {
-            val = Registry.GetValue(LegacyRegistryKeyPath, valueName, defaultValue);
+        return GetRegistryValue(valueName, defaultValue, Registry.GetValue);
+    }
+
+    /// <summary>
+    /// Seam for <see cref="GetRegistryValue(string, object?)"/>: <paramref name="getValue"/> stands in
+    /// for <see cref="Registry.GetValue(string, string?, object?)"/> so the failure path is testable
+    /// without touching the real registry.
+    /// </summary>
+    internal static object? GetRegistryValue(string valueName, object? defaultValue, Func<string, string?, object?, object?> getValue) {
+        try {
+            object? val = getValue(RegistryKeyPath, valueName, null);
+            if (val == null) {
+                val = getValue(LegacyRegistryKeyPath, valueName, defaultValue);
+            }
+            return val;
         }
-        return val;
+        catch (Exception e) when (e is System.Security.SecurityException || e is IOException || e is UnauthorizedAccessException) {
+            Logger.Instance.Log4.Error(
+                $"Settings: Could not read registry value '{valueName}'; using default ({defaultValue ?? "null"}). {e.Message}");
+            return defaultValue;
+        }
+    }
+
+    /// <summary>
+    /// Converts a raw registry value to a bool, tolerating junk (issue #155). A REG_SZ like "banana"
+    /// makes <see cref="Convert.ToBoolean(object?, IFormatProvider)"/> throw FormatException (and a
+    /// REG_BINARY blob throws InvalidCastException) — a machine-policy value that cannot be parsed
+    /// must not crash startup. Falls back to <paramref name="defaultValue"/> and logs the bad value
+    /// so an admin can fix it.
+    /// </summary>
+    internal static bool RegistryValueToBoolean(object? value, bool defaultValue) {
+        if (value is null) {
+            return defaultValue;
+        }
+        try {
+            return Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+        }
+        catch (Exception e) when (e is FormatException || e is InvalidCastException) {
+            Logger.Instance.Log4.Error(
+                $"Settings: Ignoring invalid registry value '{value}' (expected a boolean); using default ({defaultValue}). {e.Message}");
+            return defaultValue;
+        }
     }
 
     // Global
@@ -253,7 +292,10 @@ public class AppSettings : ICloneable {
     }
 
     /// <summary>
-    /// DeSerializes settings from XML
+    /// DeSerializes settings from XML.
+    /// SECURITY (issue #155): a bad settings file must never put MCEC into a fail-to-start state
+    /// (GUI or headless --mcp). Missing file → defaults are created; corrupt/unreadable file →
+    /// defaults are used for this run and the file is left untouched so the user can recover it.
     /// </summary>
     /// <param name="settingsFile">full path to settings file</param>
     public static AppSettings Deserialize(String settingsFile) {
@@ -267,9 +309,6 @@ public class AppSettings : ICloneable {
             fs = new FileStream(settingsFile, FileMode.Open, FileAccess.Read);
             reader = new XmlTextReader(fs);
             settings = (AppSettings?)serializer.Deserialize(reader);
-
-            settings!.DisableInternalCommands = Convert.ToBoolean(
-                GetRegistryValue("DisableInternalCommands", false), new NumberFormatInfo());
             Logger.Instance.Log4.Info("Settings: Loaded settings from " + settingsFile);
         }
         catch (FileNotFoundException) {
@@ -277,15 +316,38 @@ public class AppSettings : ICloneable {
             Logger.Instance.Log4.Info($"Settings: Creating settings file with defaults: {settingsFile}");
             settings = new AppSettings();
             settings.Serialize(settingsFile);
-
-            // even if it's first run, read global commands
-            settings.DisableInternalCommands = Convert.ToBoolean(
-                GetRegistryValue("DisableInternalCommands", false), new NumberFormatInfo());
         }
         catch (UnauthorizedAccessException e) {
-            Logger.Instance.Log4.Error($"Settings: Settings file could not be loaded. {e.Message}");
+            // File exists but cannot be read (ACLs). Use defaults for this run; do NOT try to
+            // overwrite a file we cannot even read.
+            Logger.Instance.Log4.Error(
+                $"Settings: Settings file could not be loaded ({settingsFile}); using default settings for this run. {e.Message}");
+            settings = new AppSettings();
             if (!AgentRuntime.Headless) {
-                MessageBox.Show($"Settings file could not be loaded. {e.Message}");
+                MessageBox.Show($"Settings file could not be loaded. {e.Message}\n\nMCE Controller will use default settings for this run.");
+            }
+        }
+        catch (Exception e) when (e is XmlException || e is InvalidOperationException) {
+            // Malformed XML (mid-write crash, disk error, hand-edit). XmlSerializer wraps the
+            // XmlException in an InvalidOperationException. Use defaults for this run and
+            // deliberately do NOT overwrite the corrupt file, so the user can inspect/repair it.
+            string detail = (e.InnerException ?? e).Message;
+            Logger.Instance.Log4.Error(
+                $"Settings: Settings file is corrupt or invalid ({settingsFile}); using default settings for this run. " +
+                $"The file was NOT overwritten - fix or delete it to recover. {detail}");
+            settings = new AppSettings();
+            if (!AgentRuntime.Headless) {
+                MessageBox.Show($"Settings file is corrupt or invalid: {settingsFile}\n\n{detail}\n\n" +
+                    "MCE Controller will use default settings for this run. The file was not overwritten - fix or delete it to recover your settings.");
+            }
+        }
+        catch (Exception e) {
+            // Last resort: a settings problem must never prevent startup.
+            Logger.Instance.Log4.Error(
+                $"Settings: Unexpected error loading settings file ({settingsFile}); using default settings for this run. {e.Message}");
+            settings = new AppSettings();
+            if (!AgentRuntime.Headless) {
+                MessageBox.Show($"Settings file could not be loaded. {e.Message}\n\nMCE Controller will use default settings for this run.");
             }
         }
         finally {
@@ -298,11 +360,20 @@ public class AppSettings : ICloneable {
             }
         }
 
-        // TELEMETRY: 
+        // XmlSerializer.Deserialize contractually returns non-null here, but guard anyway (#155):
+        // this method must always hand back usable settings.
+        settings ??= new AppSettings();
+
+        // Machine policy: read the registry override regardless of how (or whether) the file
+        // loaded. RegistryValueToBoolean tolerates junk values (see #155).
+        settings.DisableInternalCommands = RegistryValueToBoolean(
+            GetRegistryValue("DisableInternalCommands", false), false);
+
+        // TELEMETRY:
         // what: Settings
         // why: To understand what settings get changed and which dont
         // how is PII protected: only settings clearly identified as not containing PII are collected
-        TelemetryService.Instance.TrackEvent("Settings", settings!.GetTelemetryDictionary());
+        TelemetryService.Instance.TrackEvent("Settings", settings.GetTelemetryDictionary());
 
         return settings;
     }
