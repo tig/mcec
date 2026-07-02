@@ -45,6 +45,12 @@ Engaging the stop (`EmergencyStop.Trigger`):
 5. **Latches until re-armed.** The operator clicks the **⛔ Re-arm (Emergency Stop)** menu item (visible
    only while stopped); the latch is never cleared automatically.
 
+Step 1 — the latch — is the only work performed inside the low-level hook callback; steps 2–4 run
+immediately after on a background thread (#198). A slow log or serial write can therefore never stall the
+`WH_KEYBOARD_LL` callback past `LowLevelHooksTimeout`, which would make Windows silently evict the hook —
+and the panic hotkey with it. Nothing actuates in the gap: the latch is already set, so every tool call is
+refused before the background steps even run.
+
 ### Why it can't be tripped or defeated by the agent
 
 MCEC's own agent actuation **injects** keystrokes and mouse input. Windows flags injected low-level events

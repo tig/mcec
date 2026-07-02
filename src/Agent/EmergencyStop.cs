@@ -2,6 +2,7 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
+using System.Threading;
 using Gma.UserActivityMonitor;
 using WindowsInput;
 
@@ -17,7 +18,10 @@ namespace MCEControl;
 /// so no further tool call actuates until the operator explicitly re-arms; (2) aborts in-flight actuation —
 /// stops any recording and signals a cooperative drag cancel; (3) releases held input (all mouse buttons up,
 /// modifiers reset) so a mid-drag or chord can't leave input stuck; and (4) reports loudly to the overlay,
-/// the <c>AGENT-AUDIT:</c> log, and the session record. It stays stopped until <see cref="Rearm"/>.</para>
+/// the <c>AGENT-AUDIT:</c> log, and the session record. It stays stopped until <see cref="Rearm"/>.
+/// Only step (1) — the latch — runs inside the hook callback; steps (2)–(4) are dispatched to the thread
+/// pool so the WH_KEYBOARD_LL callback returns immediately and can never exceed LowLevelHooksTimeout,
+/// which would get the hook (and the hotkey with it) silently evicted (#198).</para>
 ///
 /// <para>Independent of the WinForms message loop's focus — the hook fires regardless of MCEC's window
 /// state (including minimized to tray). It does require a message loop on the installing thread, so it is
@@ -29,7 +33,12 @@ public static class EmergencyStop {
     private static EmergencyStopHotkey _hotkey = EmergencyStopHotkey.Default;
     private static bool _armed;
 
-    /// <summary>Raised (on the hook thread) when the stopped state changes — the overlay/UI subscribe to reflect it.</summary>
+    /// <summary>
+    /// Raised when the stopped state changes — the overlay/UI subscribe to reflect it. Never raised on
+    /// the hook callback path: it fires from the dispatched completion of <see cref="Trigger"/> (a
+    /// thread-pool thread) or from <see cref="Rearm"/>'s caller, so subscribers must marshal to the UI
+    /// thread themselves (MainWindow does).
+    /// </summary>
     public static event Action<bool>? StateChanged;
 
     /// <summary>True while the stop is engaged (mirrors <see cref="AgentRuntime.EmergencyStopped"/>).</summary>
@@ -107,6 +116,20 @@ public static class EmergencyStop {
             StoppedReason = source;
         }
 
+        // The latch above — a lock and a flag — is the ONLY work that runs on the WH_KEYBOARD_LL hook
+        // callback path when the hotkey fires. Everything else (audit log file I/O, stopping a
+        // recording, SendInput, event publishing) is dispatched to the thread pool so the hook proc
+        // returns immediately: Windows silently evicts a low-level hook whose callback exceeds
+        // LowLevelHooksTimeout, and this hook IS the panic hotkey (#198). Nothing actuates in the gap —
+        // the latch is already set, so every tool call is refused before the completion even runs.
+        ThreadPool.QueueUserWorkItem(static state => CompleteTrigger((string)state!), source);
+    }
+
+    /// <summary>
+    /// The post-latch completion of <see cref="Trigger"/>: aborts in-flight actuation, releases held
+    /// input, and reports loudly. Runs on the thread pool, OFF the hook callback path (#198).
+    /// </summary>
+    private static void CompleteTrigger(string source) {
         AgentRuntime.Audit("emergency-stop", $"ENGAGED by operator ({source}) — halting actuation, dropping queue, releasing held input");
 
         // Abort in-flight actuation. Recording stops cleanly here; an in-flight drag observes the latch and
