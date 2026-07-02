@@ -40,10 +40,20 @@ does **not** turn the others on.
 
 2. **The MCP / HTTP façade is DISABLED by default.**
    The network-facing server (`McpServerEnabled`) is off unless you opt in. Even when
-   enabled, the HTTP floor **binds to localhost only** (`McpBindAddress = 127.0.0.1`),
-   so it is not reachable from other machines. There is no remote binding default and
-   no authentication bypass — if you need off-box access, front it with your own
-   reverse proxy and auth.
+   enabled, the HTTP floor **binds to localhost by default**, and a **loopback** bind is
+   the only configuration that needs no authentication. A loopback `McpBindAddress`
+   (`localhost`, or a literal loopback IP — any `127.x.y.z`, `::1` / `[::1]`) is
+   **canonicalized** before it reaches the listener ([#152]) — so obfuscated loopback
+   spellings the OS parser still reads as loopback (e.g. `127.1`, `0x7f.0.0.1`,
+   `2130706433`, `::ffff:127.0.0.1`) are normalized to a plain loopback literal
+   (`127.0.0.1` / `[::1]`) rather than passed through raw, closing a path where the
+   underlying HTTP stack could treat the raw form as a wildcard binding. A **non-loopback**
+   bind (a specific LAN IP, or the all-interfaces `0.0.0.0` / `::`) is a deliberate
+   off-box exposure and is allowed **only when `McpAuthToken` is set** ([#143]); without a
+   token MCEC **refuses to start the HTTP listener**, logging a loud error, so a config
+   typo can never silently expose unauthenticated UI automation to the network. (The
+   `HttpListener` wildcards `+` / `*` and other hostnames are not loopback and are never
+   DNS-resolved, so they too require a token — and generally fail to bind.)
 
 3. **Every agent action is loudly audited.**
    Each agent command logs an `AGENT-AUDIT:` line (action + target) before it runs.
@@ -472,8 +482,12 @@ Content-Type: application/json
 ```
 
 The address and port come from `McpBindAddress` (default `127.0.0.1`) and `McpHttpPort`
-(default `5151`). This is a deliberately minimal floor for local scripts and agents; it
-is not a general-purpose web API and is not exposed off-box by default.
+(default `5151`). This is a deliberately minimal floor for local scripts and agents; it is
+not a general-purpose web API. A **loopback** bind (`localhost` or a literal loopback IP —
+`127.x.y.z`, `::1`, `[::1]`) needs no authentication and is canonicalized to a plain
+loopback literal before binding ([#152]). A **non-loopback** bind is a deliberate off-box
+exposure and starts only when `McpAuthToken` is set ([#143]); otherwise the listener
+refuses to start and MCEC logs a loud error explaining what to change.
 
 ### Front-door request validation (defeats CSRF and DNS rebinding)
 
@@ -508,6 +522,9 @@ The floor is hardened against resource exhaustion: a request body larger than
 without a `Content-Length` can't bypass it), and at most **16** requests are served
 concurrently — past that the server answers `503` rather than queueing.
 
+[#151]: https://github.com/tig/mcec/issues/151
+[#152]: https://github.com/tig/mcec/issues/152
+[#143]: https://github.com/tig/mcec/issues/143
 
 ---
 
