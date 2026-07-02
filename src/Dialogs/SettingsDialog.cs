@@ -1016,16 +1016,20 @@ public class SettingsDialog : Form {
     }
 
     private void SettingsChanged() {
+        // #203: this used to `return` after validating the first enabled section, so a
+        // valid Server+Wakeup masked an invalid Client (etc.). ALL enabled sections must
+        // validate before OK is enabled.
+        bool valid = true;
+
         if (_checkBoxEnableServer.Checked && _checkBoxEnableWakeup.Checked) {
             if (!int.TryParse(_editWakeupPort.Text, out int port)) {
                 port = 0;
             }
 
-            _buttonOk.Enabled = !(String.IsNullOrEmpty(_editWakeupServer.Text) ||
-                                  String.IsNullOrEmpty(_editWakeupCommand.Text) ||
-                                  String.IsNullOrEmpty(_editClosingCommand.Text) ||
-                                  (port == 0));
-            return;
+            valid = valid && !(String.IsNullOrEmpty(_editWakeupServer.Text) ||
+                               String.IsNullOrEmpty(_editWakeupCommand.Text) ||
+                               String.IsNullOrEmpty(_editClosingCommand.Text) ||
+                               (port == 0));
         }
 
         if (_checkBoxEnableClient.Checked) {
@@ -1033,9 +1037,8 @@ public class SettingsDialog : Form {
                 port = 0;
             }
 
-            _buttonOk.Enabled = !(String.IsNullOrEmpty(_editClientHost.Text) ||
-                                  (port == 0));
-            return;
+            valid = valid && !(String.IsNullOrEmpty(_editClientHost.Text) ||
+                               (port == 0));
         }
 
         if (_checkBoxEnableActivityMonitor.Checked) {
@@ -1043,13 +1046,12 @@ public class SettingsDialog : Form {
                 t = 0;
             }
 
-            _buttonOk.Enabled = !(String.IsNullOrEmpty(_textBoxActivityCommand.Text) ||
-                                String.IsNullOrEmpty(_textBoxDebounceTime.Text) ||
-                                (t == 0));
-            return;
+            valid = valid && !(String.IsNullOrEmpty(_textBoxActivityCommand.Text) ||
+                               String.IsNullOrEmpty(_textBoxDebounceTime.Text) ||
+                               (t == 0));
         }
 
-        _buttonOk.Enabled = true;
+        _buttonOk.Enabled = valid;
     }
 
     /// <summary>
@@ -1147,8 +1149,10 @@ public class SettingsDialog : Form {
     }
 
     private void EditClientDelayTimeTextChanged(object? sender, EventArgs e) {
-        if (_editClientDelayTime.Text.Length > 0) {
-            Settings.ClientDelayTime = Convert.ToInt32(_editClientDelayTime.Text, new NumberFormatInfo());
+        // #203: Convert.ToInt32 fired on every keystroke and threw on non-digits — use
+        // TryParse like the sibling handlers.
+        if (int.TryParse(_editClientDelayTime.Text, out int delay)) {
+            Settings.ClientDelayTime = delay;
         }
 
         SettingsChanged();
@@ -1163,8 +1167,10 @@ public class SettingsDialog : Form {
     }
 
     private void ComboBoxSerialPortSelectedIndexChanged(object? sender, EventArgs e) {
-        if (_comboBoxBaudRate.SelectedItem != null) {
-            Settings.SerialServerPortName = _comboBoxSerialPort.SelectedItem!.ToString()!;
+        // #203: this used to check _comboBoxBaudRate.SelectedItem and then dereference
+        // _comboBoxSerialPort.SelectedItem — guard the control actually being read.
+        if (_comboBoxSerialPort.SelectedItem != null) {
+            Settings.SerialServerPortName = _comboBoxSerialPort.SelectedItem.ToString()!;
             SettingsChanged();
         }
     }
@@ -1250,8 +1256,10 @@ public class SettingsDialog : Form {
     }
 
     private void comboBoxLogThresholds_SelectedIndexChanged(object? sender, EventArgs e) {
+        // #203: do NOT mutate the global Logger.Instance.TextBoxThreshold here — Cancel
+        // could never restore it. The dialog only updates its (cloned) Settings;
+        // MainWindow.ApplySettings applies the threshold on the OK path.
         Settings.TextBoxLogThreshold = _comboBoxLogThresholds.SelectedItem!.ToString()!;
-        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap[Settings.TextBoxLogThreshold!]!;
 
         SettingsChanged();
     }
