@@ -77,11 +77,13 @@ public class UpdateService {
     public Uri DownloadUri { get; private set; } = null!;
 
     // FileVersionInfo.GetVersionInfo(Assembly.GetAssembly(typeof(LogService)).Location).FileVersion;
-    public event EventHandler<Version> GotLatestVersion = null!;
+    // Nullable delegate types, not "= null!": an event with no subscribers IS null, and the
+    // raisers already ?.Invoke.
+    public event EventHandler<Version>? GotLatestVersion;
     protected void OnGotLatestVersion(Version v) => GotLatestVersion?.Invoke(this, v);
 
-    public event EventHandler CheckForUpdates = null!;
-    protected void OnCheckForUpdates() => CheckForUpdates?.Invoke(this, null!);
+    public event EventHandler? CheckForUpdates;
+    protected void OnCheckForUpdates() => CheckForUpdates?.Invoke(this, EventArgs.Empty);
 
     /// <summary>
     /// Checks GitHub for the latest stable release, raising <see cref="GotLatestVersion"/> when

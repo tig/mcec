@@ -426,13 +426,29 @@ rest of the tree is returned.
 
 ## Using MCEC as an MCP server
 
-MCEC can run **headless** as an MCP **stdio** server (no UI, no tray icon) so an MCP
-client (such as a desktop AI assistant) can spawn it on demand and talk to it over
-standard input/output:
+MCEC can run **headless** as an MCP **stdio** server (no main window, no tray icon; the
+on-screen command overlay and the emergency-stop hotkey still work) so an MCP client
+(such as a desktop AI assistant) can spawn it on demand and talk to it over standard
+input/output:
 
 ```
-mcec.exe --mcp
+mcec.exe mcp        # or the equivalent legacy spelling: mcec.exe --mcp
 ```
+
+**Never point an MCP client at the installed copy.** `mcec.exe` under Program Files
+refuses `mcp`/`--mcp` (and refuses to start the MCP/HTTP endpoint) with an error
+explaining the alternatives: serving agents from the installed, operator-owned copy
+would mean enabling agent security gates in the one configuration the operator's own
+MCEC reads, where a crashed session leaks them enabled. Instead, either have an agent
+call `provision-session` (see
+[Agent safety](safety-emergency-stop-and-provisioning.md)) to get a disposable,
+isolated copy, or copy the install directory somewhere writable and point the client
+there; a non-installed copy reads its own co-located `mcec.settings`.
+
+The exe also exposes a CLI surface (built on
+[Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--opencli` emits machine-readable
+command metadata, and `agent-guide` prints the same agent guidance the MCP server
+hands connecting clients.
 
 Wire it into your MCP client config (the `claude_desktop_config.json` / `mcp.json`
 style used by most clients):
@@ -441,12 +457,22 @@ style used by most clients):
 {
   "mcpServers": {
     "mcec": {
-      "command": "C:/Program Files/Kindel Systems/MCEC/mcec.exe",
-      "args": ["--mcp"]
+      "command": "C:/mcec/mcec.exe",
+      "args": ["mcp"]
     }
   }
 }
 ```
+
+(`C:/mcec` here is a writable copy of the install directory, or a provisioned session's
+`directory`; the Program Files path itself would be refused, per above.)
+
+`mcp` is a spawned server, not an interactive command: typed at a terminal it refuses
+(stdin is an interactive console; the server would block on the shared console and
+Ctrl+C could not stop it). To experiment by hand, pipe requests in
+(`echo '{...}' | mcec mcp`). A running server stops when its client closes stdin (EOF)
+or sends `send_command mcec:exit` (the reply flushes, then the process exits); a stuck
+one can always be killed (`Stop-Process -Name mcec`).
 
 > The agent commands still obey the security gates above. Running `--mcp` does **not**
 > bypass `AgentCommandsEnabled` or the per-command `Enabled` flags; set those in
@@ -595,7 +621,8 @@ Two operator-safety features build on the gates above; see
 - **Emergency stop:** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
   `EmergencyStopHotkey`) that instantly halts a session from any window; latching the actuation gate
   (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
-  reacts to physical input only, so the agent can never trip or defeat it.
+  reacts to physical input only, so the agent can never trip or defeat it. The operator re-arms via the
+  **⛔ Re-arm** menu item (GUI) or the modal prompt that opens when the stop engages (headless `--mcp`).
 - **Isolated session provisioning:** `provision-session` (gated by `AllowSessionProvisioning`) hands
   an agent a disposable, isolated MCEC directory instead of it mutating the installed config, plus a
   session `token` that is both the instance's `McpAuthToken` (HTTP requests to the session's endpoint

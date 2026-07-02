@@ -79,12 +79,24 @@ MCEC runs as a normal windowed app that can minimize to a taskbar (tray) icon. C
 minimizes it to the tray; double-click the tray icon to show it again, or right-click for a menu. To start
 hidden, check **Hide Window at Startup** in **Settings**.
 
-To run headless as an **MCP server** (no UI, no tray icon), launch it with `--mcp`; an MCP client can spawn
-it on demand and talk JSON-RPC over stdio:
+To run headless as an **MCP server** (no main window, no tray icon; the command overlay and the
+emergency-stop hotkey still work), launch it with `mcp` (or the equivalent `--mcp`); an MCP client can
+spawn it on demand and talk JSON-RPC over stdio:
 
 ```
-mcec.exe --mcp
+mcec.exe mcp
 ```
+
+The **installed** copy (under Program Files) refuses to run as an MCP server or to serve the MCP/HTTP
+endpoint: enabling agent gates in the installed configuration would leak them enabled if a session
+crashed. Use [session provisioning](safety-emergency-stop-and-provisioning.md) to get a disposable,
+isolated copy, or copy the install directory somewhere writable and run from there.
+
+`mcec.exe` also has a command-line surface (built on
+[Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--help`, `--version`, `--opencli` (machine-readable
+command metadata for tools and agents), and `agent-guide` (prints the same agent guidance the MCP server
+hands connecting clients). Run these from a terminal; with no arguments `mcec.exe` starts the GUI as
+always.
 
 To have MCEC start automatically, create a shortcut to `mcec.exe` (installed to `C:\Program
 Files\Kindel\MCEC` by default; pre-3.0 installs used `Kindel Systems\MCEC`) and put it in the Windows
@@ -155,7 +167,9 @@ meter that down. So beyond the off-by-default gates, two operator-safety feature
 * **Emergency stop**: a global "dead-man's-switch" hotkey (default `Ctrl+Alt+Shift+S`) you can hit from
   *any* window to instantly halt a session. It latches the actuation gate (every tool call is refused with
   `emergency-stopped` until you re-arm), aborts in-flight actuation, and releases held input. It reacts to
-  **physical input only**: an agent's injected keystrokes can never trip or defeat it.
+  **physical input only**: an agent's injected keystrokes can never trip or defeat it. Re-arm from the
+  **⛔ Re-arm** menu item, or, running headless (`--mcp`), from the prompt that opens when the stop
+  engages (press the hotkey again to reopen it).
 * **Isolated session provisioning**: instead of enabling agent commands in your installed MCEC (a crash
   could leave those gates enabled), an authorized agent calls `provision-session` to get a disposable,
   isolated copy with its own agent-ready config. Teardown is just deleting the directory; the installed

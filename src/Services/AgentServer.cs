@@ -64,7 +64,20 @@ public static class AgentServer {
     /// </summary>
     internal static bool IsHttpListening => Http.IsListening;
 
-    public static void StartHttp() => Http.Start();
+    /// <summary>
+    /// Starts the localhost MCP/HTTP front door. SECURITY: refused from the installed (Program Files)
+    /// copy; the operator-owned install never serves agents (see
+    /// <see cref="Program.IsProgramFilesInstall"/>). Provisioned sessions and manual copies run from
+    /// writable locations and are unaffected.
+    /// </summary>
+    public static void StartHttp() {
+        if (Program.IsProgramFilesInstall) {
+            Logger.Instance.Log4.Error(
+                $"AgentServer: MCP/HTTP server refused from the installed location. {Program.InstalledAgentServingGuidance}");
+            return;
+        }
+        Http.Start();
+    }
 
     public static void StopHttp() => Http.Stop();
 

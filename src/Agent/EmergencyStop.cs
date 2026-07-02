@@ -24,8 +24,9 @@ namespace MCEControl;
 /// which would get the hook (and the hotkey with it) silently evicted (#198).</para>
 ///
 /// <para>Independent of the WinForms message loop's focus; the hook fires regardless of MCEC's window
-/// state (including minimized to tray). It does require a message loop on the installing thread, so it is
-/// armed in the GUI host, not the headless <c>--mcp</c> process.</para>
+/// state (including minimized to tray). It does require a message loop on the installing thread: the GUI
+/// host arms it on the UI thread (<c>MainWindow.Start</c>); headless <c>--mcp</c> arms it on
+/// <see cref="HeadlessOperatorUi"/>'s dedicated STA pump thread.</para>
 /// </summary>
 public static class EmergencyStop {
     private static readonly object Gate = new();
@@ -40,6 +41,15 @@ public static class EmergencyStop {
     /// thread themselves (MainWindow does).
     /// </summary>
     public static event Action<bool>? StateChanged;
+
+    /// <summary>
+    /// Raised when the hotkey fires while the stop is ALREADY engaged (a deliberate re-press, or the
+    /// chord auto-repeating while held). Hosts use it to re-offer their re-arm affordance; headless,
+    /// <see cref="HeadlessOperatorUi"/> reopens the re-arm prompt an operator previously dismissed with
+    /// "leave stopped". Dispatched on the thread pool, never on the hook callback path; subscribers
+    /// must tolerate bursts (auto-repeat) and marshal to their own thread.
+    /// </summary>
+    public static event Action? Retriggered;
 
     /// <summary>True while the stop is engaged (mirrors <see cref="AgentRuntime.EmergencyStopped"/>).</summary>
     public static bool IsStopped => AgentRuntime.EmergencyStopped;
@@ -103,13 +113,18 @@ public static class EmergencyStop {
 
     /// <summary>
     /// Engages the stop: latches the gate, aborts in-flight actuation, releases held input, and reports it.
-    /// Idempotent; a held-key auto-repeat or a second trigger while already stopped is a no-op. Callable
-    /// directly (e.g. from a UI panic button) as well as from the hotkey.
+    /// Idempotent; a held-key auto-repeat or a second trigger while already stopped never re-engages
+    /// (it raises <see cref="Retriggered"/> and returns). Callable directly (e.g. from a UI panic
+    /// button) as well as from the hotkey.
     /// </summary>
     public static void Trigger(string source) {
         lock (Gate) {
             if (AgentRuntime.EmergencyStopped) {
-                return; // already latched; ignore repeats until re-armed
+                // Already latched: the stop itself is idempotent, but surface the re-press so a host can
+                // re-offer its re-arm affordance. Dispatched off the hook callback path like everything
+                // else (#198); auto-repeat makes this bursty and subscribers guard against that.
+                ThreadPool.QueueUserWorkItem(static _ => Retriggered?.Invoke());
+                return;
             }
             AgentRuntime.SetEmergencyStopped(true);
             StoppedAtUtc = DateTime.UtcNow;

@@ -100,9 +100,11 @@ public static class AgentRuntime {
     internal static readonly object InputGate = new();
 
     /// <summary>
-    /// True when running as the headless MCP server (<c>--mcp</c>). In this mode the engine MUST NOT
-    /// show modal dialogs (there is no operator at a screen and stdout is the protocol stream), so the
-    /// settings/commands load paths suppress their <c>MessageBox</c> prompts when this is set.
+    /// True when running as the headless MCP server (<c>--mcp</c>). In this mode the engine's
+    /// load/save paths MUST NOT show modal dialogs (nothing may block protocol startup, and stdout is
+    /// the protocol stream), so they suppress their <c>MessageBox</c> prompts when this is set. The
+    /// one deliberate UI exception is the operator safety surface (<see cref="HeadlessOperatorUi"/>:
+    /// overlay + e-stop re-arm prompt), which runs on its own pump thread and blocks nothing.
     /// </summary>
     public static bool Headless { get; set; }
 

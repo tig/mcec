@@ -147,8 +147,8 @@ public static class NativeMethods {
     /// </remarks>
     // #210: explicit CharSet.Unicode; the previous declaration defaulted to ANSI marshaling, so
     // window-title matching went through the lossy A entry point.
+    // lpClassName is nullable at the Win32 level (NULL matches any class), so the declaration
+    // says so; callers pass null instead of null!.
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    internal static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-    // You can also call FindWindow(default(string), lpWindowName) or FindWindow((string)null, lpWindowName)
+    internal static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
 }
