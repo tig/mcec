@@ -43,7 +43,14 @@ jobs:
   real-windows:
     name: Build + Test + Smoke (Interactive Desktop)
     needs: preflight
-    if: needs.preflight.outputs.ready == 'true'
+    # SECURITY (#161): this lane runs untrusted checked-out code (build/test + a desktop smoke script)
+    # on a self-hosted, INTERACTIVE desktop runner — the highest-value target in the pipeline. Never let
+    # a FORKED pull request execute here. Run only for push/workflow_dispatch on trusted branches, and
+    # for pull requests that originate from THIS repository (not a fork).
+    if: >-
+      needs.preflight.outputs.ready == 'true' &&
+      (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: [self-hosted, Windows, interactive]   # label your self-hosted runner accordingly
     timeout-minutes: 60                             # backstop so a misconfigured runner fails fast, never the 24h await-runner hang
     permissions:
@@ -55,6 +62,9 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          # SECURITY (#161): don't leave the GITHUB_TOKEN in the runner's git config after checkout on a
+          # persistent self-hosted machine, where a later step (or the next job) could reuse it.
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
