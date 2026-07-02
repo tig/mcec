@@ -64,7 +64,7 @@ gh variable set INTERACTIVE_RUNNER_READY --repo tig/mcec --body false   # or: gh
 ```
 
 ### One-time bring-up checklist
-1. Provision a Windows 10/11 Pro/Enterprise box or VM (physical console or a VM with a real virtual GPU/console — not headless session 0).
+1. Provision a Windows 10/11 Pro/Enterprise box or VM (physical console or a VM with a real virtual GPU/console; not headless session 0).
 2. Install prerequisites (.NET SDK per `global.json`, NSIS if building installers).
 3. Configure autologon + auto-unlock so the desktop is always live (see below).
 4. Register the GitHub runner with labels `self-hosted,Windows,interactive` (see above).

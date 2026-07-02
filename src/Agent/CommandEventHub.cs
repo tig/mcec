@@ -7,7 +7,7 @@ using System.Collections.Generic;
 namespace MCEControl;
 
 /// <summary>
-/// Process-wide publish/subscribe hub for <see cref="CommandEvent"/>s — the dedicated command-event
+/// Process-wide publish/subscribe hub for <see cref="CommandEvent"/>s; the dedicated command-event
 /// hook the on-screen overlay (#119) subscribes to. The execution seam (AgentServer for agent tools,
 /// later <c>CommandInvoker</c> for the home-automation path) <see cref="Publish"/>es; the overlay
 /// window subscribes. Static so the seam can publish without plumbing a reference through every command.

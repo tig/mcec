@@ -48,7 +48,7 @@ public class SocketServerClientTrackingTests : IDisposable
         _ = _server.RegisterClient(socketC);
 
         // With the bug, GetOrAdd hits B's existing key and silently drops
-        // socketC — it is never tracked and thus never closed (handle leak).
+        // socketC; it is never tracked and thus never closed (handle leak).
         Assert.Contains(socketC, _server.TrackedClients.Values);
     }
 

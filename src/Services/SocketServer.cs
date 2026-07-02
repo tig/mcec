@@ -30,7 +30,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     private int _clientCount;
 
     // Monotonically increasing id used as the _clientList key and ClientNumber.
-    // Never decremented — unlike _clientCount, which drops on disconnect — so
+    // Never decremented; unlike _clientCount, which drops on disconnect; so
     // keys stay unique for the lifetime of the server (#147).
     private int _nextClientId;
 
@@ -251,9 +251,9 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// <summary>
     /// Parses the chunk currently in <paramref name="clientContext"/>'s DataBuffer. Guards the
     /// parse loop so a malformed/crafted packet can never escape as an unhandled exception on a
-    /// ThreadPool callback and terminate the process (issue #144 — unauthenticated remote crash):
+    /// ThreadPool callback and terminate the process (issue #144; unauthenticated remote crash):
     /// any parse failure closes the offending client. Likewise, a client that streams more than
-    /// <see cref="CommandAccumulator.MaxCommandLength"/> chars without a delimiter (issue #148 —
+    /// <see cref="CommandAccumulator.MaxCommandLength"/> chars without a delimiter (issue #148;
     /// memory-exhaustion DoS) is hostile or broken, so it is closed rather than buffered further.
     /// Internal so tests can drive the receive path without a live listener (InternalsVisibleTo).
     /// </summary>
@@ -286,7 +286,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// <see cref="OnDataReceived"/> so it can be unit tested and hardened against malformed input.
     /// Returns false when the accumulated command exceeds
     /// <see cref="CommandAccumulator.MaxCommandLength"/> (issue #148); the builder is cleared and
-    /// parsing stops — the caller is expected to close the connection.
+    /// parsing stops; the caller is expected to close the connection.
     /// </summary>
     /// <remarks>
     /// Issue #144: the telnet option byte was read <b>before</b> its bounds check, so a crafted
@@ -307,7 +307,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                     // interpret as a telnet command; need at least a verb byte
                     i++;
                     if (i >= count) {
-                        break; // truncated IAC — nothing to interpret
+                        break; // truncated IAC; nothing to interpret
                     }
                     byte verb = buffer[i];
                     switch (verb) {
@@ -328,7 +328,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                             // need an option byte; read it ONLY after the bounds check (#144)
                             i++;
                             if (i >= count) {
-                                break; // truncated option — ignore, do not read past the buffer
+                                break; // truncated option; ignore, do not read past the buffer
                             }
                             byte inputoption = buffer[i];
                             // reply to all commands with "WONT", unless it is SGA (suppress go ahead)

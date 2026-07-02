@@ -192,7 +192,7 @@ public class RecordCommandTests {
             Assert.False(GifRecorder.IsRecording);
             Assert.True(GifRecorder.HasCompletedRecording);
 
-            // A oneshot issued now discards that unfetched GIF — its reply must say so (M1, #157):
+            // A oneshot issued now discards that unfetched GIF; its reply must say so (M1, #157):
             // the discard warning may not be silently dropped just because the reply comes from stop.
             CapturingReply reply = new();
             SyntheticGrabRecordCommand cmd = new() {

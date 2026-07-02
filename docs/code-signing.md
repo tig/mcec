@@ -1,8 +1,8 @@
-# Code signing — Azure Trusted Signing (runbook)
+# Code signing: Azure Trusted Signing (runbook)
 
 MCEC signs its Windows installer (`mcec.Setup.exe`) with **Azure Trusted
 Signing** (a.k.a. Azure Artifact Signing), authenticating from GitHub Actions via **OIDC
-federation** — there is **no client secret** and nothing sensitive to rotate. Signing is wired
+federation**; there is **no client secret** and nothing sensitive to rotate. Signing is wired
 into [`.github/workflows/release.yml`](../.github/workflows/release.yml) and gated on the six
 `AZURE_*` repo secrets, so the release path still works (unsigned, with a warning) before signing
 is configured or on a fork.
@@ -23,7 +23,7 @@ trust is untouched and independent.
 | Subscription | Kindel LLC (`7bee0c7c-…`) |
 | Resource group | `WinPrint_Resources` |
 | Trusted Signing account | `winprint` (reused) |
-| Certificate profile | `WinPrint` — Public Trust, Kindel LLC (reused) |
+| Certificate profile | `WinPrint`; Public Trust, Kindel LLC (reused) |
 | App registration (this repo) | `mcec` (created by `SetupAzure.ps1`) |
 | OIDC subjects | `repo:tig/mcec:ref:refs/heads/{develop,main}` + flexible `refs/tags/*` |
 
@@ -36,19 +36,19 @@ registration + role assignment on the `winprint` Trusted Signing account, and `g
 secrets). The signing account/profile already exist (from winprint), so there is **no portal step**.
 
 ```bash
-az login                                         # interactive — run it yourself
+az login                                         # interactive; run it yourself
 pwsh scripts/SetupAzure.ps1 -SetGitHubSecrets    # creates the mcec app reg + OIDC trust + role, pushes the 6 secrets
 pwsh scripts/ValidateAzure.ps1                   # read-only verification
 ```
 
-`SetupAzure.ps1` is **find-or-create** at every step — safe to re-run any time (e.g. after editing
+`SetupAzure.ps1` is **find-or-create** at every step; safe to re-run any time (e.g. after editing
 `Branches`). Omit `-SetGitHubSecrets` to print the six secret values without touching the repo. It
 creates:
 
 1. App registration `mcec` + its service principal.
-2. Federated credentials — exact-match subjects for `develop`/`main`, plus a **flexible**
+2. Federated credentials: exact-match subjects for `develop`/`main`, plus a **flexible**
    credential (`claimsMatchingExpression`) for `refs/tags/*` (Entra `subject` is exact-match, so a
-   wildcard tag subject can't work — see the gotchas in the script).
+   wildcard tag subject can't work; see the gotchas in the script).
 3. Role assignment **“Artifact Signing Certificate Profile Signer”** at the certificate-profile scope.
 4. The six repo secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
    `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE`, `AZURE_SIGNING_ENDPOINT`.
@@ -68,23 +68,23 @@ auto-generated notes. (You can also run it from the Actions tab via **workflow_d
 version, for a dry run.)
 
 For a **local, unsigned** build, `pwsh ./Release.ps1 -Version 2.5.0` still produces the installer in
-`src/bin/` — handy for testing, but Windows SmartScreen will warn on an unsigned build.
+`src/bin/`; handy for testing, but Windows SmartScreen will warn on an unsigned build.
 
 ## How `release.yml` consumes the trust
 
 - `SIGN` (env) is true only when all six secrets are present; the `azure/login` (OIDC) and
   `azure/artifact-signing-action` steps are gated on it.
 - The job requests `permissions: id-token: write`; `azure/login@v2` exchanges the GitHub OIDC token
-  for the federated credential — **no secret**. Tag pushes match the flexible `refs/tags/*`
+  for the federated credential; **no secret**. Tag pushes match the flexible `refs/tags/*`
   credential; `workflow_dispatch` runs match the per-branch credentials.
 
 ## Gotchas (baked into the scripts)
 
-- **Entra federated `subject` is EXACT-match — wildcards don't work.** Tags use a *flexible*
+- **Entra federated `subject` is EXACT-match; wildcards don't work.** Tags use a *flexible*
   federated identity credential (`claimsMatchingExpression`) created via the **beta** Microsoft
   Graph endpoint; the `v1.0` endpoint and `az ad app federated-credential create` reject/omit it.
 - **PowerShell `$var:` trap.** `"...$GhRepo:ref..."` makes PowerShell read `GhRepo:` as a scope
-  qualifier and drop the repo name — always brace: `${GhRepo}`.
+  qualifier and drop the repo name; always brace: `${GhRepo}`.
 - **Role rename.** “Trusted Signing Certificate Profile Signer” → “Artifact Signing Certificate
   Profile Signer”. `ValidateAzure.ps1` accepts both.
 - **RBAC propagation.** A freshly created role assignment can take a few minutes before the first

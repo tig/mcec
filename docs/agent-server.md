@@ -3,36 +3,36 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# MCEC 3.0 — The Agent Automation Server
+# MCEC 3.0: The Agent Automation Server
 
 MCEC 3.0 turns the MCE Controller daemon into a small, opt-in automation server for
 AI agents and scripts running on a Windows PC. It gives an agent three things:
 
-- **Eyes** — capture a screenshot of a window (or the foreground window) as a PNG.
-- **Hands** — invoke any existing MCEC command (the actuation layer you already use).
-- **A front door** — query/find windows and UI elements, wait for conditions, and
+- **Eyes**: capture a screenshot of a window (or the foreground window) as a PNG.
+- **Hands**: invoke any existing MCEC command (the actuation layer you already use).
+- **A front door**: query/find windows and UI elements, wait for conditions, and
   drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
 
-The agent surface is a set of new commands — `capture`, `query`, `displays`, `find`,
-`wait-for`, `invoke`, `launch`, `drag`, and `click` — exposed as **tools over MCP/HTTP**
+The agent surface is a set of new commands (`capture`, `query`, `displays`, `find`,
+`wait-for`, `invoke`, `launch`, `drag`, and `click`) exposed as **tools over MCP/HTTP**
 so an agent can call them directly. Each tool call returns a **structured JSON result
 envelope** (`{ ok, result, … }`) instead of free text, so an agent can reason about
 success and failure uniformly.
 
 > **This release is purely additive.** No existing HTPC command, transport, or default
-> is changed. If you do nothing, MCEC behaves exactly as it did before — every new
+> is changed. If you do nothing, MCEC behaves exactly as it did before; every new
 > capability is **off by default** and must be explicitly enabled.
 
 ---
 
-## SECURITY — read this first
+## SECURITY: read this first
 
 **If anything useful is enabled, all bets are off.** MCEC drives the desktop with real user
-input — there is no sandbox, no permission model inside the session, and no way to give an
+input; there is no sandbox, no permission model inside the session, and no way to give an
 agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent
 can do**: read whatever is on screen, type into any app, click anything, launch programs,
 open a browser logged in as you, delete files, send email. The gates below decide *whether*
-an agent gets that power — they do not and cannot meter *how much*. Enable the agent surface
+an agent gets that power; they do not and cannot meter *how much*. Enable the agent surface
 only on a machine and session where you accept an agent acting **as you**, and prefer a
 disposable [provisioned session](safety-emergency-stop-and-provisioning.md) over enabling
 your installed instance.
@@ -43,7 +43,7 @@ independent opt-ins**. Turning one thing on does **not** turn the others on.
 1. **Agent commands are DISABLED by default.**
    The new observation/automation commands require their **own** opt-in,
    `AgentCommandsEnabled`, in `mcec.settings`. This is a **separate** switch from
-   the existing actuation/command enable — enabling MCEC to run commands does **not**
+   the existing actuation/command enable; enabling MCEC to run commands does **not**
    enable the agent surface, and vice-versa. Every individual command also remains
    `Enabled=false` until you turn it on, exactly as with all other MCEC commands.
 
@@ -51,37 +51,37 @@ independent opt-ins**. Turning one thing on does **not** turn the others on.
    The network-facing server (`McpServerEnabled`) is off unless you opt in. Even when
    enabled, the HTTP floor **binds to localhost only** (`McpBindAddress = 127.0.0.1`),
    so it is not reachable from other machines. There is no remote binding default and
-   no authentication bypass — if you need off-box access, front it with your own
+   no authentication bypass; if you need off-box access, front it with your own
    reverse proxy and auth.
 
-3. **Every agent action is loudly audited — on screen and in the log.**
+3. **Every agent action is loudly audited: on screen and in the log.**
    The **on-screen command overlay is ON by default** (`CommandOverlayEnabled`, docked per
    `CommandOverlayPosition`): it narrates each command as it executes, so anyone looking at
    the screen can see that MCEC is driving the machine. In addition, each agent command
-   logs an `AGENT-AUDIT:` line (action + target) before it runs — intentionally noisy so
+   logs an `AGENT-AUDIT:` line (action + target) before it runs; intentionally noisy so
    agent activity is impossible to miss in the MCEC log window or log files. If you see
    the overlay narrating or `AGENT-AUDIT:` lines you did not expect, something is driving
-   your machine — hit the [emergency stop](safety-emergency-stop-and-provisioning.md)
+   your machine; hit the [emergency stop](safety-emergency-stop-and-provisioning.md)
    (default `Ctrl+Alt+Shift+S`).
 
 If any one of these switches is off, the corresponding capability simply refuses to run
-and returns a JSON failure (for commands) — it never silently proceeds.
+and returns a JSON failure (for commands); it never silently proceeds.
 
-**Which gate applies where.** The agent *tools* — `capture`/`query`/`displays`/`find`/`wait-for`/`invoke`/
-`record`/`launch`/`drag`/`click` — are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
+**Which gate applies where.** The agent *tools* (`capture`/`query`/`displays`/`find`/`wait-for`/`invoke`/
+`record`/`launch`/`drag`/`click`) are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
 flag, over **both** MCP transports (`mcec.exe --mcp` stdio and the HTTP floor): a `tools/call` for a
 command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
-`AgentCommandsEnabled=true`. **`send_command` is the exception** — it is a raw pass-through to the existing
+`AgentCommandsEnabled=true`. **`send_command` is the exception**; it is a raw pass-through to the existing
 command engine and does **not** require `AgentCommandsEnabled`; the raw command it runs is still subject to
 that command's own `Enabled` flag in `mcec.commands` (the normal MCEC gate). `McpServerEnabled` gates only
 the HTTP floor; it has no bearing on stdio or on which individual tools may run.
 
-**The command queue is bounded.** Commands (from any client — network, serial, or an agent's
+**The command queue is bounded.** Commands (from any client: network, serial, or an agent's
 `send_command`) are queued and executed paced (`CommandPacing` delay between items). To prevent a remote
-memory/CPU DoS the queue is capped at **200** pending commands, and a single command's whole tree — the
-command itself plus all recursively embedded commands — at **50**. Enqueue is **all-or-nothing**: a command
+memory/CPU DoS the queue is capped at **200** pending commands, and a single command's whole tree (the
+command itself plus all recursively embedded commands) at **50**. Enqueue is **all-or-nothing**: a command
 that breaks either bound, or whose tree doesn't fit in the queue's remaining capacity, is **dropped whole
-and logged** (a `CommandInvoker` warning in the MCEC log) — never partially enqueued, since a split tree
+and logged** (a `CommandInvoker` warning in the MCEC log); never partially enqueued, since a split tree
 could separate paired input commands (e.g. `shiftdown:`/`shiftup:`) and leave a modifier key latched.
 Agents should batch or pace long input sequences (e.g. prefer `drag`/`mouse:drag` over long `mouse:mt`
 streams) rather than flooding the queue.
@@ -114,7 +114,7 @@ command).
 
 ## The commands
 
-All commands target a window the same way — by `window` (title substring,
+All commands target a window the same way; by `window` (title substring,
 case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 `className`, or `foreground` (the current foreground window).
 
@@ -122,13 +122,13 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 |------------|-----------------------------------------------------------------------------------|----------|
 | `capture`  | Screenshot a window (`PrintWindow` + `PW_RENDERFULLCONTENT`, captures WinUI/WPF surfaces) or a screen region, returned as base64 PNG. Blank/black frames are detected and flagged (see [Observation hardening](#observation-hardening--known-limitations)). | window target, or region `x`/`y`/`width`/`height`; optional `file` |
 | `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6), `maxNodes` (default 1000) |
-| `displays` | Report **display geometry** — every monitor's pixel `bounds`, `workingArea`, `primary` flag, and `dpi`/`scale`, plus the union `virtualBounds`. Lets an agent interpret the absolute-pixel bounds `query`/`find` return and place pixel clicks/drags without measuring the screen itself. | *(none)* |
+| `displays` | Report **display geometry**; every monitor's pixel `bounds`, `workingArea`, `primary` flag, and `dpi`/`scale`, plus the union `virtualBounds`. Lets an agent interpret the absolute-pixel bounds `query`/`find` return and place pixel clicks/drags without measuring the screen itself. | *(none)* |
 | `find`     | Find a **UI Automation element** by name / automation id / class.                 | window target, `by` (`name`\|`automationid`\|`classname`), `value`, `timeout` |
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
-| `invoke`   | Drive a UI Automation element pattern (incl. select for SelectionItem) — far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`\|`expand`\|`collapse`\|`select`), `text` |
+| `invoke`   | Drive a UI Automation element pattern (incl. select for SelectionItem); far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`\|`expand`\|`collapse`\|`select`), `text` |
 | `drag`     | Press → move along a path → release, dispatched **atomically** (nothing interleaves). Each endpoint is a UI Automation element (dragged from/to its centre) or an absolute screen pixel; add `path` waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee-select, drag-reorder. | window target (needed when an endpoint is an element); `from`/`to` each `{ by, value }` or `{ x, y }`; optional `path` `[{ x, y }, …]` |
 | `launch`   | Launch an app directly (path + args + working dir); gated. Returns pid and primary window handle/info when the window appears. Preferred over Win+R composition. | `path` (required), `arguments`, `workingDirectory`, `timeout` |
-| `click`    | Click at a point — a UI Automation element (clicked at its centre) or an absolute screen pixel — with move+click dispatched **atomically**. For element types `invoke` can't drive, or when you must target a pixel. Prefer `invoke` for ordinary buttons/menus. | window target (needed when `at` is an element); `at` = `{ by, value }` or `{ x, y }`; `button` (`left`\|`right`\|`middle`, default `left`); `count` (`1`\|`2`, default `1`) |
+| `click`    | Click at a point (a UI Automation element's centre or an absolute screen pixel); move+click is dispatched **atomically**. For element types `invoke` can't drive, or when you must target a pixel. Prefer `invoke` for ordinary buttons/menus. | window target (needed when `at` is an element); `at` = `{ by, value }` or `{ x, y }`; `button` (`left`\|`right`\|`middle`, default `left`); `count` (`1`\|`2`, default `1`) |
 | `record`   | Record a window or region to an **animated GIF** over time (start/stop or a bounded one-shot). | window target, or region `x`/`y`/`width`/`height`; `action` (`start`\|`stop`\|`oneshot`), `fps`, `durationMs`, `maxWidth`, `file` |
 
 Every MCP **tool call** returns one result envelope. An agent branches on `ok` first; on
@@ -144,14 +144,14 @@ success it reads `result`, on failure it reads `error`:
 ```
 
 A result is **either** a success (`ok: true`, `result` present, no `error`) **or** a failure
-(`ok: false`, `error` present, no `result`) — never both. `warnings` (non-fatal conditions)
+(`ok: false`, `error` present, no `result`); never both. `warnings` (non-fatal conditions)
 may appear on either. `sessionId` is present when the call ran inside a mounted session.
 Over MCP, the transport's `isError` flag mirrors the envelope (`isError = !ok`).
 
 On failure the `error` object carries a stable, fine-grained `code`, a coarse `category` from
 the closed taxonomy (`timeout`, `ambiguous-selector`, `stale-element`, `no-target`,
 `capture-blank`, `focus`, `elevation`, `foreground`, `internal`), a human-readable `detail`,
-and — when available — a `lastObservation` (the last good state before the failure, so a
+and (when available) a `lastObservation` (the last good state before the failure, so a
 failed call is debuggable without rerunning it):
 
 ```json
@@ -216,14 +216,14 @@ warning instead, since a user-specified region can legitimately be empty.
 On a successful `capture`, MCEC additionally returns the PNG as an MCP `image` content block so
 the model can view it directly, alongside the JSON envelope above.
 
-### `record` — capturing change over time
+### `record`: capturing change over time
 
 `capture` answers "what does this look like **now**". When you need to show change *over
-time* — an animation for a demo or issue report, or a repro of a transient/flicker — use
+time* (an animation for a demo or issue report, or a repro of a transient/flicker), use
 `record`, which writes an **animated GIF**.
 
 > **⚠️ Privacy:** a recording captures whatever is on screen for its *entire* duration,
-> not just one instant — it is a louder disclosure than a still `capture`. Only record
+> not just one instant; it is a louder disclosure than a still `capture`. Only record
 > what you mean to, keep recordings short, and be aware the GIF may contain sensitive
 > content (credentials, messages, other windows). Recording is off unless the operator has
 > enabled the agent commands, and every start/stop/write is `AGENT-AUDIT:`-logged.
@@ -239,12 +239,12 @@ Two ways to bound a recording:
 when it hits the operator's max duration or max frames (or the target vanishes mid-record).
 An auto-stopped recording is **completed, not lost**:
 
-- `action: "stop"` still returns the buffered GIF — exactly once. A second `stop` fails with
+- `action: "stop"` still returns the buffered GIF (exactly once). A second `stop` fails with
   "No recording is in progress or awaiting fetch", and fetching releases the buffered frames.
 - A new recording (`start` **or** a one-shot) is allowed after an auto-stop. If the
   auto-stopped GIF was never fetched, the new recording **replaces** it: the discarded output
   is gone, and that command's result carries an `unfetched-recording-discarded` warning (for
-  a one-shot, on its single final reply) — also audit-logged. Fetch with `stop` promptly if
+  a one-shot, on its single final reply); also audit-logged. Fetch with `stop` promptly if
   you want the output.
 
 Safety limits (operator-configurable in `mcec.settings`, requests above them are *clamped*,
@@ -334,7 +334,7 @@ scores ~1.0. When the dominant color covers ≥ 99% of the frame it is flagged b
 near-black dominant color is distinguished from a legitimately empty (e.g. white) surface.
 
 - A **window** capture that comes back blank is a failure (`error.category: "capture-blank"`,
-  `error.code: "frame-all-black"` or `"frame-uniform"`), so it is never a *silent* bad image — an
+  `error.code: "frame-all-black"` or `"frame-uniform"`), so it is never a *silent* bad image; an
   agent branches on the failure rather than trusting the frame.
 - A **region** capture that comes back blank is reported as a `capture-blank` **warning**, since
   a user-specified region can legitimately be empty.
@@ -377,7 +377,7 @@ trees (e.g. a virtualized list with thousands of items):
   tree; `nodeCount` always reports how many nodes were captured. Raise `maxNodes` or narrow the
   target (deeper `window`/`handle` selector) for a complete tree.
 
-Individual stale or unsupported UIA nodes never abort the whole walk — they are skipped and the
+Individual stale or unsupported UIA nodes never abort the whole walk; they are skipped and the
 rest of the tree is returned.
 
 
@@ -385,7 +385,7 @@ rest of the tree is returned.
 
 ## Using MCEC as an MCP server
 
-MCEC can run **headless** as an MCP **stdio** server — no UI, no tray icon — so an MCP
+MCEC can run **headless** as an MCP **stdio** server (no UI, no tray icon) so an MCP
 client (such as a desktop AI assistant) can spawn it on demand and talk to it over
 standard input/output:
 
@@ -408,7 +408,7 @@ style used by most clients):
 ```
 
 > The agent commands still obey the security gates above. Running `--mcp` does **not**
-> bypass `AgentCommandsEnabled` or the per-command `Enabled` flags — set those in
+> bypass `AgentCommandsEnabled` or the per-command `Enabled` flags; set those in
 > `mcec.settings` first.
 
 ### Tools exposed over MCP
@@ -427,7 +427,7 @@ When connected, the server advertises these tools:
 | `launch`       | Direct gated app launch (returns pid + window handle).         |
 | `click`        | The `click` command (atomic click at an element centre or pixel). |
 | `record`       | The `record` command (window/region → animated GIF over time). |
-| `send_command` | Generic raw-command passthrough — send any MCEC command line.  |
+| `send_command` | Generic raw-command passthrough; send any MCEC command line.  |
 
 ---
 
@@ -436,24 +436,24 @@ When connected, the server advertises these tools:
 Agent tool calls follow a simple contract so one slow call never stalls the others:
 
 - **Observation runs concurrently.** `query`, `capture`, `find`, `wait-for`, and `record` take **no
-  shared lock** — a deep `query`, a large `capture`, or a long `wait-for` never blocks another tool call,
+  shared lock**; a deep `query`, a large `capture`, or a long `wait-for` never blocks another tool call,
   even one from a different session. They snapshot state (each UIA read uses its own automation instance;
   screen capture is stateless) and don't mutate the desktop.
-- **Global-input actuation serializes.** `drag` and `send_command` synthesize physical mouse/keyboard —
+- **Global-input actuation serializes.** `drag` and `send_command` synthesize physical mouse/keyboard;
   the one input stream is a shared resource, so they run one-at-a-time under a single `InputLock`
   (concurrent requests can't interleave keystrokes/mouse).
 - **`invoke` is UIA-pattern actuation**, dispatched on a worker with a short *modal grace*: because
   invoking a control can open a modal dialog that blocks synchronously, `invoke` never holds the input
-  lock for the dialog's lifetime — otherwise the agent couldn't `query`/`capture`/`invoke` to dismiss the
+  lock for the dialog's lifetime; otherwise the agent couldn't `query`/`capture`/`invoke` to dismiss the
   very dialog it opened (see the `invoke` notes above).
 - **The legacy TCP/serial command pipeline is untouched.** Home-automation commands still run in order,
-  synchronously, on the UI thread (`CommandInvoker.ExecuteNext`) — this contract governs only the agent
+  synchronously, on the UI thread (`CommandInvoker.ExecuteNext`); this contract governs only the agent
   (MCP) tools.
 
 Both MCP transports honor this by dispatching each request on a worker: the HTTP floor serves every
 `POST` on a thread-pool task, and the stdio loop dispatches each line concurrently (writes are serialized;
 JSON-RPC responses carry the request `id`, so out-of-order completion is fine). So a slow call from one
-client/session never blocks another's requests — not just callers that invoke `Dispatch` on their own
+client/session never blocks another's requests; not just callers that invoke `Dispatch` on their own
 threads.
 
 ## HTTP floor
@@ -480,14 +480,14 @@ can issue a cross-origin `POST` to `127.0.0.1:5151` (CSRF), and a DNS-rebinding 
 make the browser treat the endpoint as same-origin to read responses. To close both, every
 HTTP request is validated **before** its body is read or any tool runs:
 
-- **Method + path** — only `POST /mcp` is served; anything else is rejected (`405`/`404`).
-- **`Host` header** — must be a loopback authority (`127.0.0.1`, `localhost`, or `[::1]`, and,
-  if a port is present, the configured `McpHttpPort`). A request with `Host: evil.com` — the
-  hallmark of DNS rebinding — is refused (`403`).
-- **`Origin` header** — must be absent (a normal non-browser MCP client sends none) or a
+- **Method + path**: only `POST /mcp` is served; anything else is rejected (`405`/`404`).
+- **`Host` header**: must be a loopback authority (`127.0.0.1`, `localhost`, or `[::1]`, and,
+  if a port is present, the configured `McpHttpPort`). A request with `Host: evil.com` (the
+  hallmark of DNS rebinding) is refused (`403`).
+- **`Origin` header**: must be absent (a normal non-browser MCP client sends none) or a
   loopback origin. A cross-site `Origin` (`http://evil.com`) or an opaque `null` origin is
   refused (`403`), which stops the drive-by CSRF case.
-- **`Authorization` (optional, defense in depth)** — set `McpAuthToken` to a non-empty secret
+- **`Authorization` (optional, defense in depth)**: set `McpAuthToken` to a non-empty secret
   and every request must carry `Authorization: Bearer <token>` (constant-time compared), which
   additionally protects against a hostile process on the same machine. Empty (default) relies on
   the `Host`/`Origin` checks above.
@@ -496,7 +496,7 @@ Every rejected request is logged with an `AGENT-AUDIT:` line (decision, method, 
 origin, remote endpoint) so drive-by and rebinding attempts are visible to the operator.
 
 > **Binding off-box requires a token.** The `Host` check is a browser/rebinding defense, not a
-> network control — a remote client can send `Host: 127.0.0.1`. So if `McpBindAddress` is set to a
+> network control; a remote client can send `Host: 127.0.0.1`. So if `McpBindAddress` is set to a
 > non-loopback address (e.g. `0.0.0.0`) **and** `McpAuthToken` is empty, MCEC **refuses to start** the
 > HTTP listener and logs an error. To expose the door off-box, set a bearer token (and prefer a
 > network-level control too).
@@ -504,7 +504,7 @@ origin, remote endpoint) so drive-by and rebinding attempts are visible to the o
 The floor is hardened against resource exhaustion: a request body larger than
 **1 MB** is refused with `413` (the cap is enforced by a bounded read, so chunked bodies
 without a `Content-Length` can't bypass it), and at most **16** requests are served
-concurrently — past that the server answers `503` rather than queueing.
+concurrently; past that the server answers `503` rather than queueing.
 
 
 ---
@@ -516,17 +516,17 @@ concurrently — past that the server answers `503` rather than queueing.
 - **Three independent off-by-default gates:** `AgentCommandsEnabled`, per-command
   `Enabled`, and `McpServerEnabled` (localhost-bound).
 - **HTTP front-door validation:** `POST /mcp` only, loopback `Host` and absent-or-loopback
-  `Origin` required, optional `McpAuthToken` bearer token — defeats browser CSRF and DNS rebinding.
+  `Origin` required, optional `McpAuthToken` bearer token; defeats browser CSRF and DNS rebinding.
 - Loud `AGENT-AUDIT:` logging for every agent action.
-- Fully additive — nothing about the existing HTPC behavior changes.
+- Fully additive; nothing about the existing HTPC behavior changes.
 
 ## Agent safety features
 
-Two operator-safety features build on the gates above — see
+Two operator-safety features build on the gates above; see
 [`safety-emergency-stop-and-provisioning.md`](safety-emergency-stop-and-provisioning.md):
 
 - **Emergency stop:** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
-  `EmergencyStopHotkey`) that instantly halts a session from any window — latching the actuation gate
+  `EmergencyStopHotkey`) that instantly halts a session from any window; latching the actuation gate
   (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
   reacts to physical input only, so the agent can never trip or defeat it.
 - **Isolated session provisioning:** `provision-session` (gated by `AllowSessionProvisioning`) hands

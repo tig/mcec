@@ -71,7 +71,7 @@ public class DragCommand : Command {
         }
 
         if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
+            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED; agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
             Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
             return false;
         }

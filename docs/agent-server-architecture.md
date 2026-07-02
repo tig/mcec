@@ -3,7 +3,7 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# Agent Server — Architecture Notes (dev)
+# Agent Server: Architecture Notes (dev)
 
 This is a short developer-facing tour of the MCEC 3.0 agent subsystem. It lives under
 `src/Agent/` and is **additive**: it reuses the existing `Command` / `CommandInvoker`
@@ -85,7 +85,7 @@ Immediately after `base.Execute()`, every agent command runs the gating block:
 
 ```csharp
 if (!AgentRuntime.AgentCommandsEnabled) {
-    Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. " +
+    Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED; agent commands are disabled. " +
         "Set AgentCommandsEnabled=true to opt in.");
     Reply?.WriteLine(CommandResult.Fail(Cmd,
         "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
@@ -96,7 +96,7 @@ AgentRuntime.Audit(Cmd, "<target/action>");
 
 Because they are normal commands, they are dispatched by the existing
 `CommandInvoker` and are reachable through every existing transport as well as the new
-MCP/HTTP façade — no special-casing in the command pipeline.
+MCP/HTTP façade; no special-casing in the command pipeline.
 
 ## `AgentServer` (MCP / HTTP)
 
@@ -104,8 +104,8 @@ MCP/HTTP façade — no special-casing in the command pipeline.
 the tools `capture`, `query`, `find`, `invoke`, and `send_command` (a generic raw
 command-line passthrough). Two transports share one dispatch path:
 
-- **MCP stdio** — used by the `--mcp` headless bootstrap.
-- **HTTP floor** — one JSON-RPC request per `POST` to `/mcp`, bound to
+- **MCP stdio**: used by the `--mcp` headless bootstrap.
+- **HTTP floor**: one JSON-RPC request per `POST` to `/mcp`, bound to
   `McpBindAddress` (default `127.0.0.1`) on `McpHttpPort` (default `5151`).
 
 Tool calls are translated into command invocations executed through
@@ -117,17 +117,17 @@ to the caller.
 The `--mcp` command-line switch starts MCEC without the WinForms UI: it initializes
 `AgentRuntime` (settings + invoker), then runs `AgentServer` as an MCP stdio server and
 pumps stdin/stdout until the client disconnects. This path shares the exact same
-commands and gating as the interactive host — the only difference is the absence of UI
+commands and gating as the interactive host; the only difference is the absence of UI
 and the stdio transport.
 
 ## Gating model recap
 
 Three independent, off-by-default gates, enforced wherever the surface is reachable:
 
-1. `AppSettings.AgentCommandsEnabled` (via `AgentRuntime.AgentCommandsEnabled`) —
+1. `AppSettings.AgentCommandsEnabled` (via `AgentRuntime.AgentCommandsEnabled`):
    the agent-command master switch, separate from actuation.
-2. Per-command `Enabled` — each command still ships `Enabled=false`.
-3. `AppSettings.McpServerEnabled` — the network façade, localhost-bound by default.
+2. Per-command `Enabled`: each command still ships `Enabled=false`.
+3. `AppSettings.McpServerEnabled`: the network façade, localhost-bound by default.
 
 And `AgentRuntime.Audit` emits an `AGENT-AUDIT:` line for every agent action regardless
 of transport.

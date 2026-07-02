@@ -165,7 +165,7 @@ namespace MCEControl.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No connection could be made because the target computer actively refused it. This usually results from trying to connect to a service that is inactive on the foreign host—that is, one with no server application running..
+        ///   Looks up a localized string similar to No connection could be made because the target computer actively refused it. This usually results from trying to connect to a service that is inactive on the foreign host (that is, one with no server application running)..
         /// </summary>
         internal static string WSA_10061 {
             get {

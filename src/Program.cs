@@ -17,7 +17,7 @@ internal static class Program {
 
             // If we're running from a (read-only) Program Files install location, redirect log/
             // settings/command files to %AppData%. Check both 64-bit ("Program Files") and 32-bit
-            // ("Program Files (x86)") roots — the installer puts the self-contained x64 build under
+            // ("Program Files (x86)") roots; the installer puts the self-contained x64 build under
             // 64-bit Program Files, while older installs used the x86 path.
             foreach (Environment.SpecialFolder folder in new[] {
                 Environment.SpecialFolder.ProgramFiles,
@@ -76,7 +76,7 @@ internal static class Program {
         // v3.0: carry an existing user's MCEControl.settings/.commands forward to the new mcec.* names.
         ConfigMigration.Run(ConfigPath);
 
-        // #138: belt-and-suspenders — reap any stale/abandoned provisioned session directories so a leaked
+        // #138: belt-and-suspenders; reap any stale/abandoned provisioned session directories so a leaked
         // session (crashed/killed before teardown) never lingers. Running sessions' files are locked and skipped.
         SessionProvisioner.ReapOrphans(TimeSpan.FromHours(AgentServer.SessionReapAgeHours));
 

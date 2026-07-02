@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 namespace MCEControl;
 
 /// <summary>
-/// Builds the condensed one-line label the command overlay (#119) shows for a command — the "MainWindow
+/// Builds the condensed one-line label the command overlay (#119) shows for a command; the "MainWindow
 /// log view, tersified" the issue asks for. Pure formatting so it is fully unit-testable; the overlay
 /// renders the <see cref="CommandOutcome"/> separately (colour/emphasis).
 /// </summary>

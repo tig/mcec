@@ -292,7 +292,7 @@ namespace Gma.UserActivityMonitor {
 
         /// <summary>
         /// The GetKeyState function retrieves the status of the specified virtual key. The status specifies whether the key is up, down, or toggled 
-        /// (on, off—alternating each time the key is pressed). 
+        /// (on, off; alternating each time the key is pressed). 
         /// </summary>
         /// <param name="vKey">
         /// [in] Specifies a virtual key. If the desired virtual key is a letter or digit (A through Z, a through z, or 0 through 9), nVirtKey must be set to the ASCII value of that character. For other keys, it must be a virtual-key code. 

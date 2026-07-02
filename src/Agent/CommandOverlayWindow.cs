@@ -11,7 +11,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The on-screen command overlay (#119): a borderless, top-most, <b>click-through</b>, alpha-blended
-/// window that shows each MCEC command as it executes — the "MainWindow log view, tersified, larger
+/// window that shows each MCEC command as it executes; the "MainWindow log view, tersified, larger
 /// font." It subscribes to <see cref="CommandEventHub"/>, keeps a small <see cref="OverlayFeed"/>, and
 /// paints it over the right ~30% of the primary screen with no border or scrollbars; old lines fade out.
 ///
@@ -113,7 +113,7 @@ public sealed class CommandOverlayWindow : Form {
     }
 
     protected override void OnHandleDestroyed(EventArgs e) {
-        // Unregister as the handle is destroyed — not just on Dispose — so a recreated handle (or a value
+        // Unregister as the handle is destroyed; not just on Dispose; so a recreated handle (or a value
         // Windows later reuses for a real window) is never left ignored.
         if (_registeredHandle != 0) {
             WindowResolver.UnregisterIgnoredWindow(_registeredHandle);
@@ -210,12 +210,12 @@ public sealed class CommandOverlayWindow : Form {
 
     /// <summary>
     /// Draws the persistent emergency-stop (#135) banner across the top of the overlay. Unlike the fading
-    /// command feed, it stays until the operator re-arms — a loud, unmissable "MCEC is halted" indicator.
+    /// command feed, it stays until the operator re-arms; a loud, unmissable "MCEC is halted" indicator.
     /// </summary>
     private void DrawStoppedBanner(Graphics g, int width) {
         const int pad = 8;
         using Font font = new("Consolas", 16F, FontStyle.Bold, GraphicsUnit.Point);
-        const string text = "⛔ STOPPED by operator — Re-arm to resume";
+        const string text = "⛔ STOPPED by operator; Re-arm to resume";
         SizeF size = g.MeasureString(text, font, width - pad * 2);
         float boxH = size.Height + pad * 1.5f;
         using (SolidBrush bg = new(StoppedBackground))

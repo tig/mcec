@@ -311,7 +311,7 @@ public static partial class HookManager {
 
             // LLKHF_INJECTED (0x10): the event was synthesized by SendInput rather than pressed on real
             // hardware. Surfaced on the *Ext events so the emergency-stop (#135) can react to physical
-            // input only — MCEC's own agent actuation injects keys, and the panic hotkey must be immune to
+            // input only; MCEC's own agent actuation injects keys, and the panic hotkey must be immune to
             // both accidental self-trip and deliberate self-defeat.
             const int LLKHF_INJECTED = 0x10;
             bool injected = (MyKeyboardHookStruct.Flags & LLKHF_INJECTED) != 0;

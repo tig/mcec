@@ -213,7 +213,7 @@ public partial class MainWindow : Form {
         }
         rearmMenuItem.Visible = stopped;
         SetStatus(stopped
-            ? $"⛔ STOPPED by operator — Re-arm to resume ({EmergencyStop.StoppedReason})"
+            ? $"⛔ STOPPED by operator; Re-arm to resume ({EmergencyStop.StoppedReason})"
             : $"Version: {Application.ProductVersion}");
     }
 
@@ -316,7 +316,7 @@ public partial class MainWindow : Form {
             AgentServer.StartHttp();
         }
 
-        // MCEC 3.0: emergency stop (#135) — a global panic hotkey that halts an agent session from ANY
+        // MCEC 3.0: emergency stop (#135); a global panic hotkey that halts an agent session from ANY
         // focused window. Arm it here in the GUI host (the low-level keyboard hook needs this thread's
         // message loop) whenever the agent front door could be driving. It reacts to physical input only,
         // so the agent can never trip or defeat it.
@@ -330,7 +330,7 @@ public partial class MainWindow : Form {
             emergencyStopArmed = true;
         }
 
-        // MCEC 3.0: on-screen command overlay (#119) — narrates each command as it executes so anyone
+        // MCEC 3.0: on-screen command overlay (#119); narrates each command as it executes so anyone
         // watching sees that MCEC is driving. On by default; never shown headless. Independent (not
         // owned) so it keeps narrating even when the MCEC window is minimized to the tray.
         if (Settings.CommandOverlayEnabled && !AgentRuntime.Headless && commandOverlay is null) {

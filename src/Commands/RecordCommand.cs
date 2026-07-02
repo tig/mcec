@@ -12,7 +12,7 @@ using System.Xml.Serialization;
 namespace MCEControl;
 
 /// <summary>
-/// MCEC 3.0 agent <c>record</c> command: captures agent-driven desktop activity to an animated GIF —
+/// MCEC 3.0 agent <c>record</c> command: captures agent-driven desktop activity to an animated GIF;
 /// a whole short segment via explicit <c>start</c>/<c>stop</c>, or a bounded one-shot via
 /// <c>durationMs</c>. Reuses the same target model as <see cref="CaptureCommand"/> (window by
 /// handle/title/process/class/foreground, or an explicit region) and the same security gate.
@@ -22,7 +22,7 @@ namespace MCEControl;
 /// <see cref="AgentRuntime.Audit"/>. The capture loop is hard-bounded (fps/duration/frames/width) by
 /// the operator's <see cref="AppSettings"/> limits so an agent cannot create an unbounded file.
 ///
-/// PRIVACY: a recording captures whatever is on screen for its whole duration — louder than a single
+/// PRIVACY: a recording captures whatever is on screen for its whole duration; louder than a single
 /// still <c>capture</c>. See <c>docs/agent-server.md</c>.
 /// </summary>
 public class RecordCommand : Command {
@@ -78,7 +78,7 @@ public class RecordCommand : Command {
         }
 
         if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
+            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED; agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
             Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
             return false;
         }
@@ -121,10 +121,10 @@ public class RecordCommand : Command {
         bool discardedUnfetched = GifRecorder.Start(grab, limits.Fps, limits.MaxFrames, limits.MaxWidth, limits.LoopDurationMs, target);
         if (discardedUnfetched) {
             // A prior recording auto-stopped (max duration/frames) and its GIF was never fetched with
-            // action=stop. The new recording (start OR oneshot) replaces it — warn so the loss is
+            // action=stop. The new recording (start OR oneshot) replaces it; warn so the loss is
             // visible, not silent.
             Logger.Instance.Log4.Warn($"{GetType().Name}: a previous recording auto-stopped and was never fetched; its buffered GIF was discarded by this new recording.");
-            AgentRuntime.Audit(Cmd, $"{(oneshot ? "oneshot" : "start")} — discarded an unfetched auto-stopped recording");
+            AgentRuntime.Audit(Cmd, $"{(oneshot ? "oneshot" : "start")}; discarded an unfetched auto-stopped recording");
         }
 
         if (!oneshot) {
@@ -236,7 +236,7 @@ public class RecordCommand : Command {
         }
 
         if (result.Frames == 0 || result.Gif.Length == 0) {
-            AgentRuntime.Audit(Cmd, $"stop — no output ({result.Error})");
+            AgentRuntime.Audit(Cmd, $"stop; no output ({result.Error})");
             return FailWith(result.Error ?? "Recording produced no frames.", warnDiscardedUnfetched);
         }
 
@@ -262,14 +262,14 @@ public class RecordCommand : Command {
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
             // Unlike `capture`, `record` does not return the bytes inline, so a failed write means there
-            // is no usable output — report failure rather than success-with-fileError.
+            // is no usable output; report failure rather than success-with-fileError.
             Logger.Instance.Log4.Error($"{GetType().Name}: could not write GIF to '{path}': {e.Message}");
-            AgentRuntime.Audit(Cmd, $"stop — encode ok ({result.Frames} frames) but write failed: {e.Message}");
+            AgentRuntime.Audit(Cmd, $"stop; encode ok ({result.Frames} frames) but write failed: {e.Message}");
             return FailWith($"Recorded {result.Frames} frames but could not write GIF to '{path}': {e.Message}", warnDiscardedUnfetched);
         }
 
         data["file"] = path;
-        AgentRuntime.Audit(Cmd, $"stop — wrote {result.Frames} frames, {result.Gif.Length} bytes, {result.Width}x{result.Height} to {path}");
+        AgentRuntime.Audit(Cmd, $"stop; wrote {result.Frames} frames, {result.Gif.Length} bytes, {result.Width}x{result.Height} to {path}");
         CommandResult ok = CommandResult.Ok(Cmd, data);
         if (warnDiscardedUnfetched) {
             ok.Warn(DiscardedWarningCode, DiscardedWarningDetail);
@@ -278,7 +278,7 @@ public class RecordCommand : Command {
         return true;
     }
 
-    /// <summary>Writes a failure envelope; the discard warning still rides along when set — warnings
+    /// <summary>Writes a failure envelope; the discard warning still rides along when set; warnings
     /// are valid on failure too, and the discard already happened regardless of this call's outcome.</summary>
     private bool FailWith(string error, bool warnDiscardedUnfetched = false) {
         CommandResult result = CommandResult.Fail(Cmd, error);

@@ -109,7 +109,7 @@ jobs:
       - name: Verify installer is Authenticode-signed
         if: ${{ env.SIGN == 'true' }}
         shell: pwsh
-        # SECURITY (#160): defense in depth — even if the signing action reports success, prove the
+        # SECURITY (#160): defense in depth; even if the signing action reports success, prove the
         # artifact is actually signed by the expected publisher before publishing. Fails the job otherwise.
         run: |
           $sig = Get-AuthenticodeSignature artifacts/mcec.Setup.exe
@@ -123,13 +123,13 @@ jobs:
           # The Trusted Signing certificate CN is set by Microsoft from the validated legal entity, so a
           # formatting difference must not false-negative-block a legitimately signed release.
           if ($sig.SignerCertificate.Subject -notmatch 'Kindel') {
-            Write-Host "::warning::mcec.Setup.exe signer '$($sig.SignerCertificate.Subject)' does not contain 'Kindel' — verify the signing certificate identity."
+            Write-Host "::warning::mcec.Setup.exe signer '$($sig.SignerCertificate.Subject)' does not contain 'Kindel'; verify the signing certificate identity."
           }
           Write-Host "::notice::Installer signature verified (status: Valid)."
 
       - name: Warn that installer is unsigned
         if: ${{ env.SIGN != 'true' }}
-        run: echo "::warning::AZURE_* signing secrets not set — installer is UNSIGNED. Run 'pwsh scripts/SetupAzure.ps1 -SetGitHubSecrets' to enable Azure Trusted Signing (see docs/code-signing.md)."
+        run: echo "::warning::AZURE_* signing secrets not set; installer is UNSIGNED. Run 'pwsh scripts/SetupAzure.ps1 -SetGitHubSecrets' to enable Azure Trusted Signing (see docs/code-signing.md)."
 
       - name: Publish GitHub Release
         shell: pwsh
@@ -144,7 +144,7 @@ jobs:
 
   # Auto-submit the new version to winget-pkgs on every STABLE release (skips pre-releases
   # and is gated on the WINGET_TOKEN secret). Requires a one-time manual bootstrap of the
-  # package into microsoft/winget-pkgs — see packaging/winget/README.md.
+  # package into microsoft/winget-pkgs; see packaging/winget/README.md.
   winget:
     name: Submit to winget-pkgs
     needs: release
@@ -167,4 +167,4 @@ jobs:
 
       - name: Skipped (no WINGET_TOKEN)
         if: ${{ env.HAS_WINGET != 'true' }}
-        run: echo "::notice::WINGET_TOKEN not set — skipping winget-pkgs submission. See packaging/winget/README.md."
+        run: echo "::notice::WINGET_TOKEN not set; skipping winget-pkgs submission. See packaging/winget/README.md."

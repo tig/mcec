@@ -150,7 +150,7 @@ public class SerializedCommandsTests
     [Fact]
     public void SaveLoad_RoundTrip_ClickCommand_TopLevel()
     {
-        // ClickCommand is a built-in, so a real command table contains one and Save() must serialize it —
+        // ClickCommand is a built-in, so a real command table contains one and Save() must serialize it;
         // which only works if the type is in the XmlArrayItem/XmlElement known-type lists (#122).
         string tempFile = Path.GetTempFileName();
         File.Delete(tempFile);

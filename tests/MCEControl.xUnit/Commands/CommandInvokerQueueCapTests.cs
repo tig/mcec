@@ -22,7 +22,7 @@ namespace MCEControl.xUnit.Commands;
 /// Enqueue is ALL-OR-NOTHING per command tree: a command whose whole tree (itself plus all
 /// recursively embedded commands) exceeds <see cref="CommandInvoker.MaxEmbeddedExpansion"/>, or
 /// does not fit in the queue's remaining capacity (<see cref="CommandInvoker.MaxQueueDepth"/>),
-/// is dropped WHOLE with a warning — never partially enqueued. Partial enqueue could split paired
+/// is dropped WHOLE with a warning; never partially enqueued. Partial enqueue could split paired
 /// input commands (e.g. shiftdown:/shiftup:) and leave a modifier key latched host-wide.
 ///
 /// Uses the serial collection because the log4net hierarchy and Logger are process-global.
@@ -85,7 +85,7 @@ public class CommandInvokerQueueCapTests {
 
             invoker.EnqueueCommand(parent);
 
-            // ALL-OR-NOTHING: a tree over the bound must not be partially enqueued — a partial
+            // ALL-OR-NOTHING: a tree over the bound must not be partially enqueued; a partial
             // tree could split paired input (shiftdown:/shiftup:) and latch a modifier key.
             Assert.Equal(0, invoker.QueuedCommandCount);
             Assert.Contains(capture.GetEvents(), IsInvokerDropWarning);
@@ -208,7 +208,7 @@ public class CommandInvokerQueueCapTests {
             invoker.Enqueue(new TestReply(), "z");
 
             Assert.Equal(CommandInvoker.MaxQueueDepth, invoker.QueuedCommandCount);
-            // The drop log must identify WHAT was dropped — the fast path builds a
+            // The drop log must identify WHAT was dropped; the fast path builds a
             // SendInputCommand from the raw char, so the log line must carry it.
             Assert.Contains(capture.GetEvents(), e =>
                 IsInvokerDropWarning(e) &&

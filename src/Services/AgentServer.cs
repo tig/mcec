@@ -15,7 +15,7 @@ namespace MCEControl;
 
 /// <summary>
 /// MCEC 3.0's agent front door: a self-contained Model Context Protocol (MCP) server, hand-rolled as
-/// JSON-RPC 2.0 over two transports — stdio (for an MCP client that launches <c>mcec.exe --mcp</c>)
+/// JSON-RPC 2.0 over two transports; stdio (for an MCP client that launches <c>mcec.exe --mcp</c>)
 /// and a localhost HTTP/JSON floor (POST a JSON-RPC request to <c>/mcp</c>). No external SDK or
 /// Python/Node runtime: the same self-contained native binary, with MCP/HTTP as just one more
 /// transport over the existing command core.
@@ -59,13 +59,13 @@ public static class AgentServer {
 
     // Concurrency contract (#113): the ONE physical desktop input stream is a shared resource, so
     // global-input actuation (drag, send_command) serializes on this lock. Observation
-    // (query/capture/find/wait-for/record) runs UNLOCKED — a long/blocking read never stalls another
+    // (query/capture/find/wait-for/record) runs UNLOCKED; a long/blocking read never stalls another
     // tool call. See SerializesOnInputLock and docs/agent-server.md#concurrency.
     private static readonly object InputLock = new();
 
     /// <summary>
     /// Whether <paramref name="tool"/> serializes on <see cref="InputLock"/> (the #113 contract).
-    /// Global-input actuation (<c>drag</c>, <c>send_command</c>) does — it synthesizes physical
+    /// Global-input actuation (<c>drag</c>, <c>send_command</c>) does; it synthesizes physical
     /// mouse/keyboard, one shared stream that concurrent requests must not interleave. Observation
     /// (<c>query</c>/<c>capture</c>/<c>find</c>/<c>wait-for</c>/<c>record</c>) does not (it runs
     /// concurrently); <c>invoke</c> is UIA-pattern actuation dispatched on a worker with the modal grace,
@@ -133,7 +133,7 @@ public static class AgentServer {
 
     /// <summary>
     /// Built-in guidance handed to an agent at connect time (the MCP client shows this to the model). It
-    /// is authored in <c>src/Agent/AgentInstructions.md</c> — the single source of truth — and embedded
+    /// is authored in <c>src/Agent/AgentInstructions.md</c>; the single source of truth; and embedded
     /// into the exe at build time; this loads it once, collapsing each blank-line-separated paragraph to
     /// a single line (the historical connect-time format).
     /// </summary>
@@ -145,7 +145,7 @@ public static class AgentServer {
         using Stream? stream = typeof(AgentServer).Assembly.GetManifestResourceStream("MCEControl.AgentInstructions.md");
         if (stream is null) {
             throw new InvalidOperationException(
-                "Embedded resource 'MCEControl.AgentInstructions.md' not found — check the <EmbeddedResource> item in MCEControl.csproj.");
+                "Embedded resource 'MCEControl.AgentInstructions.md' not found; check the <EmbeddedResource> item in MCEControl.csproj.");
         }
         using StreamReader reader = new(stream);
         string raw = reader.ReadToEnd().Replace("\r\n", "\n");
@@ -209,7 +209,7 @@ public static class AgentServer {
             queryProps, []));
 
         tools.Add(Tool("displays",
-            "Report display geometry: every monitor's pixel bounds, working area, primary flag, and DPI/scale, plus the union virtualBounds. Use it to interpret the absolute-pixel bounds query/find return and to place pixel clicks/drags — no arguments.",
+            "Report display geometry: every monitor's pixel bounds, working area, primary flag, and DPI/scale, plus the union virtualBounds. Use it to interpret the absolute-pixel bounds query/find return and to place pixel clicks/drags; no arguments.",
             [], []));
 
         JsonObject findProps = WindowTargetProps();
@@ -234,7 +234,7 @@ public static class AgentServer {
         invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse | select (default invoke). Use expand to open a menu before invoking its items; use select for TabItem, ListItem, RadioButton etc.");
         invokeProps["text"] = PropSchema("string", "Text for the setvalue action");
         tools.Add(Tool("invoke",
-            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus/Expand/Collapse/Select) — more reliable than coordinate clicks. Use 'select' for tabs, list items, radios (SelectionItem pattern).",
+            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus/Expand/Collapse/Select); more reliable than coordinate clicks. Use 'select' for tabs, list items, radios (SelectionItem pattern).",
             invokeProps, ["value"]));
 
         JsonObject dragProps = WindowTargetProps();
@@ -260,7 +260,7 @@ public static class AgentServer {
         clickProps["button"] = PropSchema("string", "Button: left | right | middle (default left)");
         clickProps["count"] = PropSchema("integer", "Click count: 1 = single, 2 = double (default 1)");
         tools.Add(Tool("click",
-            "Click at a point — an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
+            "Click at a point; an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
             clickProps, ["at"]));
 
         JsonObject recordProps = WindowTargetProps();
@@ -333,13 +333,13 @@ public static class AgentServer {
         JsonObject args = prms?["arguments"] as JsonObject ?? [];
 
         // Emergency stop (#135): once the operator engages the panic hotkey, EVERY tool call is refused
-        // (actuation, observation, and raw send_command alike) until they explicitly re-arm — the human
+        // (actuation, observation, and raw send_command alike) until they explicitly re-arm; the human
         // override latches and is checked before anything else. A distinct error code tells the agent to
         // stop and surface it, not retry.
         if (AgentRuntime.EmergencyStopped) {
-            AgentRuntime.Audit(name, "BLOCKED — emergency stop engaged; operator must re-arm");
+            AgentRuntime.Audit(name, "BLOCKED; emergency stop engaged; operator must re-arm");
             return ToolError(
-                "Emergency stop is engaged — the operator halted this session. All tool calls are refused until they re-arm. Stop and tell the user; do not retry.",
+                "Emergency stop is engaged; the operator halted this session. All tool calls are refused until they re-arm. Stop and tell the user; do not retry.",
                 "emergency-stopped");
         }
 
@@ -357,7 +357,7 @@ public static class AgentServer {
 
         if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "launch" or "drag" or "click") {
             if (!AgentRuntime.AgentCommandsEnabled) {
-                AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
+                AgentRuntime.Audit(name, "BLOCKED; agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
             }
             // `drag`/`click` generate real mouse input from their endpoints, and a missing pixel field would
@@ -414,11 +414,11 @@ public static class AgentServer {
     }
 
     private static JsonObject RunAgentCommand(string name, JsonObject args) {
-        // Honor the per-command Enabled flag — the documented second security gate. The MCP tool only
+        // Honor the per-command Enabled flag; the documented second security gate. The MCP tool only
         // runs if the corresponding command in the loaded table is enabled (built-ins ship disabled;
         // the operator opts in per-command via mcec.commands). Fail closed if the table/command is missing.
         if ((AgentRuntime.Invoker?[name] as Command)?.Enabled != true) {
-            AgentRuntime.Audit(name, "BLOCKED — command is disabled in mcec.commands");
+            AgentRuntime.Audit(name, "BLOCKED; command is disabled in mcec.commands");
             return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").", "command-disabled");
         }
 
@@ -439,8 +439,8 @@ public static class AgentServer {
 
         // Dispatch under the #113 concurrency contract. `invoke` can activate a control that opens a
         // MODAL dialog (About, Settings, message/file dialogs); the UIA Invoke runs the click handler
-        // synchronously, so the call would block for the dialog's whole lifetime and — if it held a lock
-        // — deadlock every later tool call (the agent couldn't even query or dismiss the dialog it just
+        // synchronously, so the call would block for the dialog's whole lifetime and; if it held a lock
+        //; deadlock every later tool call (the agent couldn't even query or dismiss the dialog it just
         // opened, #105). So run `invoke` on a worker and, if it hasn't returned within a short grace,
         // report "modal pending" and return; the worker finishes when the dialog closes. `drag` and
         // `send_command` synthesize physical input and serialize on InputLock. Observation
@@ -449,7 +449,7 @@ public static class AgentServer {
         // (MainWindow.ReceivedData -> CommandInvoker.ExecuteNext on the UI thread) is untouched.
         if (name == "invoke") {
             if (!TryRunInvokeWithModalGrace(cmd)) {
-                AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
+                AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open; returning without blocking");
                 PublishOverlay(name, args, CommandOutcome.Pending, null, session.SessionId);
                 return McpResult(AgentToolResult.Success(InvokeModalPendingResult(), session.SessionId));
             }
@@ -493,8 +493,8 @@ public static class AgentServer {
     }
 
     /// <summary>
-    /// Publishes a command-event for the on-screen overlay (#119). Best-effort and decoupled — the hub
-    /// swallows subscriber faults — so it can never affect the tool result. The overlay window (and its
+    /// Publishes a command-event for the on-screen overlay (#119). Best-effort and decoupled; the hub
+    /// swallows subscriber faults; so it can never affect the tool result. The overlay window (and its
     /// <c>CommandOverlayEnabled</c> gate) lives on the subscriber side.
     /// </summary>
     private static void PublishOverlay(string name, JsonObject args, CommandOutcome outcome, string? detail, string? sessionId) =>
@@ -502,7 +502,7 @@ public static class AgentServer {
 
     // Grace period for an `invoke` to complete before we assume it opened a modal dialog and return.
     // Must stay above UiaService.InvokeFindTimeoutMs so an invoke's element lookup always resolves within
-    // the grace — otherwise a missing element would be misreported as a pending modal (see #107).
+    // the grace; otherwise a missing element would be misreported as a pending modal (see #107).
     public const int InvokeModalGraceMs = 750;
 
     private static JsonObject InvokeModalPendingResult() => new() {
@@ -549,7 +549,7 @@ public static class AgentServer {
 
         AgentRuntime.Audit("send_command", command);
         CapturingReply reply = new();
-        // send_command drives physical input through the shared invoker — serialize on InputLock (#113).
+        // send_command drives physical input through the shared invoker; serialize on InputLock (#113).
         lock (InputLock) {
             invoker.Enqueue(reply, command);
             invoker.ExecuteNext();
@@ -568,12 +568,12 @@ public static class AgentServer {
 
     /// <summary>
     /// Provisions a fresh, disposable, isolated MCEC instance (#138) and returns the handoff. Gated behind
-    /// the operator's <see cref="AppSettings.AllowSessionProvisioning"/> opt-in — the one thing that cannot
-    /// be self-served — and never touches the installed config. Also reaps stale session dirs opportunistically.
+    /// the operator's <see cref="AppSettings.AllowSessionProvisioning"/> opt-in; the one thing that cannot
+    /// be self-served; and never touches the installed config. Also reaps stale session dirs opportunistically.
     /// </summary>
     private static JsonObject RunProvisionSession(JsonObject args) {
         if (AgentRuntime.Settings?.AllowSessionProvisioning != true) {
-            AgentRuntime.Audit("provision-session", "BLOCKED — session provisioning is not authorized");
+            AgentRuntime.Audit("provision-session", "BLOCKED; session provisioning is not authorized");
             return ToolError(
                 "Session provisioning is not authorized. The operator must enable AllowSessionProvisioning to opt in; it cannot be self-served.",
                 "provisioning-not-authorized");
@@ -605,7 +605,7 @@ public static class AgentServer {
             ["removed"] = removed,
         };
         if (!removed) {
-            result["note"] = "The session directory could not be deleted — its mcec.exe may still be running. Stop it and retry, or MCEC will reap it on a later launch.";
+            result["note"] = "The session directory could not be deleted; its mcec.exe may still be running. Stop it and retry, or MCEC will reap it on a later launch.";
         }
         return McpResult(AgentToolResult.Success(result, AgentRuntime.Session.SessionId));
     }
@@ -837,7 +837,7 @@ public static class AgentServer {
             // bind must set McpAuthToken. The safe localhost default is unaffected.
             if (BindRequiresAuthToken(settings.McpBindAddress) && string.IsNullOrEmpty(settings.McpAuthToken)) {
                 Logger.Instance.Log4.Error(
-                    $"AgentServer: refusing to start HTTP listener — McpBindAddress '{settings.McpBindAddress}' is not " +
+                    $"AgentServer: refusing to start HTTP listener; McpBindAddress '{settings.McpBindAddress}' is not " +
                     "loopback and no McpAuthToken is set. Set McpAuthToken to expose the MCP HTTP door off-box, " +
                     "or bind to 127.0.0.1.");
                 return;
@@ -928,7 +928,7 @@ public static class AgentServer {
                 RejectHttp(context, decision, request);
                 return;
             }
-            // #151: refuse an oversized body from the header alone — never buffer it. ContentLength64
+            // #151: refuse an oversized body from the header alone; never buffer it. ContentLength64
             // is -1 for chunked transfer, which passes here and is caught by the bounded read below.
             if (context.Request.ContentLength64 > MaxHttpBodyBytes) {
                 WriteHttp(context, 413, new JsonObject { ["error"] = $"Request body exceeds {MaxHttpBodyBytes} bytes" });
@@ -966,7 +966,7 @@ public static class AgentServer {
     /// <summary>
     /// Validates an inbound MCP/HTTP request against the localhost front-door policy (#143):
     /// POST only, path exactly <c>/mcp</c>, a loopback <c>Host</c> (defeats DNS rebinding), an
-    /// absent-or-loopback <c>Origin</c> (defeats browser CSRF), and — when a token is configured —
+    /// absent-or-loopback <c>Origin</c> (defeats browser CSRF), and; when a token is configured;
     /// a matching <c>Authorization: Bearer</c> header. Pure so it can be unit tested without a socket.
     /// </summary>
     internal static HttpGateDecision GateHttpRequest(
@@ -1097,8 +1097,8 @@ public static class AgentServer {
 
     /// <summary>
     /// Reads <paramref name="input"/> to its end into <paramref name="body"/>, refusing to buffer more
-    /// than <see cref="MaxHttpBodyBytes"/> (#151). Returns false — with <paramref name="body"/> empty
-    /// and the stream abandoned — the moment the cap is crossed, so a chunked or lying client cannot
+    /// than <see cref="MaxHttpBodyBytes"/> (#151). Returns false; with <paramref name="body"/> empty
+    /// and the stream abandoned; the moment the cap is crossed, so a chunked or lying client cannot
     /// bypass the Content-Length check and exhaust memory.
     /// </summary>
     internal static bool TryReadBoundedBody(Stream input, Encoding encoding, out string body) {

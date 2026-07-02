@@ -4,7 +4,7 @@
 .DESCRIPTION
   Dot-sourced/invoked by SetupAzure.ps1 and ValidateAzure.ps1. Edit values HERE only.
   Returns a hashtable when invoked:  $cfg = & "$PSScriptRoot/Azure.Config.ps1"
-  None of these values are secret — they are Azure/GitHub identifiers, not credentials.
+  None of these values are secret; they are Azure/GitHub identifiers, not credentials.
   The actual trust is the federated credential (no client secret is ever created).
 
   REUSE NOTE: MCEC reuses WinPrint's already-validated Trusted Signing account
@@ -14,7 +14,7 @@
   it is granted the signer role on the same certificate profile. See docs/code-signing.md.
 #>
 @{
-    # --- Subscription / signing identity (REUSED from WinPrint — do not recreate) ---
+    # --- Subscription / signing identity (REUSED from WinPrint; do not recreate) ---
     SubscriptionId = '7bee0c7c-3217-4628-a783-dd7d687112d3'   # Kindel LLC
     ResourceGroup  = 'WinPrint_Resources'                     # where the signing account lives
     Location       = 'eastus'

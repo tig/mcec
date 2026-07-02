@@ -11,7 +11,7 @@ namespace MCEControl;
 public enum HttpGateDecision {
     /// <summary>Request passed all checks and may be dispatched.</summary>
     Allow,
-    /// <summary>Not a POST — only POST is accepted.</summary>
+    /// <summary>Not a POST; only POST is accepted.</summary>
     RejectMethod,
     /// <summary>Path is not exactly <c>/mcp</c>.</summary>
     RejectPath,

@@ -5,7 +5,7 @@
 
 # Agent Tool Result & Error Contract (MCEC 3.0)
 
-**Status:** Design artifact — owned by [#101](https://github.com/tig/mcec/issues/101).
+**Status:** Design artifact; owned by [#101](https://github.com/tig/mcec/issues/101).
 **Schema:** [`agent-tool-result.schema.json`](./agent-tool-result.schema.json) (JSON Schema draft 2020-12).
 
 This document defines **one** result envelope and **one** error vocabulary for every MCEC 3.0
@@ -14,9 +14,9 @@ of around per-tool ad-hoc envelopes, and so an agent can reason about success an
 uniformly across `capture`, `query`, `find`, `wait-for`, `invoke`, `send_command`, and the
 session-lifecycle tools.
 
-The epics that demand structured results/warnings/errors — sessions (#86), trace &
-failure-summary (#87), selectors (#88), waits (#89), observation hardening (#90), and
-actions (#91) — reference **this** contract rather than inventing their own. The walking
+The epics that demand structured results/warnings/errors (sessions #86, trace &
+failure-summary #87, selectors #88, waits #89, observation hardening #90, and
+actions #91) reference **this** contract rather than inventing their own. The walking
 skeleton (#98) emits results that validate against the schema.
 
 > Scope note: this is a design artifact. It defines the shape and vocabulary; the runtime
@@ -44,7 +44,7 @@ Every agent tool returns a single JSON object of this shape:
 }
 ```
 
-A real result is **either** a success **or** a failure — never both:
+A real result is **either** a success **or** a failure; never both:
 
 - **Success:** `ok: true`, `result` present, `error` omitted. `warnings` optional.
 - **Failure:** `ok: false`, `error` present, `result` omitted (or null). `warnings` optional.
@@ -62,12 +62,12 @@ The schema enforces this: `ok: false` requires `error`; `ok: true` forbids an `e
 | `error`      | error object        | on failure | The failure descriptor. Omitted on success. |
 
 `sessionId` is at the **envelope** level (not inside `result`/`error`) so it is always reachable
-regardless of outcome — a failed call still tells you which session it belonged to.
+regardless of outcome; a failed call still tells you which session it belonged to.
 
 ## Error taxonomy
 
 `error.category` is a **closed** set. Agents may branch exhaustively on it; new failure modes are
-mapped onto an existing category (or, rarely, the set is extended by revising this contract — see
+mapped onto an existing category (or, rarely, the set is extended by revising this contract; see
 [Stability](#stability--versioning)). `error.code` is a finer-grained, open-ended string that
 narrows the category; agents may branch on specific codes but **must** tolerate unknown codes by
 falling back to `category`.
@@ -109,9 +109,9 @@ should know something was adjusted, degraded, or assumed. Each warning is `{ cod
 the same stability rules as error codes (kebab-case, branchable, tolerate unknowns).
 
 Examples: `minimized-window` (target restored before capture), `tree-truncated` (UIA tree clipped
-to a depth/size limit — see #90), `region-clamped` (requested region clipped to the screen).
+to a depth/size limit; see #90), `region-clamped` (requested region clipped to the screen).
 
-Warnings may also accompany a **failure** — e.g. a capture that both warns about a restored window
+Warnings may also accompany a **failure**; e.g. a capture that both warns about a restored window
 and then fails `capture-blank`.
 
 ## `lastObservation`
@@ -129,7 +129,7 @@ resolution), `lastObservation` is omitted.
 MCP tool calls return a `CallToolResult` with a `content` array and an `isError` flag. The envelope
 above rides **inside** that transport; it does not replace it:
 
-- The envelope is serialized (compact, camelCase, nulls omitted — per `AgentJson.Options`) and
+- The envelope is serialized (compact, camelCase, nulls omitted; per `AgentJson.Options`) and
   placed in a **text** content block. Agents parse that JSON to read `ok`/`result`/`error`.
 - MCP `isError` mirrors the envelope: `isError = !ok`. This lets MCP-native clients that only look
   at `isError` still distinguish success from failure, while agents that parse the body get the
@@ -156,7 +156,7 @@ shape. This contract is its forward target:
 | `data`                  | `result`      |
 | `error` (string)        | `error.detail` (+ `code`, `category`, `lastObservation`) |
 | `command`               | (moves into the trace/transcript, #87) |
-| —                       | `sessionId`, `warnings`, `error.category` |
+| *(none)*                | `sessionId`, `warnings`, `error.category` |
 
 Migrating `CommandResult` to this envelope is implementation work for #98 / the tool epics, not
 part of this artifact.

@@ -184,7 +184,7 @@ public class AgentToolResultTests {
 
     [Fact]
     public void FromLegacy_Failure_UnknownStructuredCategory_FallsBackToTaxonomy() {
-        // If a command ever emits a category outside the closed set, don't propagate it — fall back to
+        // If a command ever emits a category outside the closed set, don't propagate it; fall back to
         // free-text categorization so error.category always validates against the schema enum.
         JsonObject legacy = CommandResult
             .Fail("capture", "No matching window", "weird-code", "not-a-category")

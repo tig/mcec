@@ -95,7 +95,7 @@ public class UpdateService {
                 LatestStableVersion = new Version(latest.TagName.TrimStart('v'));
                 ReleasePageUri = new Uri(latest.HtmlUrl);
 
-                // SECURITY (#146): pick the pinned installer asset by name — never a blind Assets[0],
+                // SECURITY (#146): pick the pinned installer asset by name; never a blind Assets[0],
                 // which could be an attacker-added asset that sorts first (and throws on an empty list).
                 string? assetUrl = SelectInstallerAssetUrl(
                     latest.Assets.Select(a => (a.Name, a.BrowserDownloadUrl)), InstallerFileName);
@@ -175,7 +175,7 @@ public class UpdateService {
 
     internal async void StartUpgrade() {
         if (DownloadUri is null) {
-            Logger.Instance.Log4.Error($"{GetType().Name}: no installer download URL available — aborting upgrade.");
+            Logger.Instance.Log4.Error($"{GetType().Name}: no installer download URL available; aborting upgrade.");
             return;
         }
         // SECURITY (#146): only ever download over https from a GitHub host.

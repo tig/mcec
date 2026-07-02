@@ -18,7 +18,7 @@ namespace MCEControl;
 /// <c>C:\Users\&lt;username&gt;\AppData\...</c>, which would leak the cleartext Windows username
 /// and defeat that anonymization. The scrubber replaces the user-profile directory with
 /// <c>%USERPROFILE%</c> and the bare username, where it appears as a path segment, with
-/// <c>%USERNAME%</c> — preserving the rest of the message, exception types, and method names.
+/// <c>%USERNAME%</c>; preserving the rest of the message, exception types, and method names.
 /// </summary>
 /// <remarks>
 /// Accepted limitations (by design, to avoid over-redacting diagnostics): the username embedded
@@ -32,7 +32,7 @@ public static class TelemetryScrubber {
     private const string UserNameToken = "%USERNAME%";
 
     // Cap on the number of exception details shipped. When a chain exceeds this, the outermost
-    // details plus the deepest one (the root cause) are kept — see CreateScrubbedExceptionTelemetry.
+    // details plus the deepest one (the root cause) are kept; see CreateScrubbedExceptionTelemetry.
     private const int MaxExceptionChainLength = 10;
 
     // Hard safety bound when walking a pathological exception graph (e.g. huge AggregateException

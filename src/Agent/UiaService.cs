@@ -21,7 +21,7 @@ public static class UiaService {
     /// <summary>
     /// Timeout for the element lookup an <c>invoke</c> performs before dispatching its action. It is kept
     /// below <see cref="AgentServer.InvokeModalGraceMs"/> on purpose: the grace assumes that an invoke
-    /// still running afterward is blocked on a modal dialog, so the lookup itself must finish first — a
+    /// still running afterward is blocked on a modal dialog, so the lookup itself must finish first; a
     /// missing element must fail fast (no-target) rather than be misreported as a pending modal (#107).
     /// Agents are instructed to <c>wait-for</c>/<c>find</c> a control before acting on it, so invoke does
     /// not need a long implicit wait of its own.
@@ -85,7 +85,7 @@ public static class UiaService {
     /// Finds an element (5s timeout) and dispatches <paramref name="action"/>
     /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>).
     /// Returns true on success, false if the element wasn't found or the required pattern is
-    /// unsupported. <c>expand</c> opens a collapsed menu/treeitem so its children become reachable —
+    /// unsupported. <c>expand</c> opens a collapsed menu/treeitem so its children become reachable;
     /// a closed WinForms menu's sub-items are not in the UIA tree until the parent is opened. It uses
     /// the ExpandCollapse pattern, falling back to Invoke for WinForms menu items that lack it.
     /// </summary>
@@ -96,7 +96,7 @@ public static class UiaService {
         // Reject an unknown/typo action (e.g. "click", "set-value") rather than silently activating the
         // element via the default Invoke pattern. The caller defaults a missing action to "invoke".
         if (!IsSupportedAction(action)) {
-            Logger.Instance.Log4.Warn($"UiaService.Invoke: unsupported action '{action}' — rejected.");
+            Logger.Instance.Log4.Warn($"UiaService.Invoke: unsupported action '{action}'; rejected.");
             return false;
         }
         try {
@@ -228,7 +228,7 @@ public static class UiaService {
         }
         // WinForms menu items (ToolStripMenuItem) open their dropdown via the Invoke pattern and do
         // not expose ExpandCollapse. Fall back to Invoke so `expand` opens menus uniformly across
-        // WinForms and WPF/WinUI — letting an agent reach sub-items that aren't yet in the tree.
+        // WinForms and WPF/WinUI; letting an agent reach sub-items that aren't yet in the tree.
         var invoke = el.Patterns.Invoke.PatternOrDefault;
         if (invoke is not null) {
             invoke.Invoke();

@@ -73,7 +73,7 @@ public class UpdateServiceVerificationTests {
         Assert.False(UpdateService.IsTrustedDownloadUri(null));
     }
 
-    // ---- (3) Authenticode verification (negative paths — no signed fixture available) ----
+    // ---- (3) Authenticode verification (negative paths; no signed fixture available) ----
 
     [Fact]
     public void Verify_ReturnsFalse_ForMissingFile() {

@@ -10,12 +10,12 @@ using System.Windows.Forms;
 namespace MCEControl;
 
 /// <summary>
-/// Agent observation command: reports the geometry of every connected display — each monitor's pixel
-/// bounds, working area, primary flag, and effective DPI/scale — plus the union virtual-desktop bounds
+/// Agent observation command: reports the geometry of every connected display; each monitor's pixel
+/// bounds, working area, primary flag, and effective DPI/scale; plus the union virtual-desktop bounds
 /// (issue #122). This is the keystone that lets an agent translate the absolute-pixel bounds
 /// <c>query</c>/<c>find</c> return into pointer actions: it learns screen size and per-monitor scaling
 /// from MCEC rather than doing the host-side <c>SetProcessDPIAware()</c>/<c>GetSystemMetrics()</c> dance
-/// the hero script used to. Pure observation — no input is generated. Gated by
+/// the hero script used to. Pure observation; no input is generated. Gated by
 /// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited. Disabled by default (security).
 /// </summary>
 public class DisplaysCommand : Command {
@@ -31,7 +31,7 @@ public class DisplaysCommand : Command {
         }
 
         if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
+            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED; agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
             Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
             return false;
         }

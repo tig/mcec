@@ -12,7 +12,7 @@ License: MIT
 Copyright: Copyright © Kindel, LLC.
 ShortDescription: Control a Windows PC over the network or serial port.
 Description: |-
-  MCEC (Model Context Environment Controller) lets you control a Windows PC — Windows Media Center and beyond — over
+  MCEC (Model Context Environment Controller) lets you control a Windows PC (Windows Media Center and beyond) over
   the network (TCP/IP) or a serial port. It runs as a server that receives text commands
   and turns them into keystrokes, mouse actions, launched programs, window activations,
   and power/shutdown actions, with a configurable command set.

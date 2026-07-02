@@ -9,10 +9,10 @@ truth for the one-time bootstrap; ongoing version updates are automated by CI.
 
 | Stage | Who | What |
 |-------|-----|------|
-| First version | **manual, once** | Submit the initial manifests to winget-pkgs (it requires a package to already exist before it can be auto-updated). Done for 2.4.1 — see below. |
+| First version | **manual, once** | Submit the initial manifests to winget-pkgs (it requires a package to already exist before it can be auto-updated). Done for 2.4.1; see below. |
 | Every later release | **automated** | The `winget` job in `.github/workflows/release.yml` runs `winget-releaser` on each **stable** tag, opening a winget-pkgs PR with the new version + signed installer. |
 
-The installer is Authenticode-signed (Azure Trusted Signing — see `../../docs/code-signing.md`),
+The installer is Authenticode-signed (Azure Trusted Signing; see `../../docs/code-signing.md`),
 which smooths winget validation (sandbox install/uninstall + SmartScreen).
 
 ## One-time setup
@@ -37,7 +37,7 @@ which smooths winget validation (sandbox install/uninstall + SmartScreen).
    ```
 
 After the package exists in winget-pkgs and `WINGET_TOKEN` is set, **no further manual steps
-are needed** — each stable release auto-submits its update.
+are needed**; each stable release auto-submits its update.
 
 ## Values for a bootstrap submission (fill from the release)
 
@@ -50,7 +50,7 @@ ReleaseDate:     2026-06-29
 
 ## Notes / things to validate on a real install
 
-- **Installer type `nullsoft`** (NSIS), **`Scope: machine`** — installs to
+- **Installer type `nullsoft`** (NSIS), **`Scope: machine`**: installs to
   `C:\Program Files\Kindel\MCEC` and requires elevation. winget's silent mode
   and the winget-pkgs sandbox use the NSIS `/S` switch.
 - **`winget upgrade` correlation:** the manifests intentionally omit `AppsAndFeaturesEntries`

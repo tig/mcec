@@ -11,7 +11,7 @@ namespace MCEControl;
 /// <summary>
 /// Accumulates received characters into commands delimited by CR, LF, or NUL, enforcing
 /// <see cref="MaxCommandLength"/> so a peer that streams bytes without a delimiter cannot
-/// grow the buffer without bound (issue #148 — memory-exhaustion DoS). On overflow the
+/// grow the buffer without bound (issue #148; memory-exhaustion DoS). On overflow the
 /// partial command is dropped and further input is discarded until the next delimiter.
 /// Used by <see cref="SerialServer"/> and <see cref="SocketClient"/>; the socket server
 /// enforces the same cap in <see cref="SocketServer.ParseReceivedData"/> (it additionally
@@ -21,7 +21,7 @@ internal sealed class CommandAccumulator {
     /// <summary>
     /// Maximum accumulated length, in characters, of a single command (issue #148).
     /// MCEControl commands are short (command names plus modest arguments; typically well
-    /// under 100 chars — 4 KB is generous headroom even for long "chars:" payloads) so a
+    /// under 100 chars; 4 KB is generous headroom even for long "chars:" payloads) so a
     /// few KB caps per-connection memory at a harmless size while never truncating
     /// legitimate traffic.
     /// </summary>
@@ -51,7 +51,7 @@ internal sealed class CommandAccumulator {
             case '\n':
             case '\0':
                 if (_discarding) {
-                    // End of an oversized run — recover; the next command parses normally.
+                    // End of an oversized run; recover; the next command parses normally.
                     _discarding = false;
                     return null;
                 }

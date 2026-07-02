@@ -11,7 +11,7 @@ namespace MCEControl;
 /// <summary>
 /// Agent actuation command: a single mouse click at a target point (issue #122). The point is either an
 /// absolute screen pixel (<c>x</c>/<c>y</c>) or a UI Automation element in the target window (<c>value</c>,
-/// resolved to the centre of its bounds) — the same pixel space <c>query</c>/<c>find</c> report, so an
+/// resolved to the centre of its bounds); the same pixel space <c>query</c>/<c>find</c> report, so an
 /// agent can click a control it just observed without converting to normalized coordinates itself. The
 /// move-then-click is dispatched atomically by <see cref="MouseCommand.PerformClick"/> so it cannot
 /// interleave with another command's mouse input (the hazard #113 warns about when a caller hand-rolls
@@ -39,7 +39,7 @@ public class ClickCommand : Command {
     /// <summary>Click count: 1 = single, 2 = double (default 1).</summary>
     [XmlAttribute("count")] public int Count { get; set; } = 1;
 
-    // How long to wait for an element endpoint to appear before failing — matches DragCommand's
+    // How long to wait for an element endpoint to appear before failing; matches DragCommand's
     // "wait a beat, then fail cleanly" rather than blocking indefinitely.
     private const int FindTimeoutMs = 3000;
 
@@ -67,7 +67,7 @@ public class ClickCommand : Command {
         }
 
         if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
+            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED; agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
             Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
             return false;
         }
@@ -90,7 +90,7 @@ public class ClickCommand : Command {
         }
 
         // Clamp to the {1,2} the contract exposes and normalize the button, then dispatch and echo the
-        // SAME values — so the result faithfully reports the gesture performed (e.g. count 3 is not run as
+        // SAME values; so the result faithfully reports the gesture performed (e.g. count 3 is not run as
         // a double-click while claiming "3", and button "R" is reported as "right", not the raw input).
         int count = Count >= 2 ? 2 : 1;
         string button = MouseCommand.NormalizeButton(Button);

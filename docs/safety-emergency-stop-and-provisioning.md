@@ -6,22 +6,22 @@
 # Agent safety: Emergency Stop and Isolated Session Provisioning
 
 Two related safety features for MCEC's Agent Mode. When MCEC is agent-driving the desktop, the **target
-app has focus, not MCEC** — so the operator needs (a) a way to instantly intervene when a run goes wrong,
+app has focus, not MCEC**; so the operator needs (a) a way to instantly intervene when a run goes wrong,
 and (b) assurance that a session can't leave the machine in an unsafe state. Both features exist so the
 operator stays in control.
 
 ---
 
-## 1. Emergency Stop — a global dead-man's-switch hotkey
+## 1. Emergency Stop: a global dead-man's-switch hotkey
 
 ### Goal
 
-A single keystroke, hittable from **any** focused window, that instantly halts the active agent session —
+A single keystroke, hittable from **any** focused window, that instantly halts the active agent session;
 the human override. The agent must not be able to trip it accidentally or defeat it deliberately.
 
 ### The hotkey
 
-- **Default: `Ctrl+Alt+Shift+S`** (mnemonic **S**top) — a four-key chord no app uses and the agent never
+- **Default: `Ctrl+Alt+Shift+S`** (mnemonic **S**top): a four-key chord no app uses and the agent never
   synthesizes, so accidental triggering is near-zero.
 - **Configurable** via `AppSettings.EmergencyStopHotkey` (a `+`-separated spec, e.g. `Pause`, `Ctrl+Alt+Q`).
   Parsed by [`EmergencyStopHotkey`](../src/Agent/EmergencyStopHotkey.cs); left/right modifier variants
@@ -39,7 +39,7 @@ Engaging the stop (`EmergencyStop.Trigger`):
    call that can't be safely aborted mid-flight, but the latch refuses every follow-up and the input release
    neutralizes anything left held.
 3. **Releases held input.** All mouse buttons up; shift/ctrl/alt/win reset (the same reset `MainWindow`
-   runs on exit) — no stuck drag or chord.
+   runs on exit); no stuck drag or chord.
 4. **Loud feedback.** A persistent red `⛔ STOPPED by operator` banner on the overlay, an
    `AGENT-AUDIT:` log line, a status-bar message, and a stamp into the `AgentSession` record.
 5. **Latches until re-armed.** The operator clicks the **⛔ Re-arm (Emergency Stop)** menu item (visible
@@ -49,7 +49,7 @@ Engaging the stop (`EmergencyStop.Trigger`):
 
 MCEC's own agent actuation **injects** keystrokes and mouse input. Windows flags injected low-level events
 with `LLKHF_INJECTED`. The emergency stop reuses MCEC's existing global `WH_KEYBOARD_LL` hook
-([`HookManager`](../src/Gma.UserActivityMonitor/HookManager.cs)) and reacts to **physical input only** —
+([`HookManager`](../src/Gma.UserActivityMonitor/HookManager.cs)) and reacts to **physical input only**;
 injected key events never arm a modifier and never trigger. This is what makes the hotkey a true human
 override rather than something the agent could press or hold to defeat.
 
@@ -86,14 +86,14 @@ agent front door could be driving (`McpServerEnabled || AgentCommandsEnabled`).
 
 Historically an agent would `Start-Process` the **installed** MCEC, flip `AgentCommandsEnabled=true` and
 enable the commands it needs in the installed `mcec.commands`, then disable them at the end. That mutates
-the operator's config and — because "disable at the end" only runs on the happy path — **leaks enabled
+the operator's config and (because "disable at the end" only runs on the happy path) **leaks enabled
 security gates** on any crash/timeout/kill. It also can't compose across concurrent sessions.
 
 ### Solution
 
 MCEC owns the isolation. `provision-session` hands an authorized agent a fresh, disposable directory
 containing `mcec.exe` + dependencies and a **co-located, agent-ready config** (agent commands enabled
-**only** inside the copy). The agent runs from there and deletes it when done — so enabled state lives only
+**only** inside the copy). The agent runs from there and deletes it when done; so enabled state lives only
 in the throwaway copy, "cleanup" is `rm -rf <dir>`, and a crashed session leaves the real install untouched.
 
 ### Flow

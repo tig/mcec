@@ -74,7 +74,7 @@ public class CaptureCommand : Command {
         }
 
         if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
+            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED; agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
             Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
             return false;
         }
@@ -103,7 +103,7 @@ public class CaptureCommand : Command {
                 WriteFileIfRequested(regionCap.Png, data);
 
                 // A user-specified region can legitimately be empty, so a blank region is a non-fatal
-                // warning (not a capture-blank error) — the agent still gets the image and the signal.
+                // warning (not a capture-blank error); the agent still gets the image and the signal.
                 CommandResult regionRes = CommandResult.Ok(Cmd, data);
                 if (regionCap.Stats.IsBlank) {
                     regionRes.Warn("capture-blank", "Captured region is blank (a flat fill); it may be off-screen or genuinely empty.");
@@ -143,7 +143,7 @@ public class CaptureCommand : Command {
             if (cap.Stats.IsBlank) {
                 string code = cap.Stats.DominantIsDark ? "frame-all-black" : "frame-uniform";
                 string detail = cap.UsedFallback
-                    ? "Captured frame is blank — PrintWindow was refused and the on-screen-blit fallback returned a flat image (composited/occluded/minimized window or a locked session)."
+                    ? "Captured frame is blank; PrintWindow was refused and the on-screen-blit fallback returned a flat image (composited/occluded/minimized window or a locked session)."
                     : "Captured frame is blank (a flat fill); the window may be minimized, cloaked, or rendering off-screen.";
                 AgentRuntime.Audit(Cmd, $"blank frame ({code}, dominant {cap.Stats.DominantFraction:P0}, fallback={cap.UsedFallback})");
                 res = CommandResult.Fail(Cmd, detail, code, "capture-blank", data);

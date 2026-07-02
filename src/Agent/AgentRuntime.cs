@@ -14,7 +14,7 @@ namespace MCEControl;
 /// so the engine works with no window (the "headless first" requirement from the proposal).
 ///
 /// SECURITY: the agent observation commands (capture/query/find/invoke) are gated by
-/// <see cref="AgentCommandsEnabled"/> — a SEPARATE opt-in from the existing actuation enable.
+/// <see cref="AgentCommandsEnabled"/>; a SEPARATE opt-in from the existing actuation enable.
 /// Enabling "press keys" must not silently enable "screenshot my screen". Every agent action is
 /// logged loudly via <see cref="Audit"/>.
 /// </summary>
@@ -41,7 +41,7 @@ public static class AgentRuntime {
     /// when, and with what target. Deliberately logged at Info so it shows in the GUI log view.
     /// </summary>
     public static void Audit(string action, string detail) =>
-        Logger.Instance.Log4.Info($"AGENT-AUDIT: {action} — {detail}");
+        Logger.Instance.Log4.Info($"AGENT-AUDIT: {action}; {detail}");
 
     // -------------------------------------------------------------------------------------------
     // Emergency stop latch (#135)
@@ -51,7 +51,7 @@ public static class AgentRuntime {
 
     /// <summary>
     /// True while the operator's emergency stop (#135) is engaged. It <b>latches</b>: once set, every
-    /// actuation dispatch is refused until the operator explicitly re-arms — the panic override must not be
+    /// actuation dispatch is refused until the operator explicitly re-arms; the panic override must not be
     /// silently cleared by the next tool call. The actuation gate checks this alongside
     /// <see cref="AgentCommandsEnabled"/>; <see cref="EmergencyStop"/> sets and clears it. <c>volatile</c>
     /// because it is read on the dispatch thread and written from the global-hook thread.

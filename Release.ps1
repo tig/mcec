@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Builds a release of MCEC: a versioned, self-contained publish plus
-    the NSIS installer (mcec.Setup.exe) — in one command.
+    the NSIS installer (mcec.Setup.exe); in one command.
 
 .EXAMPLE
     ./Release.ps1 -Version 2.5.0

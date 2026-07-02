@@ -17,7 +17,7 @@ namespace MCEControl.xUnit.Services;
 /// CR/LF/NUL delimiter must not be able to grow CmdBuilder until OutOfMemoryException (which
 /// surfaces on a ThreadPool callback and kills the process). A client past the cap is hostile
 /// or broken: the buffer is dropped, an error is logged, and the connection is closed.
-/// No live listener is used — tests drive the internal receive seams directly.
+/// No live listener is used; tests drive the internal receive seams directly.
 /// </summary>
 public class SocketServerReceiveCapTests : IDisposable {
     private readonly SocketServer _server = new();
@@ -72,7 +72,7 @@ public class SocketServerReceiveCapTests : IDisposable {
         var data = new byte[CommandAccumulator.MaxCommandLength + 1];
         Array.Fill(data, (byte)'a');
         data[^2] = 255; // IAC
-        data[^1] = 255; // IAC — escaped literal 0xFF
+        data[^1] = 255; // IAC; escaped literal 0xFF
 
         _ = SocketServer.ParseReceivedData(data, data.Length, builder, _ => { }, _ => { });
 

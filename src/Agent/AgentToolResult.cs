@@ -16,7 +16,7 @@ namespace MCEControl;
 ///
 /// A result is <b>either</b> success (<c>ok:true</c>, <see cref="Result"/> present, no
 /// <see cref="Error"/>) <b>or</b> failure (<c>ok:false</c>, <see cref="Error"/> present, no
-/// <see cref="Result"/>) — never both. The factory methods enforce that invariant structurally.
+/// <see cref="Result"/>); never both. The factory methods enforce that invariant structurally.
 ///
 /// <para>Phase 1 (#86) wires this in at the <see cref="AgentServer"/> boundary by translating the
 /// legacy <see cref="CommandResult"/> each command still emits (see <see cref="FromLegacy"/>). The
@@ -36,7 +36,7 @@ public sealed class AgentToolResult {
     /// <summary>Owning session id, or null for a stateless one-shot call.</summary>
     public string? SessionId { get; }
 
-    /// <summary>True when the tool achieved its goal — the field an agent branches on first.</summary>
+    /// <summary>True when the tool achieved its goal; the field an agent branches on first.</summary>
     public bool Ok { get; }
 
     /// <summary>Tool-specific success payload (present when <see cref="Ok"/>); null on failure.</summary>
@@ -62,8 +62,8 @@ public sealed class AgentToolResult {
 
     /// <summary>
     /// Translates a legacy <see cref="CommandResult"/> JSON object
-    /// (<c>{ success, command, error, errorCode?, errorCategory?, data?, warnings? }</c>) — what each agent
-    /// command writes to its reply today — into the #101 envelope. Success carries <c>data</c> forward as
+    /// (<c>{ success, command, error, errorCode?, errorCategory?, data?, warnings? }</c>); what each agent
+    /// command writes to its reply today; into the #101 envelope. Success carries <c>data</c> forward as
     /// <see cref="Result"/>. On failure, the command's own structured <c>errorCategory</c>/<c>errorCode</c>
     /// (e.g. <c>capture-blank</c>) are preserved when present; only a bare free-text error is mapped onto
     /// the closed taxonomy via <see cref="Categorize"/> (the Phase 1 shim). Legacy <c>warnings</c> are
@@ -73,7 +73,7 @@ public sealed class AgentToolResult {
     ///
     /// <para>One success is reclassified as a failure: <see cref="FindCommand"/> writes
     /// <c>Ok{found:false}</c> when a <c>wait-for</c> exhausts its timeout, but an agent branches on
-    /// <c>ok</c> — so a wait that never resolved must surface as a <c>timeout</c> failure, not
+    /// <c>ok</c>; so a wait that never resolved must surface as a <c>timeout</c> failure, not
     /// <c>ok:true</c>. A one-shot <c>find</c> miss stays a success ("a miss is not an error").</para>
     /// </summary>
     public static AgentToolResult FromLegacy(JsonObject legacy, string toolName, string? sessionId = null, JsonObject? lastObservation = null) {
@@ -109,7 +109,7 @@ public sealed class AgentToolResult {
         return Failure(error, sessionId, warnings);
     }
 
-    /// <summary>True when a <c>wait-for</c> returned <c>found:false</c> — i.e. it timed out.</summary>
+    /// <summary>True when a <c>wait-for</c> returned <c>found:false</c>; i.e. it timed out.</summary>
     private static bool IsWaitForMiss(string toolName, JsonObject? data) =>
         string.Equals(toolName, "wait-for", StringComparison.OrdinalIgnoreCase)
         && data?["found"] is JsonValue fv && fv.TryGetValue(out bool found) && !found;

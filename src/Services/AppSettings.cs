@@ -28,7 +28,7 @@ public class AppSettings : ICloneable {
     /// <summary>
     /// Read a registry value preferring the current (Kindel) key, falling back to legacy (Kindel Systems) key.
     /// SECURITY (issue #155): a registry problem (deny-read ACE, key marked for deletion) must never
-    /// crash startup — such failures return <paramref name="defaultValue"/> and are logged.
+    /// crash startup; such failures return <paramref name="defaultValue"/> and are logged.
     /// </summary>
     public static object? GetRegistryValue(string valueName, object? defaultValue) {
         return GetRegistryValue(valueName, defaultValue, Registry.GetValue);
@@ -57,7 +57,7 @@ public class AppSettings : ICloneable {
     /// <summary>
     /// Converts a raw registry value to a bool, tolerating junk (issue #155). A REG_SZ like "banana"
     /// makes <see cref="Convert.ToBoolean(object?, IFormatProvider)"/> throw FormatException (and a
-    /// REG_BINARY blob throws InvalidCastException) — a machine-policy value that cannot be parsed
+    /// REG_BINARY blob throws InvalidCastException); a machine-policy value that cannot be parsed
     /// must not crash startup. Falls back to <paramref name="defaultValue"/> and logs the bad value
     /// so an admin can fix it.
     /// </summary>
@@ -180,7 +180,7 @@ public class AppSettings : ICloneable {
     // --- Isolated session provisioning (issue #138) ---
     // SECURITY: an agent asks MCEC to hand it a fresh, disposable instance dir (agent commands enabled only
     // inside the copy) instead of mutating the installed config. Provisioning is the ONE thing that cannot
-    // be self-served — it must be an explicit operator opt-in or the isolation is theater. Off by default.
+    // be self-served; it must be an explicit operator opt-in or the isolation is theater. Off by default.
     [SafeForTelemetryAttribute]
     public bool AllowSessionProvisioning { get; set; } = false;
 
@@ -190,8 +190,8 @@ public class AppSettings : ICloneable {
     public int McpHttpPort { get; set; } = 5151;
 
     // SECURITY (#143): defense-in-depth bearer token for the HTTP front door. The HTTP handler ALWAYS
-    // validates the Host header (must be a loopback authority — defeats DNS rebinding) and the Origin
-    // header (must be absent or loopback — defeats drive-by browser CSRF). Those two need no
+    // validates the Host header (must be a loopback authority; defeats DNS rebinding) and the Origin
+    // header (must be absent or loopback; defeats drive-by browser CSRF). Those two need no
     // configuration. Setting a non-empty token additionally requires every HTTP request to carry
     // `Authorization: Bearer <token>`, which also protects against a same-machine hostile process.
     // Empty (default) = rely on Host/Origin only. A token is NOT PII, but keep it out of telemetry so

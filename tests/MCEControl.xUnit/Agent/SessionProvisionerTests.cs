@@ -31,7 +31,7 @@ public class SessionProvisionerTests : IDisposable {
         Directory.CreateDirectory(_fakeBinaries);
 
         // A minimal fake "installed" layout: an exe + a dll (copied), and the installed instance's mutable
-        // config + a log (must NOT be copied — the session gets its own fresh config).
+        // config + a log (must NOT be copied; the session gets its own fresh config).
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.exe"), "stub");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.dll"), "stub");
         File.WriteAllText(Path.Combine(_fakeBinaries, AppSettings.SettingsFileName), "<AppSettings><AgentCommandsEnabled>false</AgentCommandsEnabled></AppSettings>");

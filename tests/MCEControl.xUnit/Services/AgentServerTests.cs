@@ -75,7 +75,7 @@ public class AgentServerTests {
         // #113: the stdio transport must dispatch each request on its own worker, or a slow call blocks
         // later ones. Two requests rendezvous: each signals its arrival in dispatch and waits for the
         // other. If the loop dispatched serially, the first would wait alone and time out (met=1); only
-        // concurrent dispatch lets both meet (met=2). Deterministic — the count gates on an actual
+        // concurrent dispatch lets both meet (met=2). Deterministic; the count gates on an actual
         // rendezvous, not on write order or wall-clock speed.
         using System.Threading.ManualResetEventSlim aArrived = new(false);
         using System.Threading.ManualResetEventSlim bArrived = new(false);
@@ -165,7 +165,7 @@ public class AgentServerTests {
     [Fact]
     public void Dispatch_Click_IncompletePixelEndpoint_ReportsBadArguments() {
         // Regression mirror of the drag guard: an 'at' with x but no y (or neither value nor coords) must
-        // be rejected, not silently turned into (x, 0) and clicked — this tool generates real mouse input.
+        // be rejected, not silently turned into (x, 0) and clicked; this tool generates real mouse input.
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
         try {
@@ -190,7 +190,7 @@ public class AgentServerTests {
     [Fact]
     public void Dispatch_Click_CompleteEndpoint_PassesValidation() {
         // A well-formed click (element endpoint) must get PAST argument validation. With no Invoker wired
-        // in the test host it stops at the per-command enable gate — not bad-arguments — which proves
+        // in the test host it stops at the per-command enable gate; not bad-arguments; which proves
         // validation accepted the endpoint (and never actuates real input).
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
@@ -316,7 +316,7 @@ public class AgentServerTests {
             JsonObject resp = AgentServer.Dispatch(Request(5, "tools/call", prms))!;
             JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
 
-            // Every result — even a refused one — names the session it ran inside (#86).
+            // Every result; even a refused one; names the session it ran inside (#86).
             Assert.Equal(AgentRuntime.Session.SessionId, envelope["sessionId"]!.GetValue<string>());
         }
         finally {
@@ -328,7 +328,7 @@ public class AgentServerTests {
     [Fact]
     public void Dispatch_Drag_IncompletePixelEndpoint_ReportsBadArguments() {
         // Regression: an endpoint with x but no y (or neither value nor coords) must be rejected, not
-        // silently turned into (x, 0) and dragged — this tool generates real mouse input.
+        // silently turned into (x, 0) and dragged; this tool generates real mouse input.
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
         try {
@@ -354,7 +354,7 @@ public class AgentServerTests {
     [Fact]
     public void Dispatch_Drag_CompleteEndpoints_PassValidation() {
         // A well-formed drag (element + pixel endpoints) must get PAST argument validation. With no
-        // Invoker wired in the test host it stops at the per-command enable gate — not bad-arguments —
+        // Invoker wired in the test host it stops at the per-command enable gate; not bad-arguments;
         // which proves validation accepted the endpoints.
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
@@ -408,7 +408,7 @@ public class AgentServerTests {
             JsonObject resp = AgentServer.Dispatch(Request(20, "tools/call",
                 new JsonObject { ["name"] = "capture", ["arguments"] = new JsonObject() }))!;
 
-            // AgentCommandsEnabled is on, but the per-command gate is off — the call must be refused.
+            // AgentCommandsEnabled is on, but the per-command gate is off; the call must be refused.
             Assert.Equal("command-disabled", ToolErrorCode(resp));
         }
         finally {
@@ -426,7 +426,7 @@ public class AgentServerTests {
             JsonObject resp = AgentServer.Dispatch(Request(21, "tools/call",
                 new JsonObject { ["name"] = "capture", ["arguments"] = new JsonObject() }))!;
 
-            // With the command enabled the tool runs; with no target it fails no-target — the point is it
+            // With the command enabled the tool runs; with no target it fails no-target; the point is it
             // gets PAST the gate, so the error is not the gate refusal.
             Assert.NotEqual("command-disabled", ToolErrorCode(resp));
         }
@@ -442,8 +442,8 @@ public class AgentServerTests {
         AgentRuntime.Settings = null; // AgentCommandsEnabled = false
         try {
             // send_command is a raw pass-through routed to RunSendCommand BEFORE the AgentCommandsEnabled
-            // check (unlike the agent tools). An empty command therefore returns bad-arguments — proving it
-            // reached RunSendCommand — not agent-commands-disabled. (The raw command it runs is still gated
+            // check (unlike the agent tools). An empty command therefore returns bad-arguments; proving it
+            // reached RunSendCommand; not agent-commands-disabled. (The raw command it runs is still gated
             // by that command's own Enabled flag in the table; this only asserts the agent gate is skipped.)
             JsonObject resp = AgentServer.Dispatch(Request(22, "tools/call",
                 new JsonObject { ["name"] = "send_command", ["arguments"] = new JsonObject { ["command"] = "" } }))!;

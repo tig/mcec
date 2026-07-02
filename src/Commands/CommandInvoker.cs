@@ -38,7 +38,7 @@ public class CommandInvoker : Hashtable {
     internal const int MaxQueueDepth = 200;
 
     /// <summary>
-    /// SECURITY (#154): Maximum size of a single command's whole tree — the command itself plus all
+    /// SECURITY (#154): Maximum size of a single command's whole tree; the command itself plus all
     /// recursively embedded commands. A single received command string can otherwise amplify ~10x or
     /// more (see #145), letting one packet flood the queue. A tree over this bound is dropped WHOLE
     /// (all-or-nothing, see `EnqueueCommand`) and logged. 50 leaves generous headroom for authored
@@ -257,7 +257,7 @@ public class CommandInvoker : Hashtable {
     }
 
     // Recursively enqueues `cmd` and its EmbeddedCommands. Only called after EnqueueCommand has
-    // verified the whole tree fits both bounds (#154) — never call this directly.
+    // verified the whole tree fits both bounds (#154); never call this directly.
     private void EnqueueCommandTree(ICommand cmd) {
         executeQueue.Enqueue(cmd);
         Command command = (Command)cmd;
@@ -268,7 +268,7 @@ public class CommandInvoker : Hashtable {
         // SECURITY (#145): a disabled parent must suppress its entire embedded subtree. Embedded
         // commands are flattened into the execute queue as independent siblings and each is gated
         // only on its OWN Enabled flag, so descending into a disabled parent would let its
-        // Enabled=true children run — bypassing the per-command gate that "disabled by default"
+        // Enabled=true children run; bypassing the per-command gate that "disabled by default"
         // depends on. Stop descending unless this command is itself enabled. (An enabled parent
         // with a disabled child still stops at that child, because the recursion re-checks here.)
         if (!command.Enabled) {
@@ -290,14 +290,14 @@ public class CommandInvoker : Hashtable {
         while (executeQueue.TryDequeue(out ICommand? icmd)) {
             // Emergency stop (#135): if the operator engaged the panic hotkey, drop the rest of the queue
             // instead of actuating it. A paced/embedded command sequence (a macro, or commands after a
-            // `pause`) must not keep firing after the stop — checking the latch BETWEEN commands is what
+            // `pause`) must not keep firing after the stop; checking the latch BETWEEN commands is what
             // makes "the queue is dropped" true rather than only latching future tool calls.
             if (AgentRuntime.EmergencyStopped) {
                 int dropped = 1; // the command we just dequeued and are NOT running
                 while (executeQueue.TryDequeue(out _)) {
                     dropped++;
                 }
-                Logger.Instance.Log4.Warn($"{GetType().Name}: emergency stop engaged — dropped {dropped} queued command(s) without executing.");
+                Logger.Instance.Log4.Warn($"{GetType().Name}: emergency stop engaged; dropped {dropped} queued command(s) without executing.");
                 break;
             }
 

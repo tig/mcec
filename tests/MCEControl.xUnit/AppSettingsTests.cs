@@ -100,9 +100,9 @@ public class AppSettingsTests
 
     /// <summary>
     /// Issue #155 (second bug): the UnauthorizedAccessException path left settings null and then
-    /// dereferenced it (settings!.GetTelemetryDictionary()) — the "handled" branch itself crashed
-    /// with an NRE. Opening a directory as a file throws UnauthorizedAccessException — the same
-    /// exception type as an ACL-denied settings file — without touching real ACLs.
+    /// dereferenced it (settings!.GetTelemetryDictionary()); the "handled" branch itself crashed
+    /// with an NRE. Opening a directory as a file throws UnauthorizedAccessException; the same
+    /// exception type as an ACL-denied settings file; without touching real ACLs.
     /// </summary>
     [Fact]
     public void Deserialize_UnauthorizedAccess_ReturnsDefaults_NoNullReference()
@@ -128,7 +128,7 @@ public class AppSettingsTests
     /// <summary>
     /// Issue #155 (third bug): Convert.ToBoolean on a junk DisableInternalCommands registry value
     /// (e.g. REG_SZ "banana") threw FormatException and crashed startup. The conversion seam must
-    /// tolerate junk and fall back to the default — no real registry involved here.
+    /// tolerate junk and fall back to the default; no real registry involved here.
     /// </summary>
     [Theory]
     [InlineData(null, false, false)] // absent value -> default
@@ -155,7 +155,7 @@ public class AppSettingsTests
     /// <summary>
     /// Issue #155 review follow-up (M1): Registry.GetValue itself can throw SecurityException
     /// (deny-read ACE) or IOException (key marked for deletion). GetRegistryValue must swallow
-    /// these and return the supplied default — a registry problem must never crash startup
+    /// these and return the supplied default; a registry problem must never crash startup
     /// (this also covers the TelemetryService opt-in read). Exercised through the injectable
     /// seam; the real registry is never touched.
     /// </summary>

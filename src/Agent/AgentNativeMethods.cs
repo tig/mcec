@@ -10,7 +10,7 @@ namespace MCEControl;
 /// <summary>
 /// P/Invoke surface for the MCEC 3.0 agent observation features: window screenshotting
 /// (<c>PrintWindow</c> with <c>PW_RENDERFULLCONTENT</c>, which correctly captures DirectComposition
-/// surfaces — WinUI 3 / WPF — that plain screen grabs return black for) and top-level window
+/// surfaces; WinUI 3 / WPF; that plain screen grabs return black for) and top-level window
 /// enumeration/metadata for targeting. Kept separate from the security-focused
 /// <c>Microsoft.Win32.Security.Win32</c> interop so the agent subsystem is self-contained.
 /// </summary>
@@ -40,7 +40,7 @@ internal static class AgentNativeMethods {
     /// <summary>Render the full window content, including DirectComposition/DWM surfaces.</summary>
     public const uint PW_RENDERFULLCONTENT = 0x00000002;
 
-    /// <summary>DWMWA_EXTENDED_FRAME_BOUNDS — the true visible bounds (excludes the invisible border).</summary>
+    /// <summary>DWMWA_EXTENDED_FRAME_BOUNDS; the true visible bounds (excludes the invisible border).</summary>
     public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
 
     [DllImport(User32, SetLastError = true)]

@@ -41,7 +41,7 @@ public sealed class AgentSession {
 
     /// <summary>
     /// Creates a session with a fresh 12-hex-char id (matching the evidence harness'
-    /// <c>New-McecSession</c> format) and a reserved — not yet created — artifact directory path under
+    /// <c>New-McecSession</c> format) and a reserved; not yet created; artifact directory path under
     /// <paramref name="artifactRoot"/>.
     /// </summary>
     public static AgentSession Create(string artifactRoot) =>
@@ -111,7 +111,7 @@ public sealed class AgentSession {
     }
 
     /// <summary>
-    /// Stamps the operator emergency stop (#135) into the session — who/what triggered it and when — so a
+    /// Stamps the operator emergency stop (#135) into the session; who/what triggered it and when; so a
     /// run's evidence bundle shows that a human halted it. Only the first stop of a latched span is kept.
     /// </summary>
     public void RecordEmergencyStop(string source, DateTime atUtc) {
@@ -133,7 +133,7 @@ public sealed class AgentSession {
     /// Records the outcome of a tool call: a successful <b>observation</b> (query/capture/find/wait-for)
     /// updates <see cref="LastObservation"/> and, when the payload names a window, <see cref="ActiveTarget"/>;
     /// a failure updates <see cref="LastError"/>. Actuation tools (invoke/send_command) don't record an
-    /// observation. Centralizing the decision keeps every observation tool — wait-for included — consistent.
+    /// observation. Centralizing the decision keeps every observation tool; wait-for included; consistent.
     /// </summary>
     public void RecordToolOutcome(string toolName, AgentToolResult env) {
         if (env.Ok) {

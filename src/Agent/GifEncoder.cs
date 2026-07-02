@@ -14,7 +14,7 @@ namespace MCEControl;
 /// feature, with NO extra dependency. .NET's GDI+ GIF codec can quantize + LZW-compress one frame
 /// (<see cref="Image.Save(Stream, ImageFormat)"/>) but cannot author an animation (frame delays /
 /// looping). So we let GDI+ encode each frame to a standalone GIF, then stitch those together:
-/// a GIF89a header, a Netscape looping extension, and — per frame — a Graphic Control Extension
+/// a GIF89a header, a Netscape looping extension, and; per frame; a Graphic Control Extension
 /// carrying the inter-frame delay plus the frame's image data, with each frame's color table written
 /// as a Local Color Table so per-frame palettes survive.
 /// </summary>

@@ -7,7 +7,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The handoff descriptor returned by <see cref="SessionProvisioner.Provision"/> (#138): everything an
-/// authorized agent needs to run a fresh, disposable, isolated MCEC instance — where it lives, how to
+/// authorized agent needs to run a fresh, disposable, isolated MCEC instance; where it lives, how to
 /// launch it, how to reach its MCP server, and the id/token to tear it down. The installed MCEC's config
 /// is never touched; all enabled state lives only inside <see cref="Directory"/>, so teardown is just
 /// deleting that directory.
