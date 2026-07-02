@@ -465,15 +465,20 @@ Agent tool calls follow a simple contract so one slow call never stalls the othe
   even one from a different session. They snapshot state (each UIA read uses its own automation instance;
   screen capture is stateless) and don't mutate the desktop.
 - **Global-input actuation serializes.** `drag` and `send_command` synthesize physical mouse/keyboard —
-  the one input stream is a shared resource, so they run one-at-a-time under a single `InputLock`
-  (concurrent requests can't interleave keystrokes/mouse).
+  the one input stream is a shared resource, so they serialize on a single gate
+  (`AgentRuntime.InputGate`): `drag` actuates directly under the gate on its worker, while
+  `send_command` enqueues into the command engine, whose single dispatcher thread (#195) holds the same
+  gate around each queued command's `Execute` (concurrent requests can't interleave keystrokes/mouse).
 - **`invoke` is UIA-pattern actuation**, dispatched on a worker with a short *modal grace*: because
   invoking a control can open a modal dialog that blocks synchronously, `invoke` never holds the input
-  lock for the dialog's lifetime — otherwise the agent couldn't `query`/`capture`/`invoke` to dismiss the
+  gate for the dialog's lifetime — otherwise the agent couldn't `query`/`capture`/`invoke` to dismiss the
   very dialog it opened (see the `invoke` notes above).
-- **The legacy TCP/serial command pipeline is untouched.** Home-automation commands still run in order,
-  synchronously, on the UI thread (`CommandInvoker.ExecuteNext`) — this contract governs only the agent
-  (MCP) tools.
+- **The legacy TCP/serial command pipeline shares the same queue and dispatcher (#195).** Home-automation
+  commands and `send_command` are both *producers* into the one `CommandInvoker` queue; its dedicated
+  dispatcher thread is the only consumer and executes every command in order under the input gate, so
+  legacy traffic and agent actuation can never interleave either. `send_command` returns only after its
+  command actually executed (a per-enqueue completion the dispatcher signals), with a 30s wait bound —
+  a longer-running command keeps executing, but the call reports `send-command-timeout`.
 
 Both MCP transports honor this by dispatching each request on a worker: the HTTP floor serves every
 `POST` on a thread-pool task, and the stdio loop dispatches each line concurrently (writes are serialized;
