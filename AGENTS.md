@@ -122,6 +122,24 @@ exe (`winr`, `chars:`, `enter`, `mouse:`, `key_a`, `key_esc`, `alt_f`, `key_x`) 
   popped `MessageBox` prompts that would hang the headless `--mcp` process. Now uses
   `System.Version.TryParse` and suppresses load-path dialogs when `AgentRuntime.Headless`.
 
+## Dogfood: WinPrint hero GIF (Customer 1, issue #84)
+
+Script: [`scripts/Generate-WinPrint-HeroGif.ps1`](scripts/Generate-WinPrint-HeroGif.ps1). Run from the
+**winprint** repo root; output is `docs/hero-gui-win.gif` there. Full recipe:
+[`docs/winprint-hero-gif.md`](docs/winprint-hero-gif.md).
+
+Until the epic merges, the harness needs the `clipboard` tool (not on plain `develop` yet). For local
+runs, build this branch and pass `-McecInstallDir` to `src\bin\Debug\net10.0-windows`.
+
+### Operational tips (learned the hard way)
+
+- **Win+D before Start search** — the harness sends `desktop` (Win+D) before `winsearch` (Win+S) so
+  keystrokes are not swallowed by an IDE/terminal; retry once if WinPrint does not appear.
+- **Dismiss the PDF viewer** — Alt+F4 after opening `winprintdemo.pdf` so the next run's harness
+  `Remove-Item` succeeds (viewers keep the file locked).
+- **Disposable session copy** — the harness copies MCEC into `%LOCALAPPDATA%\MCEC\sessions\winprint-hero`
+  so the core install's `mcec.settings` / `mcec.commands` are never touched.
+
 ## Working in this repo
 
 - **Agent-facing guidance is part of "Done": not optional, not "later."** Any change to how an agent

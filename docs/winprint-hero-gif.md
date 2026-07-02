@@ -40,7 +40,25 @@ pwsh -NoProfile -File C:\path\to\mcec\scripts\Generate-WinPrint-HeroGif.ps1
 pwsh -NoProfile -File scripts/Generate-WinPrint-HeroGif.ps1
 ```
 
+**Pre-release dev builds:** until this epic merges to `develop`, the harness needs MCEC with the
+`clipboard` tool (plain `develop` returns `Unknown tool: clipboard`). For local dogfood, pass
+`-McecInstallDir` to a Debug build from this branch:
+
+```powershell
+dotnet build src\MCEControl.csproj -c Debug
+pwsh -NoProfile -File scripts\Generate-WinPrint-HeroGif.ps1 `
+  -McecInstallDir C:\path\to\mcec\src\bin\Debug\net10.0-windows
+```
+
 Evidence bundles land under `artifacts/customer1/` in the mcec repo (see [evidence-bundles.md](evidence-bundles.md)).
+
+## Troubleshooting
+
+| Symptom | Recovery |
+|---------|----------|
+| `WinPrint did not appear` after Start search | Kill stray `winprint`/`mcec` processes, pause a few seconds, rerun. The harness already sends Win+D before Win+S; a focused IDE can still steal the first attempt. |
+| `Unknown tool: clipboard` | MCEC is too old or a plain `develop` build without this epic; use a build from `epic-84-winprint-hero-mcec` or pass `-McecInstallDir` to one. |
+| `Remove-Item` fails on `winprintdemo.pdf` | A PDF viewer still has the file open; the harness sends Alt+F4 after record stop, but kill the viewer manually if a prior run aborted early. |
 
 ## Manual MCP recipe (agent-playbook)
 
