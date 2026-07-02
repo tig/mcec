@@ -21,7 +21,8 @@ pattern and adds no breaking changes to any existing command, transport, or defa
               CommandInvoker  (existing)
                       │  resolves + Execute()s
                       ▼
-   capture / query / find / wait-for / invoke   (new Commands)
+   capture / query / displays / find / wait-for / invoke /
+   drag / click / record / launch   (the ToolCatalog set — new Commands)
         │            │           │
    ScreenCapture  WindowResolver  UiaService
    (PrintWindow)  (Win32 enum)    (FlaUI / UIA3)
@@ -60,6 +61,20 @@ resources.
 UI Automation access (UIA3 via FlaUI) backing element-level `find` / `wait-for`
 queries. Isolated behind a service so the rest of the subsystem has no hard FlaUI
 coupling at the command layer.
+
+### `ToolCatalog` / `ToolDescriptor` (#205)
+The single registry of the gated agent tools. Each `ToolDescriptor` carries the tool's
+name, its `tools/list` schema, its MCP-arguments→`Command` mapping, its overlay
+tersifier, and its policy flags (`SerializesOnInput`, `IsObservation`,
+`ProvisionedByDefault`). The former hand-synced switch/list sites — `AgentServer`'s
+schema builder, tools/call gate whitelist, and `BuildCommand` mapping,
+`SerializesOnInputLock`, `AgentSession.IsObservationTool`,
+`CommandTersifier.ForAgentTool`, and `SessionProvisioner`'s
+`DefaultCommands`/`CreateEnabledCommand` — are all catalog lookups, so adding a tool is
+one descriptor plus its command class. The meta-tools (`send_command`,
+`provision-session`, `end-session`) are deliberately NOT in the catalog: they do not map
+1:1 onto a `Command` and keep their own gating, special-cased in `AgentServer` next to
+the catalog dispatch.
 
 ## Structured replies
 
@@ -106,8 +121,10 @@ MCP/HTTP façade — no special-casing in the command pipeline.
 ## `AgentServer` (MCP / HTTP)
 
 `AgentServer` is the network façade, gated by `AppSettings.McpServerEnabled`. It exposes
-the tools `capture`, `query`, `find`, `invoke`, and `send_command` (a generic raw
-command-line passthrough). Two transports share one dispatch path:
+the gated agent tools registered in `ToolCatalog` (`capture`, `query`, `displays`, `find`,
+`wait-for`, `invoke`, `drag`, `click`, `record`, `launch`) plus the meta-tools
+`send_command` (a generic raw command-line passthrough), `provision-session`, and
+`end-session`. Two transports share one dispatch path:
 
 - **MCP stdio** — used by the `--mcp` headless bootstrap.
 - **HTTP floor** — one JSON-RPC request per `POST` to `/mcp`, bound to

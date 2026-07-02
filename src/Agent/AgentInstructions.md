@@ -113,7 +113,7 @@ session from any window. If ANY tool returns `error.code:emergency-stopped` (the
 `error.category` stays `internal`), the operator has engaged it and deliberately halted you — STOP
 immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
-SECURITY: the agent tools (capture/query/displays/find/invoke/record/launch/drag/click) only work when the operator has set
+SECURITY: the agent tools (capture/query/displays/find/wait-for/invoke/record/launch/drag/click) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is
 refused with `error.code:agent-commands-disabled` if the agent surface is not opted in); over the local

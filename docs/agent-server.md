@@ -14,7 +14,7 @@ AI agents and scripts running on a Windows PC. It gives an agent three things:
   drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
 
 The agent surface is a set of new commands — `capture`, `query`, `displays`, `find`,
-`wait-for`, `invoke`, `launch`, `drag`, and `click` — exposed as **tools over MCP/HTTP**
+`wait-for`, `invoke`, `record`, `launch`, `drag`, and `click` — exposed as **tools over MCP/HTTP**
 so an agent can call them directly. Each tool call returns a **structured JSON result
 envelope** (`{ ok, result, … }`) instead of free text, so an agent can reason about
 success and failure uniformly.
