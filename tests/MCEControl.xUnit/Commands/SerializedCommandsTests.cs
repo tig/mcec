@@ -327,14 +327,20 @@ public class SerializedCommandsTests
     }
 
     [Fact]
-    public void LoadCommands_NonExistentFile_ReturnsNull()
+    public void LoadCommands_NonExistentFile_CreatesDefaultCatalog()
     {
+        // A missing file is first-run, not an error: LoadCommands creates the default file (the
+        // built-in catalog, all Enabled=false) and loads it. See DefaultCommandsFileTests.
         string tempFile = Path.GetTempFileName();
         File.Delete(tempFile);
 
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
-        Assert.Null(loaded);
+        Assert.NotNull(loaded);
+        Assert.True(loaded.Count > 0);
+        Assert.All(loaded.commandArray, c => Assert.False(c.Enabled));
+        Assert.True(File.Exists(tempFile));
+        File.Delete(tempFile);
     }
 
     [Fact]
