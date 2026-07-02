@@ -2,15 +2,13 @@
 
 ![MCEC](hero.gif)
 
-**MCEC** (Model Context Environment Controller) is eyes, hands, and a safe front door for agents on Windows — and the same battle-tested remote control for smart-home systems.
+**MCEC** — the **Model Context Environment Controller** — is eyes, hands, and a safe front door for AI agents on Windows.
 
-In its long-standing role, **MCEC** provides robust control of Windows PCs for smart home systems. It runs in the background listening on the network (or serial port) for commands. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCEC** to control a Windows PC.
+It is a small, self-contained native Windows daemon that a computer-use model can **mount, see through, and drive**. An agent runs the loop *observe → target → act → observe*, and MCEC gives it all four: capture a window as a PNG (composited WinUI/WPF surfaces included), query the UI Automation tree, find and wait for controls, launch apps, and actuate keyboard/mouse/window input — exposed to agents and scripts over the **Model Context Protocol (MCP)** (stdio via `mcec.exe --mcp`, or a localhost HTTP floor).
 
-Almost any action a user can perform on Windows can be invoked remotely from another device on the network. This includes key presses (e.g. Alt-Tab or Win-S), mouse movements, and Window management actions (e.g. maximize window or set a window to the foreground)
+Every agent capability is **opt-in, disabled by default, localhost-bound, and loudly audit-logged**, with a global emergency-stop hotkey and disposable isolated sessions so the operator stays in control. See the [Agent Server user guide](agent-server.md), [Agent safety](safety-emergency-stop-and-provisioning.md), and [AGENTS.md](https://github.com/tig/mcec/blob/main/AGENTS.md) (agent guidance + dogfood recipe).
 
-**MCEC** works great with any remote control system that supports TCP/IP or RS-232 connections. Examples include [**Control4**](https://www.control4.com/), [**iRule**](http://www.iruleathome.com/), [**Crestron**](http://www.crestron.com/), and [**Premise Home Control**](http://cocoontech.com/forums/forum/51-premise-home-control/)
-
-New in 3.0, **MCEC** is also an **agent-automation server**: it can see the screen (capture a screenshot), query the UI Automation tree, find and wait for elements, and drive native Windows apps — exposed to AI agents and scripts over the **Model Context Protocol (MCP)** (stdio: `mcec.exe --mcp`) or a localhost HTTP floor. All of these agent capabilities are opt-in and disabled by default; everything below remains unchanged. See the [Agent Server user guide](agent-server.md) and [AGENTS.md](https://github.com/tig/mcec/blob/main/AGENTS.md) (agent guidance + dogfood recipe).
+**MCEC** is also the same battle-tested **remote control for home-automation systems** it has always been. It runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that supports TCP/IP or RS-232 — such as [**Control4**](https://www.control4.com/), [**iRule**](http://www.iruleathome.com/), [**Crestron**](http://www.crestron.com/), and [**Premise Home Control**](http://cocoontech.com/forums/forum/51-premise-home-control/) — can use **MCEC** to control a Windows PC. The 3.0 agent surface is purely additive; every existing home-automation feature is unchanged. See [Home Automation & Remote Control](home-automation.md).
 
 **[Full MCEC Documentation](documentation.md)**
 
