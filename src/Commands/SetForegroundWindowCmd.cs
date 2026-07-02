@@ -42,8 +42,6 @@ public class SetForegroundWindowCommand : Command {
         return $"Cmd=\"{Cmd}\" AppName=\"{AppName}\"";
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new SetForegroundWindowCommand(ClassName, AppName));
-
     // ICommand:Execute
     public override bool Execute() {
         if (!base.Execute()) {

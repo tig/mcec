@@ -43,8 +43,6 @@ public class McecCommand : Command {
         return $"Cmd=\"{Cmd}\"";
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new McecCommand());
-
     // ICommand:Execute
     public override bool Execute() {
         if (!base.Execute()) {

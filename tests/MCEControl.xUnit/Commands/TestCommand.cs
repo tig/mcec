@@ -14,10 +14,7 @@ internal class TestCommand : Command
         Enabled = true; // Enable for testing
     }
 
-    public override ICommand Clone(Reply? reply)
-    {
-        return base.Clone(reply!, new TestCommand());
-    }
+    // No Clone override needed: the MemberwiseClone-based Command.Clone (#207) copies all state.
 
     public override bool Execute()
     {

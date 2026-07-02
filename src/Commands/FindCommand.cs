@@ -25,12 +25,6 @@ public class FindCommand : WindowTargetingAgentCommand {
         ];
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new FindCommand {
-        By = this.By,
-        Value = this.Value,
-        Timeout = this.Timeout,
-    });
-
     /// <summary>The effective poll timeout: <c>wait-for</c> defaults to 5000ms when none is given.</summary>
     private int EffectiveTimeout =>
         string.Equals(Cmd, "wait-for", StringComparison.OrdinalIgnoreCase) && Timeout <= 0 ? 5000 : Timeout;

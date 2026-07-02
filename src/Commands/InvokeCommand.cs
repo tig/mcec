@@ -22,13 +22,6 @@ public class InvokeCommand : WindowTargetingAgentCommand {
         get => [new InvokeCommand { Cmd = "invoke" }];
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new InvokeCommand {
-        By = this.By,
-        Value = this.Value,
-        Action = this.Action,
-        Text = this.Text,
-    });
-
     protected override string? AuditDetails() =>
         $"invoke action={Action} by={By} value='{Value}' window handle={Handle} title='{Window}' process='{Process}'";
 

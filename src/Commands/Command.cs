@@ -80,33 +80,31 @@ public abstract class Command : ICommand {
     /// </summary>
     internal virtual bool SynthesizesInput => true;
 
-    public abstract ICommand Clone(Reply reply);
-
-    public virtual Command Clone(Reply reply, Command clone) {
-        if (clone is null) {
-            throw new ArgumentNullException(nameof(clone));
-        }
-
+    /// <summary>
+    /// Clones this command (a table prototype) for execution with a fresh <paramref name="reply"/>
+    /// context. Built on <see cref="object.MemberwiseClone"/> so EVERY field — including all
+    /// serializable subclass state, which is value/string-typed throughout — is copied by
+    /// construction; a subclass cannot forget a property (#207, the old hand-copied field lists).
+    /// The only reference-typed mutable members are then handled explicitly: <see cref="Reply"/> is
+    /// replaced with the fresh context, and <see cref="EmbeddedCommands"/> is deep-cloned (each
+    /// child cloned recursively, so children keep their own Enabled — the #183 bug is impossible
+    /// here by construction). Virtual only for a subclass that gains genuinely non-mechanical clone
+    /// semantics (e.g. deep-copying a future reference-typed member); field copying never needs an
+    /// override.
+    /// </summary>
+    public virtual Command Clone(Reply reply) {
+        Command clone = (Command)MemberwiseClone();
         clone.Reply = reply;
-
-        clone.Cmd = this.Cmd;
-        clone.Args = this.Args;
         if (this.EmbeddedCommands != null) {
             clone.EmbeddedCommands = [];
             foreach (Command next in this.EmbeddedCommands) {
-                Command eClone = (Command)next.Clone(reply);
-                clone.Enabled = Enabled;
-                clone.EmbeddedCommands.Add(eClone);
+                clone.EmbeddedCommands.Add(next.Clone(reply));
             }
         }
-
-        //TELEMETRY: Prevent info regarding user defined commands from being collected.
-        clone.UserDefined = this.UserDefined;
-
-        clone.Enabled = this.Enabled;
-
         return clone;
     }
+
+    ICommand ICommand.Clone(Reply reply) => Clone(reply);
 
     /// <summary>
     /// Execute command. Derived classes must call base before processing in order to ensure

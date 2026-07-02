@@ -27,8 +27,6 @@ public class CharsCommand : Command {
 
     public CharsCommand() { }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new CharsCommand());
-
     // ICommand:Execute
     public override bool Execute() {
         if (!base.Execute()) {

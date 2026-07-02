@@ -77,18 +77,6 @@ public abstract class WindowTargetingAgentCommand : AgentCommand {
     /// </summary>
     protected abstract bool ExecuteCore(WindowInfo? target);
 
-    /// <summary>
-    /// Copies the shared window-target selectors onto <paramref name="clone"/> so subclasses' Clone
-    /// implementations don't have to repeat them (nor can they forget them).
-    /// </summary>
-    public override Command Clone(Reply reply, Command clone) {
-        if (clone is WindowTargetingAgentCommand c) {
-            c.Window = Window;
-            c.Handle = Handle;
-            c.Process = Process;
-            c.ClassName = ClassName;
-            c.Foreground = Foreground;
-        }
-        return base.Clone(reply, clone);
-    }
+    // No Clone override: the shared selectors are value/string-typed, so the base
+    // MemberwiseClone-based Command.Clone (#207) copies them by construction.
 }

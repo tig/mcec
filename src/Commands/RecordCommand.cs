@@ -50,18 +50,6 @@ public class RecordCommand : WindowTargetingAgentCommand {
 
     public RecordCommand() { }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new RecordCommand {
-        Action = Action,
-        X = X,
-        Y = Y,
-        Width = Width,
-        Height = Height,
-        Fps = Fps,
-        DurationMs = DurationMs,
-        MaxWidth = MaxWidth,
-        File = File,
-    });
-
     // Window resolution happens per-target inside BuildGrabber (a virtual test seam that also owns
     // the region-vs-window branch and its distinct error/audit shapes), not in the base template.
     protected override bool RequiresWindowTarget => false;

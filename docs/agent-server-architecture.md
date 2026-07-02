@@ -76,8 +76,11 @@ Each agent command (`capture`, `query`, `find`/`wait-for`, `invoke`, `click`, `d
 `record`, `displays`, `launch`) derives from `AgentCommand : Command` (#208) and follows
 the house pattern:
 
-- `Clone(Reply)` via `base.Clone(reply, new XxxCommand { ... })` (base layers copy the
-  shared properties they host).
+- No per-command `Clone` code (#207): the MemberwiseClone-based `Command.Clone(Reply)`
+  copies every field by construction (all serializable command state is value/string-typed),
+  installs the fresh `Reply`, and deep-clones `EmbeddedCommands`. A reflection hygiene test
+  (`CommandClonePropertyRoundTripTests`) round-trips every public settable property of every
+  command through Clone.
 - `BuiltInCommands` returning the command with `Enabled=false` by default.
 - `[XmlAttribute]` on serializable props (all-lowercase names — see `XmlNameCasingTests`, #200).
 

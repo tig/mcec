@@ -242,7 +242,7 @@ public class CommandInvoker : Hashtable {
         // See if we know about this Command - case insensitive
         if (this[cmd.ToLowerInvariant()] != null) {
             // Always create a clone for enqueing (so Reply context can be independent)
-            Command clone = (Command)((Command)this[cmd.ToLowerInvariant()]!).Clone(reply);
+            Command clone = ((Command)this[cmd.ToLowerInvariant()]!).Clone(reply);
 
             // This supports commands of the form 'chars:args'; these
             // commands do not need to originate in CommandTable
