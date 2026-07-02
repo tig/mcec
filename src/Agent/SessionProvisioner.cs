@@ -26,9 +26,13 @@ namespace MCEControl;
 /// <c>mcec.commands</c> are never read or written.</para>
 /// </summary>
 public static class SessionProvisioner {
-    /// <summary>The agent observation/action commands enabled in a provisioned session's co-located command table.</summary>
+    /// <summary>
+    /// The agent observation/action commands enabled in a provisioned session's co-located command
+    /// table: the <see cref="ToolDescriptor.ProvisionedByDefault"/> members of the
+    /// <see cref="ToolCatalog"/> (#205) — today every gated tool except <c>launch</c>.
+    /// </summary>
     public static readonly string[] DefaultCommands =
-        ["capture", "query", "displays", "find", "wait-for", "invoke", "drag", "click", "record"];
+        [.. ToolCatalog.All.Where(d => d.ProvisionedByDefault).Select(d => d.Name)];
 
     // A provisioned session id is a bare 12-char lowercase-hex token (Guid "N"[..12]). end-session accepts
     // ONLY this shape so a caller can never pass a path/traversal token (e.g. ".." or "a/b") that would make
@@ -244,21 +248,21 @@ public static class SessionProvisioner {
 
     /// <summary>
     /// Builds the correctly-typed <see cref="Command"/> for a name, enabled, so it serializes under the
-    /// right element (query/capture/invoke/…) and loads back as the right derived type. Returns null for an
-    /// unknown name.
+    /// right element (query/capture/invoke/…) and loads back as the right derived type — via the tool's
+    /// <see cref="ToolDescriptor.CreateCommandInstance"/> in the <see cref="ToolCatalog"/> (#205).
+    /// Returns null for an unknown name or one that is not provisionable
+    /// (<see cref="ToolDescriptor.ProvisionedByDefault"/> — today that excludes only <c>launch</c>,
+    /// preserving this provisioner's historical command set).
     /// </summary>
-    private static Command? CreateEnabledCommand(string name) => name.ToLowerInvariant() switch {
-        "capture" => new CaptureCommand { Cmd = "capture", Enabled = true },
-        "query" => new QueryCommand { Cmd = "query", Enabled = true },
-        "displays" => new DisplaysCommand { Cmd = "displays", Enabled = true },
-        "find" => new FindCommand { Cmd = "find", Enabled = true },
-        "wait-for" => new FindCommand { Cmd = "wait-for", Enabled = true },
-        "invoke" => new InvokeCommand { Cmd = "invoke", Enabled = true },
-        "drag" => new DragCommand { Cmd = "drag", Enabled = true },
-        "click" => new ClickCommand { Cmd = "click", Enabled = true },
-        "record" => new RecordCommand { Cmd = "record", Enabled = true },
-        _ => null,
-    };
+    private static Command? CreateEnabledCommand(string name) {
+        if (!ToolCatalog.TryGet(name.ToLowerInvariant(), out ToolDescriptor descriptor) || !descriptor.ProvisionedByDefault) {
+            return null;
+        }
+        Command cmd = descriptor.CreateCommandInstance();
+        cmd.Cmd = descriptor.Name;
+        cmd.Enabled = true;
+        return cmd;
+    }
 
     /// <summary>Asks the OS for a free loopback TCP port by binding to port 0 and reading the assignment.</summary>
     private static int FindFreeLoopbackPort() {

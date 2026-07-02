@@ -21,7 +21,8 @@ namespace MCEControl;
 /// Python/Node runtime: the same self-contained native binary, with MCP/HTTP as just one more
 /// transport over the existing command core.
 ///
-/// SECURITY: the observation tools (capture/query/find/invoke) only run when
+/// SECURITY: the gated agent tools (the <see cref="ToolCatalog"/> set — capture, query, displays,
+/// find, wait-for, invoke, drag, click, record, launch) only run when
 /// <see cref="AgentRuntime.AgentCommandsEnabled"/> is true; otherwise a tool call is reported as an
 /// error. The HTTP listener binds to <see cref="AppSettings.McpBindAddress"/> (127.0.0.1 by default).
 /// A loopback bind is canonicalized before it reaches <see cref="HttpListener"/> (#152, see
@@ -67,13 +68,16 @@ public static class AgentServer {
     /// (<see cref="AgentRuntime.InputGate"/> — the #113 contract). Global-input actuation
     /// (<c>drag</c>, <c>send_command</c>) does — it synthesizes physical mouse/keyboard, one shared
     /// stream that concurrent requests must not interleave. <c>drag</c> actuates directly under the
-    /// gate on its MCP worker; <c>send_command</c> serializes INDIRECTLY (#195): it enqueues into the
-    /// <see cref="CommandInvoker"/>, whose single dispatcher thread holds the gate around each queued
-    /// command's Execute. Observation (<c>query</c>/<c>capture</c>/<c>find</c>/<c>wait-for</c>/
-    /// <c>record</c>) does not (it runs concurrently); <c>invoke</c> is UIA-pattern actuation
-    /// dispatched on a worker with the modal grace, not under this lock (#105).
+    /// gate on its MCP worker (its <see cref="ToolDescriptor.SerializesOnInput"/> flag);
+    /// <c>send_command</c> is a meta-tool outside the <see cref="ToolCatalog"/> and serializes
+    /// INDIRECTLY (#195): it enqueues into the <see cref="CommandInvoker"/>, whose single dispatcher
+    /// thread holds the gate around each queued command's Execute — so it is special-cased here.
+    /// Observation (<c>query</c>/<c>capture</c>/<c>find</c>/<c>wait-for</c>/<c>record</c>) does not
+    /// (it runs concurrently); <c>invoke</c> is UIA-pattern actuation dispatched on a worker with the
+    /// modal grace, not under this lock (#105).
     /// </summary>
-    public static bool SerializesOnInputLock(string tool) => tool is "drag" or "send_command";
+    public static bool SerializesOnInputLock(string tool) =>
+        tool == "send_command" || (ToolCatalog.TryGet(tool, out ToolDescriptor descriptor) && descriptor.SerializesOnInput);
 
     // -------------------------------------------------------------------------------------------
     // JSON-RPC dispatch (shared by stdio + HTTP)
@@ -169,164 +173,45 @@ public static class AgentServer {
     // Tool catalog
     // -------------------------------------------------------------------------------------------
 
-    private static JsonObject WindowTargetProps() => new() {
-        ["window"] = PropSchema("string", "Window title substring (case-insensitive) to target"),
-        ["handle"] = PropSchema("integer", "Explicit window handle (HWND) to target"),
-        ["process"] = PropSchema("string", "Process name (without .exe) to target"),
-        ["className"] = PropSchema("string", "Window class name to target"),
-        ["foreground"] = PropSchema("boolean", "Target the current foreground window"),
-    };
-
-    private static JsonObject PropSchema(string type, string description) =>
-        new() { ["type"] = type, ["description"] = description };
-
-    /// <summary>Schema for a drag endpoint: either an element ({ by, value }) or a pixel ({ x, y }).</summary>
-    private static JsonObject EndpointSchema(string description) => new() {
-        ["type"] = "object",
-        ["description"] = description,
-        ["properties"] = new JsonObject {
-            ["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)"),
-            ["value"] = PropSchema("string", "Element value to match (omit for a pixel endpoint)"),
-            ["x"] = PropSchema("integer", "Endpoint X in absolute screen pixels (omit for an element endpoint)"),
-            ["y"] = PropSchema("integer", "Endpoint Y in absolute screen pixels (omit for an element endpoint)"),
-        },
-    };
-
     private static JsonArray BuildToolsList() {
         JsonArray tools = [];
 
-        JsonObject captureProps = WindowTargetProps();
-        captureProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
-        captureProps["y"] = PropSchema("integer", "Region top");
-        captureProps["width"] = PropSchema("integer", "Region width (max 16384/side, 64000000 px total; oversized fails with region-too-large)");
-        captureProps["height"] = PropSchema("integer", "Region height (same limits as width)");
-        captureProps["file"] = PropSchema("string", "Optional path to also save the PNG to");
-        tools.Add(Tool("capture",
-            "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG. Blank/black frames are detected and reported as a capture-blank error (window) or warning (region) rather than a silent bad image.",
-            captureProps, []));
+        // The gated agent tools — one descriptor per tool, schema included — live in ToolCatalog (#205).
+        foreach (ToolDescriptor descriptor in ToolCatalog.All) {
+            tools.Add(descriptor.BuildSchema());
+        }
 
-        JsonObject queryProps = WindowTargetProps();
-        queryProps["maxDepth"] = PropSchema("integer", "Max UI Automation tree depth (default 6)");
-        queryProps["maxNodes"] = PropSchema("integer", "Max UI Automation nodes returned (default 1000); a clipped tree is flagged with a tree-truncated warning");
-        tools.Add(Tool("query",
-            "Dump the UI Automation tree of a window: control type, name, automation id, bounds, state. Returns nodeCount/truncated and warns when the node cap clips the tree.",
-            queryProps, []));
-
-        tools.Add(Tool("displays",
-            "Report display geometry: every monitor's pixel bounds, working area, primary flag, and DPI/scale, plus the union virtualBounds. Use it to interpret the absolute-pixel bounds query/find return and to place pixel clicks/drags — no arguments.",
-            [], []));
-
-        JsonObject findProps = WindowTargetProps();
-        findProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
-        findProps["value"] = PropSchema("string", "Value to match");
-        findProps["timeout"] = PropSchema("integer", "Milliseconds to wait for the element (0 = no wait)");
-        tools.Add(Tool("find",
-            "Find (or wait for, with a timeout) a UI Automation element by name / automation id / class.",
-            findProps, ["value"]));
-
-        JsonObject waitForProps = WindowTargetProps();
-        waitForProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
-        waitForProps["value"] = PropSchema("string", "Value to match");
-        waitForProps["timeout"] = PropSchema("integer", "Milliseconds to wait for the element (default 5000)");
-        tools.Add(Tool("wait-for",
-            "Wait for a UI Automation element to appear: polls until found or the timeout elapses (default 5s).",
-            waitForProps, ["value"]));
-
-        JsonObject invokeProps = WindowTargetProps();
-        invokeProps["by"] = PropSchema("string", "Match by: name | automationid | classname (default name)");
-        invokeProps["value"] = PropSchema("string", "Value to match");
-        invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse | select (default invoke). Use expand to open a menu before invoking its items; use select for TabItem, ListItem, RadioButton etc.");
-        invokeProps["text"] = PropSchema("string", "Text for the setvalue action");
-        tools.Add(Tool("invoke",
-            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus/Expand/Collapse/Select) — more reliable than coordinate clicks. Use 'select' for tabs, list items, radios (SelectionItem pattern).",
-            invokeProps, ["value"]));
-
-        JsonObject dragProps = WindowTargetProps();
-        dragProps["from"] = EndpointSchema("Drag start: an element ({ by, value }) in the target window, or a pixel ({ x, y }).");
-        dragProps["to"] = EndpointSchema("Drag end: an element ({ by, value }) in the target window, or a pixel ({ x, y }).");
-        dragProps["path"] = new JsonObject {
-            ["type"] = "array",
-            ["description"] = "Optional intermediate waypoints (absolute screen pixels) between from and to.",
-            ["items"] = new JsonObject {
-                ["type"] = "object",
-                ["properties"] = new JsonObject {
-                    ["x"] = PropSchema("integer", "Waypoint X (screen pixels)"),
-                    ["y"] = PropSchema("integer", "Waypoint Y (screen pixels)"),
-                },
-            },
-        };
-        tools.Add(Tool("drag",
-            "Press → move along a path → release, dispatched atomically (no interleaving). Endpoints are an element (by/value, dragged from/to its centre) or an absolute screen pixel; add path waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee select, drag-reorder. Give a window target when either endpoint is an element.",
-            dragProps, ["from", "to"]));
-
-        JsonObject clickProps = WindowTargetProps();
-        clickProps["at"] = EndpointSchema("Where to click: an element ({ by, value }) in the target window (its centre) or an absolute screen pixel ({ x, y }).");
-        clickProps["button"] = PropSchema("string", "Button: left | right | middle (default left)");
-        clickProps["count"] = PropSchema("integer", "Click count: 1 = single, 2 = double (default 1)");
-        tools.Add(Tool("click",
-            "Click at a point — an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
-            clickProps, ["at"]));
-
-        JsonObject recordProps = WindowTargetProps();
-        recordProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
-        recordProps["y"] = PropSchema("integer", "Region top");
-        recordProps["width"] = PropSchema("integer", "Region width (max 16384/side, 64000000 px total; oversized fails with region-too-large)");
-        recordProps["height"] = PropSchema("integer", "Region height (same limits as width)");
-        recordProps["action"] = PropSchema("string", "start | stop | oneshot (default: oneshot if durationMs given, else start)");
-        recordProps["fps"] = PropSchema("integer", "Frames per second (default 5, clamped to the operator limit)");
-        recordProps["durationMs"] = PropSchema("integer", "For a one-shot: how long to record (clamped to the operator limit)");
-        recordProps["maxWidth"] = PropSchema("integer", "Downscale frames so width fits this (default 1280)");
-        recordProps["file"] = PropSchema("string", "Output .gif path (a temp path is generated if omitted)");
-        tools.Add(Tool("record",
-            "Record a window or region to an animated GIF over time (start/stop or a bounded one-shot). Use only to show CHANGE over time; for a single state check use capture.",
-            recordProps, []));
-
-        JsonObject launchProps = new() {
-            ["path"] = PropSchema("string", "Path to executable, shell: protocol target (e.g. shell:AppsFolder\\...), or .lnk (required)"),
-            ["arguments"] = PropSchema("string", "Command line arguments to pass to the process"),
-            ["workingDirectory"] = PropSchema("string", "Initial working directory for the launched process"),
-            ["timeout"] = PropSchema("integer", "Milliseconds to wait for the app window to appear (default 5000)"),
-        };
-        tools.Add(Tool("launch",
-            "Launch an application directly as a gated agent action. Starts the process and returns its pid plus the primary window (handle + descriptor) when it appears within timeout. Preferred over send_command winr dance for reliability.",
-            launchProps, ["path"]));
-
-        tools.Add(Tool("send_command",
+        // META-TOOLS: deliberately NOT in the catalog, because they do not map 1:1 onto a Command in
+        // the loaded table and have their own gating. send_command is the raw pass-through into the
+        // CommandInvoker queue (transport-sensitive gate, #153); provision-session/end-session are the
+        // isolated-session lifecycle (#138, gated by the operator's AllowSessionProvisioning). They are
+        // special-cased here and in CallTool, right next to the catalog dispatch.
+        tools.Add(ToolCatalog.Tool("send_command",
             "Send any raw MCEC command string to the existing command core (e.g. actuation commands).",
-            new JsonObject { ["command"] = PropSchema("string", "The MCEC command string to enqueue") },
+            new JsonObject { ["command"] = ToolCatalog.PropSchema("string", "The MCEC command string to enqueue") },
             ["command"]));
 
         // Isolated session provisioning (#138). Requires the operator to have opted in
         // (AllowSessionProvisioning); it never mutates the installed config.
         JsonObject provisionProps = new() {
-            ["mcpServer"] = PropSchema("boolean", "Enable the provisioned instance's localhost MCP/HTTP server (default true)"),
+            ["mcpServer"] = ToolCatalog.PropSchema("boolean", "Enable the provisioned instance's localhost MCP/HTTP server (default true)"),
             ["commands"] = new JsonObject {
                 ["type"] = "array",
                 ["description"] = "Command names to enable in the session (default: the agent observation/action set)",
                 ["items"] = new JsonObject { ["type"] = "string" },
             },
         };
-        tools.Add(Tool("provision-session",
+        tools.Add(ToolCatalog.Tool("provision-session",
             "Get a fresh, disposable, isolated MCEC instance to run from instead of enabling the installed one. Returns a directory containing mcec.exe + an agent-ready co-located config (agent commands enabled ONLY inside the copy), plus how to launch/connect and the sessionId to tear it down. Requires the operator to have enabled AllowSessionProvisioning; the installed config is never touched. Call end-session (or delete the directory) when finished.",
             provisionProps, []));
 
-        tools.Add(Tool("end-session",
+        tools.Add(ToolCatalog.Tool("end-session",
             "Tear down a provisioned session (from provision-session) by deleting its directory. Stop the session's mcec.exe first, or its files stay locked. MCEC also reaps stale session dirs on launch.",
-            new JsonObject { ["sessionId"] = PropSchema("string", "The sessionId returned by provision-session") },
+            new JsonObject { ["sessionId"] = ToolCatalog.PropSchema("string", "The sessionId returned by provision-session") },
             ["sessionId"]));
 
         return tools;
     }
-
-    private static JsonObject Tool(string name, string description, JsonObject properties, JsonArray required) => new() {
-        ["name"] = name,
-        ["description"] = description,
-        ["inputSchema"] = new JsonObject {
-            ["type"] = "object",
-            ["properties"] = properties,
-            ["required"] = required,
-        },
-    };
 
     // -------------------------------------------------------------------------------------------
     // tools/call
@@ -371,7 +256,8 @@ public static class AgentServer {
             return RunEndSession(args);
         }
 
-        if (name is "capture" or "query" or "displays" or "find" or "wait-for" or "invoke" or "record" or "launch" or "drag" or "click") {
+        // The gated agent tools are exactly the ToolCatalog membership (#205) — no hand-synced whitelist.
+        if (ToolCatalog.Contains(name)) {
             if (!AgentRuntime.AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
@@ -432,10 +318,10 @@ public static class AgentServer {
     // Internal so tests can exercise the unknown-tool refusal for a name that passed the
     // tools/call gate but has no argument mapping (InternalsVisibleTo). See #201.
     internal static JsonObject RunAgentCommand(string name, JsonObject args) {
-        // #201: the tools/call gate whitelist and BuildCommand's arg-mapping switch are two
-        // hand-maintained lists. If a name passes the gate but has no mapping, refuse with a
-        // structured error — the old default arm silently mapped unknown names onto InvokeCommand
-        // (an ACTUATION) with garbage selector args.
+        // #201: if a name passes the gate but has no command mapping, refuse with a structured error
+        // — the old default arm silently mapped unknown names onto InvokeCommand (an ACTUATION) with
+        // garbage selector args. Since #205 the gate and the mapping are the SAME ToolCatalog, so
+        // this can only trip for a caller that bypassed the gate (tests exercise it directly).
         if (BuildCommand(name, args) is not Command cmd) {
             AgentRuntime.Audit(name, "BLOCKED — tool has no argument mapping; refusing to run it as another command");
             return ToolError($"Unknown tool: {name}", "unknown-tool");
@@ -695,135 +581,16 @@ public static class AgentServer {
     }
 
     /// <summary>
-    /// Builds and populates an agent command instance from MCP tool arguments. Exhaustive over the
-    /// agent tool names: an unknown name returns <c>null</c> (the caller refuses it as
+    /// Builds and populates an agent command instance from MCP tool arguments, dispatching through the
+    /// tool's <see cref="ToolDescriptor.BuildCommand"/> in <see cref="ToolCatalog"/> (#205). Exhaustive
+    /// over the agent tool names: an unknown name returns <c>null</c> (the caller refuses it as
     /// <c>unknown-tool</c>) rather than falling through to a default command (#201). Internal so
     /// tests can pin the mapping (InternalsVisibleTo).
     /// </summary>
-    internal static Command? BuildCommand(string name, JsonObject args) => name switch {
-        "capture" => new CaptureCommand {
-            Window = Str(args, "window")!,
-            Handle = Long(args, "handle"),
-            Process = Str(args, "process")!,
-            ClassName = Str(args, "className")!,
-            Foreground = Bool(args, "foreground"),
-            X = Int(args, "x"),
-            Y = Int(args, "y"),
-            Width = Int(args, "width"),
-            Height = Int(args, "height"),
-            File = Str(args, "file")!,
-        },
-        "query" => new QueryCommand {
-            Window = Str(args, "window")!,
-            Handle = Long(args, "handle"),
-            Process = Str(args, "process")!,
-            ClassName = Str(args, "className")!,
-            Foreground = Bool(args, "foreground"),
-            MaxDepth = Int(args, "maxDepth") is int d and > 0 ? d : 6,
-            MaxNodes = Int(args, "maxNodes") is int n and > 0 ? n : 1000,
-        },
-        "find" or "wait-for" => new FindCommand {
-            Window = Str(args, "window")!,
-            Handle = Long(args, "handle"),
-            Process = Str(args, "process")!,
-            ClassName = Str(args, "className")!,
-            Foreground = Bool(args, "foreground"),
-            By = Str(args, "by") ?? "name",
-            Value = Str(args, "value")!,
-            Timeout = Int(args, "timeout"),
-        },
-        "record" => new RecordCommand {
-            Action = Str(args, "action")!,
-            Window = Str(args, "window")!,
-            Handle = Long(args, "handle"),
-            Process = Str(args, "process")!,
-            ClassName = Str(args, "className")!,
-            Foreground = Bool(args, "foreground"),
-            X = Int(args, "x"),
-            Y = Int(args, "y"),
-            Width = Int(args, "width"),
-            Height = Int(args, "height"),
-            Fps = Int(args, "fps"),
-            DurationMs = Int(args, "durationMs"),
-            MaxWidth = Int(args, "maxWidth"),
-            File = Str(args, "file")!,
-        },
-        "launch" => new LaunchCommand {
-            Path = Str(args, "path")!,
-            Arguments = Str(args, "arguments")!,
-            WorkingDirectory = Str(args, "workingDirectory")!,
-            Timeout = Int(args, "timeout"),
-        },
-        "drag" => BuildDragCommand(args),
-        "click" => BuildClickCommand(args),
-        "displays" => new DisplaysCommand(),
-        "invoke" => new InvokeCommand {
-            Window = Str(args, "window")!,
-            Handle = Long(args, "handle"),
-            Process = Str(args, "process")!,
-            ClassName = Str(args, "className")!,
-            Foreground = Bool(args, "foreground"),
-            By = Str(args, "by") ?? "name",
-            Value = Str(args, "value")!,
-            Action = Str(args, "action") ?? "invoke",
-            Text = Str(args, "text")!,
-        },
-        _ => null, // unknown name — the caller reports unknown-tool; never guess a command (#201)
-    };
-
-    /// <summary>Maps the drag tool's nested <c>from</c>/<c>to</c>/<c>path</c> arguments onto a <see cref="DragCommand"/>.</summary>
-    private static DragCommand BuildDragCommand(JsonObject args) {
-        JsonObject from = args["from"] as JsonObject ?? [];
-        JsonObject to = args["to"] as JsonObject ?? [];
-        return new DragCommand {
-            Window = Str(args, "window")!,
-            Handle = Long(args, "handle"),
-            Process = Str(args, "process")!,
-            ClassName = Str(args, "className")!,
-            Foreground = Bool(args, "foreground"),
-            FromBy = Str(from, "by") ?? "name",
-            FromValue = Str(from, "value")!,
-            FromX = Int(from, "x"),
-            FromY = Int(from, "y"),
-            ToBy = Str(to, "by") ?? "name",
-            ToValue = Str(to, "value")!,
-            ToX = Int(to, "x"),
-            ToY = Int(to, "y"),
-            PathSpec = BuildPathSpec(args["path"] as JsonArray),
-        };
-    }
-
-    /// <summary>Maps the click tool's nested <c>at</c> endpoint and button/count onto a <see cref="ClickCommand"/>.</summary>
-    private static ClickCommand BuildClickCommand(JsonObject args) {
-        JsonObject at = args["at"] as JsonObject ?? [];
-        return new ClickCommand {
-            Window = Str(args, "window")!,
-            Handle = Long(args, "handle"),
-            Process = Str(args, "process")!,
-            ClassName = Str(args, "className")!,
-            Foreground = Bool(args, "foreground"),
-            By = Str(at, "by") ?? "name",
-            Value = Str(at, "value")!,
-            X = Int(at, "x"),
-            Y = Int(at, "y"),
-            Button = Str(args, "button") ?? "left",
-            Count = Int(args, "count") is int c and > 0 ? c : 1,
-        };
-    }
-
-    /// <summary>Flattens the drag tool's <c>path</c> array of <c>{ x, y }</c> points into DragCommand's <c>x,y;x,y</c> spec.</summary>
-    private static string BuildPathSpec(JsonArray? path) {
-        if (path is null || path.Count == 0) {
-            return string.Empty;
-        }
-        List<string> pairs = [];
-        foreach (JsonNode? node in path) {
-            if (node is JsonObject p) {
-                pairs.Add($"{Int(p, "x")},{Int(p, "y")}");
-            }
-        }
-        return string.Join(";", pairs);
-    }
+    internal static Command? BuildCommand(string name, JsonObject args) =>
+        ToolCatalog.TryGet(name, out ToolDescriptor descriptor)
+            ? descriptor.BuildCommand(args)
+            : null; // unknown name — the caller reports unknown-tool; never guess a command (#201)
 
     // -------------------------------------------------------------------------------------------
     // stdio transport
@@ -1341,13 +1108,4 @@ public static class AgentServer {
 
     private static string? Str(JsonObject a, string key) =>
         a[key] is JsonValue v && v.TryGetValue(out string? s) ? s : null;
-
-    private static long Long(JsonObject a, string key) =>
-        a[key] is JsonValue v && v.TryGetValue(out long l) ? l : 0;
-
-    private static int Int(JsonObject a, string key) =>
-        a[key] is JsonValue v && v.TryGetValue(out int i) ? i : 0;
-
-    private static bool Bool(JsonObject a, string key) =>
-        a[key] is JsonValue v && v.TryGetValue(out bool b) && b;
 }
