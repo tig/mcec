@@ -19,6 +19,20 @@ namespace MCEControl.xUnit.Services;
 /// stops consuming until a slot frees), mirroring the HTTP fan-out bound (#151).
 /// </summary>
 public class McpStdioTransportTests {
+    static McpStdioTransportTests() {
+        // These tests deliberately PARK a full cap's worth (16) of dispatches on blocking waits.
+        // On a 2-core hosted CI runner the thread pool starts near the core count and injects
+        // roughly one thread per second, so reaching 16 simultaneously-blocked workers takes
+        // ~14s — losing the race against the tests' 15s timeouts (the post-merge CI flake on
+        // #243). Guarantee the pool can field the whole cap (plus the overflow request and the
+        // loop's own work) without waiting on thread injection.
+        ThreadPool.GetMinThreads(out int workers, out int iocp);
+        int needed = McpStdioTransport.MaxConcurrentStdioRequests + 8;
+        if (workers < needed) {
+            ThreadPool.SetMinThreads(needed, iocp);
+        }
+    }
+
     private static string Request(int id) => $"{{\"jsonrpc\":\"2.0\",\"id\":{id},\"method\":\"x\"}}";
 
     private static JsonObject Ok(JsonObject req) =>
