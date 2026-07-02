@@ -82,7 +82,8 @@ public static class UiaService {
     }
 
     /// <summary>
-    /// Finds an element (5s timeout) and dispatches <paramref name="action"/>
+    /// Finds an element (a short <see cref="InvokeFindTimeoutMs"/> lookup — invoke fast-fails rather
+    /// than waiting; see that constant) and dispatches <paramref name="action"/>
     /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>).
     /// Returns true on success, false if the element wasn't found or the required pattern is
     /// unsupported. <c>expand</c> opens a collapsed menu/treeitem so its children become reachable —

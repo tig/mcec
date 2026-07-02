@@ -86,6 +86,38 @@ public class CommandTersifierTests {
     }
 
     [Fact]
+    public void Record_ShowsTarget_NotABareName() {
+        // #205: record had NO formatter and rendered as a bare "record" on the overlay. It mirrors
+        // capture (same window-or-region targeting).
+        string s = CommandTersifier.ForAgentTool("record", new JsonObject { ["window"] = "Clock" }, CommandOutcome.Ok);
+        Assert.Equal("record window=\"Clock\"", s);
+    }
+
+    [Fact]
+    public void Launch_ShowsQuotedPath_NotABareName() {
+        // #205: launch had NO formatter and rendered as a bare "launch" on the overlay.
+        string s = CommandTersifier.ForAgentTool("launch", new JsonObject { ["path"] = @"C:\Windows\notepad.exe" }, CommandOutcome.Ok);
+        Assert.Equal("launch \"C:\\Windows\\notepad.exe\"", s);
+    }
+
+    [Fact]
+    public void Click_PixelEndpoint_ShowsCoordinates() {
+        JsonObject args = new() { ["at"] = new JsonObject { ["x"] = 10, ["y"] = 20 } };
+        string s = CommandTersifier.ForAgentTool("click", args, CommandOutcome.Ok);
+        Assert.Equal("click 10,20", s);
+    }
+
+    [Fact]
+    public void Displays_IsArgumentless_RendersAsItsName() {
+        Assert.Equal("displays", CommandTersifier.ForAgentTool("displays", [], CommandOutcome.Ok));
+    }
+
+    [Fact]
+    public void UnknownTool_FallsBackToTheBareName() {
+        Assert.Equal("hover", CommandTersifier.ForAgentTool("hover", [], CommandOutcome.Ok));
+    }
+
+    [Fact]
     public void RawCommand_PrefixesSend_AndClipsLongCommands() {
         Assert.Equal("send winr", CommandTersifier.ForRawCommand("winr"));
         Assert.StartsWith("send ", CommandTersifier.ForRawCommand(new string('x', 80)));

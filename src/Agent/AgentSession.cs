@@ -146,8 +146,9 @@ public sealed class AgentSession {
         }
     }
 
+    /// <summary>The observation set is the <see cref="ToolDescriptor.IsObservation"/> flag in the catalog (#205).</summary>
     private static bool IsObservationTool(string toolName) =>
-        toolName is "query" or "capture" or "find" or "wait-for";
+        ToolCatalog.TryGet(toolName, out ToolDescriptor descriptor) && descriptor.IsObservation;
 
     /// <summary>Creates the per-session artifact directory if it does not yet exist and returns its path.</summary>
     public string EnsureArtifactDir() {

@@ -19,10 +19,10 @@ namespace MCEControl.xUnit.Commands;
 /// </summary>
 public class AgentCommandStructuralGateTests {
     /// <summary>
-    /// Every tool name in AgentServer's tools/call gate whitelist (the
-    /// <c>name is "capture" or "query" or ...</c> pattern the AgentCommandsEnabled check guards).
-    /// Kept as a test-side list because the whitelist is a C# pattern, not reflectable data; if a
-    /// name is added there without being added here, the reviewer checklist is this comment.
+    /// Every tool name in AgentServer's tools/call gate — which since #205 is exactly the
+    /// <see cref="ToolCatalog"/> membership. Kept as an INDEPENDENT test-side pin (not read from the
+    /// catalog) so removing or renaming a catalog entry can't silently shrink this enforcement;
+    /// <c>ToolCatalogTests</c> pins the same list against the catalog itself.
     /// </summary>
     private static readonly string[] GatedToolNames = [
         "capture", "query", "displays", "find", "wait-for", "invoke", "record", "launch", "drag", "click",
