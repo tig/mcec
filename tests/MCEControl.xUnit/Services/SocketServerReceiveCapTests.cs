@@ -89,14 +89,8 @@ public class SocketServerReceiveCapTests : IDisposable {
         var context = _server.RegisterClient(socket);
         var errors = new List<string>();
         var commands = new List<string>();
-        _server.Notifications += (notify, status, reply, msg) => {
-            if (notify == ServiceNotification.Error) {
-                errors.Add(msg);
-            }
-            else if (notify == ServiceNotification.ReceivedData) {
-                commands.Add(msg);
-            }
-        };
+        _server.ErrorOccurred += error => errors.Add(error.Message);
+        _server.CommandReceived += (reply, command) => commands.Add(command);
         Array.Fill(context.DataBuffer, (byte)'a');
 
         // 8 KB of delimiter-less data. #212: ONE overflow policy — the accumulator's
@@ -126,11 +120,7 @@ public class SocketServerReceiveCapTests : IDisposable {
         using Socket socket = NewSocket();
         var context = _server.RegisterClient(socket);
         var commands = new List<string>();
-        _server.Notifications += (notify, status, reply, msg) => {
-            if (notify == ServiceNotification.ReceivedData) {
-                commands.Add(msg);
-            }
-        };
+        _server.CommandReceived += (reply, command) => commands.Add(command);
         byte[] data = Encoding.ASCII.GetBytes("mute\n");
         Array.Copy(data, context.DataBuffer, data.Length);
 

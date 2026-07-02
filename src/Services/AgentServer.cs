@@ -64,6 +64,19 @@ public static class AgentServer {
     private static Thread? _httpThread;
 
     /// <summary>
+    /// Whether the MCP HTTP transport is currently listening. Read-only status for the GUI's
+    /// status strip (#211) — nothing more; turning AgentServer into a real lifecycle-bearing
+    /// service is #215.
+    /// </summary>
+    internal static bool IsHttpListening {
+        get {
+            lock (HttpLock) {
+                return _listener is not null;
+            }
+        }
+    }
+
+    /// <summary>
     /// Whether <paramref name="tool"/> serializes on the shared input gate
     /// (<see cref="AgentRuntime.InputGate"/> — the #113 contract). Global-input actuation
     /// (<c>drag</c>, <c>send_command</c>) does — it synthesizes physical mouse/keyboard, one shared

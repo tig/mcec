@@ -60,11 +60,9 @@ public class SocketClientLifecycleTests {
         };
         var client = new SocketClient(settings);
         var list = new List<string>();
-        client.Notifications += (notify, status, reply, msg) => {
-            if (notify == ServiceNotification.ReceivedData) {
-                lock (list) {
-                    list.Add(msg);
-                }
+        client.CommandReceived += (reply, command) => {
+            lock (list) {
+                list.Add(command);
             }
         };
         received = list;

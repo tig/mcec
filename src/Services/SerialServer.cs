@@ -170,10 +170,8 @@ public sealed class SerialServer : ServiceBase, IDisposable {
                 char c = (char)_serialPort.ReadChar();
                 string? cmd = accumulator.ProcessChar(c, onOverflow);
                 if (cmd != null) {
-                    SendNotification(ServiceNotification.ReceivedData,
-                                    CurrentStatus,
-                                    new SerialReplyContext(_serialPort),
-                                    cmd);
+                    Log4.Info($"SerialServer: Received: {cmd}");
+                    OnCommandReceived(new SerialReplyContext(_serialPort), cmd);
                 }
             }
             catch (TimeoutException) {
@@ -198,13 +196,6 @@ public sealed class SerialServer : ServiceBase, IDisposable {
             _serialPort.Write(text);
         }
 
-        // TODO: Implement notifications
-        //if (_mainSocket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
-        //    SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());
-        //}
-        //else {
-        //    SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext, text);
-        //}
-
+        // TODO: Report write failures via ErrorOccurred (#211) once this path is actually tested.
     }
 }

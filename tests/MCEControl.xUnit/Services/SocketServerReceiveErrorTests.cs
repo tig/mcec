@@ -66,19 +66,19 @@ public class SocketServerReceiveErrorTests : IDisposable {
     }
 
     [Fact]
-    public void HandleReceiveError_EmitsErrorNotification() {
+    public void HandleReceiveError_EmitsErrorOccurred_WithTypedSocketError() {
         using Socket socket = NewSocket();
         var context = _server.RegisterClient(socket);
-        bool errored = false;
-        _server.Notifications += (notify, status, reply, msg) => {
-            if (notify == ServiceNotification.Error) {
-                errored = true;
-            }
-        };
+        ServiceError? received = null;
+        _server.ErrorOccurred += error => received = error;
 
         _server.HandleReceiveError(context, new SocketException((int)SocketError.NetworkDown));
 
-        Assert.True(errored, "terminal receive error did not emit an Error notification");
+        Assert.NotNull(received);
+        // #211: the error carries the TYPED SocketError (the old stringly notification
+        // flattened it into the message text).
+        Assert.Equal(SocketError.NetworkDown, received!.SocketError);
+        Assert.StartsWith("OnDataReceived:", received.Message, StringComparison.Ordinal);
     }
 
     [Fact]

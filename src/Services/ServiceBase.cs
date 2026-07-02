@@ -1,17 +1,16 @@
-﻿//-------------------------------------------------------------------
+//-------------------------------------------------------------------
 // Copyright © 2019 Kindel, LLC
 // http://www.kindel.com
 // charlie@kindel.com
-// 
+//
 // Published under the MIT License.
-// Source on GitHub: https://github.com/tig/mcec  
+// Source on GitHub: https://github.com/tig/mcec
 //-------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
 using log4net;
 
 namespace MCEControl;
@@ -28,8 +27,23 @@ public abstract class ServiceBase {
         CurrentStatus = ServiceStatus.Stopped;
     }
 
-    public delegate void NotificationCallback(ServiceNotification notify, ServiceStatus status, Reply reply, string msg = "");
-    public event NotificationCallback Notifications = null!;
+    // Typed service events (#211). These replace the old 4-arg stringly NotificationCallback
+    // (with its god-enum ServiceNotification) that forced every subscriber to demultiplex
+    // lifecycle, data, and diagnostics out of one callback. Events are raised on whatever
+    // thread the transport happens to be running on (ThreadPool callbacks, read threads,
+    // async continuations) — subscribers own any UI-thread marshaling.
+
+    /// <summary>Raised when the service's lifecycle status changes. <c>detail</c> is optional
+    /// human-readable context (e.g. the bound endpoint for Started).</summary>
+    public event Action<ServiceStatus, string>? StatusChanged;
+
+    /// <summary>Raised when a complete command has been received from the transport.
+    /// <c>reply</c> is the context any command output should be written back to.</summary>
+    public event Action<Reply, string>? CommandReceived;
+
+    /// <summary>Raised when the service hits an error. The <see cref="ServiceError"/> carries
+    /// the typed <see cref="System.Net.Sockets.SocketError"/>/HResult when one applies.</summary>
+    public event Action<ServiceError>? ErrorOccurred;
 
     public ServiceStatus CurrentStatus { get; set; }
 
@@ -50,10 +64,10 @@ public abstract class ServiceBase {
         TelemetryService.Instance.TrackMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent", 1);
     }
 
-    // Send a status notification
+    // Set the current status and raise StatusChanged
     protected void SetStatus(ServiceStatus status, String msg = "") {
 
-        // TELEMETRY: 
+        // TELEMETRY:
         // what: Service status
         // why: to understand the typical/non-typical conenction flows
         // how is PII protected: no PII is involved
@@ -67,7 +81,7 @@ public abstract class ServiceBase {
             case ServiceStatus.Stopped:
                 if (_connectedTime.IsRunning) {
                     _connectedTime.Stop();
-                    // TELEMETRY: 
+                    // TELEMETRY:
                     // what: how long the session was connected for
                     // why: to understand the typical/non-typical connection scenarios
                     // how is PII protected: no PII is involved
@@ -76,16 +90,25 @@ public abstract class ServiceBase {
                 break;
         }
         CurrentStatus = status;
-        SendNotification(ServiceNotification.StatusChange, status, null, msg);
+        StatusChanged?.Invoke(status, msg);
     }
 
-    protected void SendNotification(ServiceNotification notification, ServiceStatus status, Reply? replyContext = null, String msg = "") {
-        Notifications?.Invoke(notification, status, replyContext!, msg);
+    // Raise CommandReceived for a complete command received from the transport
+    protected void OnCommandReceived(Reply reply, string command) {
+        CommandReceived?.Invoke(reply, command);
     }
 
-    // Send an error notification
+    // Raise ErrorOccurred for a plain-message error
     protected void Error(String msg) {
-        Log4.Debug(msg);
-        Notifications?.Invoke(ServiceNotification.Error, CurrentStatus, null!, msg);
+        Error(new ServiceError(msg));
+    }
+
+    // Raise ErrorOccurred with a typed error payload
+    protected void Error(ServiceError error) {
+        if (error is null) {
+            throw new ArgumentNullException(nameof(error));
+        }
+        Log4.Debug(error.ToString());
+        ErrorOccurred?.Invoke(error);
     }
 }
