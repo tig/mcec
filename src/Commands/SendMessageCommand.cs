@@ -13,10 +13,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Xml.Serialization;
-using Microsoft.Win32.Security;
 
-namespace MCEControl; 
-using DWORD = UInt32;
+namespace MCEControl;
 
 /// <summary>
 /// Summary description for SendMessageCommand.
@@ -87,7 +85,7 @@ public class SendMessageCommand : Command {
                     else {
                         Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(\"{win.MainWindowTitle}\", {Msg}, {WParam}, {LParam}) - {ToString()}");
                         // #203: (nint) sign-extends the stored int (lParam=-1 stays -1 on x64).
-                        Win32.SendMessage(win.MainWindowHandle, (DWORD)Msg, (nint)WParam, (nint)LParam);
+                        Win32NativeMethods.SendMessage(win.MainWindowHandle, (uint)Msg, (nint)WParam, (nint)LParam);
                     }
                 }
                 else {
@@ -96,9 +94,11 @@ public class SendMessageCommand : Command {
                 }
             }
             else {
-                IntPtr h = Win32.GetForegroundWindow();
+                // #210: GetForegroundWindow is declared once, in AgentNativeMethods (same import,
+                // shared rather than duplicated here).
+                IntPtr h = AgentNativeMethods.GetForegroundWindow();
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(<forground window>, {Msg}, {WParam}, {LParam}) - {ToString()}");
-                Win32.SendMessage(h, (DWORD)Msg, (nint)WParam, (nint)LParam);
+                Win32NativeMethods.SendMessage(h, (uint)Msg, (nint)WParam, (nint)LParam);
             }
         }
         catch (Exception e) {

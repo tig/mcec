@@ -235,7 +235,7 @@ InputSimulator (facade)
 - **WindowsInputMessageDispatcher**: Sends INPUT arrays to Win32 SendInput API
 
 **Win32 Integration**:
-- Unsafe code for P/Invoke
+- P/Invoke declarations in `WindowsInput\Native\NativeMethods.cs` (no `unsafe` code)
 - Uses Windows.h structures (INPUT, KEYBDINPUT, MOUSEINPUT)
 - Virtual key codes (VirtualKeyCode enum)
 - Mouse and keyboard flags
@@ -308,16 +308,13 @@ InputSimulator (facade)
 
 ### 6. Win32 Integration Layer
 
-**Location**: `Win32\` namespace
+**Purpose**: Small, per-subsystem P/Invoke declarations for the Windows APIs MCEC actually calls. There is no shared native library and no `unsafe` code; each subsystem declares only what it uses, and no import is declared twice. (The vendored `Microsoft.Win32.Security` fork — token manipulation, ACLs, SIDs — was dead code and was deleted in #210.)
 
-**Purpose**: P/Invoke wrappers for Windows APIs
-
-**Key Areas**:
-- **Security**: Token manipulation, ACLs, SIDs (for process elevation/security)
-- **Window Management**: FindWindow, PostMessage, SendMessage
-- **Input**: SendInput, keybd_event, mouse_event
-- **Process**: CreateProcess wrappers
-- **Memory**: Marshaling utilities for unmanaged structures
+**The four islands**:
+- **`Win32NativeMethods.cs`** (core app): window messaging — `SendMessage`, `PostMessage`, `SetForegroundWindow`, plus the `WM_SYSCOMMAND`/`SC_CLOSE` constants. Used by MainWindow (hide-on-startup), SendMessageCommand, and SetForegroundWindowCommand.
+- **`WindowsInput\Native\NativeMethods.cs`**: input simulation — `SendInput`, `GetKeyState`/`GetAsyncKeyState`, `GetMessageExtraInfo`, `FindWindow`, `GetClassName`.
+- **`Gma.UserActivityMonitor`** (`NativeMethods.cs` + `HookManager`): global low-level hooks (`SetWindowsHookEx`/`UnhookWindowsHookEx`/`CallNextHookEx`, `IntPtr` hook handles) and power-broadcast notifications.
+- **`Agent\AgentNativeMethods.cs`**: agent observation — `PrintWindow`, window rect/text/class metadata, `EnumWindows`, per-monitor DPI, and the layered-window plumbing for the command overlay.
 
 ### 7. Third-Party Libraries
 
@@ -415,7 +412,7 @@ InputSimulator (facade)
 3. **Registry Override**: `DisableInternalCommands` registry key can block all built-in commands
 4. **Network Security**: No authentication on socket connections (assumes trusted network)
 5. **Telemetry Privacy**: PII filtering via attributes, user-defined commands not tracked
-6. **Process Elevation**: Uses Win32 security APIs for UAC/token manipulation when needed
+6. **No Token Manipulation**: MCEC contains no privilege/token/ACL code. Shutdown and restart shell out to `shutdown.exe` (ShutdownCommand) at the caller's existing privilege level; nothing elevates.
 
 ## Threading Model
 

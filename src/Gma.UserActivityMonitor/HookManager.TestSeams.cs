@@ -16,9 +16,9 @@ public static partial class HookManager {
     /// <summary>
     /// Sentinel stored in the hook-handle fields when <see cref="SuppressRealHooksForTesting"/> is
     /// set, so install/uninstall state stays observable without a real hook. A real
-    /// SetWindowsHookEx handle is never -1.
+    /// SetWindowsHookEx handle is never -1. (IntPtr since #210 — hook handles are pointer-sized.)
     /// </summary>
-    private const int FakeHookHandle = -1;
+    private static readonly IntPtr FakeHookHandle = new(-1);
 
     /// <summary>
     /// When true, the real SetWindowsHookEx/UnhookWindowsHookEx calls are skipped while ALL of the
@@ -28,10 +28,10 @@ public static partial class HookManager {
     internal static bool SuppressRealHooksForTesting { get; set; }
 
     /// <summary>True while the low-level mouse hook is installed (real or fake).</summary>
-    internal static bool IsMouseHookInstalled => s_MouseHookHandle != 0;
+    internal static bool IsMouseHookInstalled => s_MouseHookHandle != IntPtr.Zero;
 
     /// <summary>True while the low-level keyboard hook is installed (real or fake).</summary>
-    internal static bool IsKeyboardHookInstalled => s_KeyboardHookHandle != 0;
+    internal static bool IsKeyboardHookInstalled => s_KeyboardHookHandle != IntPtr.Zero;
 
     internal static int KeyDownSubscriberCount => SubscriberCount(s_KeyDown);
     internal static int KeyUpSubscriberCount => SubscriberCount(s_KeyUp);

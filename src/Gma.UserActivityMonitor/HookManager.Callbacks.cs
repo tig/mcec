@@ -53,15 +53,10 @@ public static partial class HookManager {
     /// <summary>
     /// Stores the handle to the mouse hook procedure.
     /// </summary>
-    private static int s_MouseHookHandle;
+    private static IntPtr s_MouseHookHandle;
 
     private static int m_OldX;
     private static int m_OldY;
-
-#pragma warning disable CA1060
-    // See https://stackoverflow.com/questions/17897646/setwindowshookex-fails-with-error-126
-    [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Ansi)]
-    static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPWStr)] string lpFileName);
 
     /// <summary>
     /// A callback function which will be called every Time a mouse activity detected.
@@ -204,7 +199,7 @@ public static partial class HookManager {
 
     private static void EnsureSubscribedToGlobalMouseEvents() {
         // install Mouse hook only if it is not installed and must be installed
-        if (s_MouseHookHandle == 0) {
+        if (s_MouseHookHandle == IntPtr.Zero) {
             // Test seam (InternalsVisibleTo MCEControl.xUnit): skip the real hook so the
             // subscribe/unsubscribe bookkeeping is testable on hosted CI (no interactive desktop).
             if (SuppressRealHooksForTesting) {
@@ -215,16 +210,19 @@ public static partial class HookManager {
             //See comment of this field. To avoid GC to clean it up.
             s_MouseDelegate = MouseHookProc;
             //install hook
-            // See https://stackoverflow.com/questions/17897646/setwindowshookex-fails-with-error-126
-            IntPtr mar = LoadLibrary("user32.dll");
+            // #210: hMod is deliberately NULL. For low-level hooks (WH_MOUSE_LL/WH_KEYBOARD_LL) the
+            // callback runs in the installing process, so the system never uses hMod and NULL is
+            // valid (see SetWindowsHookExW docs). The previous LoadLibrary("user32.dll") "fix" was
+            // declared CharSet.Ansi with an LPWStr parameter — it always failed and silently passed
+            // NULL anyway, which only worked because LL hooks ignore hMod.
             s_MouseHookHandle = SetWindowsHookEx(
                 WH_MOUSE_LL,
                 s_MouseDelegate,
-                mar,
+                IntPtr.Zero,
                 0);
 
             //If SetWindowsHookEx fails.
-            if (s_MouseHookHandle == 0) {
+            if (s_MouseHookHandle == IntPtr.Zero) {
                 //Returns the error code returned by the last unmanaged function called using platform invoke that has the DllImportAttribute.SetLastError flag set. 
                 int errorCode = Marshal.GetLastWin32Error();
                 //do cleanup
@@ -249,23 +247,23 @@ public static partial class HookManager {
     }
 
     private static void ForceUnsunscribeFromGlobalMouseEvents() {
-        if (s_MouseHookHandle != 0) {
+        if (s_MouseHookHandle != IntPtr.Zero) {
             // Test seam: a fake hook (see EnsureSubscribedToGlobalMouseEvents) is "uninstalled" by
             // resetting the bookkeeping — there is no real hook to unhook.
             if (s_MouseHookHandle == FakeHookHandle) {
-                s_MouseHookHandle = 0;
+                s_MouseHookHandle = IntPtr.Zero;
                 s_MouseDelegate = null;
                 return;
             }
 
             //uninstall hook
-            int result = UnhookWindowsHookEx(s_MouseHookHandle);
+            bool result = UnhookWindowsHookEx(s_MouseHookHandle);
             //reset invalid handle
-            s_MouseHookHandle = 0;
+            s_MouseHookHandle = IntPtr.Zero;
             //Free up for GC
             s_MouseDelegate = null;
             //if failed and exception must be thrown
-            if (result == 0) {
+            if (!result) {
                 //Returns the error code returned by the last unmanaged function called using platform invoke that has the DllImportAttribute.SetLastError flag set. 
                 int errorCode = Marshal.GetLastWin32Error();
                 //Initializes and throws a new instance of the Win32Exception class with the specified error. 
@@ -290,7 +288,7 @@ public static partial class HookManager {
     /// <summary>
     /// Stores the handle to the Keyboard hook procedure.
     /// </summary>
-    private static int s_KeyboardHookHandle;
+    private static IntPtr s_KeyboardHookHandle;
 
     /// <summary>
     /// A callback function which will be called every Time a keyboard activity detected.
@@ -355,8 +353,10 @@ public static partial class HookManager {
 
             // raise KeyPress
             if (s_KeyPress != null && wParam == WM_KEYDOWN) {
-                bool isDownShift = ((GetKeyState(VK_SHIFT) & 0x80) == 0x80 ? true : false);
-                bool isDownCapslock = (GetKeyState(VK_CAPITAL) != 0 ? true : false);
+                // #210: GetKeyState is declared once, in WindowsInput.Native.NativeMethods (the
+                // duplicate private import here was removed).
+                bool isDownShift = ((WindowsInput.Native.NativeMethods.GetKeyState(VK_SHIFT) & 0x80) == 0x80 ? true : false);
+                bool isDownCapslock = (WindowsInput.Native.NativeMethods.GetKeyState(VK_CAPITAL) != 0 ? true : false);
 
                 byte[] keyState = new byte[256];
 #pragma warning disable CA1806 // Do not ignore method results
@@ -400,7 +400,7 @@ public static partial class HookManager {
 
     private static void EnsureSubscribedToGlobalKeyboardEvents() {
         // install Keyboard hook only if it is not installed and must be installed
-        if (s_KeyboardHookHandle == 0) {
+        if (s_KeyboardHookHandle == IntPtr.Zero) {
             // Test seam (InternalsVisibleTo MCEControl.xUnit): skip the real hook so the
             // subscribe/unsubscribe bookkeeping is testable on hosted CI (no interactive desktop).
             if (SuppressRealHooksForTesting) {
@@ -412,16 +412,16 @@ public static partial class HookManager {
             s_KeyboardDelegate = KeyboardHookProc;
 
             //install hook
-            // See https://stackoverflow.com/questions/17897646/setwindowshookex-fails-with-error-126
-            IntPtr mar = LoadLibrary("user32.dll");
+            // #210: hMod is deliberately NULL — see the LL-hook note in
+            // EnsureSubscribedToGlobalMouseEvents.
             s_KeyboardHookHandle = SetWindowsHookEx(
                 WH_KEYBOARD_LL,
                 s_KeyboardDelegate,
-                mar,
+                IntPtr.Zero,
                 0);
 
             //If SetWindowsHookEx fails.
-            if (s_KeyboardHookHandle == 0) {
+            if (s_KeyboardHookHandle == IntPtr.Zero) {
                 //Returns the error code returned by the last unmanaged function called using platform invoke that has the DllImportAttribute.SetLastError flag set. 
                 int errorCode = Marshal.GetLastWin32Error();
                 //do cleanup
@@ -444,23 +444,23 @@ public static partial class HookManager {
     }
 
     private static void ForceUnsunscribeFromGlobalKeyboardEvents() {
-        if (s_KeyboardHookHandle != 0) {
+        if (s_KeyboardHookHandle != IntPtr.Zero) {
             // Test seam: a fake hook (see EnsureSubscribedToGlobalKeyboardEvents) is "uninstalled" by
             // resetting the bookkeeping — there is no real hook to unhook.
             if (s_KeyboardHookHandle == FakeHookHandle) {
-                s_KeyboardHookHandle = 0;
+                s_KeyboardHookHandle = IntPtr.Zero;
                 s_KeyboardDelegate = null;
                 return;
             }
 
             //uninstall hook
-            int result = UnhookWindowsHookEx(s_KeyboardHookHandle);
+            bool result = UnhookWindowsHookEx(s_KeyboardHookHandle);
             //reset invalid handle
-            s_KeyboardHookHandle = 0;
+            s_KeyboardHookHandle = IntPtr.Zero;
             //Free up for GC
             s_KeyboardDelegate = null;
             //if failed and exception must be thrown
-            if (result == 0) {
+            if (!result) {
                 //Returns the error code returned by the last unmanaged function called using platform invoke that has the DllImportAttribute.SetLastError flag set. 
                 int errorCode = Marshal.GetLastWin32Error();
                 //Initializes and throws a new instance of the Win32Exception class with the specified error. 

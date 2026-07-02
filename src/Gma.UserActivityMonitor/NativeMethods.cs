@@ -5,10 +5,6 @@ using System.Runtime.InteropServices;
 namespace Gma.UserActivityMonitor; 
 // See https://docs.microsoft.com/en-us/visualstudio/code-quality/ca1060-move-p-invokes-to-nativemethods-class?view=vs-2019
 internal static class NativeMethods {
-    // See https://stackoverflow.com/questions/17897646/setwindowshookex-fails-with-error-126
-    [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Ansi)]
-    internal static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPWStr)] string lpFileName);
-
     // https://www.pinvoke.net/default.aspx/user32/RegisterPowerSettingNotification.html
     // https://docs.microsoft.com/en-us/archive/msdn-magazine/2007/june/net-matters-handling-messages-in-console-apps
     [DllImport(@"User32", SetLastError = true, EntryPoint = "RegisterPowerSettingNotification", CallingConvention = CallingConvention.StdCall)]
