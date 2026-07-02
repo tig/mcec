@@ -24,6 +24,12 @@ namespace MCEControl;
 /// fully opaque and readable. It registers its own handle with <see cref="WindowResolver"/> so an agent
 /// never sees or drives its own overlay, and it never takes focus or input (WS_EX_NOACTIVATE +
 /// WS_EX_TRANSPARENT).</para>
+///
+/// <para>It covers the full screen (not just the working area) and re-asserts top-most Z-order on every
+/// paint (<see cref="PushLayered"/>), so a window created top-most AFTER the overlay cannot occlude it;
+/// a one-time WS_EX_TOPMOST would sink below any later top-most window. The feed cap scales with the
+/// screen height (<see cref="OverlayLayout.MaxLines"/>) so lines fill the whole height rather than only
+/// the bottom.</para>
 /// </summary>
 public sealed class CommandOverlayWindow : Form {
     private const int WS_EX_TRANSPARENT = 0x00000020;
@@ -39,7 +45,7 @@ public sealed class CommandOverlayWindow : Form {
     // so it reads as an alarm, not a fading log line).
     private static readonly Color _stoppedBackground = Color.FromArgb(235, 176, 0, 0);
 
-    private readonly OverlayFeed _feed = new(maxLines: 8, lifetime: TimeSpan.FromSeconds(8));
+    private readonly OverlayFeed _feed;
     private readonly Action<CommandEvent> _onEvent;
     private readonly Action<bool> _onEmergencyStop;
     private readonly System.Windows.Forms.Timer _ageTimer;
@@ -59,7 +65,13 @@ public sealed class CommandOverlayWindow : Form {
         StartPosition = FormStartPosition.Manual;
         Text = string.Empty;
         _side = AgentRuntime.Settings?.CommandOverlayPosition ?? OverlayPosition.Right;
-        Bounds = OverlayLayout.ForSide(Screen.PrimaryScreen!.WorkingArea, 0.30, _side);
+        // Full screen bounds, not WorkingArea: the overlay is meant to sit above everything (including
+        // over the taskbar), and using the full height is what lets the feed scroll top to bottom.
+        Rectangle bounds = OverlayLayout.ForSide(Screen.PrimaryScreen!.Bounds, 0.30, _side);
+        Bounds = bounds;
+        // Cap the feed to fill the actual overlay height (the old fixed 8 left tall screens empty above
+        // the last few lines); the renderer's geometric break still trims anything past the top edge.
+        _feed = new OverlayFeed(maxLines: OverlayLayout.MaxLines(bounds.Height), lifetime: TimeSpan.FromSeconds(8));
 
         _onEvent = OnCommandEvent;
         CommandEventHub.Subscribe(_onEvent);
@@ -254,6 +266,14 @@ public sealed class CommandOverlayWindow : Form {
                 AlphaFormat = AgentNativeMethods.AC_SRC_ALPHA,
             };
             AgentNativeMethods.UpdateLayeredWindow(Handle, screenDc, ref dst, ref size, memDc, ref src, 0, ref blend, AgentNativeMethods.ULW_ALPHA);
+
+            // Re-assert top-most on every paint. WS_EX_TOPMOST only puts the window in the always-on-top
+            // band at creation; any window that goes top-most LATER lands above it. Bumping to
+            // HWND_TOPMOST here (driven by the 300ms age timer) keeps the overlay at the top of that band
+            // so it is not occluded. NOMOVE|NOSIZE preserve the layered geometry; NOACTIVATE keeps it
+            // click-through and never steals focus from the app being driven.
+            AgentNativeMethods.SetWindowPos(Handle, AgentNativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+                AgentNativeMethods.SWP_NOMOVE | AgentNativeMethods.SWP_NOSIZE | AgentNativeMethods.SWP_NOACTIVATE);
         }
         finally {
             if (oldBmp != IntPtr.Zero) {

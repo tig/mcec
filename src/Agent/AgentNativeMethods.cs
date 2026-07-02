@@ -42,6 +42,18 @@ internal static class AgentNativeMethods {
     /// <summary>BLENDFUNCTION AlphaFormat: the source bitmap has per-pixel alpha.</summary>
     public const byte AC_SRC_ALPHA = 0x01;
 
+    /// <summary>SetWindowPos hWndInsertAfter: place the window at the top of the always-on-top band.</summary>
+    public static readonly IntPtr HWND_TOPMOST = new(-1);
+
+    /// <summary>SetWindowPos flag: keep the current size (ignore cx/cy).</summary>
+    public const uint SWP_NOSIZE = 0x0001;
+
+    /// <summary>SetWindowPos flag: keep the current position (ignore X/Y).</summary>
+    public const uint SWP_NOMOVE = 0x0002;
+
+    /// <summary>SetWindowPos flag: do not activate the window (never steal focus from the driven app).</summary>
+    public const uint SWP_NOACTIVATE = 0x0010;
+
     /// <summary>Render the full window content, including DirectComposition/DWM surfaces.</summary>
     public const uint PW_RENDERFULLCONTENT = 0x00000002;
 
@@ -82,6 +94,10 @@ internal static class AgentNativeMethods {
 
     [DllImport(User32)]
     public static extern IntPtr GetForegroundWindow();
+
+    [DllImport(User32, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
     [DllImport(User32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
