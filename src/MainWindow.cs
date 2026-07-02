@@ -17,7 +17,6 @@ using Gma.UserActivityMonitor;
 using log4net;
 using MCEControl.Dialogs;
 using Microsoft.Win32;
-using Microsoft.Win32.Security;
 using static Gma.UserActivityMonitor.NativeMethods;
 
 namespace MCEControl; 
@@ -154,7 +153,7 @@ public partial class MainWindow : Form {
 
         if (Settings.HideOnStartup) {
             Opacity = 0;
-            Win32.PostMessage(Handle, (UInt32)WM.SYSCOMMAND, (nint)SC.CLOSE, 0);
+            Win32NativeMethods.PostMessage(Handle, Win32NativeMethods.WM_SYSCOMMAND, Win32NativeMethods.SC_CLOSE, 0);
         }
 
         SystemEvents.UserPreferenceChanged += new UserPreferenceChangedEventHandler(SystemEvents_UserPreferenceChanged);

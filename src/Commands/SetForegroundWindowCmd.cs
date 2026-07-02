@@ -12,9 +12,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
-using Microsoft.Win32.Security;
 
-namespace MCEControl; 
+namespace MCEControl;
 /// <summary>
 /// Summary description for SetForegroundWindowCommand.
 /// </summary>
@@ -58,7 +57,7 @@ public class SetForegroundWindowCommand : Command {
                     Process? process = procs.Where(p => p.MainWindowHandle != IntPtr.Zero).FirstOrDefault();
 
                     Logger.Instance.Log4.Info($"{this.GetType().Name}: SetForegroundWindow({ClassName})");
-                    Win32.SetForegroundWindow(process!.MainWindowHandle);
+                    Win32NativeMethods.SetForegroundWindow(process!.MainWindowHandle);
                 }
                 else {
                     Logger.Instance.Log4.Info($"{this.GetType().Name}: GetProcessByName for {ClassName} failed");
