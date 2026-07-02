@@ -137,7 +137,7 @@ failed call is debuggable without rerunning it):
   "error": {
     "code": "window-not-found",
     "category": "no-target",
-    "detail": "No matching window for selector window='Setttings'.",
+    "detail": "No matching window for selector window='Settings'.",
     "lastObservation": { /* the last good query/capture */ }
   },
   "sessionId": "5f19c9c01a3f"
