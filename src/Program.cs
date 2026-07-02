@@ -94,7 +94,12 @@ internal static class Program {
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        Application.Run(MainWindow.Instance);
+        // #209: the ONLY place the MainWindow Form is constructed. MainWindow.Instance is explicitly
+        // assigned here (no more lazy construct-on-touch); anything that touches it earlier — or ever,
+        // in headless --mcp mode — gets a pointed exception instead of a silent Form on the wrong thread.
+        MainWindow mainWindow = new();
+        MainWindow.Instance = mainWindow;
+        Application.Run(mainWindow);
 
         Logger.Instance.Log4.Debug($"------ END runtime: {TelemetryService.Instance.RunTime!.Elapsed:g} ------");
     }
@@ -127,6 +132,10 @@ internal static class Program {
         AgentRuntime.Settings = settings;
         AgentRuntime.Invoker = CommandInvoker.Create(
             $@"{ConfigPath}mcec.commands", Application.ProductVersion, settings.DisableInternalCommands);
+        // #209: the headless host capabilities — SendLine is a logged no-op (no legacy transports),
+        // RequestShutdown is a clean deferred process exit (so mcec:exit over MCP works headless),
+        // and MessageWindowHandle throws (the activity monitor never runs headless).
+        AgentRuntime.Host = new HeadlessAppHost();
 
         Logger.Instance.Log4.Info($"MCEC: headless MCP mode (AgentCommandsEnabled={settings.AgentCommandsEnabled}).");
 
