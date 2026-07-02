@@ -51,6 +51,10 @@ public partial class MainWindow : Form, IAppHost {
     // or the app is exiting
     private bool shuttingDown;
 
+    // #213: both exit paths (menu exit and OS logoff) converge on PerformShutdown(); this gate
+    // makes that teardown run exactly once.
+    private readonly OnceGate shutdownGate = new();
+
     // Settings
     public AppSettings Settings { get; set; } = null!;
 
@@ -298,21 +302,52 @@ public partial class MainWindow : Form, IAppHost {
         else {
             Logger.Instance.Log4.Info("Closing Main Window...");
 
-            // #195: stop the command dispatcher thread (drops anything still queued; a drop that
-            // severs a command tree releases held input). The bounded join lets an in-flight
-            // command usually finish cleanly; the thread is background so it can never keep the
-            // process alive past that.
-            Invoker?.Shutdown(joinTimeoutMs: 2000);
-
-            // Save Commands
-            // Stop file system watcher
-            watcher!.Dispose();
-            watcher = null;
-
-            // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
-            //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
-            TelemetryService.Instance.Stop();
+            // #213: two ways to get here with shuttingDown set — menu exit (ShutDown() already ran
+            // PerformShutdown() and then Close()d us; the gate makes this a no-op) and OS
+            // logoff/shutdown (WM_QUERYENDSESSION set the flag and Windows closes the window; this
+            // is the ONLY teardown that will run). The logoff path used to skip Stop() and the
+            // settings save entirely — window size/location changes were silently lost on every
+            // logoff and EmergencyStop/AgentServer relied on process teardown.
+            PerformShutdown();
         }
+    }
+
+    /// <summary>
+    /// The single, idempotent application teardown (#213), shared by BOTH exit paths: menu exit
+    /// (<see cref="ShutDown"/>) and OS logoff/shutdown (WM_QUERYENDSESSION →
+    /// <see cref="mainWindow_Closing"/>). Stops the services, persists window placement and
+    /// settings via the SettingsStore path (#216), stops the command dispatcher (#195), and stops
+    /// telemetry. Must run on the UI thread (both callers do).
+    /// </summary>
+    private void PerformShutdown() {
+        if (!shutdownGate.TryEnter()) {
+            return;
+        }
+
+        Stop();
+
+        // hide icon from the systray
+        notifyIcon.Visible = false;
+
+        // Save the window size/location
+        Settings.WindowLocation = Location;
+        Settings.WindowSize = Size;
+        SaveSettings(Settings);
+
+        // #195: stop the command dispatcher thread (drops anything still queued; a drop that
+        // severs a command tree releases held input). The bounded join lets an in-flight
+        // command usually finish cleanly; the thread is background so it can never keep the
+        // process alive past that.
+        Invoker?.Shutdown(joinTimeoutMs: 2000);
+
+        // Save Commands
+        // Stop file system watcher
+        watcher?.Dispose();
+        watcher = null;
+
+        // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
+        //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
+        TelemetryService.Instance.Stop();
     }
 
     private void Start() {
@@ -397,15 +432,8 @@ public partial class MainWindow : Form, IAppHost {
         Logger.Instance.Log4.Info("Exiting app...");
         shuttingDown = true;
 
-        Stop();
-
-        // hide icon from the systray
-        notifyIcon.Visible = false;
-
-        // Save the window size/location
-        Settings.WindowLocation = Location;
-        Settings.WindowSize = Size;
-        SaveSettings(Settings);
+        // #213: the one idempotent teardown, shared with the OS-logoff path (mainWindow_Closing).
+        PerformShutdown();
 
         Close();
         Application.Exit();
