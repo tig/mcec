@@ -139,7 +139,7 @@ namespace MCEControl
             this.statusStripClient,
             this.statusStripServer,
             this.statusStripSerial});
-            this.statusStrip.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
+            this.statusStrip.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.Table;
             this.statusStrip.Location = new System.Drawing.Point(0, 237);
             this.statusStrip.Name = "statusStrip";
             this.statusStrip.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
@@ -156,6 +156,7 @@ namespace MCEControl
             this.statusStripStatus.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.statusStripStatus.Name = "statusStripStatus";
             this.statusStripStatus.Size = new System.Drawing.Size(123, 19);
+            this.statusStripStatus.Spring = true;
             this.statusStripStatus.Text = "MCEC Status";
             this.statusStripStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.statusStripStatus.Click += new System.EventHandler(this.statusStripStatus_Click);
