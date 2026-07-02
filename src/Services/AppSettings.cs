@@ -105,6 +105,18 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public int ServerPort { get; set; } = 5150;
 
+    // SECURITY (issue #149): which interface the TCP/IP command server binds to. The command server
+    // turns received strings into keyboard/mouse/process actions with NO socket authentication (by
+    // design, trusted-network model), so the bind interface is a security control. Accepted values
+    // (case-insensitive): "0.0.0.0"/"any"/"*" (all interfaces), "127.0.0.1"/"localhost"/"loopback"
+    // (single machine only), "::1", or a specific local IP. Junk is rejected loudly and falls back to
+    // loopback (see SocketServer.ResolveBindAddress).
+    // DEFAULT is "0.0.0.0" (all interfaces) to preserve the long-standing behavior on upgrade — many
+    // existing installs are driven from another host on a trusted LAN. Single-machine operators should
+    // set this to "127.0.0.1" to keep the unauthenticated command port off the network.
+    // TELEMETRY: A bind address is PII-adjacent, so it is not collected (mirrors McpBindAddress).
+    public string SocketServerBindAddress { get; set; } = "0.0.0.0";
+
     // [SafeForTelemetryAttribute] 
     // TELEMETRY: WakeupCommand can be set by user and thus may contain PII, so it is not collected
     public string WakeupCommand { get; set; } = null!;

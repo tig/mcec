@@ -90,6 +90,37 @@ server supports any number of simultaneous connections and speaks the Telnet pro
   command," and disconnects; on shutdown it sends the "Closing command." Useful when a remote client needs
   to know MCEC is ready (e.g. after the control system reboots).
 
+#### Restricting the Server to this machine (bind address)
+
+The command server has **no socket authentication** — anything that can reach the port can send commands
+that press keys, move the mouse, and start processes. By default the server binds to **all network
+interfaces** (`0.0.0.0`), so it is reachable from every host on your LAN/VPN (and from anywhere the port is
+forwarded). This preserves the long-standing behavior for setups driven from another machine on a trusted
+network.
+
+If nothing off this machine needs to connect (for example, another local app talks to MCEC over
+`localhost`), restrict the server to loopback so the unauthenticated port is not exposed on the network.
+Edit `mcec.settings` and set:
+
+```xml
+<SocketServerBindAddress>127.0.0.1</SocketServerBindAddress>
+```
+
+Accepted values (case-insensitive):
+
+| Value | Binds to |
+| --- | --- |
+| `0.0.0.0`, `any`, `*`, or empty/blank | All interfaces (default — LAN/VPN reachable) |
+| `::` | All interfaces, IPv6 only (binds IPv6 `Any`) |
+| `127.0.0.1`, `localhost`, `loopback` | This machine only (recommended for single-machine setups) |
+| `::1` | IPv6 loopback (this machine only) |
+| a specific local IP (e.g. `192.168.1.50`) | That interface only |
+
+When the resolved bind is **not** loopback (e.g. the `0.0.0.0` default), MCEC writes a loud **WARN** to the
+log at startup noting the command port is unauthenticated and reachable off-box, with the recommendation to
+set `127.0.0.1`. An unparseable value is rejected with an error in the log and **falls back to loopback**
+(`127.0.0.1`) rather than silently exposing the port. Restart MCEC after editing the setting.
+
 ### The Serial Server tab
 
 When the Serial Server is enabled, MCEC opens the specified COM port (e.g. COM1) and waits for commands.

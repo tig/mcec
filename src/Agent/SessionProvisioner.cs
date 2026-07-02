@@ -215,6 +215,7 @@ public static class SessionProvisioner {
             McpBindAddress = "127.0.0.1",         // localhost only
             McpHttpPort = port,
             ActAsServer = false,                  // no TCP server → no Windows Firewall prompt (isolation practice)
+            SocketServerBindAddress = "127.0.0.1", // defense in depth: if the TCP server is ever enabled, loopback only (#149)
             ActAsSerialServer = false,
             ActAsClient = false,
             ActivityMonitorEnabled = false,
