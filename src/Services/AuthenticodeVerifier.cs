@@ -51,7 +51,12 @@ internal static class AuthenticodeVerifier {
             return false;
         }
         using (signer) {
-            if (signer.Subject.IndexOf(expectedSubjectSubstring, StringComparison.OrdinalIgnoreCase) < 0) {
+            // Anchor the publisher check to the certificate's simple name (the CN / subject common name),
+            // where the publisher identity lives, rather than a substring anywhere in the full DN (which
+            // could match an OU/serial/etc.). The Kindel Trusted Signing certificate's CN is "Kindel LLC".
+            string commonName = signer.GetNameInfo(X509NameType.SimpleName, forIssuer: false);
+            if (string.IsNullOrEmpty(commonName)
+                || commonName.IndexOf(expectedSubjectSubstring, StringComparison.OrdinalIgnoreCase) < 0) {
                 reason = $"signer '{signer.Subject}' does not match expected publisher '{expectedSubjectSubstring}'";
                 return false;
             }
@@ -105,6 +110,9 @@ internal static class AuthenticodeVerifier {
             if (pData != IntPtr.Zero) {
                 Marshal.FreeHGlobal(pData);
             }
+            // DestroyStructure first: StructureToPtr marshaled the LPWStr file path into a nested native
+            // allocation that FreeHGlobal(pFileInfo) alone would not release.
+            Marshal.DestroyStructure<WinTrustFileInfo>(pFileInfo);
             Marshal.FreeHGlobal(pFileInfo);
         }
     }

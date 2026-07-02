@@ -156,10 +156,22 @@ public class UpdateService {
         if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
-        string host = uri.Host;
-        return string.Equals(host, "github.com", StringComparison.OrdinalIgnoreCase)
-            || host.EndsWith(".githubusercontent.com", StringComparison.OrdinalIgnoreCase);
+        // Explicit host allowlist (not a "*.githubusercontent.com" suffix): the release page lives on
+        // github.com and release-asset downloads redirect to the object hosts below. This deliberately
+        // excludes raw.githubusercontent.com and any other subdomain that serves arbitrary user content.
+        foreach (string trusted in TrustedDownloadHosts) {
+            if (string.Equals(uri.Host, trusted, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+        return false;
     }
+
+    private static readonly string[] TrustedDownloadHosts = [
+        "github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com",
+    ];
 
     internal async void StartUpgrade() {
         if (DownloadUri is null) {

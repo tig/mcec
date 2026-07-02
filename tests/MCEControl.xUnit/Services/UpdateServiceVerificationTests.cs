@@ -62,6 +62,8 @@ public class UpdateServiceVerificationTests {
     [InlineData("https://github.com.evil.com/x")]                                     // suffix trick
     [InlineData("https://notgithub.com/x")]
     [InlineData("ftp://github.com/x")]
+    [InlineData("https://raw.githubusercontent.com/tig/mcec/main/evil.exe")]          // arbitrary user content
+    [InlineData("https://github.com@evil.com/x")]                                     // userinfo trick
     public void IsTrustedDownloadUri_RejectsUntrusted(string uri) {
         Assert.False(UpdateService.IsTrustedDownloadUri(new Uri(uri)));
     }
