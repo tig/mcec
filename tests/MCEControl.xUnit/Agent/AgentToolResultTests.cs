@@ -166,6 +166,54 @@ public class AgentToolResultTests {
     }
 
     [Fact]
+    public void FromLegacy_Failure_PrefersStructuredCategoryAndCode() {
+        // A blank window capture writes a structured Fail (code + category), not a bare string. The
+        // translator must preserve those so an agent takes the documented capture-blank recovery path
+        // rather than seeing internal/unhandled (Codex P2 on #171).
+        JsonObject legacy = CommandResult
+            .Fail("capture", "Captured frame is blank (a flat fill).", "frame-all-black", "capture-blank")
+            .ToJsonObject();
+
+        JsonObject env = AgentToolResult.FromLegacy(legacy, "capture").ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.False(env["ok"]!.GetValue<bool>());
+        Assert.Equal("capture-blank", env["error"]!["category"]!.GetValue<string>());
+        Assert.Equal("frame-all-black", env["error"]!["code"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void FromLegacy_Failure_UnknownStructuredCategory_FallsBackToTaxonomy() {
+        // If a command ever emits a category outside the closed set, don't propagate it — fall back to
+        // free-text categorization so error.category always validates against the schema enum.
+        JsonObject legacy = CommandResult
+            .Fail("capture", "No matching window", "weird-code", "not-a-category")
+            .ToJsonObject();
+
+        JsonObject env = AgentToolResult.FromLegacy(legacy, "capture").ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.Equal("no-target", env["error"]!["category"]!.GetValue<string>());
+        Assert.Equal("window-not-found", env["error"]!["code"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void FromLegacy_CarriesWarnings_OnSuccessAndFailure() {
+        JsonObject okLegacy = CommandResult.Ok("query", new JsonObject { ["truncated"] = true })
+            .Warn("tree-truncated", "hit the node cap").ToJsonObject();
+        JsonObject okEnv = AgentToolResult.FromLegacy(okLegacy, "query").ToJsonObject();
+        AssertValidEnvelope(okEnv);
+        Assert.Equal("tree-truncated", okEnv["warnings"]![0]!["code"]!.GetValue<string>());
+
+        JsonObject failLegacy = CommandResult
+            .Fail("capture", "Captured frame is blank.", "frame-uniform", "capture-blank")
+            .Warn("capture-fallback", "PrintWindow refused; used an on-screen blit").ToJsonObject();
+        JsonObject failEnv = AgentToolResult.FromLegacy(failLegacy, "capture").ToJsonObject();
+        AssertValidEnvelope(failEnv);
+        Assert.Equal("capture-fallback", failEnv["warnings"]![0]!["code"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void FromLegacy_WaitForMiss_BecomesTimeoutFailure() {
         // FindCommand writes Ok{found:false} when a wait-for exhausts its timeout. An agent branches on
         // `ok`, so that must surface as a timeout failure, not ok:true (Codex P2 on #115).

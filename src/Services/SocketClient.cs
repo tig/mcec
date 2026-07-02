@@ -68,7 +68,6 @@ public sealed class SocketClient : ServiceBase, IDisposable {
     }
 
     public void Start(bool delay = false) {
-        StringBuilder currentCmd = new StringBuilder();
         _tcpClient = new TcpClient();
         _bw = new BackgroundWorker {
             WorkerReportsProgress = false,
@@ -166,7 +165,12 @@ public sealed class SocketClient : ServiceBase, IDisposable {
                     _tcpClient.EndConnect(ar);
                     Log4.Debug($"SocketClient: Back from EndConnect: {_host}:{_port}");
                     SetStatus(ServiceStatus.Connected, $"{_host}:{_port}");
-                    StringBuilder sb = new StringBuilder();
+                    // #148: cap accumulated command length so a peer streaming bytes without
+                    // a delimiter cannot grow the buffer until OOM. On overflow the partial
+                    // command is dropped, an error is logged, and input is discarded until
+                    // the next delimiter.
+                    CommandAccumulator accumulator = new();
+                    Action onOverflow = () => Error($"SocketClient: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); discarding input until next delimiter");
                     while (_bw != null &&
                         !_bw.CancellationPending &&
                         CurrentStatus == ServiceStatus.Connected &&
@@ -174,24 +178,15 @@ public sealed class SocketClient : ServiceBase, IDisposable {
                         _tcpClient.Connected) {
                         // TODO: Move exception handling around this
                         int input = _tcpClient.GetStream().ReadByte();
-                        switch (input) {
-                            case (byte)'\r':
-                            case (byte)'\n':
-                            case (byte)'\0':
-                                if (sb.Length > 0) {
-                                    SendNotification(ServiceNotification.ReceivedData, ServiceStatus.Connected, new ClientReplyContext(_tcpClient), sb.ToString());
-                                    sb.Clear();
-                                    System.Threading.Thread.Sleep(100);
-                                }
-                                break;
+                        if (input == -1) {
+                            Error("No more data.");
+                            return;
+                        }
 
-                            case -1:
-                                Error("No more data.");
-                                return;
-
-                            default:
-                                sb.Append((char)input);
-                                break;
+                        string? cmd = accumulator.ProcessChar((char)input, onOverflow);
+                        if (cmd != null) {
+                            SendNotification(ServiceNotification.ReceivedData, ServiceStatus.Connected, new ClientReplyContext(_tcpClient), cmd);
+                            System.Threading.Thread.Sleep(100);
                         }
                     }
                 }

@@ -13,7 +13,10 @@ so you can pick a control instead of guessing pixels; `capture` returns a PNG of
 composited WinUI/WPF surfaces). Use `capture` for a single state check; use `record` ONLY to show CHANGE
 over time — a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
-whole duration. Check results for trouble: a `capture` with errorCategory `capture-blank` is a black/empty
+whole duration. An open `start` auto-stops at the operator's limits (default 60 s / 600 frames); `stop`
+still returns that buffered GIF — exactly once — and after an auto-stop a new recording (`start` or a
+one-shot) is allowed: it discards the unfetched GIF, carrying an `unfetched-recording-discarded` warning
+on its result, so `stop` promptly to collect your output. Check results for trouble: a `capture` with errorCategory `capture-blank` is a black/empty
 frame (minimized, cloaked, occluded, or a locked session) — restore/foreground the window and retry
 instead of trusting the image; a `capture-fallback` warning means PrintWindow was refused and the picture
 may be wrong. If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap
@@ -68,6 +71,15 @@ another call — a long `wait-for` won't stall a `capture`, and `invoke` returns
 modal — so a slow observation is safe to start. Physical-input actuation (`drag`, `send_command`) is
 serialized: it runs one-at-a-time (the desktop has a single input stream), so don't expect two input
 actions to overlap.
+
+PACING: raw commands (`send_command`) are queued and executed paced — a per-command delay set by the
+operator's CommandPacing — and the queue is BOUNDED: at most 200 commands may be pending, and one command's
+whole tree (the command itself plus all recursively embedded commands) may be at most 50. A command that
+breaks either bound is dropped ALL-OR-NOTHING: the entire tree is discarded (logged on the host, no error
+returned to you) — never partially run, so paired input (e.g. shiftdown:/shiftup:) can't be split. Don't
+flood the queue with long raw input streams — prefer one higher-level call (`drag`, `click`, or a single
+`mouse:drag,...`) over a long hand-rolled `mouse:mt` path, and if a long sequence is unavoidable, send it
+in small chunks and verify between chunks so the queue drains.
 
 OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run so the
 operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/UIA targeting

@@ -189,6 +189,15 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public int McpHttpPort { get; set; } = 5151;
 
+    // SECURITY (#143): defense-in-depth bearer token for the HTTP front door. The HTTP handler ALWAYS
+    // validates the Host header (must be a loopback authority — defeats DNS rebinding) and the Origin
+    // header (must be absent or loopback — defeats drive-by browser CSRF). Those two need no
+    // configuration. Setting a non-empty token additionally requires every HTTP request to carry
+    // `Authorization: Bearer <token>`, which also protects against a same-machine hostile process.
+    // Empty (default) = rely on Host/Origin only. A token is NOT PII, but keep it out of telemetry so
+    // a shared secret is never transmitted.
+    public string McpAuthToken { get; set; } = "";
+
     // --- On-screen command overlay (issue #119) ---
     // ON by default: the overlay shows each command as it executes so anyone watching can see that MCEC
     // is driving the machine (auditability), which also makes demos self-documenting. A settings file
