@@ -44,6 +44,83 @@ public class AgentServerHttpTests {
     private static void StopServer() {
         AgentServer.StopHttp();
         AgentRuntime.Settings = null;
+        AgentRuntime.Invoker = null;
+    }
+
+    /// <summary>Posts a JSON-RPC tools/call for <paramref name="tool"/> and returns the HTTP response.</summary>
+    private static async Task<HttpResponseMessage> PostToolCallAsync(string url, string tool, JsonObject args) {
+        using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
+        JsonObject request = new() {
+            ["jsonrpc"] = "2.0",
+            ["id"] = 1,
+            ["method"] = "tools/call",
+            ["params"] = new JsonObject { ["name"] = tool, ["arguments"] = args },
+        };
+        StringContent content = new(request.ToJsonString(), Encoding.UTF8, "application/json");
+        return await client.PostAsync(url, content);
+    }
+
+    /// <summary>Unwraps the #101 envelope out of a tools/call HTTP response body.</summary>
+    private static JsonObject EnvelopeOf(JsonObject body) {
+        JsonObject result = body["result"]!.AsObject();
+        foreach (JsonNode? block in result["content"]!.AsArray()) {
+            if (block?["type"]?.GetValue<string>() == "text") {
+                return JsonNode.Parse(block["text"]!.GetValue<string>())!.AsObject();
+            }
+        }
+        Assert.Fail("no text content block in tool result");
+        return [];
+    }
+
+    [Fact]
+    public async Task Http_SendCommand_AgentSurfaceNotOptedIn_IsRefused_AndNotExecuted() {
+        // #153: over the network-facing HTTP floor, send_command must NOT be reachable when the operator
+        // enabled McpServerEnabled but left AgentCommandsEnabled=false — otherwise it is a CSRF/DNS-
+        // rebinding-reachable (#143) raw command-injection surface. A NON-empty command with a live invoker
+        // present proves the refusal happens at the gate, BEFORE execution: without the gate this would run
+        // the pass-through and return ok=true; with it we get ok=false / agent-commands-disabled.
+        string url = StartServer();
+        AgentRuntime.Settings!.AgentCommandsEnabled = false;
+        AgentRuntime.Invoker = [];
+        try {
+            using HttpResponseMessage resp = await PostToolCallAsync(url, "send_command",
+                new JsonObject { ["command"] = "chars:pwnd" });
+
+            Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+            JsonObject body = JsonNode.Parse(await resp.Content.ReadAsStringAsync())!.AsObject();
+            Assert.True(body["result"]!.AsObject()["isError"]!.GetValue<bool>());
+
+            JsonObject env = EnvelopeOf(body);
+            Assert.False(env["ok"]!.GetValue<bool>());
+            Assert.Equal("agent-commands-disabled", env["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            StopServer();
+        }
+    }
+
+    [Fact]
+    public async Task Http_SendCommand_WhenAgentSurfaceOptedIn_IsAllowed() {
+        // #153: with the agent surface opted in (AgentCommandsEnabled=true) send_command over HTTP works —
+        // it reaches the pass-through and returns ok=true (empty capture → the "ok" payload).
+        AgentTestSupport.EnsureTelemetry();
+        string url = StartServer();
+        AgentRuntime.Settings!.AgentCommandsEnabled = true;
+        AgentRuntime.Invoker = [];
+        try {
+            using HttpResponseMessage resp = await PostToolCallAsync(url, "send_command",
+                new JsonObject { ["command"] = "chars:hello" });
+
+            Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+            JsonObject body = JsonNode.Parse(await resp.Content.ReadAsStringAsync())!.AsObject();
+            Assert.False(body["result"]!.AsObject()["isError"]!.GetValue<bool>());
+
+            JsonObject env = EnvelopeOf(body);
+            Assert.True(env["ok"]!.GetValue<bool>());
+        }
+        finally {
+            StopServer();
+        }
     }
 
     [Fact]

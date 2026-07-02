@@ -79,9 +79,11 @@ public static class AgentServer {
 
     /// <summary>
     /// Dispatches a single JSON-RPC request object and returns the response object, or null when the
-    /// request is a notification (no <c>id</c>) and therefore takes no response.
+    /// request is a notification (no <c>id</c>) and therefore takes no response. <paramref name="transport"/>
+    /// defaults to <see cref="AgentTransport.Stdio"/> — the local, opt-in-preserving path; the HTTP floor
+    /// passes <see cref="AgentTransport.Http"/> so <c>send_command</c> honors the network gate (#153).
     /// </summary>
-    public static JsonObject? Dispatch(JsonObject request) {
+    public static JsonObject? Dispatch(JsonObject request, AgentTransport transport = AgentTransport.Stdio) {
         if (request is null) {
             throw new ArgumentNullException(nameof(request));
         }
@@ -108,7 +110,7 @@ public static class AgentServer {
                 return Result(idNode, new JsonObject { ["tools"] = BuildToolsList() });
 
             case "tools/call":
-                JsonObject callResult = CallTool(prms);
+                JsonObject callResult = CallTool(prms, transport);
                 return Result(idNode, callResult);
 
             default:
@@ -328,7 +330,7 @@ public static class AgentServer {
     // tools/call
     // -------------------------------------------------------------------------------------------
 
-    private static JsonObject CallTool(JsonObject? prms) {
+    private static JsonObject CallTool(JsonObject? prms, AgentTransport transport) {
         string name = AsString(prms?["name"]);
         JsonObject args = prms?["arguments"] as JsonObject ?? [];
 
@@ -344,6 +346,18 @@ public static class AgentServer {
         }
 
         if (name == "send_command") {
+            // #153: send_command is a raw command-injection surface. Over the network-facing HTTP floor it
+            // must NOT be reachable unless the operator opted into the agent surface — otherwise enabling
+            // McpServerEnabled alone (with AgentCommandsEnabled=false) leaves a CSRF/DNS-rebinding-reachable
+            // (#143) raw pass-through. So over HTTP it honors the SAME AgentCommandsEnabled gate as every
+            // other tool. Over local stdio (the operator launched mcec.exe --mcp — no CSRF surface) the
+            // documented raw pass-through stays available; the per-command Enabled table still applies below.
+            if (transport == AgentTransport.Http && !AgentRuntime.AgentCommandsEnabled) {
+                AgentRuntime.Audit("send_command", "BLOCKED — agent commands disabled; send_command over HTTP requires AgentCommandsEnabled");
+                return ToolError(
+                    "send_command over HTTP requires AgentCommandsEnabled=true. Enable the agent surface to opt in, or drive send_command over the local stdio transport (mcec.exe --mcp).",
+                    "agent-commands-disabled");
+            }
             return RunSendCommand(args);
         }
 
@@ -764,7 +778,7 @@ public static class AgentServer {
         using StreamReader reader = new(input, new UTF8Encoding(false));
         using StreamWriter writer = new(output, new UTF8Encoding(false)) { AutoFlush = true };
         Logger.Instance.Log4.Info("AgentServer: MCP stdio transport started.");
-        RunStdioLoop(reader, writer, Dispatch);
+        RunStdioLoop(reader, writer, req => Dispatch(req, AgentTransport.Stdio));
         Logger.Instance.Log4.Info("AgentServer: MCP stdio transport ended (EOF).");
     }
 
@@ -897,6 +911,14 @@ public static class AgentServer {
         }
     }
 
+    /// <summary>
+    /// Dispatches an HTTP request through the test override when one is set, otherwise through
+    /// <see cref="Dispatch"/> tagged <see cref="AgentTransport.Http"/> so the transport-sensitive
+    /// <c>send_command</c> gate (#153) sees the network transport.
+    /// </summary>
+    private static JsonObject? DispatchHttp(JsonObject req) =>
+        HttpDispatchOverride is { } over ? over(req) : Dispatch(req, AgentTransport.Http);
+
     private static void HandleHttp(HttpListenerContext context) {
         try {
             if (!string.Equals(context.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase)) {
@@ -919,7 +941,7 @@ public static class AgentServer {
             try {
                 JsonNode? node = JsonNode.Parse(body);
                 response = node is JsonObject req
-                    ? (HttpDispatchOverride ?? Dispatch)(req) ?? new JsonObject { ["jsonrpc"] = "2.0" }
+                    ? DispatchHttp(req) ?? new JsonObject { ["jsonrpc"] = "2.0" }
                     : Error(null, -32600, "Invalid Request")!;
             }
             catch (JsonException e) {

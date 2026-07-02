@@ -58,10 +58,22 @@ and returns a JSON failure (for commands) — it never silently proceeds.
 `record`/`drag`/`click` — are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
 flag, over **both** MCP transports (`mcec.exe --mcp` stdio and the HTTP floor): a `tools/call` for a
 command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
-`AgentCommandsEnabled=true`. **`send_command` is the exception** — it is a raw pass-through to the existing
-command engine and does **not** require `AgentCommandsEnabled`; the raw command it runs is still subject to
-that command's own `Enabled` flag in `mcec.commands` (the normal MCEC gate). `McpServerEnabled` gates only
-the HTTP floor; it has no bearing on stdio or on which individual tools may run.
+`AgentCommandsEnabled=true`.
+
+**`send_command` is transport-sensitive (#153).** It is a raw pass-through to the existing command engine,
+so it is a command-injection surface. Over the **local stdio** transport (`mcec.exe --mcp`, launched by its
+client — no network/CSRF surface) it keeps the documented pass-through and does **not** require
+`AgentCommandsEnabled`. Over the **network-facing HTTP floor** it honors the **same `AgentCommandsEnabled`
+gate as every other tool**: with `McpServerEnabled=true` but `AgentCommandsEnabled=false`, a `send_command`
+`tools/call` is refused (`error.code: agent-commands-disabled`) and never executed. This is deliberate
+secure-by-default hardening — enabling the HTTP floor alone must not expose a raw-command surface with no
+agent opt-in, which chained with the missing origin/auth checks ([#143]) is reachable by browser CSRF /
+DNS-rebinding. In **both** cases the raw command it runs is still subject to that command's own `Enabled`
+flag in `mcec.commands` (the normal MCEC gate). `McpServerEnabled` gates only the HTTP floor; it has no
+bearing on stdio or on which individual tools may run.
+
+[#143]: https://github.com/tig/mcec/issues/143
+[#153]: https://github.com/tig/mcec/issues/153
 
 **The command queue is bounded.** Commands (from any client — network, serial, or an agent's
 `send_command`) are queued and executed paced (`CommandPacing` delay between items). To prevent a remote
@@ -450,6 +462,10 @@ Content-Type: application/json
 The address and port come from `McpBindAddress` (default `127.0.0.1`) and `McpHttpPort`
 (default `5151`). This is a deliberately minimal floor for local scripts and agents; it
 is not a general-purpose web API and is not exposed off-box by default.
+
+Over this HTTP transport, `send_command` requires `AgentCommandsEnabled=true` (see *Which gate applies
+where*, above): enabling the floor alone does **not** expose the raw-command pass-through. To drive
+`send_command` without opting into the agent surface, use the local stdio transport (`mcec.exe --mcp`).
 
 The floor is hardened against resource exhaustion ([#151]): a request body larger than
 **1 MB** is refused with `413` (the cap is enforced by a bounded read, so chunked bodies

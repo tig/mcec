@@ -104,5 +104,9 @@ immediately, tell the user, and do NOT retry; nothing will actuate until they re
 
 SECURITY: the agent tools (capture/query/displays/find/invoke/record/launch/drag/click) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather than retrying.
+`send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is
+refused with `error.code:agent-commands-disabled` if the agent surface is not opted in); over the local
+stdio transport (`mcec.exe --mcp`) `send_command` remains available without that opt-in. Either way the raw
+command it runs still needs its own command Enabled in mcec.commands.
 `provision-session` additionally requires AllowSessionProvisioning, and any tool is refused with
 `emergency-stopped` while the operator's emergency stop is engaged. Every action is audit-logged on the host.
