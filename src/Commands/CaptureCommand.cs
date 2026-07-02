@@ -15,24 +15,10 @@ namespace MCEControl;
 /// <see cref="CommandResult"/> carrying base64 image bytes (and optionally writes the PNG to a file).
 ///
 /// SECURITY: gated behind <see cref="AgentRuntime.AgentCommandsEnabled"/> (a separate opt-in from the
-/// actuation enable) and every capture is audited via <see cref="AgentRuntime.Audit"/>.
+/// actuation enable — enforced structurally by <see cref="AgentCommand"/>) and every capture is
+/// audited via <see cref="AgentRuntime.Audit"/>.
 /// </summary>
-public class CaptureCommand : Command {
-    [XmlAttribute("window")]
-    public string Window { get; set; } = null!;
-
-    [XmlAttribute("handle")]
-    public long Handle { get; set; }
-
-    [XmlAttribute("process")]
-    public string Process { get; set; } = null!;
-
-    [XmlAttribute("classname")]
-    public string ClassName { get; set; } = null!;
-
-    [XmlAttribute("foreground")]
-    public bool Foreground { get; set; }
-
+public class CaptureCommand : WindowTargetingAgentCommand {
     [XmlAttribute("x")]
     public int X { get; set; }
 
@@ -55,11 +41,6 @@ public class CaptureCommand : Command {
     public CaptureCommand() { }
 
     public override ICommand Clone(Reply reply) => base.Clone(reply, new CaptureCommand {
-        Window = Window,
-        Handle = Handle,
-        Process = Process,
-        ClassName = ClassName,
-        Foreground = Foreground,
         X = X,
         Y = Y,
         Width = Width,
@@ -67,112 +48,104 @@ public class CaptureCommand : Command {
         File = File,
     });
 
-    // ICommand:Execute
-    public override bool Execute() {
-        if (!base.Execute()) {
-            return false;
-        }
+    /// <summary>True when this is an explicit-region capture (region given, no window selector).</summary>
+    private bool IsRegionCapture => Width > 0 && Height > 0 && !HasWindowTarget;
 
-        if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-            return false;
-        }
+    // A region capture never resolves a window; everything else (including no selectors at all,
+    // which fails as window-not-found) does.
+    protected override bool RequiresWindowTarget => !IsRegionCapture;
 
-        bool hasWindowTarget = !string.IsNullOrEmpty(Window)
-            || Handle > 0
-            || !string.IsNullOrEmpty(Process)
-            || !string.IsNullOrEmpty(ClassName)
-            || Foreground;
+    protected override bool OnWindowNotFound() {
+        AgentRuntime.Audit(Cmd, "no matching window");
+        Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window", "window-not-found", "no-target").ToJson());
+        return false;
+    }
 
+    protected override bool ExecuteCore(WindowInfo? target) {
         try {
-            JsonObject data;
-
-            if (Width > 0 && Height > 0 && !hasWindowTarget) {
-                // SECURITY (#158): region dimensions are agent-controlled — reject oversized
-                // requests BEFORE any bitmap/PNG/base64 allocation, with a diagnosable envelope.
-                string? sizeError = ScreenCapture.ValidateRegionSize(Width, Height);
-                if (sizeError is not null) {
-                    AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height} REJECTED — {sizeError}");
-                    Reply?.WriteLine(CommandResult.Fail(Cmd, sizeError, "region-too-large", "no-target").ToJson());
-                    return false;
-                }
-
-                AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height}");
-
-                CaptureResult regionCap = ScreenCapture.CaptureRegion(X, Y, Width, Height);
-                data = new JsonObject {
-                    ["encoding"] = "png",
-                    ["width"] = regionCap.Width,
-                    ["height"] = regionCap.Height,
-                    ["bytes"] = regionCap.Png.Length,
-                    ["base64"] = Convert.ToBase64String(regionCap.Png),
-                    ["blankCheck"] = BlankCheckJson(regionCap.Stats),
-                };
-                WriteFileIfRequested(regionCap.Png, data);
-
-                // A user-specified region can legitimately be empty, so a blank region is a non-fatal
-                // warning (not a capture-blank error) — the agent still gets the image and the signal.
-                CommandResult regionRes = CommandResult.Ok(Cmd, data);
-                if (regionCap.Stats.IsBlank) {
-                    regionRes.Warn("capture-blank", "Captured region is blank (a flat fill); it may be off-screen or genuinely empty.");
-                }
-                Reply?.WriteLine(regionRes.ToJson());
-                return true;
-            }
-
-            WindowInfo? win = WindowResolver.Resolve(
-                Handle > 0 ? Handle : (long?)null, Window, Process, ClassName, Foreground);
-            if (win is null) {
-                AgentRuntime.Audit(Cmd, "no matching window");
-                Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window", "window-not-found", "no-target").ToJson());
-                return false;
-            }
-
-            AgentRuntime.Audit(Cmd, $"window 0x{win.Handle:X} \"{win.Title}\" ({win.ProcessName})");
-
-            CaptureResult cap = ScreenCapture.CaptureWindow(new IntPtr(win.Handle));
-            data = new JsonObject {
-                ["handle"] = win.Handle,
-                ["width"] = cap.Width,
-                ["height"] = cap.Height,
-                ["encoding"] = "png",
-                ["bytes"] = cap.Png.Length,
-                ["base64"] = Convert.ToBase64String(cap.Png),
-                ["window"] = win.ToJsonObject(),
-                ["blankCheck"] = BlankCheckJson(cap.Stats),
-            };
-            WriteFileIfRequested(cap.Png, data);
-
-            // A blank window frame is a hard observation failure: don't return a silent bad image.
-            // The PNG stays in `data` (so the agent still sees what was grabbed and it can serve as the
-            // contract's lastObservation), but the result is flagged capture-blank so the agent branches.
-            CommandResult res;
-            bool ok;
-            if (cap.Stats.IsBlank) {
-                string code = cap.Stats.DominantIsDark ? "frame-all-black" : "frame-uniform";
-                string detail = cap.UsedFallback
-                    ? "Captured frame is blank — PrintWindow was refused and the on-screen-blit fallback returned a flat image (composited/occluded/minimized window or a locked session)."
-                    : "Captured frame is blank (a flat fill); the window may be minimized, cloaked, or rendering off-screen.";
-                AgentRuntime.Audit(Cmd, $"blank frame ({code}, dominant {cap.Stats.DominantFraction:P0}, fallback={cap.UsedFallback})");
-                res = CommandResult.Fail(Cmd, detail, code, "capture-blank", data);
-                ok = false;
-            }
-            else {
-                res = CommandResult.Ok(Cmd, data);
-                ok = true;
-            }
-            if (cap.UsedFallback) {
-                res.Warn("capture-fallback", "PrintWindow was refused; used an on-screen blit, which returns black for composited/occluded surfaces and cannot see windows behind others.");
-            }
-            Reply?.WriteLine(res.ToJson());
-            return ok;
+            return target is null ? CaptureRegion() : CaptureWindow(target);
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"{GetType().Name}: Capture failed: {e.Message}");
             Reply?.WriteLine(CommandResult.Fail(Cmd, $"Capture failed: {e.Message}").ToJson());
             return false;
         }
+    }
+
+    /// <summary>The explicit-region path (no window was required or resolved).</summary>
+    private bool CaptureRegion() {
+        // SECURITY (#158): region dimensions are agent-controlled — reject oversized
+        // requests BEFORE any bitmap/PNG/base64 allocation, with a diagnosable envelope.
+        string? sizeError = ScreenCapture.ValidateRegionSize(Width, Height);
+        if (sizeError is not null) {
+            AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height} REJECTED — {sizeError}");
+            Reply?.WriteLine(CommandResult.Fail(Cmd, sizeError, "region-too-large", "no-target").ToJson());
+            return false;
+        }
+
+        AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height}");
+
+        CaptureResult regionCap = ScreenCapture.CaptureRegion(X, Y, Width, Height);
+        JsonObject data = new JsonObject {
+            ["encoding"] = "png",
+            ["width"] = regionCap.Width,
+            ["height"] = regionCap.Height,
+            ["bytes"] = regionCap.Png.Length,
+            ["base64"] = Convert.ToBase64String(regionCap.Png),
+            ["blankCheck"] = BlankCheckJson(regionCap.Stats),
+        };
+        WriteFileIfRequested(regionCap.Png, data);
+
+        // A user-specified region can legitimately be empty, so a blank region is a non-fatal
+        // warning (not a capture-blank error) — the agent still gets the image and the signal.
+        CommandResult regionRes = CommandResult.Ok(Cmd, data);
+        if (regionCap.Stats.IsBlank) {
+            regionRes.Warn("capture-blank", "Captured region is blank (a flat fill); it may be off-screen or genuinely empty.");
+        }
+        Reply?.WriteLine(regionRes.ToJson());
+        return true;
+    }
+
+    /// <summary>The resolved-window path.</summary>
+    private bool CaptureWindow(WindowInfo win) {
+        AgentRuntime.Audit(Cmd, $"window 0x{win.Handle:X} \"{win.Title}\" ({win.ProcessName})");
+
+        CaptureResult cap = ScreenCapture.CaptureWindow(new IntPtr(win.Handle));
+        JsonObject data = new JsonObject {
+            ["handle"] = win.Handle,
+            ["width"] = cap.Width,
+            ["height"] = cap.Height,
+            ["encoding"] = "png",
+            ["bytes"] = cap.Png.Length,
+            ["base64"] = Convert.ToBase64String(cap.Png),
+            ["window"] = win.ToJsonObject(),
+            ["blankCheck"] = BlankCheckJson(cap.Stats),
+        };
+        WriteFileIfRequested(cap.Png, data);
+
+        // A blank window frame is a hard observation failure: don't return a silent bad image.
+        // The PNG stays in `data` (so the agent still sees what was grabbed and it can serve as the
+        // contract's lastObservation), but the result is flagged capture-blank so the agent branches.
+        CommandResult res;
+        bool ok;
+        if (cap.Stats.IsBlank) {
+            string code = cap.Stats.DominantIsDark ? "frame-all-black" : "frame-uniform";
+            string detail = cap.UsedFallback
+                ? "Captured frame is blank — PrintWindow was refused and the on-screen-blit fallback returned a flat image (composited/occluded/minimized window or a locked session)."
+                : "Captured frame is blank (a flat fill); the window may be minimized, cloaked, or rendering off-screen.";
+            AgentRuntime.Audit(Cmd, $"blank frame ({code}, dominant {cap.Stats.DominantFraction:P0}, fallback={cap.UsedFallback})");
+            res = CommandResult.Fail(Cmd, detail, code, "capture-blank", data);
+            ok = false;
+        }
+        else {
+            res = CommandResult.Ok(Cmd, data);
+            ok = true;
+        }
+        if (cap.UsedFallback) {
+            res.Warn("capture-fallback", "PrintWindow was refused; used an on-screen blit, which returns black for composited/occluded surfaces and cannot see windows behind others.");
+        }
+        Reply?.WriteLine(res.ToJson());
+        return ok;
     }
 
     /// <summary>Serializes the blank-frame analysis so an agent can see why a capture was flagged.</summary>
