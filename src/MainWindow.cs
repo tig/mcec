@@ -134,14 +134,8 @@ public partial class MainWindow : Form {
         WindowsInput.Native.NativeMethods.GetClassName(hWnd, sb, 256);
         Logger.Instance.Log4.Info($"Window Class - {sb}");
 #endif
-        // Load AppSettings
-        Settings = AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
-
-        // Expose settings to the UI-agnostic agent engine (capture/query/find/invoke + MCP/HTTP).
-        AgentRuntime.Settings = Settings;
-
-        // Configure logging (some logging already happened).
-        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![Instance.Settings.TextBoxLogThreshold]!;
+        // Load AppSettings (also configures logging; some logging already happened).
+        ApplySettings(AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}"));
         Logger.Instance.Log4.Info($"Logger: Logging to {Logger.Instance.LogFile}");
 
         // Telemetry
@@ -860,15 +854,39 @@ public partial class MainWindow : Form {
         if (d.ShowDialog(this) == DialogResult.OK) {
             Stop();
 
-            Settings = d.Settings;
+            ApplySettings(d.Settings);
 
             Opacity = (double)Settings.Opacity / 100;
-
-            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![Settings.TextBoxLogThreshold]!;
 
             Start();
         }
         d.Dispose();
+    }
+
+    /// <summary>
+    /// Adopts <paramref name="settings"/> as the active settings object — for the GUI AND the
+    /// UI-agnostic agent engine. This is the single apply path used both at load and when the
+    /// Settings dialog is OK'd (the dialog hands back a deep clone, so the object identity changes
+    /// and <see cref="AgentRuntime.Settings"/> MUST be re-published; see #196: security gates such
+    /// as <c>AllowSessionProvisioning</c> and pacing read that seam, and a stale pre-dialog object
+    /// would keep honoring old gate values until restart).
+    /// </summary>
+    private void ApplySettings(AppSettings settings) {
+        Settings = settings;
+        PublishAgentRuntimeSettings(settings);
+
+        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![settings.TextBoxLogThreshold]!;
+    }
+
+    /// <summary>
+    /// Publishes the settings object to the UI-agnostic agent engine seam
+    /// (capture/query/find/invoke + MCP/HTTP read gating and pacing from
+    /// <see cref="AgentRuntime.Settings"/>). Static and internal so the regression test can
+    /// exercise the republish contract headlessly without constructing a Form
+    /// (InternalsVisibleTo MCEControl.xUnit).
+    /// </summary>
+    internal static void PublishAgentRuntimeSettings(AppSettings settings) {
+        AgentRuntime.Settings = settings;
     }
 
     // ----------------------------------------
