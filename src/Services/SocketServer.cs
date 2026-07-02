@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -23,11 +24,19 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     // to communicate with each connected client. For thread safety.
     private readonly ConcurrentDictionary<int, Socket> _clientList = new();
 
-    // The following variable will keep track of the cumulative 
-    // total number of clients connected at any time. Since multiple threads
-    // can access this variable, modifying this variable should be done
-    // in a thread safe manner
+    // Number of currently connected clients (incremented on connect,
+    // decremented on disconnect). Since multiple threads can access this
+    // variable, modifying it should be done in a thread safe manner.
     private int _clientCount;
+
+    // Monotonically increasing id used as the _clientList key and ClientNumber.
+    // Never decremented — unlike _clientCount, which drops on disconnect — so
+    // keys stay unique for the lifetime of the server (#147).
+    private int _nextClientId;
+
+    // Test seams (InternalsVisibleTo MCEControl.xUnit)
+    internal int ConnectedClientCount => _clientCount;
+    internal IReadOnlyDictionary<int, Socket> TrackedClients => _clientList;
 
     #region IDisposable Members
     public void Dispose() {
@@ -49,6 +58,9 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             _clientList.TryRemove(i, out Socket? socket);
             if (socket != null) {
                 Log4.Debug("Closing Socket #" + i);
+                // Keep the connected tally in sync with the force-closed sockets
+                // so a later Start does not report a stale count.
+                Interlocked.Decrement(ref _clientCount);
                 socket.Close();
             }
         }
@@ -104,16 +116,9 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             // a new Socket object
             Socket workerSocket = _mainSocket.EndAccept(async);
 
-            // Now increment the client count for this client 
-            // in a thread safe manner
-            Interlocked.Increment(ref _clientCount);
+            serverReplyContext = RegisterClient(workerSocket);
 
-            // Add the workerSocket reference to the list
-            _clientList.GetOrAdd(_clientCount, workerSocket);
-
-            serverReplyContext = new ServerReplyContext(this, workerSocket, _clientCount);
-
-            Log4.Debug("Opened Socket #" + _clientCount);
+            Log4.Debug("Opened Socket #" + serverReplyContext.ClientNumber);
 
             SetStatus(ServiceStatus.Connected);
             SendNotification(ServiceNotification.ClientConnected, CurrentStatus, serverReplyContext);
@@ -146,6 +151,30 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         _mainSocket?.BeginAccept(OnClientConnect, null);
     }
 
+    // Tracks a newly connected client. Internal so tests can exercise the
+    // client-tracking logic without a live listener (InternalsVisibleTo).
+    internal ServerReplyContext RegisterClient(Socket workerSocket) {
+        // Now increment the client count for this client
+        // in a thread safe manner
+        Interlocked.Increment(ref _clientCount);
+
+        // Allocate a unique, never-reused id for this client. Using _clientCount
+        // here would repeat keys under connect/disconnect churn, leaking the new
+        // socket and later closing the wrong client (#147).
+        int clientId = Interlocked.Increment(ref _nextClientId);
+
+        // Add the workerSocket reference to the list. Ids are never reused, so
+        // TryAdd must always succeed; fail loudly if that invariant regresses
+        // (a silent GetOrAdd is exactly how #147 hid).
+        bool added = _clientList.TryAdd(clientId, workerSocket);
+        System.Diagnostics.Debug.Assert(added, $"SocketServer client id {clientId} was already in use");
+        if (!added) {
+            Log4.Error($"SocketServer RegisterClient: duplicate client id {clientId}; socket will not be tracked");
+        }
+
+        return new ServerReplyContext(this, workerSocket, clientId);
+    }
+
     // Start waiting for data from the client
     private void BeginReceive(ServerReplyContext serverReplyContext) {
         Log4.Debug("SocketServer BeginReceive");
@@ -162,7 +191,8 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         }
     }
 
-    private void CloseSocket(ServerReplyContext serverReplyContext) {
+    // Internal so tests can exercise the client-tracking logic (InternalsVisibleTo).
+    internal void CloseSocket(ServerReplyContext serverReplyContext) {
         Log4.Debug("SocketServer CloseSocket");
         if (serverReplyContext == null) {
             return;
