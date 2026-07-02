@@ -31,9 +31,18 @@
 
 .PARAMETER Config
   Build configuration to use (Debug or Release). Default: Debug.
+
+.PARAMETER AllowNonDevelopBuild
+  Skip the develop-branch/develop-stamp guard. The GitVersion-stamped version string is baked into the
+  binary and appears IN the hero (the subject's log window, status bar, and About box), so by default
+  the script refuses to record from anything but a develop-stamped build. Pass this only when a
+  feature-branch hero is deliberate.
 #>
 [CmdletBinding()]
-param([ValidateSet('Debug', 'Release')][string]$Config = 'Debug')
+param(
+  [ValidateSet('Debug', 'Release')][string]$Config = 'Debug',
+  [switch]$AllowNonDevelopBuild
+)
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
@@ -43,11 +52,29 @@ $outGif = Join-Path $repoRoot 'docs\hero.gif'
 $subjectDir = Join-Path $env:TEMP 'mcec-hero-subject'
 $url = 'http://127.0.0.1:5151/mcp'
 
-if (-not (Test-Path $exe)) {
-  Write-Host "Building ($Config)..."
-  dotnet build (Join-Path $repoRoot 'src\MCEControl.csproj') -c $Config | Out-Null
+# GUARD: the recording must come from a develop-stamped build. GitVersion bakes the branch name into
+# the version string, which shows in the hero's log window, status bar, and About box; a
+# timestamp-fresh binary from whatever branch was built last passes a naive "build if needed" check.
+# (Both the first 2026-07 regen and the previously committed hero shipped with feature-branch stamps.)
+$branch = (git -C $repoRoot rev-parse --abbrev-ref HEAD).Trim()
+if ($branch -ne 'develop' -and -not $AllowNonDevelopBuild) {
+  throw "Refusing to record the hero from branch '$branch' (the GitVersion stamp lands in the GIF). " +
+        'Switch to develop (git checkout develop && git pull), or pass -AllowNonDevelopBuild if a ' +
+        'branch build is deliberate.'
 }
+
+# Always build: incremental is a fast no-op when nothing changed, and GitVersion re-stamps the binary
+# whenever HEAD moved; the stamp always reflects the checkout being recorded, never a stale build.
+Write-Host "Building ($Config)..."
+dotnet build (Join-Path $repoRoot 'src\MCEControl.csproj') -c $Config | Out-Null
 if (-not (Test-Path $exe)) { throw "mcec.exe not found at $exe" }
+
+$stamp = (Get-Item $exe).VersionInfo.ProductVersion
+if (-not $AllowNonDevelopBuild -and $stamp -notlike '*Branch.develop.*') {
+  throw "mcec.exe is stamped '$stamp' after rebuilding; expected a Branch.develop stamp. " +
+        'Is the working tree in a detached/unexpected state?'
+}
+Write-Host "Recording from: $stamp"
 
 Add-Type -Namespace Native -Name U32 -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("user32.dll")] public static extern int GetSystemMetrics(int n);
