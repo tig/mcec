@@ -66,17 +66,18 @@ public class TextBoxAppender : AppenderSkeleton {
 
     protected override void Append(LoggingEvent loggingEvent) {
         try {
-            if (_logTextBox == null) {
-                return;
-            }
-
             lock (_lockObj) {
+                TextBoxExt? logTextBox = _logTextBox;
+                if (logTextBox == null) {
+                    return;
+                }
+
                 // Can only update the log in the main window when on the UI thread
-                if (LogTextBox.InvokeRequired) {
-                    LogTextBox.BeginInvoke((Action)(() => { LogTextBox.AppendText(RenderLoggingEvent(loggingEvent)); }));
+                if (logTextBox.InvokeRequired) {
+                    logTextBox.BeginInvoke((Action)(() => { logTextBox.AppendText(RenderLoggingEvent(loggingEvent)); }));
                 }
                 else {
-                    LogTextBox.AppendText(RenderLoggingEvent(loggingEvent));
+                    logTextBox.AppendText(RenderLoggingEvent(loggingEvent));
                 }
             }
         }

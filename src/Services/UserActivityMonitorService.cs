@@ -154,8 +154,9 @@ public sealed class UserActivityMonitorService : IDisposable {
 
                         case 2
                             : // PowerUserInactive(2) - The user activity timeout has elapsed with no interaction from the user.
-                            Debug.Assert(_presencePresumedTimer != null);
-                            _presencePresumedTimer.Enabled = false;
+                            if (_presencePresumedTimer != null) {
+                                _presencePresumedTimer.Enabled = false;
+                            }
                             Logger.Instance.Log4.Info(
                                 "ActivityMonitor: PowerBroadcast: The user activity timeout has elapsed with no interaction from the user.");
                             break;
@@ -177,8 +178,9 @@ public sealed class UserActivityMonitorService : IDisposable {
 
 
                         case 1: // 0x1 - The computer is entering away mode.
-                            Debug.Assert(_presencePresumedTimer != null);
-                            _presencePresumedTimer.Enabled = false;
+                            if (_presencePresumedTimer != null) {
+                                _presencePresumedTimer.Enabled = false;
+                            }
                             Logger.Instance.Log4.Info(
                                 "ActivityMonitor: PowerBroadcast: The computer is entering away mode.");
                             break;
@@ -193,8 +195,9 @@ public sealed class UserActivityMonitorService : IDisposable {
                     // BUGBUG: Data is just a byte and we're lucky the MSB has our value in it
                     switch (pbSetting.Data) {
                         case 0: // 0x0 - The monitor is off.
-                            Debug.Assert(_presencePresumedTimer != null);
-                            _presencePresumedTimer.Enabled = false;
+                            if (_presencePresumedTimer != null) {
+                                _presencePresumedTimer.Enabled = false;
+                            }
                             Logger.Instance.Log4.Info("ActivityMonitor: PowerBroadcast: The monitor is off");
                             break;
 
