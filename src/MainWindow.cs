@@ -133,7 +133,18 @@ public partial class MainWindow : Form {
         Logger.Instance.Log4.Info($"Window Class - {sb}");
 #endif
         // Load AppSettings (also configures logging; some logging already happened).
-        ApplySettings(AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}"));
+        // #216: SettingsStore.Load never shows UI — the GUI host (here) owns the failure dialogs
+        // that used to live inside AppSettings.Deserialize, gated the same way (headless = no UI).
+        SettingsLoadResult settingsLoad = SettingsStore.Load($@"{Program.ConfigPath}{SettingsStore.SettingsFileName}");
+        ShowSettingsLoadFailure(settingsLoad, $@"{Program.ConfigPath}{SettingsStore.SettingsFileName}");
+        ApplySettings(settingsLoad.Settings);
+
+        // TELEMETRY:
+        // what: Settings
+        // why: To understand what settings get changed and which dont
+        // how is PII protected: only settings clearly identified as not containing PII are collected
+        TelemetryService.Instance.TrackEvent("Settings", settingsLoad.Settings.GetTelemetryDictionary());
+
         Logger.Instance.Log4.Info($"Logger: Logging to {Logger.Instance.LogFile}");
 
         // Telemetry
@@ -385,7 +396,7 @@ public partial class MainWindow : Form {
         // Save the window size/location
         Settings.WindowLocation = Location;
         Settings.WindowSize = Size;
-        Settings.Serialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
+        SaveSettings(Settings);
 
         Close();
         Application.Exit();
@@ -885,6 +896,46 @@ public partial class MainWindow : Form {
     /// </summary>
     internal static void PublishAgentRuntimeSettings(AppSettings settings) {
         AgentRuntime.Settings = settings;
+    }
+
+    /// <summary>
+    /// GUI-host save path (#216): persists <paramref name="settings"/> via
+    /// <see cref="SettingsStore.TrySave"/> and shows the save-failure MessageBox that used to live
+    /// inside <c>AppSettings.Serialize</c>, gated the same way (never when headless). Used by
+    /// <see cref="ShutDown"/> and the Settings dialog OK path.
+    /// </summary>
+    internal static void SaveSettings(AppSettings settings) {
+        string settingsFile = $@"{Program.ConfigPath}{SettingsStore.SettingsFileName}";
+        if (!SettingsStore.TrySave(settingsFile, settings, out Exception? error) && !AgentRuntime.Headless) {
+            MessageBox.Show($"Settings file could not be written. {settingsFile} {error?.Message}");
+        }
+    }
+
+    /// <summary>
+    /// GUI-host load-failure UI (#216): shows the MessageBoxes that used to live inside
+    /// <c>AppSettings.Deserialize</c>, with the same messages and the same headless gate. A clean
+    /// load (or a normal first-run default creation) shows nothing.
+    /// </summary>
+    private static void ShowSettingsLoadFailure(SettingsLoadResult result, string settingsFile) {
+        if (AgentRuntime.Headless) {
+            return;
+        }
+        switch (result.Outcome) {
+            case SettingsLoadOutcome.ParseError:
+                MessageBox.Show($"Settings file is corrupt or invalid: {settingsFile}\n\n{result.ErrorDetail}\n\n" +
+                    "MCE Controller will use default settings for this run. The file was not overwritten - fix or delete it to recover your settings.");
+                break;
+            case SettingsLoadOutcome.AccessDenied:
+            case SettingsLoadOutcome.UnexpectedError:
+                MessageBox.Show($"Settings file could not be loaded. {result.ErrorDetail}\n\nMCE Controller will use default settings for this run.");
+                break;
+            case SettingsLoadOutcome.CreatedDefault when result.Error is not null:
+                // First run, but the default settings file could not be written.
+                MessageBox.Show($"Settings file could not be written. {settingsFile} {result.ErrorDetail}");
+                break;
+            default:
+                break;
+        }
     }
 
     // ----------------------------------------

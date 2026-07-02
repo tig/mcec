@@ -113,7 +113,17 @@ internal static class Program {
 
         TelemetryService.Instance.Start("MCE Controller");
 
-        AppSettings settings = AppSettings.Deserialize($@"{ConfigPath}{AppSettings.SettingsFileName}");
+        // #216: SettingsStore.Load never shows UI; failures are already logged by the store
+        // (headless: log instead of dialogs — same observable behavior as before the split).
+        SettingsLoadResult settingsLoad = SettingsStore.Load($@"{ConfigPath}{SettingsStore.SettingsFileName}");
+        AppSettings settings = settingsLoad.Settings;
+
+        // TELEMETRY:
+        // what: Settings
+        // why: To understand what settings get changed and which dont
+        // how is PII protected: only settings clearly identified as not containing PII are collected
+        TelemetryService.Instance.TrackEvent("Settings", settings.GetTelemetryDictionary());
+
         AgentRuntime.Settings = settings;
         AgentRuntime.Invoker = CommandInvoker.Create(
             $@"{ConfigPath}mcec.commands", Application.ProductVersion, settings.DisableInternalCommands);

@@ -203,7 +203,7 @@ public static class SessionProvisioner {
     }
 
     private static bool IsExcludedFile(string name) =>
-        name.Equals(AppSettings.SettingsFileName, StringComparison.OrdinalIgnoreCase)
+        name.Equals(SettingsStore.SettingsFileName, StringComparison.OrdinalIgnoreCase)
         || name.Equals("mcec.commands", StringComparison.OrdinalIgnoreCase)
         || name.EndsWith(".log", StringComparison.OrdinalIgnoreCase);
 
@@ -224,7 +224,8 @@ public static class SessionProvisioner {
             AllowSessionProvisioning = false,     // a provisioned session must not re-provision
             HideOnStartup = false,
         };
-        settings.Serialize(Path.Combine(dir, AppSettings.SettingsFileName));
+        // #216: no UI here (the store never shows dialogs); a write failure is logged by TrySave.
+        _ = SettingsStore.TrySave(Path.Combine(dir, SettingsStore.SettingsFileName), settings, out _);
     }
 
     /// <summary>Writes the co-located <c>mcec.commands</c> enabling the requested agent commands.</summary>
