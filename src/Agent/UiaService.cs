@@ -84,30 +84,31 @@ public static class UiaService {
     /// <summary>
     /// Finds an element (a short <see cref="InvokeFindTimeoutMs"/> lookup — invoke fast-fails rather
     /// than waiting; see that constant) and dispatches <paramref name="action"/>
-    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>).
-    /// Returns true on success, false if the element wasn't found or the required pattern is
-    /// unsupported. <c>expand</c> opens a collapsed menu/treeitem so its children become reachable —
+    /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>/<c>select</c>).
+    /// Returns a <see cref="UiaInvokeResult"/> that keeps the four failure modes distinct (#206) — the
+    /// old bare bool made an agent re-find elements that existed but lacked the pattern, i.e. loop.
+    /// <c>expand</c> opens a collapsed menu/treeitem so its children become reachable —
     /// a closed WinForms menu's sub-items are not in the UIA tree until the parent is opened. It uses
     /// the ExpandCollapse pattern, falling back to Invoke for WinForms menu items that lack it.
     /// </summary>
-    public static bool Invoke(IntPtr hwnd, string by, string value, string action, string? text) {
+    public static UiaInvokeResult Invoke(IntPtr hwnd, string by, string value, string action, string? text) {
         if (hwnd == IntPtr.Zero) {
-            return false;
+            return UiaInvokeResult.ElementNotFound;
         }
         // Reject an unknown/typo action (e.g. "click", "set-value") rather than silently activating the
         // element via the default Invoke pattern. The caller defaults a missing action to "invoke".
         if (!IsSupportedAction(action)) {
             Logger.Instance.Log4.Warn($"UiaService.Invoke: unsupported action '{action}' — rejected.");
-            return false;
+            return UiaInvokeResult.ActionUnknown;
         }
         try {
             using UIA3Automation automation = new();
             AutomationElement root = automation.FromHandle(hwnd);
             AutomationElement? el = FindElement(root, by, value, InvokeFindTimeoutMs);
             if (el is null) {
-                return false;
+                return UiaInvokeResult.ElementNotFound;
             }
-            return action.ToLowerInvariant() switch {
+            bool dispatched = action.ToLowerInvariant() switch {
                 "invoke" => InvokeDefault(el),
                 "toggle" => InvokeToggle(el),
                 "setvalue" => InvokeSetValue(el, text),
@@ -115,12 +116,14 @@ public static class UiaService {
                 "expand" => InvokeExpand(el),
                 "collapse" => InvokeCollapse(el),
                 "select" => InvokeSelect(el),
-                _ => false,
+                _ => false, // unreachable: IsSupportedAction gated above
             };
+            // The element exists; the only way a dispatcher returns false is a missing UIA pattern.
+            return dispatched ? UiaInvokeResult.Ok : UiaInvokeResult.PatternUnsupported;
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"UiaService.Invoke failed: {e.Message}");
-            return false;
+            return UiaInvokeResult.Faulted;
         }
     }
 

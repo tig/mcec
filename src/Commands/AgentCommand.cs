@@ -10,6 +10,14 @@ namespace MCEControl;
 /// security gate STRUCTURAL: a subclass implements <see cref="ExecuteCore"/> and can only ever run
 /// after the gate has passed — forgetting the gate is impossible by construction (issue #208).
 ///
+/// RESULTS (#206): <see cref="ExecuteCore"/> returns the command's <see cref="CommandResult"/> as an
+/// OBJECT; the template emits it once per transport. Over the legacy TCP/serial pipeline it writes
+/// <c>result.ToJson()</c> to <see cref="Command.Reply"/> exactly as before; for the MCP path it hands
+/// the object to <see cref="CapturingReply.Result"/> so the server never re-parses its own output.
+/// The template also normalizes failures: a failure without a structured code/category is stamped
+/// <c>unhandled</c>/<c>internal</c>, so every agent failure envelope is categorical by construction
+/// — there is no free-text-only failure for prose-sniffing to interpret.
+///
 /// SECURITY — why the gate must live here and not (only) in the server: the MCP path checks
 /// <c>AgentCommandsEnabled</c> in <c>AgentServer</c> before dispatch, but agent commands are ordinary
 /// <see cref="Command"/>s reachable over the legacy TCP/serial pipeline too, and that pipeline has NO
@@ -21,30 +29,50 @@ namespace MCEControl;
 /// </summary>
 public abstract class AgentCommand : Command {
     /// <summary>
-    /// Sealed gate + audit + dispatch template. Order (identical to the pre-#208 hand-written
+    /// Sealed gate + audit + dispatch + emit template. Order (identical to the pre-#208 hand-written
     /// bodies): the <see cref="Command.Execute"/> per-command <c>Enabled</c> check and telemetry,
     /// then the <see cref="AgentRuntime.AgentCommandsEnabled"/> opt-in gate (fail-closed with the
     /// same structured <see cref="CommandResult"/> the commands have always emitted), then the
     /// <see cref="AgentRuntime.Audit"/> line (when <see cref="AuditDetails"/> supplies one), then
-    /// <see cref="ExecuteCore"/>.
+    /// <see cref="ExecuteCore"/>, then a single result emission (see the class remarks).
     /// </summary>
     public sealed override bool Execute() {
         if (!base.Execute()) {
             return false;
         }
 
+        CommandResult result;
         if (!AgentRuntime.AgentCommandsEnabled) {
             Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-            return false;
+            result = CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).",
+                "agent-commands-disabled", "internal");
+        }
+        else {
+            string? auditDetails = AuditDetails();
+            if (auditDetails is not null) {
+                AgentRuntime.Audit(Cmd, auditDetails);
+            }
+            result = ExecuteCore();
         }
 
-        string? auditDetails = AuditDetails();
-        if (auditDetails is not null) {
-            AgentRuntime.Audit(Cmd, auditDetails);
+        // Structural guarantee (#206): every agent failure carries the closed taxonomy. A command
+        // that slipped a bare-string Fail through still produces a categorical envelope.
+        if (!result.Success) {
+            result.ErrorCode ??= "unhandled";
+            result.ErrorCategory ??= "internal";
         }
 
-        return ExecuteCore();
+        if (Reply is CapturingReply capturing) {
+            // In-process (MCP) dispatch: hand the OBJECT over; the server consumes it directly and
+            // CapturingReply.Captured serializes lazily if legacy text is ever wanted.
+            capturing.Result = result;
+        }
+        else {
+            // Legacy TCP/serial transport: the same JSON line these commands have always written.
+            Reply?.WriteLine(result.ToJson());
+        }
+
+        return result.Success;
     }
 
     /// <summary>
@@ -56,7 +84,10 @@ public abstract class AgentCommand : Command {
 
     /// <summary>
     /// The command body. Runs only when the per-command <c>Enabled</c> flag AND the
-    /// <see cref="AgentRuntime.AgentCommandsEnabled"/> opt-in are both set.
+    /// <see cref="AgentRuntime.AgentCommandsEnabled"/> opt-in are both set. Returns the command's
+    /// structured result — the template owns emitting it (never write it to <see cref="Command.Reply"/>
+    /// here). Failures should carry a structured code/category (<see
+    /// cref="CommandResult.Fail(string, string, string, string, System.Text.Json.Nodes.JsonObject?)"/>).
     /// </summary>
-    protected abstract bool ExecuteCore();
+    protected abstract CommandResult ExecuteCore();
 }

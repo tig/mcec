@@ -266,10 +266,10 @@ public static class AgentServer {
             // otherwise default to 0 and actuate at a bogus coordinate. Reject an ill-formed endpoint up
             // front rather than actuating it.
             if (name == "drag" && DragArgsError(args) is string dragError) {
-                return ToolError(dragError, "bad-arguments");
+                return ToolError(dragError, "bad-arguments", AgentErrorCategory.InvalidArgument);
             }
             if (name == "click" && ClickArgsError(args) is string clickError) {
-                return ToolError(clickError, "bad-arguments");
+                return ToolError(clickError, "bad-arguments", AgentErrorCategory.InvalidArgument);
             }
             return RunAgentCommand(name, args);
         }
@@ -377,21 +377,18 @@ public static class AgentServer {
             cmd.Execute();
         }
 
-        // Translate the legacy CommandResult the command wrote into its reply into the #101 envelope.
-        string captured = reply.Captured.Trim();
-        if (string.IsNullOrEmpty(captured)) {
-            AgentError noOutput = new("no-output", AgentErrorCategory.Internal, $"The '{name}' command produced no output.", priorObservation);
+        // Consume the CommandResult OBJECT the command handed to the CapturingReply (#206) — no
+        // serialize → JsonNode.Parse round-trip of our own output (which used to materialize a
+        // capture's base64 PNG three to four times), and no "non-JSON output is success" fallback:
+        // an agent command that produced no typed result is a structured internal failure.
+        if (reply.Result is not CommandResult commandResult) {
+            AgentError noOutput = new("no-output", AgentErrorCategory.Internal,
+                $"The '{name}' command produced no structured result.", priorObservation);
             session.RecordError(noOutput.ToJsonObject());
             return McpResult(AgentToolResult.Failure(noOutput, session.SessionId));
         }
 
-        if (TryParse(captured) is not JsonObject legacy) {
-            // An agent command always emits CommandResult JSON; a non-JSON reply is unexpected. Carry the
-            // raw text forward rather than fabricating a structured error.
-            return McpResult(AgentToolResult.Success(new JsonObject { ["output"] = captured }, session.SessionId));
-        }
-
-        AgentToolResult env = AgentToolResult.FromLegacy(legacy, name, session.SessionId, priorObservation);
+        AgentToolResult env = AgentToolResult.FromCommandResult(commandResult, name, session.SessionId, priorObservation);
 
         // For capture, additionally surface the PNG as an MCP image content block so image-aware clients
         // render it. The base64 stays in the envelope's result so text-only agents (which do not consume
@@ -462,7 +459,7 @@ public static class AgentServer {
     private static JsonObject RunSendCommand(JsonObject args) {
         string command = args["command"]?.GetValue<string>() ?? "";
         if (string.IsNullOrWhiteSpace(command)) {
-            return ToolError("send_command requires a non-empty 'command' argument.", "bad-arguments");
+            return ToolError("send_command requires a non-empty 'command' argument.", "bad-arguments", AgentErrorCategory.InvalidArgument);
         }
 
         CommandInvoker? invoker = AgentRuntime.Invoker;
@@ -512,7 +509,8 @@ public static class AgentServer {
         }
 
         // The legacy command path returns opaque text, not a CommandResult; carry it forward as the
-        // success payload. (A richer send_command success/failure taxonomy is #206.)
+        // success payload. (An agent command routed through send_command hands over a typed result
+        // instead — CapturingReply.Captured lazily serializes it, so the output is unchanged.)
         string captured = reply.Captured.Trim();
         JsonObject result = new() { ["output"] = string.IsNullOrEmpty(captured) ? "ok" : captured };
         CommandEventHub.Publish(new CommandEvent("send_command", CommandTersifier.ForRawCommand(command), CommandOutcome.Ok, session.SessionId));
@@ -550,7 +548,7 @@ public static class AgentServer {
     private static JsonObject RunEndSession(JsonObject args) {
         string? sessionId = Str(args, "sessionId");
         if (string.IsNullOrWhiteSpace(sessionId)) {
-            return ToolError("end-session requires a non-empty 'sessionId' argument.", "bad-arguments");
+            return ToolError("end-session requires a non-empty 'sessionId' argument.", "bad-arguments", AgentErrorCategory.InvalidArgument);
         }
         bool removed = SessionProvisioner.Teardown(sessionId);
         JsonObject result = new() {
@@ -1081,27 +1079,20 @@ public static class AgentServer {
     }
 
     /// <summary>
-    /// A tool-level failure (a security gate or a bad request) reported as the #101 envelope. These are
-    /// MCEC-side refusals the agent cannot recover from on its own, so they map to the <c>internal</c>
-    /// category; <paramref name="code"/> distinguishes the specific cause. The ambient session's id is
-    /// attached so even a refused call tells the agent which session it belonged to.
+    /// A tool-level failure (a security gate or a bad request) reported as the #101 envelope. Security/
+    /// policy refusals the agent cannot recover from on its own map to the default <c>internal</c>
+    /// category; argument-validation refusals pass <see cref="AgentErrorCategory.InvalidArgument"/>
+    /// (#191 — the recovery is to fix the request, not report a bug). <paramref name="code"/>
+    /// distinguishes the specific cause. The ambient session's id is attached so even a refused call
+    /// tells the agent which session it belonged to.
     /// </summary>
-    private static JsonObject ToolError(string message, string code = "internal-error") =>
-        McpResult(AgentToolResult.Failure(new AgentError(code, AgentErrorCategory.Internal, message), AgentRuntime.Session.SessionId));
+    private static JsonObject ToolError(string message, string code = "internal-error", AgentErrorCategory category = AgentErrorCategory.Internal) =>
+        McpResult(AgentToolResult.Failure(new AgentError(code, category, message), AgentRuntime.Session.SessionId));
 
     private static JsonObject TextContent(string text) => new() {
         ["type"] = "text",
         ["text"] = text,
     };
-
-    private static JsonNode? TryParse(string json) {
-        try {
-            return JsonNode.Parse(json);
-        }
-        catch (JsonException) {
-            return null;
-        }
-    }
 
     private static string AsString(JsonNode? node) =>
         node is JsonValue v && v.TryGetValue(out string? s) ? s : "";
