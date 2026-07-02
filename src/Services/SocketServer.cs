@@ -112,11 +112,36 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         return IPAddress.Loopback;
     }
 
+    /// <summary>
+    /// Emits a loud startup WARNING when the command listener is bound to a non-loopback address
+    /// (issue #149). The command server has NO socket authentication, so binding it to all interfaces
+    /// (<c>0.0.0.0</c> / <c>::</c>) or any other non-loopback address exposes unauthenticated
+    /// keyboard/mouse/process command injection to every host that can reach the port
+    /// (LAN/VPN/port-forward). Unlike the MCP HTTP door — which <b>refuses</b> an exposed bind without a
+    /// token (<see cref="AgentServer.BindRequiresAuthToken"/>) — the socket server keeps its long-standing
+    /// all-interfaces default for backward compatibility, so the operator is loudly warned rather than
+    /// blocked. <see cref="IPAddress.Any"/> and <see cref="IPAddress.IPv6Any"/> are non-loopback.
+    /// Internal + static so it can be unit-tested against a resolved address without opening a listener.
+    /// </summary>
+    internal static void WarnIfBindAddressExposed(IPAddress bindTo) {
+        if (bindTo is null || IPAddress.IsLoopback(bindTo)) {
+            return;
+        }
+        Logger.Instance.Log4.Warn(
+            $"SocketServer: the command server is bound to {bindTo} (a non-loopback address) and has NO " +
+            "authentication — it accepts keyboard/mouse/process commands from ANY host that can reach the " +
+            "port (LAN/VPN/port-forward). For single-machine use set SocketServerBindAddress=127.0.0.1 to " +
+            "restrict it to this machine.");
+    }
+
     public void Start(int port, string? bindAddress = null) {
         try {
             // Create the listening socket on the address family of the resolved bind address (#149),
             // so an IPv6 bind (e.g. "::1") gets an IPv6 socket rather than throwing on an IPv4 one.
             IPAddress bindTo = ResolveBindAddress(bindAddress);
+            // #149: the command port is unauthenticated. If the resolved bind is non-loopback, warn
+            // loudly at startup (the MCP door refuses this; we warn to stay backward compatible).
+            WarnIfBindAddressExposed(bindTo);
             _mainSocket = new Socket(bindTo.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             IPEndPoint ipLocal = new IPEndPoint(bindTo, port);
             // Bind to local IP Address...

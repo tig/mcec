@@ -129,12 +129,13 @@ Accepted values (case-insensitive):
 
 | Value | Binds to |
 | --- | --- |
-| `0.0.0.0`, `any`, `*` | All interfaces (default — LAN/VPN reachable) |
+| `0.0.0.0`, `any`, `*`, or empty/blank | All interfaces (default — LAN/VPN reachable) |
+| `::` | All interfaces, IPv6 only (binds IPv6 `Any`) |
 | `127.0.0.1`, `localhost`, `loopback` | This machine only (recommended for single-machine setups) |
 | `::1` | IPv6 loopback (this machine only) |
 | a specific local IP (e.g. `192.168.1.50`) | That interface only |
 
-An unparseable value is rejected with an error in the log and **falls back to loopback** (`127.0.0.1`) rather than silently exposing the port. Restart **MCEC** after editing the setting.
+When the resolved bind is **not** loopback (e.g. the `0.0.0.0` default), **MCEC** writes a loud **WARN** to the log at startup noting the command port is unauthenticated and reachable off-box, with the recommendation to set `127.0.0.1`. An unparseable value is rejected with an error in the log and **falls back to loopback** (`127.0.0.1`) rather than silently exposing the port. Restart **MCEC** after editing the setting.
 
 ### The Serial Server Tab
 
