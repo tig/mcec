@@ -57,9 +57,10 @@ public class McpStdioTransportTests {
             Assert.True(parkedEntered.Wait(15000), "the parked request never dispatched");
 
             // The loop is now blocked in ReadLine; the completed tasks must have been pruned when the
-            // parked request was accepted. A few quick tasks may still be finishing their writes, so
-            // allow a small residue — the point is it is nowhere near `completed`.
-            Assert.True(transport.PendingCountForTests <= 10,
+            // parked request was accepted. Tasks signal `responded` before they finish their write, so
+            // up to a cap's worth may still be completing — the invariant prune+cap guarantee is
+            // pending <= cap + 1 (the old unpruned list would hold all `completed` + 1 here).
+            Assert.True(transport.PendingCountForTests <= McpStdioTransport.MaxConcurrentStdioRequests + 1,
                 $"pending list holds {transport.PendingCountForTests} tasks after {completed} completed requests — not pruned");
         }
         finally {
