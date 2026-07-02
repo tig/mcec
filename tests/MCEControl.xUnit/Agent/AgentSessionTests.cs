@@ -121,6 +121,90 @@ public class AgentSessionTests {
         Assert.Null(session.ActiveTarget);
     }
 
+    // --- #215: the observation payload bomb. A capture observation carries the full base64 PNG;
+    // session state must keep only a compact summary + an artifact file path, so a later failure's
+    // error.lastObservation never embeds megabytes of stale screenshot.
+
+    private static JsonObject CaptureObservation(out byte[] pngBytes) {
+        pngBytes = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4]; // PNG magic + filler
+        return new JsonObject {
+            ["handle"] = 42,
+            ["width"] = 800,
+            ["height"] = 600,
+            ["encoding"] = "png",
+            ["bytes"] = pngBytes.Length,
+            ["base64"] = System.Convert.ToBase64String(pngBytes),
+            ["window"] = new JsonObject { ["handle"] = 42, ["title"] = "App" },
+            ["blankCheck"] = new JsonObject { ["blank"] = false, ["dominantFraction"] = 0.1 },
+        };
+    }
+
+    [Fact]
+    public void RecordObservation_CaptureWithBase64_StoresSummaryPlusArtifact_NeverTheBytes() {
+        string root = TempRoot();
+        AgentSession session = AgentSession.Create(root);
+        try {
+            session.RecordObservation(CaptureObservation(out byte[] pngBytes));
+
+            JsonObject stored = session.LastObservation!;
+            Assert.False(stored.ContainsKey("base64"), "session state must not retain the raw image bytes");
+            Assert.Equal("capture-summary", stored["kind"]!.GetValue<string>());
+            // The compact summary: window descriptor, dimensions, blankCheck verdict, byte count.
+            Assert.Equal(800, stored["width"]!.GetValue<int>());
+            Assert.Equal(600, stored["height"]!.GetValue<int>());
+            Assert.Equal(pngBytes.Length, stored["bytes"]!.GetValue<int>());
+            Assert.Equal("App", stored["window"]!["title"]!.GetValue<string>());
+            Assert.False(stored["blankCheck"]!["blank"]!.GetValue<bool>());
+            // ...plus the artifact path, holding the actual PNG under the session's artifact dir.
+            string artifact = stored["artifact"]!.GetValue<string>();
+            Assert.StartsWith(session.ArtifactDir, artifact);
+            Assert.Equal(pngBytes, File.ReadAllBytes(artifact));
+        }
+        finally {
+            if (Directory.Exists(root)) {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void RecordObservation_CaptureSummary_FlowsIntoErrorLastObservation_WithoutBase64() {
+        // The end-to-end point of the compaction: a failure AFTER a capture carries the summary (not
+        // the screenshot) in error.lastObservation, exactly as the executor builds it — it snapshots
+        // session.LastObservation into the AgentError.
+        string root = TempRoot();
+        AgentSession session = AgentSession.Create(root);
+        try {
+            session.RecordToolOutcome("capture", AgentToolResult.Success(CaptureObservation(out _)));
+
+            AgentToolResult failure = AgentToolResult.Failure(
+                new AgentError("element-not-found", AgentErrorCategory.NoTarget, "gone", session.LastObservation));
+            JsonObject error = failure.ToJsonObject()["error"]!.AsObject();
+
+            JsonObject last = error["lastObservation"]!.AsObject();
+            Assert.False(last.ContainsKey("base64"), "error.lastObservation must never carry raw base64");
+            Assert.True(last.ContainsKey("artifact"));
+            Assert.DoesNotContain("base64", failure.ToJson(), StringComparison.Ordinal);
+        }
+        finally {
+            if (Directory.Exists(root)) {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void RecordObservation_NonImagePayload_IsStoredUnchanged() {
+        // Query trees / find results have no inline image bytes; they keep the historical behavior.
+        AgentSession session = AgentSession.Create(TempRoot());
+        session.RecordObservation(new JsonObject { ["tree"] = "x", ["nodeCount"] = 3 });
+
+        JsonObject stored = session.LastObservation!;
+        Assert.Equal("x", stored["tree"]!.GetValue<string>());
+        Assert.False(stored.ContainsKey("kind"));
+        Assert.False(Directory.Exists(session.ArtifactDir), "no artifact should be written for a non-image observation");
+    }
+
     [Fact]
     public void RecordToolOutcome_Failure_RecordsErrorNotObservation() {
         AgentSession session = AgentSession.Create(TempRoot());

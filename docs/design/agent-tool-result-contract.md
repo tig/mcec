@@ -120,12 +120,35 @@ and then fails `capture-blank`.
 ## `lastObservation`
 
 `error.lastObservation` carries the **last good state** observed before the failure so a failed
-call is debuggable without rerunning it. It typically holds the most recent `query`/`capture`
-result or the resolved target `WindowInfo`. It is the primary input to #87's `failure-summary.md`
-("last good observation + failing tool call") and to bug bundles.
+call is debuggable without rerunning it. It typically holds the most recent `query`/`find`
+result, a `capture` **summary** (see below), or the resolved target `WindowInfo`. It is the
+primary input to #87's `failure-summary.md` ("last good observation + failing tool call") and to
+bug bundles.
 
 When no prior observation exists (e.g. the very first call in a session failed at selector
 resolution), `lastObservation` is omitted.
+
+**Image-bearing observations are summarized, never inlined (#215).** A `capture` result carries
+the full base64 PNG, and replaying that into every later failure would attach megabytes of stale
+screenshot to *errors*. So when the last good observation was a capture, `lastObservation` is a
+compact summary instead:
+
+```json
+{
+  "kind": "capture-summary",
+  "window": { "...WindowInfo..." },
+  "width": 800, "height": 600, "encoding": "png", "bytes": 48213,
+  "blankCheck": { "blank": false, "dominantFraction": 0.1043, "dominantIsDark": false },
+  "artifact": "<sessions>/<started>-<sessionId>/capture-20260701-101502123-1.png"
+}
+```
+
+The PNG bytes are written to `artifact` — a file under the per-session artifact directory (the
+same directory teardown/evidence bundles collect) — and `lastObservation` never contains
+`base64`. If the artifact could not be written, `artifactError` explains why and only the summary
+is retained. This does **not** change the capture tool's own `result` (the agent still receives
+the image inline and as an MCP image block) or `error.partialResult` (a blank capture's suspect
+PNG from the *failing* call, #206).
 
 ## `partialResult`
 

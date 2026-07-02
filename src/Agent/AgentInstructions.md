@@ -71,6 +71,10 @@ or broaden a selector; `ambiguous-selector` means add `processName`/`className`/
 it. Branch on codes and categories, never on the wording of `error.detail` (it is human-readable and may
 change). `error.lastObservation`, when present, is the last good state before the failure, and
 `error.partialResult` is the failing call's OWN partial payload (e.g. a blank capture's suspect PNG).
+When the last good observation was a `capture`, `lastObservation` is a compact summary — the window
+descriptor, dimensions, blankCheck verdict, and byte count, with `kind:"capture-summary"` — plus an
+`artifact` path where the PNG was saved on the host; it never carries the image bytes inline, so
+re-`capture` if you need to SEE the prior state rather than reason about its metadata.
 
 COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
 an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
