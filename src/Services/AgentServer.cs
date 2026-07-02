@@ -432,7 +432,18 @@ public static class AgentServer {
         return null;
     }
 
-    private static JsonObject RunAgentCommand(string name, JsonObject args) {
+    // Internal so tests can exercise the unknown-tool refusal for a name that passed the
+    // tools/call gate but has no argument mapping (InternalsVisibleTo). See #201.
+    internal static JsonObject RunAgentCommand(string name, JsonObject args) {
+        // #201: the tools/call gate whitelist and BuildCommand's arg-mapping switch are two
+        // hand-maintained lists. If a name passes the gate but has no mapping, refuse with a
+        // structured error — the old default arm silently mapped unknown names onto InvokeCommand
+        // (an ACTUATION) with garbage selector args.
+        if (BuildCommand(name, args) is not Command cmd) {
+            AgentRuntime.Audit(name, "BLOCKED — tool has no argument mapping; refusing to run it as another command");
+            return ToolError($"Unknown tool: {name}", "unknown-tool");
+        }
+
         // Honor the per-command Enabled flag — the documented second security gate. The MCP tool only
         // runs if the corresponding command in the loaded table is enabled (built-ins ship disabled;
         // the operator opts in per-command via mcec.commands). Fail closed if the table/command is missing.
@@ -441,7 +452,6 @@ public static class AgentServer {
             return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").", "command-disabled");
         }
 
-        Command cmd = BuildCommand(name, args);
         CapturingReply reply = new();
         cmd.Reply = reply;
         cmd.Enabled = true;
@@ -646,8 +656,13 @@ public static class AgentServer {
         return items.Count > 0 ? items : null;
     }
 
-    /// <summary>Builds and populates an agent command instance from MCP tool arguments.</summary>
-    private static Command BuildCommand(string name, JsonObject args) => name switch {
+    /// <summary>
+    /// Builds and populates an agent command instance from MCP tool arguments. Exhaustive over the
+    /// agent tool names: an unknown name returns <c>null</c> (the caller refuses it as
+    /// <c>unknown-tool</c>) rather than falling through to a default command (#201). Internal so
+    /// tests can pin the mapping (InternalsVisibleTo).
+    /// </summary>
+    internal static Command? BuildCommand(string name, JsonObject args) => name switch {
         "capture" => new CaptureCommand {
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),
@@ -704,7 +719,7 @@ public static class AgentServer {
         "drag" => BuildDragCommand(args),
         "click" => BuildClickCommand(args),
         "displays" => new DisplaysCommand(),
-        _ => new InvokeCommand { // invoke
+        "invoke" => new InvokeCommand {
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),
             Process = Str(args, "process")!,
@@ -715,6 +730,7 @@ public static class AgentServer {
             Action = Str(args, "action") ?? "invoke",
             Text = Str(args, "text")!,
         },
+        _ => null, // unknown name — the caller reports unknown-tool; never guess a command (#201)
     };
 
     /// <summary>Maps the drag tool's nested <c>from</c>/<c>to</c>/<c>path</c> arguments onto a <see cref="DragCommand"/>.</summary>

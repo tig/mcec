@@ -497,6 +497,60 @@ public class AgentServerTests {
         }
     }
 
+    // --- #201: BuildCommand's arg-mapping switch is exhaustive. A tool name that passed the
+    // tools/call gate but has no mapping must be refused with a structured unknown-tool error —
+    // historically the switch's default arm silently mapped it onto InvokeCommand (an ACTUATION)
+    // with garbage selector args.
+
+    [Fact]
+    public void RunAgentCommand_NameWithNoArgMapping_ReportsUnknownTool_NotInvokeExecution() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        // Even with a matching, ENABLED entry in the command table — i.e. a name that passes every
+        // gate — a name the switch does not map must be refused, never run as another command.
+        AgentRuntime.Invoker = new CommandInvoker { ["hover"] = new CaptureCommand { Cmd = "hover", Enabled = true } };
+        try {
+            JsonObject resp = AgentServer.RunAgentCommand("hover", []);
+
+            Assert.True(resp["isError"]!.GetValue<bool>());
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp))!.AsObject();
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            JsonObject error = envelope["error"]!.AsObject();
+            Assert.Equal("unknown-tool", error["code"]!.GetValue<string>());
+            Assert.Equal("internal", error["category"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void BuildCommand_UnknownName_ReturnsNull_NeverADefaultCommand() {
+        // The old default arm meant an unmapped name became an InvokeCommand. Now it maps to null,
+        // which RunAgentCommand refuses as unknown-tool.
+        Assert.Null(AgentServer.BuildCommand("hover", new JsonObject { ["window"] = "X", ["value"] = "OK" }));
+    }
+
+    [Fact]
+    public void BuildCommand_Invoke_StillMapsToInvokeCommand() {
+        // "invoke" has its own explicit case (#201) — the mapping must be unchanged.
+        Command? cmd = AgentServer.BuildCommand("invoke", new JsonObject {
+            ["window"] = "Calculator",
+            ["by"] = "automationId",
+            ["value"] = "num7Button",
+            ["action"] = "toggle",
+            ["text"] = "hi",
+        });
+
+        InvokeCommand invoke = Assert.IsType<InvokeCommand>(cmd);
+        Assert.Equal("Calculator", invoke.Window);
+        Assert.Equal("automationId", invoke.By);
+        Assert.Equal("num7Button", invoke.Value);
+        Assert.Equal("toggle", invoke.Action);
+        Assert.Equal("hi", invoke.Text);
+    }
+
     private static string FirstTextBlock(JsonObject toolResult) {
         foreach (JsonNode? block in toolResult["content"]!.AsArray()) {
             if (block?["type"]?.GetValue<string>() == "text") {
