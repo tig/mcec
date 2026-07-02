@@ -855,10 +855,24 @@ public static class AgentServer {
 
     private static void HandleHttp(HttpListenerContext context) {
         try {
-            if (!string.Equals(context.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase)) {
-                WriteHttp(context, 405, new JsonObject { ["error"] = "Only POST /mcp is supported" });
+            // SECURITY (#143): a localhost HTTP service is reachable by any web page the operator visits
+            // (browser CSRF) and by a rebinding attacker (DNS rebinding). Validate Host/Origin/token and
+            // the path BEFORE reading the body or dispatching, so a failed request never actuates a tool.
+            HttpListenerRequest request = context.Request;
+            AppSettings? settings = AgentRuntime.Settings;
+            HttpGateDecision decision = GateHttpRequest(
+                request.HttpMethod,
+                request.Url?.AbsolutePath,
+                request.UserHostName,
+                request.Headers["Origin"],
+                request.Headers["Authorization"],
+                settings?.McpHttpPort ?? 0,
+                settings?.McpAuthToken);
+            if (decision != HttpGateDecision.Allow) {
+                RejectHttp(context, decision, request);
                 return;
             }
+
             string body;
             using (StreamReader sr = new(context.Request.InputStream, context.Request.ContentEncoding)) {
                 body = sr.ReadToEnd();
@@ -884,6 +898,118 @@ public static class AgentServer {
                 Logger.Instance.Log4.Error($"AgentServer: failed to write HTTP error: {inner.Message}");
             }
         }
+    }
+
+    /// <summary>
+    /// Validates an inbound MCP/HTTP request against the localhost front-door policy (#143):
+    /// POST only, path exactly <c>/mcp</c>, a loopback <c>Host</c> (defeats DNS rebinding), an
+    /// absent-or-loopback <c>Origin</c> (defeats browser CSRF), and — when a token is configured —
+    /// a matching <c>Authorization: Bearer</c> header. Pure so it can be unit tested without a socket.
+    /// </summary>
+    internal static HttpGateDecision GateHttpRequest(
+            string httpMethod,
+            string? absolutePath,
+            string? hostHeader,
+            string? originHeader,
+            string? authorizationHeader,
+            int port,
+            string? requiredToken) {
+        if (!string.Equals(httpMethod, "POST", StringComparison.OrdinalIgnoreCase)) {
+            return HttpGateDecision.RejectMethod;
+        }
+        if (!string.Equals(absolutePath, "/mcp", StringComparison.Ordinal)) {
+            return HttpGateDecision.RejectPath;
+        }
+        if (!IsLoopbackAuthority(hostHeader, port)) {
+            return HttpGateDecision.RejectHost;
+        }
+        if (!IsAllowedOrigin(originHeader)) {
+            return HttpGateDecision.RejectOrigin;
+        }
+        if (!string.IsNullOrEmpty(requiredToken) && !BearerTokenMatches(authorizationHeader, requiredToken)) {
+            return HttpGateDecision.RejectAuth;
+        }
+        return HttpGateDecision.Allow;
+    }
+
+    /// <summary>True if <paramref name="hostHeader"/> names a loopback host and (if a port is present) that port.</summary>
+    private static bool IsLoopbackAuthority(string? hostHeader, int port) {
+        if (string.IsNullOrWhiteSpace(hostHeader)) {
+            return false;
+        }
+        string host = hostHeader.Trim();
+        string hostName;
+        string? portPart = null;
+        if (host.StartsWith('[')) {
+            // IPv6 literal: [::1] or [::1]:port
+            int end = host.IndexOf(']');
+            if (end < 0) {
+                return false;
+            }
+            hostName = host.Substring(1, end - 1);
+            if (end + 1 < host.Length && host[end + 1] == ':') {
+                portPart = host[(end + 2)..];
+            }
+        }
+        else {
+            int colon = host.IndexOf(':');
+            if (colon >= 0) {
+                hostName = host[..colon];
+                portPart = host[(colon + 1)..];
+            }
+            else {
+                hostName = host;
+            }
+        }
+        if (portPart is not null && (!int.TryParse(portPart, out int p) || p != port)) {
+            return false;
+        }
+        return IsLoopbackName(hostName);
+    }
+
+    /// <summary>True if the Origin header is absent (typical non-browser MCP client) or names a loopback host.</summary>
+    private static bool IsAllowedOrigin(string? originHeader) {
+        if (string.IsNullOrEmpty(originHeader)) {
+            return true;
+        }
+        // A literal "null" origin (sandboxed iframe / file://) or any un-parseable value is not loopback.
+        return Uri.TryCreate(originHeader, UriKind.Absolute, out Uri? uri) && IsLoopbackName(uri.Host);
+    }
+
+    private static bool IsLoopbackName(string hostName) =>
+        string.Equals(hostName, "localhost", StringComparison.OrdinalIgnoreCase)
+        || (IPAddress.TryParse(hostName, out IPAddress? ip) && IPAddress.IsLoopback(ip));
+
+    /// <summary>Constant-time check of an <c>Authorization: Bearer &lt;token&gt;</c> header against the expected token.</summary>
+    private static bool BearerTokenMatches(string? authorizationHeader, string expectedToken) {
+        if (string.IsNullOrEmpty(authorizationHeader)) {
+            return false;
+        }
+        const string scheme = "Bearer ";
+        if (!authorizationHeader.StartsWith(scheme, StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        string provided = authorizationHeader[scheme.Length..].Trim();
+        byte[] a = Encoding.UTF8.GetBytes(provided);
+        byte[] b = Encoding.UTF8.GetBytes(expectedToken);
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(a, b);
+    }
+
+    private static void RejectHttp(HttpListenerContext context, HttpGateDecision decision, HttpListenerRequest request) {
+        (int status, string message) = decision switch {
+            HttpGateDecision.RejectMethod => (405, "Only POST /mcp is supported"),
+            HttpGateDecision.RejectPath => (404, "Only POST /mcp is supported"),
+            HttpGateDecision.RejectHost => (403, "Forbidden: Host must be a loopback authority"),
+            HttpGateDecision.RejectOrigin => (403, "Forbidden: cross-origin requests are not allowed"),
+            HttpGateDecision.RejectAuth => (401, "Unauthorized: a valid bearer token is required"),
+            _ => (403, "Forbidden"),
+        };
+        // Audit rejected drive-by/rebinding attempts so an operator can see them.
+        Logger.Instance.Log4.Warn(
+            $"AGENT-AUDIT: rejected HTTP request ({decision}) method={request.HttpMethod} " +
+            $"path={request.Url?.AbsolutePath} host={request.UserHostName} origin={request.Headers["Origin"]} " +
+            $"remote={request.RemoteEndPoint}");
+        WriteHttp(context, status, new JsonObject { ["error"] = message });
     }
 
     private static void WriteHttp(HttpListenerContext context, int status, JsonObject payload) {
