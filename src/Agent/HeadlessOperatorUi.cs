@@ -133,7 +133,7 @@ internal static class HeadlessOperatorUi {
             Logger.Instance.Log4.Warn("HeadlessOperatorUi: pump thread did not exit within 3s; abandoned (background thread).");
             return;
         }
-        lock (Gate) {
+        lock (_gate) {
             // Only clear our own thread; a racing Stop that already joined-and-cleared, then a
             // fresh Start, must not have its new thread dropped here.
             if (ReferenceEquals(_thread, thread)) {
