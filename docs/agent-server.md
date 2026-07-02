@@ -160,9 +160,10 @@ Over MCP, the transport's `isError` flag mirrors the envelope (`isError = !ok`).
 
 On failure the `error` object carries a stable, fine-grained `code`, a coarse `category` from
 the closed taxonomy (`timeout`, `ambiguous-selector`, `stale-element`, `no-target`,
-`capture-blank`, `focus`, `elevation`, `foreground`, `internal`), a human-readable `detail`,
-and — when available — a `lastObservation` (the last good state before the failure, so a
-failed call is debuggable without rerunning it):
+`invalid-argument`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`), a
+human-readable `detail`, and — when available — a `lastObservation` (the last good state before
+the failure, so a failed call is debuggable without rerunning it) and a `partialResult` (the
+failing call's own partial payload, e.g. a blank capture's suspect PNG):
 
 ```json
 {
@@ -177,11 +178,13 @@ failed call is debuggable without rerunning it):
 }
 ```
 
-> **Where the shape comes from.** Internally each agent command still emits the thinner legacy
-> `CommandResult` (`{ success, command, error, data, warnings }`, in `src/Commands/CommandResult.cs`).
-> The `AgentServer` translates that into the `{ ok, result, error, … }` envelope at the MCP
-> boundary (`AgentToolResult.FromLegacy`), which is the shape an MCP client actually receives and
-> the one specified by the shared result contract in
+> **Where the shape comes from.** Internally each agent command returns a structured
+> `CommandResult` **object** (`src/Commands/CommandResult.cs`) carrying `success`/`data` plus the
+> mandatory `errorCode`/`errorCategory` taxonomy on failure (#206). The `AgentServer` builds the
+> `{ ok, result, error, … }` envelope from that object at the MCP boundary
+> (`AgentToolResult.FromCommandResult`) — no serialize/re-parse round-trip and no free-text
+> "categorization" — which is the shape an MCP client actually receives and the one specified by
+> the shared result contract in
 > [`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md). A
 > couple of feature-specific refusals ride in `error.code` while `error.category` stays `internal`:
 > `emergency-stopped` (the operator engaged the [emergency stop](safety-emergency-stop-and-provisioning.md)),
@@ -228,7 +231,8 @@ unbounded region (e.g. `40000x40000` ≈ 6.4 GB of raw ARGB, before PNG encoding
 otherwise exhaust the host's memory. A region may be at most **16384 px per side** and
 **64,000,000 px total** (64 MP ≈ 256 MB raw — roughly eight 4K frames). An oversized region is
 **rejected before anything is allocated or captured** — the call fails with
-`errorCode: "region-too-large"` (`errorCategory: "no-target"`) and a detail stating the limit,
+`errorCode: "region-too-large"` (`errorCategory: "invalid-argument"`, #191: the recovery is to
+shrink the request) and a detail stating the limit,
 and the rejection is `AGENT-AUDIT:`-logged. The same caps apply to `record` regions (window
 targets need no cap: they are bounded by the window's own size). These limits are fixed, not
 settings: they are an anti-DoS bound sized well beyond real desktop geometry, not a tuning knob.
@@ -360,7 +364,8 @@ near-black dominant color is distinguished from a legitimately empty (e.g. white
 
 - A **window** capture that comes back blank is a failure (`error.category: "capture-blank"`,
   `error.code: "frame-all-black"` or `"frame-uniform"`), so it is never a *silent* bad image — an
-  agent branches on the failure rather than trusting the frame.
+  agent branches on the failure rather than trusting the frame. The suspect PNG the command
+  grabbed still rides in `error.partialResult` (#206), so the evidence is not lost.
 - A **region** capture that comes back blank is reported as a `capture-blank` **warning**, since
   a user-specified region can legitimately be empty.
 - The raw numbers are in the success payload's `blankCheck` (`blank`, `dominantFraction`, `dominantIsDark`).

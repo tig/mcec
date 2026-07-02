@@ -15,13 +15,14 @@ over time — a bounded one-shot (`durationMs`) or `action:start` then `action:s
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
 whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture` and `record` are size-capped: max
 16384 px per side and 64000000 px total — an oversized region fails fast with `errorCode:region-too-large`
-(the detail states the limit); request a smaller region or a window target (windows are bounded by their
-own size). An open `start` auto-stops at the operator's limits (default 60 s / 600 frames); `stop`
+(category `invalid-argument`; the detail states the limit); request a smaller region or a window target
+(windows are bounded by their own size). An open `start` auto-stops at the operator's limits (default 60 s / 600 frames); `stop`
 still returns that buffered GIF — exactly once — and after an auto-stop a new recording (`start` or a
 one-shot) is allowed: it discards the unfetched GIF, carrying an `unfetched-recording-discarded` warning
 on its result, so `stop` promptly to collect your output. Check results for trouble: a `capture` with errorCategory `capture-blank` is a black/empty
 frame (minimized, cloaked, occluded, or a locked session) — restore/foreground the window and retry
-instead of trusting the image; a `capture-fallback` warning means PrintWindow was refused and the picture
+instead of trusting the image (the suspect PNG is still available in `error.partialResult` if you want to
+inspect what was grabbed); a `capture-fallback` warning means PrintWindow was refused and the picture
 may be wrong. If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap
 — raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are
 non-fatal; errorCategory tells you how to recover. The bounds `query`/`find` report are ABSOLUTE screen
@@ -37,7 +38,11 @@ returns promptly with `modalPending:true` — the action completes when the dial
 `query`/`capture` the new window to read it, and `invoke` its buttons to dismiss it. `invoke` does NOT
 wait for a control — it fast-fails if the element isn't present yet — so `wait-for` (or `find` with a
 timeout) the control before acting; an `invoke` that returns `error.category:no-target` means the control
-hasn't appeared yet, so `wait-for` it rather than blindly retrying. To DRAG — resize a window by its
+hasn't appeared yet, so `wait-for` it rather than blindly retrying. An `invoke` failing with
+`error.code:pattern-unsupported` (category `invalid-argument`) means the element EXISTS but cannot perform
+that action — re-finding it will never help; pick a different action or `click` its centre instead.
+`action-unknown` means the `action` string itself is wrong — fix it (invoke|toggle|setvalue|setfocus|
+expand|collapse|select). To DRAG — resize a window by its
 sizing border, move one by its title bar, drag a slider/handle, marquee-select, or reorder (there is no
 `invoke` for these) — use the `drag` tool: give a `from` and a `to`, each either an element `{ by, value }`
 in the target window (dragged from/to its centre) or an absolute screen pixel `{ x, y }`, plus optional
@@ -57,11 +62,15 @@ atomic drag in pixels and `mouse:mtp,x,y` moves the pointer to an absolute scree
 
 RESULTS: every tool returns one envelope — `{ ok, result?, warnings?, error? }`. Branch on `ok` first: on
 success read `result`; on failure read `error.category` (a closed set: timeout, ambiguous-selector,
-stale-element, no-target, capture-blank, focus, elevation, foreground, internal) to choose recovery — e.g.
-`no-target` means broaden the selector or `query` to discover targets, `ambiguous-selector` means add
-`processName`/`className`/`automationId`, `stale-element` means re-`query`/`find` for a fresh handle.
-`error.detail` is human-readable and `error.lastObservation`, when present, is the last good state before
-the failure.
+stale-element, no-target, invalid-argument, capture-blank, focus, elevation, foreground, internal) to
+choose recovery — e.g. `no-target` means broaden the selector, `query` to discover targets, or `wait-for`
+the element; `invalid-argument` means the REQUEST itself is wrong (unknown action, oversized region,
+ill-formed endpoint, an action the element can't perform) — fix the arguments, do NOT retry the same call
+or broaden a selector; `ambiguous-selector` means add `processName`/`className`/`automationId`;
+`stale-element` means re-`query`/`find` for a fresh handle; `internal` is not recoverable by you — report
+it. Branch on codes and categories, never on the wording of `error.detail` (it is human-readable and may
+change). `error.lastObservation`, when present, is the last good state before the failure, and
+`error.partialResult` is the failing call's OWN partial payload (e.g. a blank capture's suspect PNG).
 
 COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
 an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 

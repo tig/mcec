@@ -76,14 +76,24 @@ one descriptor plus its command class. The meta-tools (`send_command`,
 1:1 onto a `Command` and keep their own gating, special-cased in `AgentServer` next to
 the catalog dispatch.
 
-## Structured replies
+## Structured replies (#206: objects, not re-parsed strings)
 
-Agent commands do not write free text. They write a `CommandResult` (in
-`System.Text.Json.Nodes`): `Success`, `Command`, `Error?`, `Data?` with factory helpers
-`Ok(command, data?)` / `Fail(command, error)` and `ToJson()` / `ToJsonObject()`.
-Serialization options live in `AgentJson` (`Serialize<T>`). For in-process tool dispatch
-the server runs a command against a `CapturingReply : Reply` and reads back
-`Captured` rather than going through a socket.
+Agent commands do not write free text. `ExecuteCore()` **returns** a `CommandResult` (in
+`System.Text.Json.Nodes`): `Success`, `Command`, `Error?`, `Data?`, plus the mandatory failure
+taxonomy `ErrorCode`/`ErrorCategory` and `Warnings`, with factory helpers `Ok(command, data?)` /
+`Fail(command, error, code, category, data?)` and `ToJson()` / `ToJsonObject()`. Serialization
+options live in `AgentJson` (`Serialize<T>`).
+
+`AgentCommand`'s sealed template emits the result once per transport: a legacy TCP/serial `Reply`
+receives the single `ToJson()` line (unchanged wire format), while a `CapturingReply : Reply` —
+the in-process tool dispatch — receives the **object** in its typed `Result` slot. The server
+consumes that object directly (`AgentToolResult.FromCommandResult`) to build the #101 envelope:
+no `ToJson → JsonNode.Parse` round-trip of its own output (a capture's base64 PNG used to be
+materialized 3–4×), no prose-sniffing categorization (deleted with `FromLegacy`/`Categorize`),
+and no "non-JSON output is success" fallback. The template also normalizes any failure missing a
+code/category to `unhandled`/`internal`, so every agent failure is categorical by construction.
+`CapturingReply.Captured` lazily serializes the typed result when legacy text is wanted
+(`send_command` output, tests).
 
 ## How the new commands plug into the existing pattern
 
@@ -133,9 +143,9 @@ the gated agent tools registered in `ToolCatalog` (`capture`, `query`, `displays
 - **HTTP floor** — one JSON-RPC request per `POST` to `/mcp`, bound to
   `McpBindAddress` (default `127.0.0.1`) on `McpHttpPort` (default `5151`).
 
-Tool calls are translated into command invocations executed through
-`CommandInvoker` + `CapturingReply`, and the captured `CommandResult` JSON is returned
-to the caller.
+Tool calls are translated into command invocations executed against a `CapturingReply`; the
+command's typed `CommandResult` (its `Result` slot, #206) is wrapped in the #101 envelope and
+returned to the caller.
 
 ## `--mcp` headless bootstrap
 
