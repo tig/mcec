@@ -412,25 +412,25 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// Parses the chunk currently in <paramref name="clientContext"/>'s DataBuffer. Guards the
     /// parse loop so a malformed/crafted packet can never escape as an unhandled exception on a
     /// ThreadPool callback and terminate the process (issue #144 — unauthenticated remote crash):
-    /// any parse failure closes the offending client. Likewise, a client that streams more than
+    /// any parse failure closes the offending client. A client that streams more than
     /// <see cref="CommandAccumulator.MaxCommandLength"/> chars without a delimiter (issue #148 —
-    /// memory-exhaustion DoS) is hostile or broken, so it is closed rather than buffered further.
+    /// memory-exhaustion DoS) gets the accumulator's single overflow policy (#212): the partial
+    /// command is dropped, an Error is notified once, and input is discarded until the next
+    /// delimiter — the connection stays open and memory stays bounded. (Pre-#212 this path
+    /// closed the connection, a divergent second copy of the overflow policy.)
     /// Internal so tests can drive the receive path without a live listener (InternalsVisibleTo).
     /// </summary>
     /// <returns>false if the client was closed and receiving must stop.</returns>
     internal bool ProcessReceivedData(ServerReplyContext clientContext, int count) {
         try {
-            if (!ParseReceivedData(
-                    clientContext.DataBuffer,
-                    count,
-                    clientContext.CmdBuilder,
-                    reply => clientContext.Socket.Send(reply),
-                    command => SendNotification(ServiceNotification.ReceivedData, CurrentStatus, clientContext, command))) {
-                SendNotification(ServiceNotification.Error, CurrentStatus, clientContext,
-                    $"OnDataReceived: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); closing connection");
-                CloseSocket(clientContext);
-                return false;
-            }
+            ParseReceivedData(
+                clientContext.DataBuffer,
+                count,
+                clientContext.Accumulator,
+                reply => clientContext.Socket.Send(reply),
+                command => SendNotification(ServiceNotification.ReceivedData, CurrentStatus, clientContext, command),
+                () => SendNotification(ServiceNotification.Error, CurrentStatus, clientContext,
+                    $"OnDataReceived: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); discarding input until next delimiter"));
         }
         catch (Exception ex) {
             SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: parse error: {ex.Message}");
@@ -441,12 +441,14 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     }
 
     /// <summary>
-    /// Parses a received chunk of bytes: strips inline telnet negotiation (IAC …) and emits a
-    /// command via <paramref name="onCommand"/> on each CR/LF/NUL delimiter. Extracted from
+    /// Parses a received chunk of bytes: strips inline telnet negotiation (IAC …) — a thin
+    /// byte-level pre-filter — and feeds everything else to <paramref name="accumulator"/>,
+    /// which owns the CR/LF/NUL delimiter and #148 max-length logic (consolidated there by
+    /// #212; this method previously re-implemented both with divergent overflow semantics).
+    /// A command is emitted via <paramref name="onCommand"/> on each delimiter; on overflow
+    /// the accumulator drops the partial command, invokes <paramref name="onOverflow"/> once,
+    /// and discards input until the next delimiter. Extracted from
     /// <see cref="OnDataReceived"/> so it can be unit tested and hardened against malformed input.
-    /// Returns false when the accumulated command exceeds
-    /// <see cref="CommandAccumulator.MaxCommandLength"/> (issue #148); the builder is cleared and
-    /// parsing stops — the caller is expected to close the connection.
     /// </summary>
     /// <remarks>
     /// Issue #144: the telnet option byte was read <b>before</b> its bounds check, so a crafted
@@ -454,12 +456,13 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// out-of-bounds read → unhandled exception → process crash. Every buffer access here is now
     /// bounds-checked first: a truncated IAC/verb/option sequence is silently ignored.
     /// </remarks>
-    internal static bool ParseReceivedData(
+    internal static void ParseReceivedData(
             byte[] buffer,
             int count,
-            StringBuilder cmdBuilder,
+            CommandAccumulator accumulator,
             Action<byte[]> sendReply,
-            Action<string> onCommand) {
+            Action<string> onCommand,
+            Action? onOverflow = null) {
         for (int i = 0; i < count; i++) {
             byte b = buffer[i];
             switch (b) {
@@ -472,14 +475,11 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                     byte verb = buffer[i];
                     switch (verb) {
                         case (int)TelnetVerbs.IAC:
-                            //literal IAC = 255 escaped, so append char 255 to string.
-                            // The (char) cast matters: Append(byte) would format the NUMBER
-                            // as the 3-char string "255" (#148 review follow-up).
-                            if (cmdBuilder.Length >= CommandAccumulator.MaxCommandLength) {
-                                cmdBuilder.Clear(); // #148: drop the oversized partial command
-                                return false;
-                            }
-                            cmdBuilder.Append((char)verb);
+                            // literal IAC = 255 escaped: exactly one (char)255 goes into the
+                            // command — the (char) cast matters: Append(byte) would format the
+                            // NUMBER as the 3-char string "255" (#148 review follow-up). The
+                            // accumulator enforces the #148 cap at this append site too.
+                            _ = accumulator.ProcessChar((char)verb, onOverflow);
                             break;
                         case (int)TelnetVerbs.DO:
                         case (int)TelnetVerbs.DONT:
@@ -509,26 +509,16 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                     }
                     break;
 
-                case (byte)'\r':
-                case (byte)'\n':
-                case (byte)'\0':
-                    // Skip any delimiter chars that might have been left from earlier input
-                    if (cmdBuilder.Length > 0) {
-                        onCommand(cmdBuilder.ToString());
-                        cmdBuilder.Clear();
-                    }
-                    break;
-
                 default:
-                    if (cmdBuilder.Length >= CommandAccumulator.MaxCommandLength) {
-                        cmdBuilder.Clear(); // #148: drop the oversized partial command
-                        return false;
+                    // Delimiters (CR/LF/NUL), the #148 cap, and overflow recovery all
+                    // live in CommandAccumulator now (#212).
+                    string? cmd = accumulator.ProcessChar((char)b, onOverflow);
+                    if (cmd != null) {
+                        onCommand(cmd);
                     }
-                    cmdBuilder.Append((char)b);
                     break;
             }
         }
-        return true;
     }
 
     public void SendAwakeCommand(String cmd, String host, int port) {

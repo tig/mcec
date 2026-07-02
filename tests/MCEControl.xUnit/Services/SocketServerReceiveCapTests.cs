@@ -14,9 +14,13 @@ namespace MCEControl.xUnit.Services;
 /// <summary>
 /// Regression tests for issue #148 (SocketServer side): the per-command receive buffer must be
 /// bounded. The server binds 0.0.0.0 unauthenticated, so an attacker streaming bytes with no
-/// CR/LF/NUL delimiter must not be able to grow CmdBuilder until OutOfMemoryException (which
-/// surfaces on a ThreadPool callback and kills the process). A client past the cap is hostile
-/// or broken: the buffer is dropped, an error is logged, and the connection is closed.
+/// CR/LF/NUL delimiter must not be able to grow the accumulator until OutOfMemoryException
+/// (which surfaces on a ThreadPool callback and kills the process). Since #212 the server
+/// delegates delimiter/cap handling to <see cref="CommandAccumulator"/>, so overflow follows
+/// its single policy: the oversized partial command is dropped, an error is notified once, and
+/// input is discarded until the next delimiter — the connection stays open and memory stays
+/// bounded. (Pre-#212 the server had a divergent second copy of the policy that closed the
+/// connection instead.)
 /// No live listener is used — tests drive the internal receive seams directly.
 /// </summary>
 public class SocketServerReceiveCapTests : IDisposable {
@@ -31,34 +35,33 @@ public class SocketServerReceiveCapTests : IDisposable {
         new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
     [Fact]
-    public void ParseReceivedData_DelimiterlessFlood_NeverExceedsCap_AndDropsBuilder() {
-        var builder = new StringBuilder();
+    public void ParseReceivedData_DelimiterlessFlood_NeverExceedsCap_AndDropsBuffer() {
+        var accumulator = new CommandAccumulator();
         var chunk = new byte[1024];
         Array.Fill(chunk, (byte)'a');
 
-        bool overflowed = false;
+        int overflows = 0;
         // 8 KB of delimiter-less data: parsing must refuse to buffer past the cap.
-        for (int i = 0; i < 8 && !overflowed; i++) {
-            overflowed = !SocketServer.ParseReceivedData(chunk, chunk.Length, builder, _ => { }, _ => { });
-            Assert.True(builder.Length <= CommandAccumulator.MaxCommandLength,
-                $"CmdBuilder grew to {builder.Length} chars after chunk {i + 1}");
+        for (int i = 0; i < 8; i++) {
+            SocketServer.ParseReceivedData(chunk, chunk.Length, accumulator, _ => { }, _ => { }, () => overflows++);
+            Assert.True(accumulator.Length <= CommandAccumulator.MaxCommandLength,
+                $"accumulator grew to {accumulator.Length} chars after chunk {i + 1}");
         }
 
-        Assert.True(overflowed, "ParseReceivedData never signaled overflow");
-        Assert.Equal(0, builder.Length); // oversized partial command is dropped, not kept
+        Assert.Equal(1, overflows); // notified exactly once per oversized run (no log flooding)
+        Assert.Equal(0, accumulator.Length); // oversized partial command is dropped, not kept
     }
 
     [Fact]
     public void ParseReceivedData_CommandOfExactlyMaxLength_StillParses() {
-        var builder = new StringBuilder();
+        var accumulator = new CommandAccumulator();
         var commands = new List<string>();
         var data = new byte[CommandAccumulator.MaxCommandLength + 1];
         Array.Fill(data, (byte)'a');
         data[^1] = (byte)'\n';
 
-        bool ok = SocketServer.ParseReceivedData(data, data.Length, builder, _ => { }, commands.Add);
+        SocketServer.ParseReceivedData(data, data.Length, accumulator, _ => { }, commands.Add);
 
-        Assert.True(ok);
         Assert.Single(commands);
         Assert.Equal(CommandAccumulator.MaxCommandLength, commands[0].Length);
     }
@@ -68,42 +71,54 @@ public class SocketServerReceiveCapTests : IDisposable {
         // The escaped-IAC path (IAC IAC -> literal 0xFF) is an append site too and must
         // honor the same cap: fill to one char under the cap, then send IAC IAC. A
         // multi-char append there (e.g. the decimal string "255") would blow past the cap.
-        var builder = new StringBuilder();
+        var accumulator = new CommandAccumulator();
         var data = new byte[CommandAccumulator.MaxCommandLength + 1];
         Array.Fill(data, (byte)'a');
         data[^2] = 255; // IAC
         data[^1] = 255; // IAC — escaped literal 0xFF
 
-        _ = SocketServer.ParseReceivedData(data, data.Length, builder, _ => { }, _ => { });
+        SocketServer.ParseReceivedData(data, data.Length, accumulator, _ => { }, _ => { });
 
-        Assert.True(builder.Length <= CommandAccumulator.MaxCommandLength,
-            $"CmdBuilder grew to {builder.Length} chars via the escaped-IAC append site");
+        Assert.True(accumulator.Length <= CommandAccumulator.MaxCommandLength,
+            $"accumulator grew to {accumulator.Length} chars via the escaped-IAC append site");
     }
 
     [Fact]
-    public void ProcessReceivedData_DelimiterlessFlood_ClosesOffendingClient_AndLogsError() {
+    public void ProcessReceivedData_DelimiterlessFlood_DiscardsUntilDelimiter_AndKeepsClientConnected() {
         using Socket socket = NewSocket();
         var context = _server.RegisterClient(socket);
         var errors = new List<string>();
+        var commands = new List<string>();
         _server.Notifications += (notify, status, reply, msg) => {
             if (notify == ServiceNotification.Error) {
                 errors.Add(msg);
             }
+            else if (notify == ServiceNotification.ReceivedData) {
+                commands.Add(msg);
+            }
         };
         Array.Fill(context.DataBuffer, (byte)'a');
 
-        bool closed = false;
-        for (int i = 0; i < 8 && !closed; i++) {
-            closed = !_server.ProcessReceivedData(context, context.DataBuffer.Length);
-            Assert.True(context.CmdBuilder.Length <= CommandAccumulator.MaxCommandLength,
-                $"CmdBuilder grew to {context.CmdBuilder.Length} chars after chunk {i + 1}");
+        // 8 KB of delimiter-less data. #212: ONE overflow policy — the accumulator's
+        // discard-until-delimiter recovery. The connection is NOT closed (pre-#212 the
+        // server had a divergent copy of the cap logic that closed it).
+        for (int i = 0; i < 8; i++) {
+            Assert.True(_server.ProcessReceivedData(context, context.DataBuffer.Length),
+                $"receive was stopped after chunk {i + 1}");
+            Assert.True(context.Accumulator.Length <= CommandAccumulator.MaxCommandLength,
+                $"accumulator grew to {context.Accumulator.Length} chars after chunk {i + 1}");
         }
 
-        Assert.True(closed, "flooding client was never closed");
-        Assert.DoesNotContain(socket, _server.TrackedClients.Values);
-        Assert.Equal(0, _server.ConnectedClientCount);
-        Assert.True(socket.SafeHandle.IsClosed, "offending client's socket was not closed");
-        Assert.Contains(errors, msg => msg.Contains("maximum length", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(socket, _server.TrackedClients.Values);
+        Assert.False(socket.SafeHandle.IsClosed, "client's socket must stay open under the #212 policy");
+        Assert.Single(errors, msg => msg.Contains("maximum length", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(commands); // the oversized run (and its tail) never surfaces as a command
+
+        // Recovery: a delimiter ends the discard and the next command parses normally.
+        byte[] recovery = Encoding.ASCII.GetBytes("\nmute\n");
+        Array.Copy(recovery, context.DataBuffer, recovery.Length);
+        Assert.True(_server.ProcessReceivedData(context, recovery.Length));
+        Assert.Equal(new[] { "mute" }, commands);
     }
 
     [Fact]
