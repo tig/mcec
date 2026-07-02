@@ -112,15 +112,19 @@ internal static class Program {
     private static int Main(string[] args) {
         // mcec.exe is a WinExe: it has no console unless the parent hands it one. Attaching to the
         // parent's console (best effort; fails harmlessly when there is none or stdio is piped)
-        // makes the CLI surface and error messages visible when run from a terminal.
+        // makes the CLI surface and error messages visible when run from a terminal. VT processing
+        // must then be enabled explicitly: an attached GUI-subsystem process does not inherit the
+        // shell's ANSI-enabled output mode the way a console app does, and Terminal.Gui.Cli's help
+        // rendering emits ANSI.
         if (args.Length > 0) {
             _ = ConsoleNativeMethods.AttachConsole(ConsoleNativeMethods.AttachParentProcess);
+            ConsoleNativeMethods.TryEnableVtProcessing();
         }
 
-        // Start logging
+        // Start logging. The START banner is logged in Bootstrap (the app modes), not here: the
+        // CLI surface (--help/--version/--opencli) must not spray log lines onto the console it
+        // just attached to.
         Logger.Instance.LogFile = $@"{ConfigPath}mcec.log";
-        Logger.Instance.Log4.Debug(
-            $"------ START: v{Application.ProductVersion} - OS: {Environment.OSVersion} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()} ------");
 
         if (args.Length == 0) {
             Bootstrap();
@@ -140,6 +144,9 @@ internal static class Program {
 
     /// <summary>App-mode initialization shared by the GUI and MCP paths (not the CLI surface).</summary>
     private static void Bootstrap() {
+        Logger.Instance.Log4.Debug(
+            $"------ START: v{Application.ProductVersion} - OS: {Environment.OSVersion} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()} ------");
+
         // v3.0: carry an existing user's MCEControl.settings/.commands forward to the new mcec.* names.
         ConfigMigration.Run(ConfigPath);
 

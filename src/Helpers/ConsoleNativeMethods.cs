@@ -23,4 +23,32 @@ internal static class ConsoleNativeMethods {
     /// </summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     internal static extern bool AttachConsole(int dwProcessId);
+
+    private const int StdOutputHandle = -11;
+    private const uint EnableVirtualTerminalProcessing = 0x0004;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetStdHandle(int nStdHandle);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
+    /// <summary>
+    ///     Enables ANSI/VT escape-sequence interpretation on this process's console output. A
+    ///     console-subsystem app inherits a session whose output mode the shell/terminal already set
+    ///     up, but a GUI-subsystem (WinExe) process that ATTACHES to a console does not get
+    ///     ENABLE_VIRTUAL_TERMINAL_PROCESSING, so Terminal.Gui.Cli's rendered help/viewer ANSI would
+    ///     print as literal <c>[39m</c>-style garbage (and the mangled lines wrap, wrecking the
+    ///     layout). Call after <see cref="AttachConsole" />. Best effort: with no console or a piped
+    ///     stdout, GetConsoleMode fails and this is a harmless no-op.
+    /// </summary>
+    internal static void TryEnableVtProcessing() {
+        IntPtr stdout = GetStdHandle(StdOutputHandle);
+        if (GetConsoleMode(stdout, out uint mode)) {
+            _ = SetConsoleMode(stdout, mode | EnableVirtualTerminalProcessing);
+        }
+    }
 }
