@@ -451,6 +451,34 @@ The address and port come from `McpBindAddress` (default `127.0.0.1`) and `McpHt
 (default `5151`). This is a deliberately minimal floor for local scripts and agents; it
 is not a general-purpose web API and is not exposed off-box by default.
 
+### Front-door request validation (defeats CSRF and DNS rebinding)
+
+A localhost HTTP service is still reachable by a browser: any web page the operator visits
+can issue a cross-origin `POST` to `127.0.0.1:5151` (CSRF), and a DNS-rebinding attacker can
+make the browser treat the endpoint as same-origin to read responses. To close both, every
+HTTP request is validated **before** its body is read or any tool runs:
+
+- **Method + path** — only `POST /mcp` is served; anything else is rejected (`405`/`404`).
+- **`Host` header** — must be a loopback authority (`127.0.0.1`, `localhost`, or `[::1]`, and,
+  if a port is present, the configured `McpHttpPort`). A request with `Host: evil.com` — the
+  hallmark of DNS rebinding — is refused (`403`).
+- **`Origin` header** — must be absent (a normal non-browser MCP client sends none) or a
+  loopback origin. A cross-site `Origin` (`http://evil.com`) or an opaque `null` origin is
+  refused (`403`), which stops the drive-by CSRF case.
+- **`Authorization` (optional, defense in depth)** — set `McpAuthToken` to a non-empty secret
+  and every request must carry `Authorization: Bearer <token>` (constant-time compared), which
+  additionally protects against a hostile process on the same machine. Empty (default) relies on
+  the `Host`/`Origin` checks above.
+
+Every rejected request is logged with an `AGENT-AUDIT:` line (decision, method, path, host,
+origin, remote endpoint) so drive-by and rebinding attempts are visible to the operator.
+
+> **Binding off-box requires a token.** The `Host` check is a browser/rebinding defense, not a
+> network control — a remote client can send `Host: 127.0.0.1`. So if `McpBindAddress` is set to a
+> non-loopback address (e.g. `0.0.0.0`) **and** `McpAuthToken` is empty, MCEC **refuses to start** the
+> HTTP listener and logs an error. To expose the door off-box, set a bearer token (and prefer a
+> network-level control too).
+
 The floor is hardened against resource exhaustion ([#151]): a request body larger than
 **1 MB** is refused with `413` (the cap is enforced by a bounded read, so chunked bodies
 without a `Content-Length` can't bypass it), and at most **16** requests are served
@@ -466,6 +494,8 @@ concurrently — past that the server answers `503` rather than queueing.
 - Structured JSON results; same commands exposed as MCP/HTTP tools.
 - **Three independent off-by-default gates:** `AgentCommandsEnabled`, per-command
   `Enabled`, and `McpServerEnabled` (localhost-bound).
+- **HTTP front-door validation:** `POST /mcp` only, loopback `Host` and absent-or-loopback
+  `Origin` required, optional `McpAuthToken` bearer token — defeats browser CSRF and DNS rebinding.
 - Loud `AGENT-AUDIT:` logging for every agent action.
 - Fully additive — nothing about the existing HTPC behavior changes.
 
