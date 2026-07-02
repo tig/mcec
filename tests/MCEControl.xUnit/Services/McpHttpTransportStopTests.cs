@@ -64,10 +64,18 @@ public class McpHttpTransportStopTests {
 
             Task stop = Task.Run(transport.Stop);
 
-            // While the worker is parked, Stop must NOT complete (it is draining, not abandoning).
-            await Task.WhenAny(stop, Task.Delay(300));
+            // Stop closes the listener before draining; wait (bounded) for that so we know Stop is
+            // actually underway — under load Task.Run scheduling alone can take hundreds of ms.
+            System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
+            while (transport.IsListening && sw.ElapsedMilliseconds < 10000) {
+                await Task.Delay(10);
+            }
+            Assert.False(transport.IsListening, "Stop never closed the listener");
+
+            // While the worker is parked (holding its slot), Stop must NOT complete — it is
+            // draining, not abandoning. Deterministic: the drain cannot finish until release fires.
+            await Task.Delay(200);
             Assert.False(stop.IsCompleted, "Stop returned while a worker was still in flight");
-            Assert.False(transport.IsListening, "listener must be closed as soon as Stop begins");
 
             release.Set();
             await stop.WaitAsync(TimeSpan.FromSeconds(10));
