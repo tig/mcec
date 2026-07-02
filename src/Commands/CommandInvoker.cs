@@ -12,7 +12,6 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -91,21 +90,23 @@ public class CommandInvoker : Hashtable {
     /// </summary>
     /// <returns></returns>
     private static CommandInvoker CreateBuiltIns(bool disableInternalCommands = false) {
+        // Debug backstop (#204): a concrete Command subclass without a CommandRegistry entry would
+        // silently ship no built-ins and be unserializable — fail loudly at startup in DEBUG builds.
+        // The real gate is CommandRegistryTests, which reds the build for the same drift.
+        CommandRegistry.DebugAssertComplete();
+
         CommandInvoker commands = [];
 
-        // Add the built-ins that are defiend in the `Command`-derived classes
         // SECURITY: Note, by default `Enabled` is set to `false` for all of these.
         if (disableInternalCommands)
             return commands;
 
-        // Add the built-ins defined in the Command-derived classes
-        foreach (Command cmdType in Command.GetDerivedClassesCollection()) {
-            PropertyInfo? propertyInfo = cmdType.GetType().GetProperty("BuiltInCommands", BindingFlags.Public | BindingFlags.Static);
-            if (propertyInfo != null) {
-                // Use the PropertyInfo to retrieve the value from the type by not passing in an instance
-                foreach (Command builtinCmd in (List<Command>)propertyInfo.GetValue(null, null)!) {
-                    commands.Add(builtinCmd);
-                }
+        // One explicit registry (#204): each command type's built-in prototypes come from its
+        // registry entry — no assembly scan instantiating every type, no magic static discovered
+        // by reflection that silently registers nothing when misdeclared.
+        foreach (CommandRegistryEntry entry in CommandRegistry.Entries) {
+            foreach (Command builtinCmd in entry.BuiltIns()) {
+                commands.Add(builtinCmd);
             }
         }
         Logger.Instance.Log4.Info($"{commands.GetType().Name}: {commands.Count} built-in commands defined");

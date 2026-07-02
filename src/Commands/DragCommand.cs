@@ -39,7 +39,7 @@ public class DragCommand : WindowTargetingAgentCommand {
     // fail cleanly" behaviour of invoke rather than blocking indefinitely.
     private const int FindTimeoutMs = 3000;
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new DragCommand { Cmd = "drag" }];
     }
 

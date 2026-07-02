@@ -36,7 +36,7 @@ public class SendMessageCommand : Command {
     private String windowName = null!;
     [XmlAttribute("windowname")] public String WindowName { get => windowName; set => windowName = value; }
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
               new SendMessageCommand() { Cmd = "maximize", Msg=274, wParam=61488, lParam=0 },
               new SendMessageCommand() { Cmd = "screensaver", Msg=274, wParam=61760, lParam=0 },

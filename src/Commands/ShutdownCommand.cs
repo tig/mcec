@@ -17,7 +17,7 @@ namespace MCEControl;
 /// Summary description for ShutdownCommands.
 /// </summary>
 public class ShutdownCommand : Command {
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
             new ShutdownCommand{ Cmd = $"shutdown", Type = $"shutdown" },
             new ShutdownCommand{ Cmd = $"shutdown-hybrid", Type = $"shutdown-hybrid" },

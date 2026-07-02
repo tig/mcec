@@ -23,7 +23,7 @@ public class SetForegroundWindowCommand : Command {
     [XmlAttribute("appname")]
     public string AppName { get; set; } = null!;
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
               new SetForegroundWindowCommand() { Cmd = "activatecode", AppName ="code" },
               new SetForegroundWindowCommand() { Cmd = "activatenotepad", AppName="Notepad"  },

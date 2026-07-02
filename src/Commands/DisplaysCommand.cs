@@ -20,7 +20,7 @@ namespace MCEControl;
 /// <see cref="AgentCommand"/>). Disabled by default (security).
 /// </summary>
 public class DisplaysCommand : AgentCommand {
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new DisplaysCommand { Cmd = "displays" }];
     }
 

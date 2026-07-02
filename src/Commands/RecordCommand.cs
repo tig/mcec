@@ -44,7 +44,7 @@ public class RecordCommand : WindowTargetingAgentCommand {
     private const string DiscardedWarningDetail =
         "A previous recording auto-stopped and its GIF was never fetched; it has been discarded and replaced by this recording.";
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new RecordCommand { Cmd = "record" }];
     }
 

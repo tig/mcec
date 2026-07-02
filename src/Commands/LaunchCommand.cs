@@ -24,7 +24,7 @@ public class LaunchCommand : AgentCommand {
     [XmlAttribute("workingdirectory")] public string WorkingDirectory { get; set; } = null!;
     [XmlAttribute("timeout")] public int Timeout { get; set; }
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new LaunchCommand { Cmd = "launch" }];
     }
 
