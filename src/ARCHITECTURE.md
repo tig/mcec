@@ -422,7 +422,7 @@ InputSimulator (facade)
 - **UI Thread**: MainWindow, all WinForms controls
 - **Worker Threads**: Each SocketServer client connection, SocketClient connection
 - **Command Execution**: Currently on UI thread (via BeginInvoke)
-- **Activity Hooks**: Separate message pump thread (HookManager)
+- **Activity Hooks**: WH_KEYBOARD_LL/WH_MOUSE_LL hooks (HookManager) install on the UI thread — there is no dedicated pump thread. Hook callbacks are enqueue-and-return (#198): only debounce/latch logic runs in the hook proc; heavy work (logging, telemetry, socket/serial sends) is posted off the callback path so the proc can never exceed `LowLevelHooksTimeout` (which would get the hook silently evicted)
 - **Synchronization**: Thread-safe ConcurrentQueue for command execution
 
 **Known Limitation**: Commands execute on UI thread which could block UI during long-running commands. Future enhancement would move CommandInvoker to dedicated thread.

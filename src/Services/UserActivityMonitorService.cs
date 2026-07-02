@@ -10,6 +10,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Forms;
 using Gma.UserActivityMonitor;
 using Microsoft.Win32;
@@ -44,6 +45,14 @@ public sealed class UserActivityMonitorService : IDisposable {
     private DateTime _lastTime;
     private Timer _presencePresumedTimer = null!;
 
+    // Captured on Start()'s thread (the WinForms UI thread in the GUI host). The heavy per-activity
+    // work — log4net file I/O, a telemetry metric, and SendLine's synchronous socket/serial writes —
+    // is Post()ed here so the low-level hook callback returns immediately (#198). Windows silently
+    // evicts a WH_KEYBOARD_LL/WH_MOUSE_LL hook whose callback exceeds LowLevelHooksTimeout, and the
+    // emergency-stop hotkey (#135) rides the same keyboard hook — a blocked serial write inside the
+    // hook proc could kill the panic hotkey with no error surfaced.
+    private SynchronizationContext? _activitySyncContext;
+
     private UserActivityMonitorService() {
     }
 
@@ -62,6 +71,7 @@ public sealed class UserActivityMonitorService : IDisposable {
     /// </summary>
     public void Start() {
         _lastTime = DateTime.Now;
+        _activitySyncContext = SynchronizationContext.Current;
 
         if (InputDetection) {
             Debug.Assert(!_inputEventsSubscribed);
@@ -289,9 +299,12 @@ public sealed class UserActivityMonitorService : IDisposable {
             return;
         }
 
+        // Deliberately NOT subscribed: HookManager.KeyPress. KeyDown suffices for activity detection,
+        // and with zero KeyPress subscribers HookManager's KeyboardHookProc skips its ToAscii call —
+        // the well-known Gma bug where ToAscii consumes the keyboard's dead-key state and breaks
+        // accented-character composition system-wide while the hook is installed (#198).
         HookManager.MouseMove += HookManager_MouseMove;
         HookManager.MouseClick += HookManager_MouseClick;
-        HookManager.KeyPress += HookManager_KeyPress;
         HookManager.KeyDown += HookManager_KeyDown;
         HookManager.MouseDown += HookManager_MouseDown;
         HookManager.MouseUp += HookManager_MouseUp;
@@ -312,7 +325,6 @@ public sealed class UserActivityMonitorService : IDisposable {
 
         HookManager.MouseMove -= HookManager_MouseMove;
         HookManager.MouseClick -= HookManager_MouseClick;
-        HookManager.KeyPress -= HookManager_KeyPress;
         HookManager.KeyDown -= HookManager_KeyDown;
         HookManager.MouseDown -= HookManager_MouseDown;
         HookManager.MouseUp -= HookManager_MouseUp;
@@ -326,11 +338,18 @@ public sealed class UserActivityMonitorService : IDisposable {
     }
 
     /// <summary>
-    ///     Called anytime user activity is detected.
+    ///     Called anytime user activity is detected — including from INSIDE the WH_KEYBOARD_LL /
+    ///     WH_MOUSE_LL hook callbacks (the HookManager_* handlers below run in the hook proc, before
+    ///     CallNextHookEx). It must stay cheap: Windows silently evicts a low-level hook whose callback
+    ///     exceeds LowLevelHooksTimeout, and the emergency-stop hotkey (#135) rides the same keyboard
+    ///     hook. Only the debounce check runs here; the heavy work (log file I/O, telemetry, SendLine's
+    ///     synchronous socket/serial writes) is dispatched off the hook path by
+    ///     <see cref="DispatchActivityWork" /> (#198).
+    ///     Internal for testing (InternalsVisibleTo MCEControl.xUnit).
     /// </summary>
     /// <param name="source">Indicates the source of the detection; for logging</param>
     /// <param name="moreInfo">More info about the activity.</param>
-    private void Activity(string source, string moreInfo = "") {
+    internal void Activity(string source, string moreInfo = "") {
         if (!_inputEventsSubscribed) {
             return;
         }
@@ -340,20 +359,71 @@ public sealed class UserActivityMonitorService : IDisposable {
             _presencePresumedTimer.Enabled = true;
         }
 
-        if (_lastTime.AddSeconds(DebounceTime) <= DateTime.Now) {
-            // Only log/trigger if outside debounce time
-            Logger.Instance.Log4.Info($@"ActivityMonitor: Activity detected: {source} {moreInfo}");
-
-            // TELEMETRY: 
-            // what: the count of activity detected
-            // why: to understand how frequently activity is detected
-            // how is PII protected: the frequency of activity is not PII
-            TelemetryService.Instance.TrackMetric("activity Sent", 1);
-
-            MainWindow.Instance.SendLine(ActivityMsg);
-
-            _lastTime = DateTime.Now;
+        // Debounce HERE, on the hook callback path, so the dispatch below happens at most once per
+        // DebounceTime — not on every mouse move.
+        if (_lastTime.AddSeconds(DebounceTime) > DateTime.Now) {
+            return;
         }
+        _lastTime = DateTime.Now;
+
+        DispatchActivityWork(source, moreInfo);
+    }
+
+    /// <summary>
+    ///     Test seam (InternalsVisibleTo MCEControl.xUnit): when non-null,
+    ///     <see cref="DispatchActivityWork" /> hands the heavy work here instead of posting it, so tests
+    ///     can assert that the hook-path handler completes without running the work inline.
+    /// </summary>
+    internal Action<Action>? DispatchForTesting { get; set; }
+
+    /// <summary>
+    ///     Test seam (InternalsVisibleTo MCEControl.xUnit): the debounce clock — the time of the last
+    ///     dispatched activity. Settable so tests can step past the debounce window deterministically.
+    /// </summary>
+    internal DateTime LastActivityTimeForTesting {
+        get => _lastTime;
+        set => _lastTime = value;
+    }
+
+    /// <summary>
+    ///     Dispatches the heavy per-activity work so the hook callback returns immediately. Posts to
+    ///     the SynchronizationContext captured at <see cref="Start" /> (the WinForms UI context in the
+    ///     GUI host — the work runs as a normal posted message AFTER the hook proc has returned) and
+    ///     falls back to the thread pool when there is none.
+    /// </summary>
+    private void DispatchActivityWork(string source, string moreInfo) {
+        Action work = () => PerformActivityWork(source, moreInfo);
+
+        Action<Action>? dispatchForTesting = DispatchForTesting;
+        if (dispatchForTesting != null) {
+            dispatchForTesting(work);
+            return;
+        }
+
+        SynchronizationContext? context = _activitySyncContext;
+        if (context != null) {
+            context.Post(static state => ((Action)state!)(), work);
+        }
+        else {
+            ThreadPool.QueueUserWorkItem(static state => ((Action)state!)(), work);
+        }
+    }
+
+    /// <summary>
+    ///     The heavy part of activity handling — log file I/O, a telemetry metric, and SendLine's
+    ///     synchronous socket/serial writes. Runs OFF the hook callback path (see
+    ///     <see cref="Activity" /> / <see cref="DispatchActivityWork" />).
+    /// </summary>
+    private void PerformActivityWork(string source, string moreInfo) {
+        Logger.Instance.Log4.Info($@"ActivityMonitor: Activity detected: {source} {moreInfo}");
+
+        // TELEMETRY:
+        // what: the count of activity detected
+        // why: to understand how frequently activity is detected
+        // how is PII protected: the frequency of activity is not PII
+        TelemetryService.Instance.TrackMetric("activity Sent", 1);
+
+        MainWindow.Instance.SendLine(ActivityMsg);
     }
 
     private void HookManager_KeyDown(object? sender, KeyEventArgs e) {
@@ -364,10 +434,6 @@ public sealed class UserActivityMonitorService : IDisposable {
         Activity("KeyUp", LogActivity ? $"{e.KeyCode}" : "");
     }
 
-
-    private void HookManager_KeyPress(object? sender, KeyPressEventArgs e) {
-        Activity("KeyPress", LogActivity ? $"{e.KeyChar}" : "");
-    }
 
     private void HookManager_MouseMove(object? sender, MouseEventArgs e) {
         Activity("MouseMove", LogActivity ? $"x={e.X:0000}; y={e.Y:0000}" : "");
