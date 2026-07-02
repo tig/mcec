@@ -64,7 +64,7 @@ MCEC is a Windows desktop application built on .NET 10 (WinForms) that enables r
 **Location**: `MainWindow.cs`
 
 **Responsibilities**:
-- Singleton pattern - single instance of the application UI
+- Singleton, but explicitly assigned (#209): `Program.Main`'s GUI path constructs the one instance and sets `MainWindow.Instance` before `Application.Run`. It is **not** lazily constructed; touching `Instance` before assignment (or ever, in headless `--mcp` mode) throws a pointed exception. Code below the UI layer must use the `AgentRuntime` seam (`Invoker`, `SendLine`, `RequestShutdown`, `MessageWindowHandle`) instead; MainWindow registers itself as the seam's `IAppHost` when settings are applied.
 - Lifecycle management for all services
 - UI presentation (WinForms with MenuStrip, StatusStrip, system tray icon)
 - Coordination between communication services and command execution
@@ -129,7 +129,7 @@ All services inherit from `ServiceBase` which provides:
 - Debouncing to prevent command flooding
 - Generates configurable activity commands
 
-**Dependencies**: Uses `Gma.UserActivityMonitor` library for low-level hook management
+**Dependencies**: Uses the first-party `MCEControl.Hooks` (`Hooks\`) `HookManager` for low-level hook management (adopted from the vendored Gma.UserActivityMonitor fork in #214)
 
 ### 3. Command System (Command Pattern)
 
@@ -156,7 +156,7 @@ All services inherit from `ServiceBase` which provides:
 ```csharp
 public interface ICommand {
     bool Execute();
-    Command Clone(Reply reply, Command clone);
+    ICommand Clone(Reply reply);
 }
 ```
 
@@ -167,6 +167,10 @@ public interface ICommand {
 - Support for nested/embedded commands
 - Telemetry tracking
 - Reply context for bidirectional communication
+- `Clone(Reply)` is MemberwiseClone-based (#207): every field; all serializable state is
+  value/string-typed; is copied by construction, then the fresh `Reply` is set and
+  `EmbeddedCommands` deep-cloned. Subclasses do not (and must not need to) override it to copy
+  fields; a reflection hygiene test round-trips every public settable property of every command.
 
 #### 3.3 Command Types
 
@@ -235,7 +239,7 @@ InputSimulator (facade)
 - **WindowsInputMessageDispatcher**: Sends INPUT arrays to Win32 SendInput API
 
 **Win32 Integration**:
-- Unsafe code for P/Invoke
+- P/Invoke declarations in `WindowsInput\Native\NativeMethods.cs` (no `unsafe` code)
 - Uses Windows.h structures (INPUT, KEYBDINPUT, MOUSEINPUT)
 - Virtual key codes (VirtualKeyCode enum)
 - Mouse and keyboard flags
@@ -308,27 +312,27 @@ InputSimulator (facade)
 
 ### 6. Win32 Integration Layer
 
-**Location**: `Win32\` namespace
+**Purpose**: Small, per-subsystem P/Invoke declarations for the Windows APIs MCEC actually calls. There is no shared native library and no `unsafe` code; each subsystem declares only what it uses, and no import is declared twice. (The vendored `Microsoft.Win32.Security` fork (token manipulation, ACLs, SIDs) was dead code and was deleted in #210.)
 
-**Purpose**: P/Invoke wrappers for Windows APIs
+**The four islands**:
+- **`Win32NativeMethods.cs`** (core app): window messaging; `SendMessage`, `PostMessage`, `SetForegroundWindow`, plus the `WM_SYSCOMMAND`/`SC_CLOSE` constants. Used by MainWindow (hide-on-startup), SendMessageCommand, and SetForegroundWindowCommand.
+- **`WindowsInput\Native\NativeMethods.cs`**: input simulation; `SendInput`, `GetKeyState`/`GetAsyncKeyState`, `GetMessageExtraInfo`, `FindWindow`, `GetClassName`.
+- **`Hooks\`** (`HookNativeMethods.cs` + `PowerNativeMethods.cs`): global low-level hooks (`SetWindowsHookEx`/`UnhookWindowsHookEx`/`CallNextHookEx`, `IntPtr` hook handles) and power-broadcast notifications. First-party since #214 (formerly the vendored `Gma.UserActivityMonitor` fork).
+- **`Agent\AgentNativeMethods.cs`**: agent observation; `PrintWindow`, window rect/text/class metadata, `EnumWindows`, per-monitor DPI, and the layered-window plumbing for the command overlay.
 
-**Key Areas**:
-- **Security**: Token manipulation, ACLs, SIDs (for process elevation/security)
-- **Window Management**: FindWindow, PostMessage, SendMessage
-- **Input**: SendInput, keybd_event, mouse_event
-- **Process**: CreateProcess wrappers
-- **Memory**: Marshaling utilities for unmanaged structures
+### 7. Global Input Hooks (MCEControl.Hooks)
 
-### 7. Third-Party Libraries
+**Location**: `Hooks\` (namespace `MCEControl.Hooks`)
 
-**Location**: `Gma.UserActivityMonitor\` namespace
-
-**Purpose**: Global input hooks for activity monitoring
+**Purpose**: Global input hooks for activity monitoring and the emergency stop (#135)
 
 **Features**:
-- Low-level mouse and keyboard hooks (SetWindowsHookEx)
-- Global event subscription
-- Threaded message pump for hook processing
+- Low-level mouse and keyboard hooks (SetWindowsHookEx), installed on first subscribe / uninstalled on last unsubscribe
+- Injected-key detection (`LLKHF_INJECTED`) on the `KeyDownExt`/`KeyUpExt` events for the emergency stop
+- Power-setting notification P/Invokes (`PowerNativeMethods`)
+
+First-party since #214: adopted from the vendored `Gma.UserActivityMonitor` fork (a dead 2004
+CodeProject sample) because it is load-bearing for the emergency stop; only the used surface was kept.
 
 ## Data Flow
 
@@ -342,21 +346,23 @@ InputSimulator (facade)
          ?
          ?
 2. MainWindow.ReceivedData(Reply, String)
-   - Ensures execution on UI thread
+   - Producer-only: enqueues on the transport's thread (no UI marshaling)
          ?
          ?
 3. CommandInvoker.Enqueue(Reply, String)
    - Parses command string
    - Looks up Command in hashtable
    - Clones Command with Reply context
-   - Enqueues to ConcurrentQueue
+   - Enqueues to the dispatcher's queue
    - Recursively enqueues embedded commands
          ?
          ?
-4. CommandInvoker.ExecuteNext()
-   - Dequeues ICommand instances
-   - Calls Command.Execute()
-   - Applies command pacing (Thread.Sleep)
+4. CommandInvoker dispatcher thread (#195)
+   - The ONLY consumer of the queue (one long-running background thread per invoker)
+   - Calls Command.Execute() under AgentRuntime.InputGate (no interleaving with agent drag)
+   - Per-command try/catch (a throwing command can't strand the queue)
+   - Drops the queue when the emergency stop (#135) is engaged
+   - Applies command pacing (Thread.Sleep on the dispatcher thread)
          ?
          ?
 5. Command.Execute() Implementation
@@ -376,7 +382,7 @@ InputSimulator (facade)
 ### Activity Monitoring Flow
 
 ```
-1. Gma.UserActivityMonitor (Global Hooks)
+1. MCEControl.Hooks.HookManager (Global Hooks)
    - Mouse/keyboard events
    - Session change events
    - Power management events
@@ -415,17 +421,16 @@ InputSimulator (facade)
 3. **Registry Override**: `DisableInternalCommands` registry key can block all built-in commands
 4. **Network Security**: No authentication on socket connections (assumes trusted network)
 5. **Telemetry Privacy**: PII filtering via attributes, user-defined commands not tracked
-6. **Process Elevation**: Uses Win32 security APIs for UAC/token manipulation when needed
+6. **No Token Manipulation**: MCEC contains no privilege/token/ACL code. Shutdown and restart shell out to `shutdown.exe` (ShutdownCommand) at the caller's existing privilege level; nothing elevates.
 
 ## Threading Model
 
 - **UI Thread**: MainWindow, all WinForms controls
 - **Worker Threads**: Each SocketServer client connection, SocketClient connection
-- **Command Execution**: Currently on UI thread (via BeginInvoke)
-- **Activity Hooks**: Separate message pump thread (HookManager)
-- **Synchronization**: Thread-safe ConcurrentQueue for command execution
-
-**Known Limitation**: Commands execute on UI thread which could block UI during long-running commands. Future enhancement would move CommandInvoker to dedicated thread.
+- **Command Execution (#195)**: on the CommandInvoker's own long-running dispatcher thread; the ONLY consumer of the execute queue. All producers (TCP/serial/client via `MainWindow.ReceivedData`, the agent's `send_command`, activity monitoring) enqueue only; nothing else dequeues. The dispatcher wraps each `Execute()` in try/catch, honors the emergency-stop latch between commands, sleeps `CommandPacing` on its own thread (a paced macro no longer freezes the UI), and starts lazily on the first enqueue / stops via `Shutdown()` (settings reload, app exit). Commands that must touch UI marshal internally (e.g. `MainWindow.ShutDown()` BeginInvokes itself); SendInput/PostMessage/Process.Start are thread-agnostic.
+- **Input serialization (#113/#195)**: `AgentRuntime.InputGate` is the single gate over the one physical input stream. The dispatcher holds it around each queued command's `Execute`; the agent's `drag` tool holds it while actuating a gesture on an MCP worker; so queue-driven synthetic input and drag gestures never interleave. It is a leaf lock: never acquire another lock or wait on the queue while holding it.
+- **Activity Hooks**: WH_KEYBOARD_LL/WH_MOUSE_LL hooks (HookManager) install on the UI thread; there is no dedicated pump thread. Hook callbacks are enqueue-and-return (#198): only debounce/latch logic runs in the hook proc; heavy work (logging, telemetry, socket/serial sends) is posted off the callback path so the proc can never exceed `LowLevelHooksTimeout` (which would get the hook silently evicted)
+- **Synchronization**: single-consumer BlockingCollection for command execution; `send_command` awaits a per-enqueue completion marker the dispatcher signals after execution
 
 ## Build System
 
@@ -440,20 +445,20 @@ InputSimulator (facade)
 
 ## Extensibility Points
 
-1. **New Command Types**: Inherit from `Command`, implement `Execute()`, add to `Command.GetDerivedClassesCollection()`
+1. **New Command Types** (#204): Inherit from `Command` (agent tools: from the gated `AgentCommand` bases, #208), implement `Execute()`, give the type a `public static List<Command> BuiltInCommands` property, and add **one line** to `CommandRegistry.Entries` (`src/Commands/CommandRegistry.cs`); `(xmlName, type, builtIns factory)`. That single entry drives XML serialization (both the top-level `commandArray` and embedded-command element maps, via `XmlAttributeOverrides`), the invoker's built-ins table, and the command hygiene tests (`CommandRegistryTests` fails the build for an unregistered command type)
 2. **New Communication Services**: Inherit from `ServiceBase`, implement notification pattern
 3. **Custom Input Simulation**: Extend `WindowsInput` namespace
 4. **Plugin System**: None currently (all commands compiled in)
 
 ## Design Patterns Used
 
-- **Singleton**: MainWindow, Logger, TelemetryService, UpdateService
+- **Singleton**: MainWindow (explicitly assigned by Program, never lazy; #209), Logger, TelemetryService, UpdateService
 - **Command Pattern**: ICommand, Command, CommandInvoker
 - **Observer Pattern**: ServiceBase notifications via delegates
-- **Factory Pattern**: CommandInvoker.Create(), Command.BuiltInCommands
+- **Factory Pattern**: CommandInvoker.Create(), the per-command `BuiltInCommands` factories referenced explicitly by `CommandRegistry.Entries` (#204)
 - **Strategy Pattern**: Different Command implementations
 - **Facade Pattern**: InputSimulator wraps KeyboardSimulator and MouseSimulator
-- **Lazy Initialization**: Lazy<T> for singletons
+- **Lazy Initialization**: Lazy<T> for service singletons (NOT MainWindow; see #209)
 - **Object Pool**: Command cloning for execution contexts
 
 ## Dependencies (NuGet)
@@ -470,7 +475,6 @@ InputSimulator (facade)
 
 1. **Async/Await**: Current model is largely synchronous; could benefit from async I/O
 2. **Dependency Injection**: Hard-coded singletons could use DI container
-3. **Command Thread**: Move command execution off UI thread
-4. **Authentication**: Add optional security layer for network communication
-5. **Plugin System**: Dynamic command loading from external assemblies
-6. **Cross-Platform**: .NET 10 supports cross-platform, but WindowsInput and WinForms limit to Windows
+3. **Authentication**: Add optional security layer for network communication
+4. **Plugin System**: Dynamic command loading from external assemblies
+5. **Cross-Platform**: .NET 10 supports cross-platform, but WindowsInput and WinForms limit to Windows

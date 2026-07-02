@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------------
 // Copyright © 2017 Kindel, LLC
 // http://www.kindel.com
-// charlie@kindel.com
+// 
 // 
 // Published under the MIT License.
 // Source control on SourceForge 
@@ -13,10 +13,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Xml.Serialization;
-using Microsoft.Win32.Security;
 
-namespace MCEControl; 
-using DWORD = UInt32;
+namespace MCEControl;
 
 /// <summary>
 /// Summary description for SendMessageCommand.
@@ -38,7 +36,7 @@ public class SendMessageCommand : Command {
     private String windowName = null!;
     [XmlAttribute("windowname")] public String WindowName { get => windowName; set => windowName = value; }
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
               new SendMessageCommand() { Cmd = "maximize", Msg=274, wParam=61488, lParam=0 },
               new SendMessageCommand() { Cmd = "screensaver", Msg=274, wParam=61760, lParam=0 },
@@ -62,8 +60,6 @@ public class SendMessageCommand : Command {
         return $"Cmd=\"{Cmd}\" Msg=\"{Msg}\" lParam=\"{LParam}\" wParam=\"{WParam}\" ClassName=\"{ClassName}\" WindowName=\"{WindowName}\"";
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new SendMessageCommand(ClassName, WindowName, Msg, WParam, LParam));
-
     // ICommand:Execute
     public override bool Execute() {
         if (!base.Execute()) {
@@ -82,26 +78,31 @@ public class SendMessageCommand : Command {
                     }
                     if (win == null) {
                         Logger.Instance.Log4.Error($"{this.GetType().Name}: Could not find a window of class '{ClassName}' captioned with '{WindowName}'");
+                        return false;
                     }
                     else {
                         Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(\"{win.MainWindowTitle}\", {Msg}, {WParam}, {LParam}) - {ToString()}");
-                        Win32.SendMessage(win.MainWindowHandle, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
+                        // #203: (nint) sign-extends the stored int (lParam=-1 stays -1 on x64).
+                        Win32NativeMethods.SendMessage(win.MainWindowHandle, (uint)Msg, (nint)WParam, (nint)LParam);
                     }
                 }
                 else {
                     Logger.Instance.Log4.Error($"{this.GetType().Name}: GetProcessByName for class '{ClassName}' failed");
+                    return false;
                 }
             }
             else {
-                IntPtr h = Win32.GetForegroundWindow();
+                // #210: GetForegroundWindow is declared once, in AgentNativeMethods (same import,
+                // shared rather than duplicated here).
+                IntPtr h = AgentNativeMethods.GetForegroundWindow();
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(<forground window>, {Msg}, {WParam}, {LParam}) - {ToString()}");
-                Win32.SendMessage(h, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
+                Win32NativeMethods.SendMessage(h, (uint)Msg, (nint)WParam, (nint)LParam);
             }
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"{this.GetType().Name}: Failed for '{ClassName}' with error: {e.Message}");
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 }

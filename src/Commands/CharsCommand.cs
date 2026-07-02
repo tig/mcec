@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------------
 // Copyright © 2019 Kindel, LLC
 // http://www.kindel.com
-// charlie@kindel.com
+// 
 // 
 // Published under the MIT License.
 // Source control on SourceForge 
@@ -19,15 +19,13 @@ namespace MCEControl;
 public class CharsCommand : Command {
     public const string CmdPrefix = "chars:";
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
             new CharsCommand { Cmd = $"{CmdPrefix}" },
         ];
     }
 
     public CharsCommand() { }
-
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new CharsCommand());
 
     // ICommand:Execute
     public override bool Execute() {

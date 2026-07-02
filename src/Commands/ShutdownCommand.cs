@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------------
 // Copyright © 2019 Kindel, LLC
 // http://www.kindel.com
-// charlie@kindel.com
+// 
 // 
 // Published under the MIT License.
 // Source on GitHub: https://github.com/tig/mcec  
@@ -17,7 +17,7 @@ namespace MCEControl;
 /// Summary description for ShutdownCommands.
 /// </summary>
 public class ShutdownCommand : Command {
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
             new ShutdownCommand{ Cmd = $"shutdown", Type = $"shutdown" },
             new ShutdownCommand{ Cmd = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
@@ -48,8 +48,6 @@ public class ShutdownCommand : Command {
     public override string ToString() {
         return $"Cmd=\"{Cmd}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
     }
-
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new ShutdownCommand(Type, TimeOut));
 
     // ICommand:Execute
     public override bool Execute() {

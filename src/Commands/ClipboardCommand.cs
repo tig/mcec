@@ -12,68 +12,52 @@ namespace MCEControl;
 
 /// <summary>
 /// Agent command: read or write the system text clipboard. System file dialogs (Open, Save Print Output As)
-/// often expose no settable filename field via UIA — set the clipboard, focus the filename field, then
-/// send Ctrl+V. Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited. Disabled by default.
+/// often expose no settable filename field via UIA; set the clipboard, focus the filename field, then
+/// send Ctrl+V. Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited (structurally, via
+/// <see cref="AgentCommand"/>). Disabled by default (security).
 /// </summary>
-public class ClipboardCommand : Command {
+public class ClipboardCommand : AgentCommand {
     [XmlAttribute("action")] public string Action { get; set; } = null!;
     [XmlAttribute("text")] public string Text { get; set; } = null!;
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new ClipboardCommand { Cmd = "clipboard" }];
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new ClipboardCommand {
-        Action = this.Action,
-        Text = this.Text,
-    });
+    protected override string? AuditDetails() =>
+        $"clipboard action={(Action ?? string.Empty).Trim().ToLowerInvariant()} textLen={Text?.Length ?? 0}";
 
-    public override bool Execute() {
-        if (!base.Execute()) {
-            return false;
-        }
-
-        if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-            return false;
-        }
-
+    protected override CommandResult ExecuteCore() {
         string action = (Action ?? string.Empty).Trim().ToLowerInvariant();
-        AgentRuntime.Audit(Cmd, $"clipboard action={action} textLen={Text?.Length ?? 0}");
-
         try {
             switch (action) {
                 case "set":
                     if (string.IsNullOrEmpty(Text)) {
-                        Reply?.WriteLine(CommandResult.Fail(Cmd, "clipboard set requires text.").ToJson());
-                        return false;
+                        return CommandResult.Fail(Cmd, "clipboard set requires text.",
+                            "clipboard-text-missing", "invalid-argument");
                     }
                     RunSta(() => Clipboard.SetText(Text));
-                    Reply?.WriteLine(CommandResult.Ok(Cmd, new JsonObject { ["set"] = true, ["length"] = Text.Length }).ToJson());
-                    return true;
+                    return CommandResult.Ok(Cmd, new JsonObject { ["set"] = true, ["length"] = Text.Length });
 
                 case "get": {
                     string text = RunSta(() => Clipboard.ContainsText() ? Clipboard.GetText() : string.Empty);
-                    Reply?.WriteLine(CommandResult.Ok(Cmd, new JsonObject { ["text"] = text, ["length"] = text.Length }).ToJson());
-                    return true;
+                    return CommandResult.Ok(Cmd, new JsonObject { ["text"] = text, ["length"] = text.Length });
                 }
 
                 default:
-                    Reply?.WriteLine(CommandResult.Fail(Cmd, $"Unknown clipboard action '{action}'. Use set or get.").ToJson());
-                    return false;
+                    return CommandResult.Fail(Cmd, $"Unknown clipboard action '{action}'. Use set or get.",
+                        "action-unknown", "invalid-argument");
             }
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"{GetType().Name}: {e.Message}");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, e.Message).ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, e.Message);
         }
     }
 
     /// <summary>
     /// Clipboard is STA-only. Agent tools may run on the MCP HTTP thread (MTA), so hop to an STA thread
-    /// when the caller is not already STA — same constraint as WinForms OLE clipboard APIs.
+    /// when the caller is not already STA; same constraint as WinForms OLE clipboard APIs.
     /// </summary>
     private static void RunSta(Action action) => RunSta<object?>(() => { action(); return null; });
 

@@ -11,23 +11,14 @@ namespace MCEControl;
 /// <summary>
 /// Agent actuation command: a single mouse click at a target point (issue #122). The point is either an
 /// absolute screen pixel (<c>x</c>/<c>y</c>) or a UI Automation element in the target window (<c>value</c>,
-/// resolved to the centre of its bounds) — the same pixel space <c>query</c>/<c>find</c> report, so an
+/// resolved to the centre of its bounds); the same pixel space <c>query</c>/<c>find</c> report, so an
 /// agent can click a control it just observed without converting to normalized coordinates itself. The
 /// move-then-click is dispatched atomically by <see cref="MouseCommand.PerformClick"/> so it cannot
 /// interleave with another command's mouse input (the hazard #113 warns about when a caller hand-rolls
-/// <c>mt</c>/<c>lbc</c>). Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited. Disabled
-/// by default (security).
+/// <c>mt</c>/<c>lbc</c>). Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited
+/// (structurally, via <see cref="AgentCommand"/>). Disabled by default (security).
 /// </summary>
-public class ClickCommand : Command {
-    // NOTE: attribute names MUST be all-lowercase. SerializedCommands.Deserialize runs an XSLT that
-    // lower-cases every element/attribute name before deserializing, so a camelCase name would never
-    // bind on load and the value would be silently lost (see DragCommand).
-    [XmlAttribute("window")] public string Window { get; set; } = null!;
-    [XmlAttribute("handle")] public long Handle { get; set; }
-    [XmlAttribute("process")] public string Process { get; set; } = null!;
-    [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
-    [XmlAttribute("foreground")] public bool Foreground { get; set; }
-
+public class ClickCommand : WindowTargetingAgentCommand {
     [XmlAttribute("by")] public string By { get; set; } = "name";
     [XmlAttribute("value")] public string Value { get; set; } = null!;
     [XmlAttribute("x")] public int X { get; set; }
@@ -39,58 +30,29 @@ public class ClickCommand : Command {
     /// <summary>Click count: 1 = single, 2 = double (default 1).</summary>
     [XmlAttribute("count")] public int Count { get; set; } = 1;
 
-    // How long to wait for an element endpoint to appear before failing — matches DragCommand's
+    // How long to wait for an element endpoint to appear before failing; matches DragCommand's
     // "wait a beat, then fail cleanly" rather than blocking indefinitely.
     private const int FindTimeoutMs = 3000;
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new ClickCommand { Cmd = "click" }];
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new ClickCommand {
-        Window = this.Window,
-        Handle = this.Handle,
-        Process = this.Process,
-        ClassName = this.ClassName,
-        Foreground = this.Foreground,
-        By = this.By,
-        Value = this.Value,
-        X = this.X,
-        Y = this.Y,
-        Button = this.Button,
-        Count = this.Count,
-    });
+    protected override string? AuditDetails() =>
+        $"click at (by={By} value='{Value}' {X},{Y}) button={Button} count={Count} window handle={Handle} title='{Window}' process='{Process}'";
 
-    public override bool Execute() {
-        if (!base.Execute()) {
-            return false;
-        }
+    // A window is only needed to resolve an element endpoint; a pure pixel click needs none.
+    protected override bool RequiresWindowTarget => !string.IsNullOrEmpty(Value);
 
-        if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-            return false;
-        }
-        AgentRuntime.Audit(Cmd, $"click at (by={By} value='{Value}' {X},{Y}) button={Button} count={Count} window handle={Handle} title='{Window}' process='{Process}'");
-
-        // A window is only needed to resolve an element endpoint; a pure pixel click needs none.
-        IntPtr hwnd = IntPtr.Zero;
-        if (!string.IsNullOrEmpty(Value)) {
-            WindowInfo? win = WindowResolver.Resolve(Handle > 0 ? Handle : (long?)null, Window, Process, ClassName, Foreground);
-            if (win is null) {
-                Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window", "window-not-found", "no-target").ToJson());
-                return false;
-            }
-            hwnd = new IntPtr(win.Handle);
-        }
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
+        IntPtr hwnd = target is null ? IntPtr.Zero : new IntPtr(target.Handle);
 
         if (!TryResolvePoint(hwnd, out (int X, int Y) point, out string? error)) {
-            Reply?.WriteLine(CommandResult.Fail(Cmd, error!, "element-not-found", "no-target").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, error!, "element-not-found", "no-target");
         }
 
         // Clamp to the {1,2} the contract exposes and normalize the button, then dispatch and echo the
-        // SAME values — so the result faithfully reports the gesture performed (e.g. count 3 is not run as
+        // SAME values; so the result faithfully reports the gesture performed (e.g. count 3 is not run as
         // a double-click while claiming "3", and button "R" is reported as "right", not the raw input).
         int count = Count >= 2 ? 2 : 1;
         string button = MouseCommand.NormalizeButton(Button);
@@ -102,8 +64,7 @@ public class ClickCommand : Command {
             ["button"] = button,
             ["count"] = count,
         };
-        Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
-        return true;
+        return CommandResult.Ok(Cmd, data);
     }
 
     /// <summary>
@@ -117,7 +78,7 @@ public class ClickCommand : Command {
             point = (X, Y);
             return true;
         }
-        // hwnd is guaranteed non-zero here: Execute resolves the window whenever Value is set.
+        // hwnd is guaranteed non-zero here: the base resolves the window whenever Value is set.
         UiaElementInfo? el = UiaService.Find(hwnd, string.IsNullOrEmpty(By) ? "name" : By, Value, FindTimeoutMs);
         if (el is null) {
             point = default;

@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------------
 // Copyright © 2019 Kindel, LLC
 // http://www.kindel.com
-// charlie@kindel.com
+// 
 // 
 // Published under the MIT License.
 // Source control on SourceForge 
@@ -35,32 +35,25 @@ public class SerializedCommands {
     [XmlAttribute("version")]
     public string Version = null!;
 
-    [XmlArray("commands", Order = 1)]
-    [XmlArrayItem("chars", typeof(CharsCommand))]
-    [XmlArrayItem("startprocess", typeof(StartProcessCommand))]
-    [XmlArrayItem("sendinput", typeof(SendInputCommand))]
-    [XmlArrayItem("sendmessage", typeof(SendMessageCommand))]
-    [XmlArrayItem("setforegroundwindow", typeof(SetForegroundWindowCommand))]
-    [XmlArrayItem("shutdown", typeof(ShutdownCommand))]
-    [XmlArrayItem("pause", typeof(PauseCommand))]
-    [XmlArrayItem("mouse", typeof(MouseCommand))]
-    [XmlArrayItem("mceccommand", typeof(McecCommand))]
-    [XmlArrayItem("capture", typeof(CaptureCommand))]
-    [XmlArrayItem("query", typeof(QueryCommand))]
-    [XmlArrayItem("find", typeof(FindCommand))]
-    [XmlArrayItem("invoke", typeof(InvokeCommand))]
-    [XmlArrayItem("drag", typeof(DragCommand))]
-    [XmlArrayItem("click", typeof(ClickCommand))]
-    [XmlArrayItem("displays", typeof(DisplaysCommand))]
-    [XmlArrayItem("clipboard", typeof(ClipboardCommand))]
-    [XmlArrayItem("record", typeof(RecordCommand))]
-    [XmlArrayItem(typeof(Command))]
-
+    // SERIALIZATION (#204): the [XmlArray("commands", Order = 1)] wrapper and the polymorphic
+    // [XmlArrayItem("name", typeof(T))] map (one per command type, formerly hardcoded here) now
+    // come from CommandRegistry.CreateXmlOverrides(), applied via the cached Serializer below;
+    // register a new command type there, not here.
+    //
     // XmlSerialization does not work with List<>. Must use an array.
     // Must be public for serialization to work
     public Command[] commandArray = null!;
 
     [XmlIgnore] public int Count { get => (commandArray == null ? 0 : commandArray.Length); }
+
+    /// <summary>
+    /// THE XmlSerializer for .commands files, wired to the one explicit command registry (#204) via
+    /// XmlAttributeOverrides. CRITICAL: serializers constructed WITH overrides are NOT cached by the
+    /// runtime; every construction emits a fresh dynamic assembly that is never unloaded (a leak).
+    /// This static is the process-wide cache; XmlSerializer instance methods are thread-safe. Always
+    /// use it; never write `new XmlSerializer(typeof(SerializedCommands), ...)` at a call site.
+    /// </summary>
+    private static readonly XmlSerializer Serializer = new(typeof(SerializedCommands), CommandRegistry.CreateXmlOverrides());
 
     public SerializedCommands() {
     }
@@ -76,6 +69,15 @@ public class SerializedCommands {
     static public SerializedCommands LoadCommands(string userCommandsFile, string currentVersion) {
         SerializedCommands? cmds = null;
         FileStream? fs = null;
+
+        // First run (and provisioned/demo subject copies): create the default commands file, the
+        // same way SettingsStore creates a default mcec.settings — the full built-in catalog with
+        // every command Enabled="false" (nothing enabled, so no actuation surface changes), per the
+        // long-documented contract in docs/home-automation.md.
+        if (!File.Exists(userCommandsFile)) {
+            TryCreateDefaultCommandsFile(userCommandsFile, currentVersion);
+        }
+
         try {
             Logger.Instance.Log4.Info($"SerializedCommands: Loading user-defined commands from {userCommandsFile}");
             fs = new FileStream(userCommandsFile, FileMode.Open, FileAccess.Read);
@@ -110,7 +112,9 @@ public class SerializedCommands {
             }
         }
         catch (FileNotFoundException) {
-            Logger.Instance.Log4.Error($"SerializedCommands: {userCommandsFile} was not found");
+            // Only reachable when TryCreateDefaultCommandsFile above could not write (e.g. a
+            // read-only location). Not an error: MCEC runs fully on built-ins without the file.
+            Logger.Instance.Log4.Info($"SerializedCommands: No user commands file ({userCommandsFile}); using built-in commands only.");
         }
         catch (Exception ex) {
             string msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
@@ -143,14 +147,18 @@ public class SerializedCommands {
         try {
             commands.Version = currentVersion;
             ucFS = new FileStream(userCommandsFile, FileMode.Create);
-            new XmlSerializer(typeof(SerializedCommands)).Serialize(ucFS, commands);
+            Serializer.Serialize(ucFS, commands);
         }
         catch (Exception e) {
-            // TODO: Move MessageBox out of here into MainWindow
             string msg = $"Could not create commands file ({userCommandsFile}) - {e.Message}.\n\n" +
                          $"See log file for details: {Logger.Instance.LogFile}\n\n" +
                          $"For help, open an issue at github.com/tig/mcec";
-            MessageBox.Show(msg, Application.ProductName);
+            // #209: same headless gate as LoadCommands above; in --mcp mode there is no operator
+            // and stdout is the protocol stream, so a failed save must log, never block on a dialog
+            // no one can dismiss (SessionProvisioner saves .commands headless).
+            if (!AgentRuntime.Headless) {
+                MessageBox.Show(msg, Application.ProductName);
+            }
             Logger.Instance.Log4.Error($"SerializedCommands: {msg}");
             Logger.DumpException(e);
         }
@@ -158,6 +166,39 @@ public class SerializedCommands {
             if (ucFS != null) {
                 ucFS.Close();
             }
+        }
+    }
+
+    /// <summary>
+    /// Creates the default commands file on first run: every built-in command from
+    /// <see cref="CommandRegistry"/>, all with <c>Enabled="false"</c>, version-stamped, and carrying
+    /// the standard guidance comments. This is the contract docs/home-automation.md has always
+    /// described ("containing all built-in commands with Enabled=false") and it is what makes the
+    /// security model's enable-a-command workflow real: the user flips Enabled on an existing entry
+    /// instead of authoring XML from scratch. Nothing enabled → the actuation surface is unchanged.
+    /// Mirrors SettingsStore's create-default-settings behavior. Quiet on failure (Info/Warn logs
+    /// only, never a dialog): a location we cannot write to just means MCEC keeps running on
+    /// built-ins, and LoadCommands' FileNotFoundException fallback reports that.
+    /// Internal so tests can exercise the failure path directly (InternalsVisibleTo MCEControl.xUnit).
+    /// </summary>
+    internal static void TryCreateDefaultCommandsFile(string userCommandsFile, string currentVersion) {
+        try {
+            SerializedCommands defaults = new() {
+                Version = currentVersion,
+                // The registry's built-in factories produce Enabled=false instances
+                // (pinned by CommandRegistryTests) — serialize them as-is.
+                commandArray = [.. CommandRegistry.Entries.SelectMany(e => e.BuiltIns())],
+            };
+            // CreateNew: if another instance raced us to it, theirs wins and our load proceeds.
+            using FileStream fs = new(userCommandsFile, FileMode.CreateNew, FileAccess.Write);
+            Serializer.Serialize(fs, defaults);
+            Logger.Instance.Log4.Info($"SerializedCommands: Created default commands file ({defaults.Count} built-in commands, all disabled): {userCommandsFile}");
+        }
+        catch (IOException e) {
+            Logger.Instance.Log4.Warn($"SerializedCommands: Could not create default commands file ({userCommandsFile}): {e.Message}");
+        }
+        catch (UnauthorizedAccessException e) {
+            Logger.Instance.Log4.Warn($"SerializedCommands: Could not create default commands file ({userCommandsFile}): {e.Message}");
         }
     }
 
@@ -187,7 +228,7 @@ public class SerializedCommands {
             stm.Position = 0;
             lcReader = new XmlTextReader(stm); // lower-case reader
 
-            cmds = (SerializedCommands)new XmlSerializer(typeof(SerializedCommands)).Deserialize(lcReader)!;
+            cmds = (SerializedCommands)Serializer.Deserialize(lcReader)!;
         }
         catch (InvalidOperationException ex) {
             Logger.Instance.Log4.Error($"SerializedCommands: No commands loaded. Error parsing .commands XML. {ex.FullMessage()}");

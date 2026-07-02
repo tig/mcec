@@ -52,7 +52,7 @@ public class CommandTests
             UserDefined = true
         };
 
-        var clone = (TestCommand)original.Clone(null);
+        var clone = (TestCommand)original.Clone(null!);
 
         Assert.Equal(original.Cmd, clone.Cmd);
         Assert.Equal(original.Args, clone.Args);
@@ -84,12 +84,56 @@ public class CommandTests
             ]
         };
 
-        var clone = (TestCommand)original.Clone(null);
+        var clone = (TestCommand)original.Clone(null!);
 
         Assert.NotNull(clone.EmbeddedCommands);
         Assert.Equal(2, clone.EmbeddedCommands.Count);
         Assert.Equal("pause", clone.EmbeddedCommands[0].Cmd);
         Assert.Equal("child", clone.EmbeddedCommands[1].Cmd);
+    }
+
+    [Fact]
+    public void Clone_EmbeddedChildren_KeepTheirOwnEnabled()
+    {
+        // #183: the old base Clone assigned clone.Enabled (the parent) inside the embedded-clone
+        // loop where it meant the child's. Pin that each embedded clone carries its OWN source
+        // child's Enabled; with children on BOTH sides of the parent's value; and that the
+        // parent's Enabled survives the loop.
+        var original = new TestCommand
+        {
+            Cmd = "parent",
+            Enabled = false,
+            EmbeddedCommands =
+            [
+                new PauseCommand { Cmd = "on", Enabled = true },
+                new PauseCommand { Cmd = "off", Enabled = false }
+            ]
+        };
+
+        var clone = (TestCommand)original.Clone(null!);
+
+        Assert.False(clone.Enabled);
+        Assert.True(clone.EmbeddedCommands[0].Enabled);
+        Assert.False(clone.EmbeddedCommands[1].Enabled);
+    }
+
+    [Fact]
+    public void Clone_EmbeddedCommands_AreDeepCopies()
+    {
+        // MemberwiseClone alone would share the EmbeddedCommands list/children; the base Clone
+        // must deep-clone them so mutating a clone's child never leaks into the prototype.
+        var original = new TestCommand
+        {
+            Cmd = "parent",
+            EmbeddedCommands = [new PauseCommand { Cmd = "child", Args = "100", Enabled = true }]
+        };
+
+        var clone = (TestCommand)original.Clone(null!);
+
+        Assert.NotSame(original.EmbeddedCommands, clone.EmbeddedCommands);
+        Assert.NotSame(original.EmbeddedCommands[0], clone.EmbeddedCommands[0]);
+        clone.EmbeddedCommands[0].Args = "changed";
+        Assert.Equal("100", original.EmbeddedCommands[0].Args);
     }
 
     [Fact]
@@ -107,22 +151,7 @@ public class CommandTests
         Assert.Contains("testargs", result);
     }
 
-    [Fact]
-    public void GetDerivedClassesCollection_ReturnsAllCommandTypes()
-    {
-        var commandTypes = Command.GetDerivedClassesCollection();
-
-        Assert.NotEmpty(commandTypes);
-
-        // Should include all standard command types
-        Assert.Contains(commandTypes, c => c is SendInputCommand);
-        Assert.Contains(commandTypes, c => c is CharsCommand);
-        Assert.Contains(commandTypes, c => c is MouseCommand);
-        Assert.Contains(commandTypes, c => c is StartProcessCommand);
-        Assert.Contains(commandTypes, c => c is PauseCommand);
-        Assert.Contains(commandTypes, c => c is ShutdownCommand);
-        Assert.Contains(commandTypes, c => c is SendMessageCommand);
-        Assert.Contains(commandTypes, c => c is SetForegroundWindowCommand);
-        Assert.Contains(commandTypes, c => c is McecCommand);
-    }
+    // NOTE (#204): GetDerivedClassesCollection_ReturnsAllCommandTypes used to live here. The
+    // reflection sweep it tested is gone; command types are declared in CommandRegistry.Entries,
+    // and CommandRegistryTests asserts the registry covers every concrete Command subclass.
 }

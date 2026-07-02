@@ -78,6 +78,7 @@
             "ambiguous-selector",
             "stale-element",
             "no-target",
+            "invalid-argument",
             "capture-blank",
             "focus",
             "elevation",
@@ -92,6 +93,10 @@
         "lastObservation": {
           "type": ["object", "null"],
           "description": "The last good observation captured before the failure (e.g. the most recent query/capture result, or the resolved target window). Carries debugging state forward and feeds #87's failure-summary.md. Omitted when no prior observation exists."
+        },
+        "partialResult": {
+          "type": ["object", "null"],
+          "description": "The failing call's own partial payload, when the tool deliberately kept one; e.g. a capture-blank failure still carries the (suspect) PNG it grabbed. Distinct from lastObservation, which is the last good state from a prior call. Omitted when the failure produced nothing."
         }
       }
     }

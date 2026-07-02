@@ -2,8 +2,8 @@
 
 ## Goal
 
-Let an MCEC 3.0 agent record agent-driven desktop activity as an animated GIF — either a
-whole short segment (explicit start/stop) or a bounded one-shot — reusing the same target
+Let an MCEC 3.0 agent record agent-driven desktop activity as an animated GIF; either a
+whole short segment (explicit start/stop) or a bounded one-shot; reusing the same target
 model and security gate as `capture`. This makes dogfooding, debugging, demos, and issue
 reports far easier: the loop that can `capture` a still frame can now produce a compact
 moving artifact of what happened over time.
@@ -29,7 +29,16 @@ is resolved and fixed at `start`/`oneshot`; `stop` needs no target.
 (downscale longest side, default 1280 to keep GIFs bounded).
 
 Only one recording may be active at a time; `start` while recording returns an error, and
-`stop` with nothing recording returns an error.
+`stop` with nothing recording (and nothing awaiting fetch) returns an error.
+
+State machine (#157): `idle → (start) → recording → (stop) → idle`, or
+`recording → (auto-stop: max duration/frames hit, or the grab fails) → completed`. While
+completed, `stop` still fetches the buffered GIF exactly once (releasing the frames), and a
+new recording (`start` or `oneshot`) is allowed; it discards an unfetched completed GIF
+and its result carries an `unfetched-recording-discarded` warning (a oneshot surfaces it on
+its single final reply). The capture loop performs the recording→completed
+transition under the same lock as start/stop, so a self-terminating loop can never leave
+the recorder stuck reporting "a recording is already in progress".
 
 ## Result envelope
 
@@ -56,7 +65,7 @@ existing `error` string (e.g. ambiguous/no target, already-recording, disabled g
 
 No new dependency: each captured frame is quantized + LZW-compressed to a single-frame GIF
 by GDI+ (`Bitmap.Save(..., ImageFormat.Gif)`), and `GifEncoder` stitches those frames into
-one GIF89a — global header, a Netscape looping extension, and a per-frame Graphic Control
+one GIF89a; global header, a Netscape looping extension, and a per-frame Graphic Control
 Extension carrying the inter-frame delay (`1000/fps` → centiseconds). Each frame keeps its
 own color table as a local color table, so per-frame palettes survive.
 
@@ -66,7 +75,7 @@ So an agent cannot accidentally create an unbounded file, the recorder clamps to
 settings (with built-in defaults):
 
 - `AgentRecordMaxFps` (default 30)
-- `AgentRecordMaxDurationMs` (default 60000 — 60 s)
+- `AgentRecordMaxDurationMs` (default 60000, i.e. 60 s)
 - `AgentRecordMaxFrames` (default 600)
 - `AgentRecordMaxWidth` (default 1280; frames are downscaled to fit)
 
@@ -75,11 +84,11 @@ Requests above a limit are clamped (not failed), and the clamp is audited.
 ## Security & privacy
 
 - **Disabled by default**, behind the *same* `AgentCommandsEnabled` opt-in as `capture`,
-  plus the per-command `Enabled` gate in `mcec.commands` (fail-closed) — honoring #74.
+  plus the per-command `Enabled` gate in `mcec.commands` (fail-closed); honoring #74.
 - Every `start` / `stop` / write emits an `AGENT-AUDIT:` line with target, duration, fps,
   and output path.
 - Docs warn that GIF recording can capture **sensitive on-screen content** for the whole
-  duration — louder than a single still `capture`.
+  duration; louder than a single still `capture`.
 
 ## In-product guidance
 
@@ -95,5 +104,3 @@ animation, a repro of a transient/flicker), and keep it short.
 - ✅ Docs + built-in MCP guidance on GIF-record vs still-`capture`.
 - ✅ Tests for argument validation and the disabled gate; an opt-in manual desktop test for
   real capture.
-</content>
-</invoke>

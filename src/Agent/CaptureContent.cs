@@ -9,7 +9,7 @@ namespace MCEControl;
 /// Bridges a <c>capture</c> result payload to the MCP image content transport. Per the result contract,
 /// the PNG is <b>additionally</b> emitted as an MCP <c>image</c> content block (so image-aware clients
 /// render it) while the same bytes stay referenced from the envelope's <c>result</c> for text-only
-/// agents — so this builds the image block but does <b>not</b> strip <c>base64</c> from the result.
+/// agents; so this builds the image block but does <b>not</b> strip <c>base64</c> from the result.
 /// </summary>
 public static class CaptureContent {
     /// <summary>

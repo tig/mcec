@@ -60,7 +60,7 @@ public class ClickCommandTests {
 
     [Fact]
     public void Execute_WhenAgentDisabled_ReturnsFalse_WritesFailureJson() {
-        // Disabled path never actuates (no real mouse input in tests) — it must fail closed.
+        // Disabled path never actuates (no real mouse input in tests); it must fail closed.
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = null; // agent commands disabled
         try {

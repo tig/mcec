@@ -1,11 +1,9 @@
 # MCEC evidence bundles
 
-*Issue #87 — trace, replay, and artifact bundles.*
-
 Every MCEC dogfood run (Customer 0 self-dogfood, Customer 1 WinPrint, future benchmarks) produces
 the **same** evidence bundle, so a failed run can be understood without rerunning it and a bundle can
-be attached to an issue as-is. The bundle is produced by [`scripts/McecEvidence.psm1`](../scripts/McecEvidence.psm1)
-— any runner that imports the module emits an identical layout.
+be attached to an issue as-is. The bundle is produced by [`scripts/McecEvidence.psm1`](../scripts/McecEvidence.psm1);
+any runner that imports the module emits an identical layout.
 
 ## Layout
 
@@ -19,7 +17,7 @@ be attached to an issue as-is. The bundle is produced by [`scripts/McecEvidence.
 <artifactDir>.zip                   the same directory, zipped for issue attachment
 ```
 
-`artifacts/` is git-ignored — bundles are run output, and screenshots may contain desktop contents.
+`artifacts/` is git-ignored; bundles are run output, and screenshots may contain desktop contents.
 
 ## Files
 
@@ -39,16 +37,16 @@ be attached to an issue as-is. The bundle is produced by [`scripts/McecEvidence.
 ```
 
 ### `tool-calls.jsonl`
-One JSON object per line, in call order — the replay transcript:
+One JSON object per line, in call order; the replay transcript:
 ```jsonc
 { "ts": "<iso8601>", "sessionId": "...", "direction": "request|response", "method": "tools/call", "payload": { ... } }
 ```
 `payload` is the raw JSON-RPC request or response. Base64 image data in `capture` responses is replaced
-with `"<redacted base64>"` — the PNG is kept as a separate artifact instead, which keeps the transcript
+with `"<redacted base64>"`; the PNG is kept as a separate artifact instead, which keeps the transcript
 small and avoids embedding screen contents in the log.
 
 ### `environment.json`
-`os`, `dotnet`, `mcecVersion`, `display` (WxH), `dpi`, `host`, `mcpUrl` — captured by `Get-McecEnvironment`.
+`os`, `dotnet`, `mcecVersion`, `display` (WxH), `dpi`, `host`, `mcpUrl`; captured by `Get-McecEnvironment`.
 
 ### `failure-summary.md`
 Always written. On failure it names the failing step and the **last good observation** so another agent
@@ -70,7 +68,7 @@ Complete-McecSession -Session $s -Passed $true -Environment (Get-McecEnvironment
 
 - **Size:** the transcript is capped at 8 MB (`$MaxToolCallBytes`); past that it stops appending and sets
   `toolCallLogTruncated: true` in `session.json`. Image bytes never enter the transcript.
-- **Privacy:** screenshots can contain whatever is on screen — treat bundles as sensitive, and `artifacts/`
+- **Privacy:** screenshots can contain whatever is on screen; treat bundles as sensitive, and `artifacts/`
   is git-ignored. Bind addresses and credentials are not collected.
 
 ## Replay / export (partial)
@@ -78,5 +76,5 @@ Complete-McecSession -Session $s -Passed $true -Environment (Get-McecEnvironment
 `tool-calls.jsonl` is an ordered, replayable transcript: each `request` line is a literal JSON-RPC call
 that can be re-POSTed to a fresh MCEC `/mcp` to reproduce the sequence, and each `response` line is the
 expected result to diff against. A full deterministic replayer (timing, window-handle remapping, screenshot
-diffing) is future work; the format is stable enough to build it on. GIF recording (#80) lands as additional
+diffing) is future work; the format is stable enough to build it on. GIF recordings land as additional
 `*.gif` artifacts in the same bundle.

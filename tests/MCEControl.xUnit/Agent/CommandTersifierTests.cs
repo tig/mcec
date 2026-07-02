@@ -24,7 +24,7 @@ public class CommandTersifierTests {
     [Fact]
     public void Target_PrefersHandleOverStaleWindowProcess_MatchingResolverPrecedence() {
         // WindowResolver targets handle > foreground > filters, so when an agent reuses a handle the
-        // overlay must show the handle — not a stale window/process filter that didn't decide the target.
+        // overlay must show the handle; not a stale window/process filter that didn't decide the target.
         JsonObject args = new() { ["handle"] = 0x1234L, ["window"] = "Stale", ["process"] = "old" };
         string s = CommandTersifier.ForAgentTool("capture", args, CommandOutcome.Ok);
         Assert.Equal("capture handle=0x1234", s);
@@ -83,6 +83,38 @@ public class CommandTersifierTests {
         };
         string s = CommandTersifier.ForAgentTool("drag", args, CommandOutcome.Ok);
         Assert.Equal("drag 10,20 → 300,120", s);
+    }
+
+    [Fact]
+    public void Record_ShowsTarget_NotABareName() {
+        // #205: record had NO formatter and rendered as a bare "record" on the overlay. It mirrors
+        // capture (same window-or-region targeting).
+        string s = CommandTersifier.ForAgentTool("record", new JsonObject { ["window"] = "Clock" }, CommandOutcome.Ok);
+        Assert.Equal("record window=\"Clock\"", s);
+    }
+
+    [Fact]
+    public void Launch_ShowsQuotedPath_NotABareName() {
+        // #205: launch had NO formatter and rendered as a bare "launch" on the overlay.
+        string s = CommandTersifier.ForAgentTool("launch", new JsonObject { ["path"] = @"C:\Windows\notepad.exe" }, CommandOutcome.Ok);
+        Assert.Equal("launch \"C:\\Windows\\notepad.exe\"", s);
+    }
+
+    [Fact]
+    public void Click_PixelEndpoint_ShowsCoordinates() {
+        JsonObject args = new() { ["at"] = new JsonObject { ["x"] = 10, ["y"] = 20 } };
+        string s = CommandTersifier.ForAgentTool("click", args, CommandOutcome.Ok);
+        Assert.Equal("click 10,20", s);
+    }
+
+    [Fact]
+    public void Displays_IsArgumentless_RendersAsItsName() {
+        Assert.Equal("displays", CommandTersifier.ForAgentTool("displays", [], CommandOutcome.Ok));
+    }
+
+    [Fact]
+    public void UnknownTool_FallsBackToTheBareName() {
+        Assert.Equal("hover", CommandTersifier.ForAgentTool("hover", [], CommandOutcome.Ok));
     }
 
     [Fact]

@@ -1,0 +1,119 @@
+name: Real Windows (Interactive)
+
+# This lane needs a self-hosted, INTERACTIVE (non-session-0) Windows desktop runner
+# (see docs/self-hosted-interactive-runner.md). Until one is registered it must NOT
+# hang or pollute CI: the `preflight` job (hosted, always available) decides whether
+# the interactive job runs, gated on the repo variable INTERACTIVE_RUNNER_READY.
+#
+# To turn this lane on (after registering a runner labelled [self-hosted, Windows, interactive]):
+#   gh variable set INTERACTIVE_RUNNER_READY --repo tig/mcec --body true
+# To turn it back off:
+#   gh variable set INTERACTIVE_RUNNER_READY --repo tig/mcec --body false   (or delete the variable)
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# Least-privilege token (#163): read-only by default; jobs elevate only what they need.
+permissions:
+  contents: read
+
+env:
+  SOLUTION: 'MCEControl.slnx'
+  CONFIGURATION: 'Release'
+
+jobs:
+  preflight:
+    name: Interactive runner available?
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ vars.INTERACTIVE_RUNNER_READY == 'true' }}
+    steps:
+      - name: Report gate state
+        # Repo variable passed via env: (not interpolated into the script) so bash never
+        # parses it as code (#164).
+        env:
+          INTERACTIVE_RUNNER_READY: ${{ vars.INTERACTIVE_RUNNER_READY }}
+        run: |
+          if [ "$INTERACTIVE_RUNNER_READY" = "true" ]; then
+            echo "::notice title=Real Windows lane ENABLED::INTERACTIVE_RUNNER_READY=true; running the interactive desktop lane on a self-hosted runner."
+          else
+            echo "::notice title=Real Windows lane SKIPPED::No interactive self-hosted runner registered yet (#99). This is expected; the lane is intentionally skipped, not failing. To enable: register a runner labelled [self-hosted, Windows, interactive] (see docs/self-hosted-interactive-runner.md), then set repo variable INTERACTIVE_RUNNER_READY=true."
+          fi
+
+  real-windows:
+    name: Build + Test + Smoke (Interactive Desktop)
+    needs: preflight
+    # SECURITY (#161): this lane runs untrusted checked-out code (build/test + a desktop smoke script)
+    # on a self-hosted, INTERACTIVE desktop runner; the highest-value target in the pipeline. Never let
+    # a FORKED pull request execute here. Run only for push/workflow_dispatch on trusted branches, and
+    # for pull requests that originate from THIS repository (not a fork).
+    if: >-
+      needs.preflight.outputs.ready == 'true' &&
+      (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, Windows, interactive]   # label your self-hosted runner accordingly
+    timeout-minutes: 60                             # backstop so a misconfigured runner fails fast, never the 24h await-runner hang
+    permissions:
+      contents: read
+      checks: write   # EnricoMi/publish-unit-test-result-action creates a check run
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # SECURITY (#161): don't leave the GITHUB_TOKEN in the runner's git config after checkout on a
+          # persistent self-hosted machine, where a later step (or the next job) could reuse it.
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION }} --configuration ${{ env.CONFIGURATION }} --no-restore
+
+      - name: Test
+        run: >
+          dotnet test ${{ env.SOLUTION }}
+          --configuration ${{ env.CONFIGURATION }}
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ./TestResults
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action/windows@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
+        if: always()
+        with:
+          files: TestResults/**/*.trx
+          check_name: Test Results (real-windows)
+          comment_mode: off
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results-real-windows
+          path: TestResults/
+          retention-days: 14
+
+      - name: Smoke - launch MCEC + capture non-blank frame
+        shell: pwsh
+        run: pwsh -File scripts/smoke-interactive.ps1
+
+      - name: Upload smoke artifacts
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: smoke-real-windows
+          path: |
+            src/bin/
+          retention-days: 7

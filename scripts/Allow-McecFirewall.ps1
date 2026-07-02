@@ -17,7 +17,7 @@
     via UAC if not already running as Administrator. Re-run it after changing build paths.
 
 .NOTES
-    Program-scoped rules allow mcec.exe to receive inbound traffic on any port — the same
+    Program-scoped rules allow mcec.exe to receive inbound traffic on any port; the same
     grant the interactive "Allow access" button would create. Remove with:
         Get-NetFirewallRule -DisplayName 'MCEC (Kindel)*' | Remove-NetFirewallRule
 #>
@@ -31,7 +31,7 @@ $ErrorActionPreference = "Stop"
 # --- Self-elevate if needed ---
 $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-    Write-Host "Administrator rights required — relaunching with UAC..."
+    Write-Host "Administrator rights required; relaunching with UAC..."
     $hostExe = (Get-Process -Id $PID).Path   # the current pwsh/powershell host
     $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"")
     if ($Remove) { $argList += "-Remove" }

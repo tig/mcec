@@ -1,10 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Xml;
-using System.Xml.Serialization;
-
 namespace MCEControl;
 // Implements Command Pattern
 public interface ICommand {
@@ -13,5 +6,8 @@ public interface ICommand {
     /// </summary>
     bool Execute();
 
-    Command Clone(Reply reply, Command clone);
+    /// <summary>
+    /// Clones the command (a table prototype) for execution with a fresh reply context.
+    /// </summary>
+    ICommand Clone(Reply reply);
 }

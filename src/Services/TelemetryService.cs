@@ -29,12 +29,17 @@ public partial class TelemetryService {
     public bool TelemetryEnabled { get; set; }
     public Stopwatch? RunTime { get; set; }
 
-    public TelemetryClient? TelemetryClient { get; private set; }
+    // Internal (not public) so no caller outside this class can send telemetry with the raw
+    // client, bypassing the TelemetryEnabled opt-in gate (#199). Production code must go through
+    // TrackEvent/TrackException/TrackMetric, which all gate on the user's registry opt-in.
+    // The property exists solely as a test seam (InternalsVisibleTo MCEControl.xUnit) so tests
+    // can substitute a client backed by a stub channel (#156).
+    internal TelemetryClient? TelemetryClient { get; set; }
 
     public void Start(string appName, IDictionary<string, string>? startProperties = null) {
         RunTime = Stopwatch.StartNew();
 
-        object? val = AppSettings.GetRegistryValue("Telemetry", 0);
+        object? val = MachinePolicy.GetRegistryValue("Telemetry", 0);
         TelemetryEnabled = val != null && val.ToString() == "1" ? true : false;
 
         // Setup telemetry via Azure Application Insights.
@@ -91,16 +96,15 @@ public partial class TelemetryService {
         // why: to understand how long the app stays running
         // how is PII protected: the time the app runs is not PII
         TrackEvent("Application Stopped",
-            metrics: new Dictionary<string, double> { { "runTime", RunTime!.Elapsed.TotalMilliseconds } });
+            metrics: new Dictionary<string, double> { { "runTime", RunTime?.Elapsed.TotalMilliseconds ?? 0 } });
 
-        // before exit, flush the remaining data
-        Flush();
-        // Flush is not blocking so wait a bit
-        Task.Delay(1000).Wait();
-    }
-
-    public void SetUser(string user) {
-        TelemetryClient!.Context.User.AuthenticatedUserId = user;
+        // Only flush (and pay the shutdown delay) when there can actually be pending data (#199).
+        if (TelemetryEnabled && TelemetryClient != null) {
+            // before exit, flush the remaining data
+            Flush();
+            // Flush is not blocking so wait a bit
+            Task.Delay(1000).Wait();
+        }
     }
 
     public void TrackEvent(string key, IDictionary<string, string>? properties = null,
@@ -110,13 +114,31 @@ public partial class TelemetryService {
         }
     }
 
+    /// <summary>
+    /// Records a value for a metric, subject to the user's telemetry opt-in. This is the only
+    /// supported way to send metrics: it applies the same <c>TelemetryEnabled</c> gate as
+    /// <see cref="TrackEvent"/> and is a safe no-op before <see cref="Start"/> constructs the
+    /// client (#199).
+    /// </summary>
+    public void TrackMetric(string name, double value) {
+        if (TelemetryEnabled && TelemetryClient != null) {
+            TelemetryClient.GetMetric(name).TrackValue(value);
+        }
+    }
+
     public void TrackException(Exception ex, bool log = false) {
         if (ex != null && log is true) {
             Logger.Instance.Log4.Debug($"Exception: {ex.Message}");
         }
 
         if (TelemetryClient != null && ex != null && TelemetryEnabled) {
-            ExceptionTelemetry telex = new ExceptionTelemetry(ex);
+            // TELEMETRY:
+            // what: exception type, scrubbed message, and scrubbed stack
+            // why: to diagnose crashes and failures in the field
+            // how is PII protected: user-profile paths and username path segments in the
+            // message/stack are redacted (#156) so the cleartext Windows username never leaves
+            // the machine; User.Id stays pseudonymized.
+            ExceptionTelemetry telex = TelemetryScrubber.CreateScrubbedExceptionTelemetry(ex);
             TelemetryClient.TrackException(telex);
             Flush();
         }

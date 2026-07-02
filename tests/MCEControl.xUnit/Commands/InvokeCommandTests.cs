@@ -68,6 +68,25 @@ public class InvokeCommandTests {
         }
     }
 
+    [Theory]
+    // #206: each UiaInvokeResult failure maps to a DISTINCT code/category so agent recovery differs:
+    // no-target => wait/re-find; invalid-argument => fix the call (re-finding cannot help); internal
+    // => report. The old bare bool collapsed all four into one prose string.
+    [InlineData(UiaInvokeResult.ElementNotFound, "element-not-found", "no-target")]
+    [InlineData(UiaInvokeResult.PatternUnsupported, "pattern-unsupported", "invalid-argument")]
+    [InlineData(UiaInvokeResult.ActionUnknown, "action-unknown", "invalid-argument")]
+    [InlineData(UiaInvokeResult.Faulted, "invoke-faulted", "internal")]
+    public void FailureFor_MapsEachOutcomeToADistinctCodeAndCategory(UiaInvokeResult outcome, string code, string category) {
+        InvokeCommand cmd = new() { Cmd = "invoke", By = "name", Value = "OK", Action = "toggle" };
+
+        CommandResult result = cmd.FailureFor(outcome);
+
+        Assert.False(result.Success);
+        Assert.Equal(code, result.ErrorCode);
+        Assert.Equal(category, result.ErrorCategory);
+        Assert.False(string.IsNullOrEmpty(result.Error));
+    }
+
     [Fact]
     public void IsSupportedAction_IncludesSelect() {
         Assert.True(UiaService.IsSupportedAction("select"));

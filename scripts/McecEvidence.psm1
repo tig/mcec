@@ -62,7 +62,7 @@ function Write-McecToolCall {
     if ($Session.Truncated) { return }
     $entry = [ordered]@{ ts = (Get-Date).ToString("o"); sessionId = $Session.SessionId; direction = $Direction; method = $Method; payload = $Payload }
     $json = ($entry | ConvertTo-Json -Depth 20 -Compress)
-    # Privacy + size: keep image bytes out of the transcript — the PNG is a separate artifact. Redact by
+    # Privacy + size: keep image bytes out of the transcript; the PNG is a separate artifact. Redact by
     # field (the capture `base64` value and an image content block's `data`) regardless of length: a small
     # region capture can produce a PNG whose base64 is well under any length threshold, and a length gate
     # would leak those screen bytes into the transcript (#110).
@@ -110,12 +110,12 @@ function Complete-McecSession {
 
     $fail = $Session.Steps | Where-Object { $_.status -eq "fail" } | Select-Object -First 1
     $sb = [System.Text.StringBuilder]::new()
-    [void]$sb.AppendLine("# $($Session.Scenario) — $(if ($Passed) { 'PASS' } else { 'FAIL' })")
+    [void]$sb.AppendLine("# $($Session.Scenario); $(if ($Passed) { 'PASS' } else { 'FAIL' })")
     [void]$sb.AppendLine("")
     [void]$sb.AppendLine("- Session: ``$($Session.SessionId)``")
     [void]$sb.AppendLine("- Scenario: $($Session.Scenario)$(if ($Session.Issue) { " (#$($Session.Issue))" })")
     [void]$sb.AppendLine("- Last good observation: $($Session.LastObservation)")
-    if ($fail) { [void]$sb.AppendLine("- Failing step: **$($fail.name)** — $($fail.detail)") }
+    if ($fail) { [void]$sb.AppendLine("- Failing step: **$($fail.name)**; $($fail.detail)") }
     [void]$sb.AppendLine("")
     [void]$sb.AppendLine("## Steps")
     foreach ($s in $Session.Steps) { [void]$sb.AppendLine("- [$($s.status)] $($s.name): $($s.detail)") }

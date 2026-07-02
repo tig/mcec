@@ -143,7 +143,7 @@
     <value>..\Resources\Trafficlight-gray-icon.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="WSA_10061" xml:space="preserve">
-    <value>No connection could be made because the target computer actively refused it. This usually results from trying to connect to a service that is inactive on the foreign host—that is, one with no server application running.</value>
+    <value>No connection could be made because the target computer actively refused it. This usually results from trying to connect to a service that is inactive on the foreign host; that is, one with no server application running.</value>
   </data>
   <data name="Error_RequiresDotNetVersion" xml:space="preserve">
     <value>"MCEC requires .NET 10 or newer.\r\n\r\nDownload and install from https://dotnet.microsoft.com/download"</value>

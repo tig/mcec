@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------------
 // Copyright © 2019 Kindel, LLC
 // http://www.kindel.com
-// charlie@kindel.com
+// 
 // 
 // Published under the MIT License.
 // Source control on SourceForge 
@@ -19,7 +19,7 @@ namespace MCEControl;
 public class PauseCommand : Command {
     public const string CmdPrefix = "pause:";
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
             new PauseCommand { Cmd = $"{CmdPrefix}" } // Commands that use form of "cmd:" must define a blank version
         ];
@@ -27,11 +27,16 @@ public class PauseCommand : Command {
 
     public PauseCommand() { }
 
+    /// <summary>
+    /// A pause only sleeps; it can never synthesize input; so the dispatcher (#195) must not hold
+    /// <see cref="AgentRuntime.InputGate"/> for its whole duration (a <c>pause:60000</c> would starve
+    /// a concurrent agent <c>drag</c> for a minute).
+    /// </summary>
+    internal override bool SynthesizesInput => false;
+
     public override string ToString() {
         return $"Cmd=\"{Cmd}\" Args=\"{Args}\"";
     }
-
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new PauseCommand());
 
     // ICommand:Execute
     public override bool Execute() {

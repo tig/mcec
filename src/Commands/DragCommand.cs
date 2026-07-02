@@ -15,18 +15,13 @@ namespace MCEControl;
 /// intermediate waypoints (<see cref="PathSpec"/>). The whole gesture is dispatched atomically by
 /// <see cref="MouseCommand.PerformDrag"/> so it cannot interleave with another command's mouse input
 /// (the hazard #113 warns about when a caller hand-rolls <c>lbd</c>/<c>mt</c>/<c>lbu</c>). Gated by
-/// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited. Disabled by default (security).
+/// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited (structurally, via
+/// <see cref="AgentCommand"/>). Disabled by default (security).
 /// </summary>
-public class DragCommand : Command {
+public class DragCommand : WindowTargetingAgentCommand {
     // NOTE: attribute names MUST be all-lowercase. SerializedCommands.Deserialize runs an XSLT that
     // lower-cases every element/attribute name before deserializing, so a camelCase name (e.g. "fromValue")
     // would never bind on load and the value would be silently lost.
-    [XmlAttribute("window")] public string Window { get; set; } = null!;
-    [XmlAttribute("handle")] public long Handle { get; set; }
-    [XmlAttribute("process")] public string Process { get; set; } = null!;
-    [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
-    [XmlAttribute("foreground")] public bool Foreground { get; set; }
-
     [XmlAttribute("fromby")] public string FromBy { get; set; } = "name";
     [XmlAttribute("fromvalue")] public string FromValue { get; set; } = null!;
     [XmlAttribute("fromx")] public int FromX { get; set; }
@@ -44,58 +39,26 @@ public class DragCommand : Command {
     // fail cleanly" behaviour of invoke rather than blocking indefinitely.
     private const int FindTimeoutMs = 3000;
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new DragCommand { Cmd = "drag" }];
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new DragCommand {
-        Window = this.Window,
-        Handle = this.Handle,
-        Process = this.Process,
-        ClassName = this.ClassName,
-        Foreground = this.Foreground,
-        FromBy = this.FromBy,
-        FromValue = this.FromValue,
-        FromX = this.FromX,
-        FromY = this.FromY,
-        ToBy = this.ToBy,
-        ToValue = this.ToValue,
-        ToX = this.ToX,
-        ToY = this.ToY,
-        PathSpec = this.PathSpec,
-    });
+    protected override string? AuditDetails() =>
+        $"drag from (by={FromBy} value='{FromValue}' {FromX},{FromY}) to (by={ToBy} value='{ToValue}' {ToX},{ToY}) window handle={Handle} title='{Window}' process='{Process}'";
 
-    public override bool Execute() {
-        if (!base.Execute()) {
-            return false;
-        }
+    // A window is only needed to resolve element endpoints; a pure coordinate drag needs none.
+    protected override bool RequiresWindowTarget => !string.IsNullOrEmpty(FromValue) || !string.IsNullOrEmpty(ToValue);
 
-        if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-            return false;
-        }
-        AgentRuntime.Audit(Cmd, $"drag from (by={FromBy} value='{FromValue}' {FromX},{FromY}) to (by={ToBy} value='{ToValue}' {ToX},{ToY}) window handle={Handle} title='{Window}' process='{Process}'");
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
+        IntPtr hwnd = target is null ? IntPtr.Zero : new IntPtr(target.Handle);
 
-        // A window is only needed to resolve element endpoints; a pure coordinate drag needs none.
-        bool needsWindow = !string.IsNullOrEmpty(FromValue) || !string.IsNullOrEmpty(ToValue);
-        IntPtr hwnd = IntPtr.Zero;
-        if (needsWindow) {
-            WindowInfo? win = WindowResolver.Resolve(Handle > 0 ? Handle : (long?)null, Window, Process, ClassName, Foreground);
-            if (win is null) {
-                Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window").ToJson());
-                return false;
-            }
-            hwnd = new IntPtr(win.Handle);
-        }
-
+        // Endpoint misses are element lookups, so they carry the same element-not-found / no-target
+        // taxonomy as click/invoke (#206); the recovery (wait-for/re-find the element) is identical.
         if (!TryResolvePoint(hwnd, FromBy, FromValue, FromX, FromY, out (int X, int Y) from, out string? fromError)) {
-            Reply?.WriteLine(CommandResult.Fail(Cmd, $"Drag start: {fromError}").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, $"Drag start: {fromError}", "element-not-found", "no-target");
         }
         if (!TryResolvePoint(hwnd, ToBy, ToValue, ToX, ToY, out (int X, int Y) to, out string? toError)) {
-            Reply?.WriteLine(CommandResult.Fail(Cmd, $"Drag end: {toError}").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, $"Drag end: {toError}", "element-not-found", "no-target");
         }
 
         List<(int X, int Y)> waypoints = [from];
@@ -110,8 +73,7 @@ public class DragCommand : Command {
             ["to"] = new JsonArray { to.X, to.Y },
             ["points"] = waypoints.Count,
         };
-        Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
-        return true;
+        return CommandResult.Ok(Cmd, data);
     }
 
     /// <summary>

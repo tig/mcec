@@ -68,6 +68,57 @@ header img{
    border: none;
 }
 
+/* ----------------------------------------------------------------------------
+   Responsive doc menu. Layout only; colors, fonts, and content styling are
+   untouched. Desktop (>960px) keeps the fixed Dinky sidebar exactly as-is
+   (just allowed to scroll if the menu outgrows a short viewport). Below 960px
+   the header becomes a normal top block and the buttons flow as a wrapping
+   row; nothing is absolutely positioned and nothing is ever hidden.
+---------------------------------------------------------------------------- */
+
+@media screen and (min-width: 961px) {
+  header {
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+}
+
+@media print, screen and (max-width: 960px) {
+  header {
+    position: static;
+    float: none;
+    width: auto;
+    margin: 0;
+    padding: 20px 30px;
+    border-radius: 0 0 4px 4px;
+  }
+
+  header ul {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 0;
+  }
+
+  header li {
+    width: auto;
+    height: auto;
+    margin-bottom: 0;
+  }
+
+  header li a.buttons {
+    white-space: nowrap;
+  }
+}
+
+@media print, screen and (max-width: 480px) {
+  /* The stock theme hides the Install button here; keep it visible. */
+  header ul li.download {
+    display: list-item;
+  }
+}
+
 
 
 

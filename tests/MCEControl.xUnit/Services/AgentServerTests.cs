@@ -46,6 +46,9 @@ public class AgentServerTests {
     [InlineData("wait-for", false)]
     [InlineData("record", false)]
     [InlineData("invoke", false)]
+    [InlineData("click", false)]
+    [InlineData("displays", false)]
+    [InlineData("launch", false)]
     public void SerializesOnInputLock_OnlyGlobalInputActuation(string tool, bool expected) {
         Assert.Equal(expected, AgentServer.SerializesOnInputLock(tool));
     }
@@ -71,11 +74,11 @@ public class AgentServerTests {
     }
 
     [Fact]
-    public void RunStdioLoop_DispatchesRequestsConcurrently_NotOneAtATime() {
+    public void StdioLoop_DispatchesRequestsConcurrently_NotOneAtATime() {
         // #113: the stdio transport must dispatch each request on its own worker, or a slow call blocks
         // later ones. Two requests rendezvous: each signals its arrival in dispatch and waits for the
         // other. If the loop dispatched serially, the first would wait alone and time out (met=1); only
-        // concurrent dispatch lets both meet (met=2). Deterministic — the count gates on an actual
+        // concurrent dispatch lets both meet (met=2). Deterministic; the count gates on an actual
         // rendezvous, not on write order or wall-clock speed.
         using System.Threading.ManualResetEventSlim aArrived = new(false);
         using System.Threading.ManualResetEventSlim bArrived = new(false);
@@ -101,7 +104,7 @@ public class AgentServerTests {
             "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"x\"}\n");
         System.IO.StringWriter writer = new();
 
-        AgentServer.RunStdioLoop(reader, writer, dispatch);
+        new McpStdioTransport(dispatch).Run(reader, writer);
 
         string output = writer.ToString();
         Assert.Equal(2, metTheOther); // both dispatches were in flight at once => concurrent
@@ -166,7 +169,7 @@ public class AgentServerTests {
     [Fact]
     public void Dispatch_Click_IncompletePixelEndpoint_ReportsBadArguments() {
         // Regression mirror of the drag guard: an 'at' with x but no y (or neither value nor coords) must
-        // be rejected, not silently turned into (x, 0) and clicked — this tool generates real mouse input.
+        // be rejected, not silently turned into (x, 0) and clicked; this tool generates real mouse input.
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
         try {
@@ -191,7 +194,7 @@ public class AgentServerTests {
     [Fact]
     public void Dispatch_Click_CompleteEndpoint_PassesValidation() {
         // A well-formed click (element endpoint) must get PAST argument validation. With no Invoker wired
-        // in the test host it stops at the per-command enable gate — not bad-arguments — which proves
+        // in the test host it stops at the per-command enable gate (not bad-arguments), which proves
         // validation accepted the endpoint (and never actuates real input).
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
@@ -317,7 +320,7 @@ public class AgentServerTests {
             JsonObject resp = AgentServer.Dispatch(Request(5, "tools/call", prms))!;
             JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
 
-            // Every result — even a refused one — names the session it ran inside (#86).
+            // Every result; even a refused one; names the session it ran inside (#86).
             Assert.Equal(AgentRuntime.Session.SessionId, envelope["sessionId"]!.GetValue<string>());
         }
         finally {
@@ -329,7 +332,7 @@ public class AgentServerTests {
     [Fact]
     public void Dispatch_Drag_IncompletePixelEndpoint_ReportsBadArguments() {
         // Regression: an endpoint with x but no y (or neither value nor coords) must be rejected, not
-        // silently turned into (x, 0) and dragged — this tool generates real mouse input.
+        // silently turned into (x, 0) and dragged; this tool generates real mouse input.
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
         try {
@@ -355,7 +358,7 @@ public class AgentServerTests {
     [Fact]
     public void Dispatch_Drag_CompleteEndpoints_PassValidation() {
         // A well-formed drag (element + pixel endpoints) must get PAST argument validation. With no
-        // Invoker wired in the test host it stops at the per-command enable gate — not bad-arguments —
+        // Invoker wired in the test host it stops at the per-command enable gate (not bad-arguments);
         // which proves validation accepted the endpoints.
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
@@ -390,6 +393,212 @@ public class AgentServerTests {
         Assert.True(
             UiaService.InvokeFindTimeoutMs < AgentServer.InvokeModalGraceMs,
             $"invoke find timeout ({UiaService.InvokeFindTimeoutMs}ms) must be < modal grace ({AgentServer.InvokeModalGraceMs}ms)");
+    }
+
+    // --- #74: MCP tools honor the per-command Enabled gate in mcec.commands (a SECOND gate, independent
+    // of AgentCommandsEnabled). Enabling the observation surface must not enable every individual command.
+
+    private static string ToolErrorCode(JsonObject dispatchResponse) {
+        JsonObject envelope = JsonNode.Parse(FirstTextBlock(dispatchResponse["result"]!.AsObject()))!.AsObject();
+        return envelope["error"]?["code"]?.GetValue<string>() ?? "";
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_WhenCommandDisabledInTable_IsRefused_EvenWithAgentCommandsEnabled() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = new CommandInvoker { ["capture"] = new CaptureCommand { Cmd = "capture", Enabled = false } };
+        try {
+            JsonObject resp = AgentServer.Dispatch(Request(20, "tools/call",
+                new JsonObject { ["name"] = "capture", ["arguments"] = new JsonObject() }))!;
+
+            // AgentCommandsEnabled is on, but the per-command gate is off; the call must be refused.
+            Assert.Equal("command-disabled", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_WhenCommandEnabledInTable_PassesThePerCommandGate() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = new CommandInvoker { ["capture"] = new CaptureCommand { Cmd = "capture", Enabled = true } };
+        try {
+            JsonObject resp = AgentServer.Dispatch(Request(21, "tools/call",
+                new JsonObject { ["name"] = "capture", ["arguments"] = new JsonObject() }))!;
+
+            // With the command enabled the tool runs; with no target it fails no-target; the point is it
+            // gets PAST the gate, so the error is not the gate refusal.
+            Assert.NotEqual("command-disabled", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_SendCommand_OverStdio_IsNotGatedByAgentCommandsEnabled() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = null; // AgentCommandsEnabled = false
+        try {
+            // #153: over the LOCAL stdio transport (the default), send_command keeps its documented raw
+            // pass-through; it is not gated by AgentCommandsEnabled. An empty command therefore returns
+            // bad-arguments; proving it reached RunSendCommand; not agent-commands-disabled. (The raw
+            // command it runs is still gated by that command's own Enabled flag in the table.)
+            JsonObject resp = AgentServer.Dispatch(Request(22, "tools/call",
+                new JsonObject { ["name"] = "send_command", ["arguments"] = new JsonObject { ["command"] = "" } }))!;
+
+            Assert.Equal("bad-arguments", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_SendCommand_OverHttp_WhenAgentDisabled_IsRefused() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = null; // AgentCommandsEnabled = false
+        AgentRuntime.Invoker = [];
+        try {
+            // #153: over the network-facing HTTP transport, send_command honors the AgentCommandsEnabled
+            // gate. A NON-empty command with a live invoker present would execute (and pass the empty-arg
+            // check) if the gate were absent; instead the gate refuses it up front with agent-commands-disabled.
+            JsonObject resp = AgentServer.Dispatch(Request(23, "tools/call",
+                new JsonObject { ["name"] = "send_command", ["arguments"] = new JsonObject { ["command"] = "chars:pwnd" } }),
+                AgentTransport.Http)!;
+
+            Assert.Equal("agent-commands-disabled", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_SendCommand_OverHttp_WhenAgentEnabled_ReachesPassThrough() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = [];
+        try {
+            // #153: with the agent surface opted in, send_command over HTTP gets past the gate and runs the
+            // pass-through. An empty command now surfaces bad-arguments (from RunSendCommand); NOT the gate
+            // refusal; proving the request reached execution.
+            JsonObject resp = AgentServer.Dispatch(Request(24, "tools/call",
+                new JsonObject { ["name"] = "send_command", ["arguments"] = new JsonObject { ["command"] = "" } }),
+                AgentTransport.Http)!;
+
+            Assert.Equal("bad-arguments", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    // --- #201: BuildCommand's arg-mapping switch is exhaustive. A tool name that passed the
+    // tools/call gate but has no mapping must be refused with a structured unknown-tool error;
+    // historically the switch's default arm silently mapped it onto InvokeCommand (an ACTUATION)
+    // with garbage selector args.
+
+    [Fact]
+    public void RunAgentCommand_NameWithNoArgMapping_ReportsUnknownTool_NotInvokeExecution() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        // Even with a matching, ENABLED entry in the command table; i.e. a name that passes every
+        // gate; a name the switch does not map must be refused, never run as another command.
+        AgentRuntime.Invoker = new CommandInvoker { ["hover"] = new CaptureCommand { Cmd = "hover", Enabled = true } };
+        try {
+            JsonObject resp = AgentServer.RunAgentCommand("hover", []);
+
+            Assert.True(resp["isError"]!.GetValue<bool>());
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp))!.AsObject();
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            JsonObject error = envelope["error"]!.AsObject();
+            Assert.Equal("unknown-tool", error["code"]!.GetValue<string>());
+            Assert.Equal("internal", error["category"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    // --- #206: RunAgentCommand consumes the CommandResult OBJECT the command handed to its
+    // CapturingReply; no JsonNode.Parse of its own output, and no "non-JSON output is success"
+    // fallback. `displays` is the one agent tool that runs headlessly end-to-end.
+
+    [Fact]
+    public void RunAgentCommand_Displays_FlowsTheTypedResultIntoTheEnvelope() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = new CommandInvoker { ["displays"] = new DisplaysCommand { Cmd = "displays", Enabled = true } };
+        try {
+            JsonObject resp = AgentServer.RunAgentCommand("displays", []);
+
+            Assert.False(resp["isError"]!.GetValue<bool>());
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp))!.AsObject();
+            Assert.True(envelope["ok"]!.GetValue<bool>());
+            // The command's Data payload IS the envelope's result; the object pipeline end-to-end.
+            Assert.True(envelope["result"]!.AsObject().ContainsKey("displays"));
+            Assert.True(envelope["result"]!["count"]!.GetValue<int>() > 0);
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void RunAgentCommand_WindowNotFound_ReportsStructuredCode_NotProse() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = new CommandInvoker { ["query"] = new QueryCommand { Cmd = "query", Enabled = true } };
+        try {
+            JsonObject resp = AgentServer.RunAgentCommand("query",
+                new JsonObject { ["window"] = $"no-such-window-{Guid.NewGuid():N}" });
+
+            Assert.True(resp["isError"]!.GetValue<bool>());
+            JsonObject error = JsonNode.Parse(FirstTextBlock(resp))!.AsObject()["error"]!.AsObject();
+            // Pinned by CODE and CATEGORY; never by the human-readable message (#206).
+            Assert.Equal("window-not-found", error["code"]!.GetValue<string>());
+            Assert.Equal("no-target", error["category"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void BuildCommand_UnknownName_ReturnsNull_NeverADefaultCommand() {
+        // The old default arm meant an unmapped name became an InvokeCommand. Now it maps to null,
+        // which RunAgentCommand refuses as unknown-tool.
+        Assert.Null(AgentServer.BuildCommand("hover", new JsonObject { ["window"] = "X", ["value"] = "OK" }));
+    }
+
+    [Fact]
+    public void BuildCommand_Invoke_StillMapsToInvokeCommand() {
+        // "invoke" has its own explicit case (#201); the mapping must be unchanged.
+        Command? cmd = AgentServer.BuildCommand("invoke", new JsonObject {
+            ["window"] = "Calculator",
+            ["by"] = "automationId",
+            ["value"] = "num7Button",
+            ["action"] = "toggle",
+            ["text"] = "hi",
+        });
+
+        InvokeCommand invoke = Assert.IsType<InvokeCommand>(cmd);
+        Assert.Equal("Calculator", invoke.Window);
+        Assert.Equal("automationId", invoke.By);
+        Assert.Equal("num7Button", invoke.Value);
+        Assert.Equal("toggle", invoke.Action);
+        Assert.Equal("hi", invoke.Text);
     }
 
     private static string FirstTextBlock(JsonObject toolResult) {

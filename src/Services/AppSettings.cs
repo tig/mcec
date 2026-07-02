@@ -1,42 +1,26 @@
-﻿// Copyright © Kindel, LLC - http://www.kindel.com
+// Copyright © Kindel, LLC - http://www.kindel.com
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
-using System.Globalization;
-using System.IO;
 using System.IO.Ports;
 using System.Text.Json;
-using System.Windows.Forms;
-using System.Xml;
 using System.Xml.Serialization;
-using Microsoft.Win32;
 
 namespace MCEControl;
 
+/// <summary>
+/// The serialized application settings; a (mostly) pure POCO (#216): serialized properties,
+/// defaults, and <see cref="Clone"/>. Persistence lives in <see cref="SettingsStore"/>
+/// (load/save/path resolution) and registry policy in <see cref="MachinePolicy"/>; the host owns
+/// dialogs and telemetry emission. The XML file format is unchanged.
+/// </summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "This is just settings info.")]
 public class AppSettings : ICloneable {
-    public const string SettingsFileName = "mcec.settings";
-
-    // Registry key for per-machine settings (telemetry opt-in, disable-internal-commands override).
-    // For MCEC 3.0 rebrand, new location under "Kindel"; legacy "Kindel Systems" is read as fallback for upgrades.
-    public const string RegistryKeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel\MCE Controller";
-    public const string LegacyRegistryKeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller";
-
-    /// <summary>
-    /// Read a registry value preferring the current (Kindel) key, falling back to legacy (Kindel Systems) key.
-    /// </summary>
-    public static object? GetRegistryValue(string valueName, object? defaultValue) {
-        object? val = Registry.GetValue(RegistryKeyPath, valueName, null);
-        if (val == null) {
-            val = Registry.GetValue(LegacyRegistryKeyPath, valueName, defaultValue);
-        }
-        return val;
-    }
-
-    // Global
+    // Machine policy (HKLM registry override; see MachinePolicy). Not serialized; populated by
+    // SettingsStore.Load on every load, regardless of how (or whether) the file loaded.
     [XmlIgnore] public bool DisableInternalCommands;
 
     [SafeForTelemetryAttribute]
@@ -54,7 +38,7 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public int CommandPacing { get; set; } = 0;
 
-    // [SafeForTelemetryAttribute] 
+    // [SafeForTelemetryAttribute]
     // TELEMETRY: Client host may contain PII, so it is not collected
     public string ClientHost { get; set; } = "localhost";
     [SafeForTelemetryAttribute]
@@ -66,7 +50,19 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public int ServerPort { get; set; } = 5150;
 
-    // [SafeForTelemetryAttribute] 
+    // SECURITY (issue #149): which interface the TCP/IP command server binds to. The command server
+    // turns received strings into keyboard/mouse/process actions with NO socket authentication (by
+    // design, trusted-network model), so the bind interface is a security control. Accepted values
+    // (case-insensitive): "0.0.0.0"/"any"/"*" (all interfaces), "127.0.0.1"/"localhost"/"loopback"
+    // (single machine only), "::1", or a specific local IP. Junk is rejected loudly and falls back to
+    // loopback (see SocketServer.ResolveBindAddress).
+    // DEFAULT is "0.0.0.0" (all interfaces) to preserve the long-standing behavior on upgrade; many
+    // existing installs are driven from another host on a trusted LAN. Single-machine operators should
+    // set this to "127.0.0.1" to keep the unauthenticated command port off the network.
+    // TELEMETRY: A bind address is PII-adjacent, so it is not collected (mirrors McpBindAddress).
+    public string SocketServerBindAddress { get; set; } = "0.0.0.0";
+
+    // [SafeForTelemetryAttribute]
     // TELEMETRY: WakeupCommand can be set by user and thus may contain PII, so it is not collected
     public string WakeupCommand { get; set; } = null!;
     [SafeForTelemetryAttribute]
@@ -98,7 +94,7 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public bool ActivityMonitorEnabled { get; set; }
 
-    // [SafeForTelemetryAttribute] 
+    // [SafeForTelemetryAttribute]
     // TELEMETRY: Activity Montior command can be changed by user, and thus may contain PII, so it is not collected
     public string ActivityMonitorCommand { get; set; } = "activity";
     [SafeForTelemetryAttribute]
@@ -127,10 +123,37 @@ public class AppSettings : ICloneable {
     [SafeForTelemetryAttribute]
     public bool McpServerEnabled { get; set; } = false;
 
+    // --- Emergency stop (issue #135) ---
+    // SAFETY: a global "dead man's switch" hotkey the operator can hit from ANY window to instantly halt
+    // an agent session. On by default whenever the agent front door is used; reacts to physical input only
+    // (the agent can never trip or defeat it). The default chord is one no app uses and the agent never
+    // synthesizes. See EmergencyStopHotkey for the accepted spec format.
+    [SafeForTelemetryAttribute]
+    public bool EmergencyStopEnabled { get; set; } = true;
+
+    // TELEMETRY: a rebound hotkey is a benign UI preference, but keep it out of telemetry for simplicity.
+    public string EmergencyStopHotkey { get; set; } = MCEControl.EmergencyStopHotkey.DefaultSpec;
+
+    // --- Isolated session provisioning (issue #138) ---
+    // SECURITY: an agent asks MCEC to hand it a fresh, disposable instance dir (agent commands enabled only
+    // inside the copy) instead of mutating the installed config. Provisioning is the ONE thing that cannot
+    // be self-served; it must be an explicit operator opt-in or the isolation is theater. Off by default.
+    [SafeForTelemetryAttribute]
+    public bool AllowSessionProvisioning { get; set; } = false;
+
     // TELEMETRY: A bind address is PII-adjacent, so it is not collected.
     public string McpBindAddress { get; set; } = "127.0.0.1";
     [SafeForTelemetryAttribute]
     public int McpHttpPort { get; set; } = 5151;
+
+    // SECURITY (#143): defense-in-depth bearer token for the HTTP front door. The HTTP handler ALWAYS
+    // validates the Host header (must be a loopback authority; defeats DNS rebinding) and the Origin
+    // header (must be absent or loopback; defeats drive-by browser CSRF). Those two need no
+    // configuration. Setting a non-empty token additionally requires every HTTP request to carry
+    // `Authorization: Bearer <token>`, which also protects against a same-machine hostile process.
+    // Empty (default) = rely on Host/Origin only. A token is NOT PII, but keep it out of telemetry so
+    // a shared secret is never transmitted.
+    public string McpAuthToken { get; set; } = "";
 
     // --- On-screen command overlay (issue #119) ---
     // ON by default: the overlay shows each command as it executes so anyone watching can see that MCEC
@@ -164,7 +187,7 @@ public class AppSettings : ICloneable {
     #endregion
 
     // Must have a default public constructor so XMLSerialization will work
-    // This class is NOT supposed to be creatable (use Deserialize to construct).
+    // This class is NOT supposed to be creatable (use SettingsStore.Load to construct).
     public AppSettings() {
         SerialPort defaultPort = new SerialPort();
         SerialServerPortName = defaultPort.PortName;
@@ -179,110 +202,9 @@ public class AppSettings : ICloneable {
         UserPresenceDetection = true;
     }
 
-
-
-    /// <summary>
-    /// By default we want the settings file stored with the EXE
-    /// This allows the app to be run with multiple instances with a settings
-    /// file for each instance (each being in different directory).
-    /// However, typical installs get put into to %PROGRAMFILES% which 
-    /// is ACLd to allow only admin writes on Win7.         
-    /// </summary>
-    /// <param name="startupPath">Path to where exe was started from (aka Applciation.StartupPath)</param>
-    /// <returns>Path to where Settings & Log Files should be</returns>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>")]
-    public static String GetSettingsPath(string startupPath) {
-        if (string.IsNullOrWhiteSpace(startupPath)) {
-            throw new ArgumentException("startupPath must be specified", nameof(startupPath));
-        }
-        // If app was started from within ProgramFiles then use UserAppDataPath.
-        if (startupPath.Contains(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles))) {
-            // Strip off the trailing version ("\0.0.0.xxxx")
-            startupPath = Application.UserAppDataPath.Substring(0, Application.UserAppDataPath.Length - (Application.ProductVersion.Length + 1));
-        }
-
-        return startupPath;
-    }
-
-    /// <summary>
-    /// Serializes settings to XML
-    /// </summary>
-    /// <param name="settingsFile">full path to settings file</param>
-    public void Serialize(string settingsFile) {
-        try {
-            XmlSerializer ser = new XmlSerializer(typeof(AppSettings));
-            StreamWriter sw = new StreamWriter(settingsFile);
-            ser.Serialize(sw, this);
-            sw.Close();
-
-            Logger.Instance.Log4.Info("Settings: Wrote settings to " + settingsFile);
-        }
-        catch (Exception e) {
-            Logger.Instance.Log4.Info($"Settings: Settings file could not be written. {settingsFile} {e.Message}");
-            if (!AgentRuntime.Headless) {
-                MessageBox.Show($"Settings file could not be written. {settingsFile} {e.Message}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// DeSerializes settings from XML
-    /// </summary>
-    /// <param name="settingsFile">full path to settings file</param>
-    public static AppSettings Deserialize(String settingsFile) {
-        AppSettings? settings = null;
-
-        XmlSerializer serializer = new XmlSerializer(typeof(AppSettings));
-        // A FileStream is needed to read the XML document.
-        FileStream? fs = null;
-        XmlReader? reader = null;
-        try {
-            fs = new FileStream(settingsFile, FileMode.Open, FileAccess.Read);
-            reader = new XmlTextReader(fs);
-            settings = (AppSettings?)serializer.Deserialize(reader);
-
-            settings!.DisableInternalCommands = Convert.ToBoolean(
-                GetRegistryValue("DisableInternalCommands", false), new NumberFormatInfo());
-            Logger.Instance.Log4.Info("Settings: Loaded settings from " + settingsFile);
-        }
-        catch (FileNotFoundException) {
-            // First time through, so create file with defaults
-            Logger.Instance.Log4.Info($"Settings: Creating settings file with defaults: {settingsFile}");
-            settings = new AppSettings();
-            settings.Serialize(settingsFile);
-
-            // even if it's first run, read global commands
-            settings.DisableInternalCommands = Convert.ToBoolean(
-                GetRegistryValue("DisableInternalCommands", false), new NumberFormatInfo());
-        }
-        catch (UnauthorizedAccessException e) {
-            Logger.Instance.Log4.Error($"Settings: Settings file could not be loaded. {e.Message}");
-            if (!AgentRuntime.Headless) {
-                MessageBox.Show($"Settings file could not be loaded. {e.Message}");
-            }
-        }
-        finally {
-            if (reader != null) {
-                reader.Dispose();
-            }
-
-            if (fs != null) {
-                fs.Dispose();
-            }
-        }
-
-        // TELEMETRY: 
-        // what: Settings
-        // why: To understand what settings get changed and which dont
-        // how is PII protected: only settings clearly identified as not containing PII are collected
-        TelemetryService.Instance.TrackEvent("Settings", settings!.GetTelemetryDictionary());
-
-        return settings;
-    }
-
     /// <summary>
     /// Returns a dictionary of settings, filtered by those that can't contain PII
-    /// TELEMETRY: 
+    /// TELEMETRY:
     /// what: Settings
     /// why: To understand what settings get changed and which dont
     /// how is PII protected: only settings clearly identified as not containing PII are collected

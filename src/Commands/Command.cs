@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------------
 // Copyright © 2019 Kindel, LLC
 // http://www.kindel.com
-// charlie@kindel.com
+// 
 // 
 // Published under the MIT License.
 // Source control on SourceForge 
@@ -12,9 +12,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Xml;
 using System.Xml.Serialization;
 
 namespace MCEControl;
@@ -30,29 +27,14 @@ public abstract class Command : ICommand {
         Enabled = false; // SECURITY: Explicity
         UserDefined = false; // TELEMERTRY: Explicit
     }
-    public static List<Command> BuiltInCommands { get => []; }
 
     [XmlAttribute("cmd")]
     public string Cmd { get => cmd; set => cmd = value; }
-    [XmlElement("chars", typeof(CharsCommand))]
-    [XmlElement("startprocess", typeof(StartProcessCommand))]
-    [XmlElement("sendinput", typeof(SendInputCommand))]
-    [XmlElement("sendmessage", typeof(SendMessageCommand))]
-    [XmlElement("setforegroundwindow", typeof(SetForegroundWindowCommand))]
-    [XmlElement("shutdown", typeof(ShutdownCommand))]
-    [XmlElement("pause", typeof(PauseCommand))]
-    [XmlElement("mouse", typeof(MouseCommand))]
-    [XmlElement("mceccommand", typeof(McecCommand))]
-    [XmlElement("capture", typeof(CaptureCommand))]
-    [XmlElement("query", typeof(QueryCommand))]
-    [XmlElement("find", typeof(FindCommand))]
-    [XmlElement("invoke", typeof(InvokeCommand))]
-    [XmlElement("drag", typeof(DragCommand))]
-    [XmlElement("click", typeof(ClickCommand))]
-    [XmlElement("displays", typeof(DisplaysCommand))]
-    [XmlElement("clipboard", typeof(ClipboardCommand))]
-    [XmlElement("record", typeof(RecordCommand))]
-    [XmlElement(typeof(Command))]
+
+    // SERIALIZATION (#204): the polymorphic element-name map for embedded commands (one
+    // [XmlElement("name", typeof(T))] per command type, formerly hardcoded here) now comes from
+    // CommandRegistry.CreateXmlOverrides(), applied by SerializedCommands' cached serializer;
+    // register a new command type there, not here.
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
     public List<Command> EmbeddedCommands { get; set; } = null!;
 
@@ -70,33 +52,41 @@ public abstract class Command : ICommand {
     [XmlIgnore]
     public bool UserDefined { get; set; }
 
-    public abstract ICommand Clone(Reply reply);
+    /// <summary>
+    /// Whether executing this command can synthesize physical desktop input (keys/mouse/window
+    /// messages). The dispatcher (#195) holds <see cref="AgentRuntime.InputGate"/> around
+    /// <see cref="Execute"/> only when this is true; so a command that provably touches no input
+    /// (e.g. <c>pause</c>) doesn't starve a concurrent agent <c>drag</c> for its whole duration.
+    /// DEFAULTS TO TRUE; overrides must be conservative; claim false only when Execute can never
+    /// emit input, directly or transitively. Getting this wrong re-opens the #113 interleaving hazard.
+    /// </summary>
+    internal virtual bool SynthesizesInput => true;
 
-    public virtual Command Clone(Reply reply, Command clone) {
-        if (clone is null) {
-            throw new ArgumentNullException(nameof(clone));
-        }
-
+    /// <summary>
+    /// Clones this command (a table prototype) for execution with a fresh <paramref name="reply"/>
+    /// context. Built on <see cref="object.MemberwiseClone"/> so EVERY field; including all
+    /// serializable subclass state, which is value/string-typed throughout; is copied by
+    /// construction; a subclass cannot forget a property (#207, the old hand-copied field lists).
+    /// The only reference-typed mutable members are then handled explicitly: <see cref="Reply"/> is
+    /// replaced with the fresh context, and <see cref="EmbeddedCommands"/> is deep-cloned (each
+    /// child cloned recursively, so children keep their own Enabled; the #183 bug is impossible
+    /// here by construction). Virtual only for a subclass that gains genuinely non-mechanical clone
+    /// semantics (e.g. deep-copying a future reference-typed member); field copying never needs an
+    /// override.
+    /// </summary>
+    public virtual Command Clone(Reply reply) {
+        Command clone = (Command)MemberwiseClone();
         clone.Reply = reply;
-
-        clone.Cmd = this.Cmd;
-        clone.Args = this.Args;
         if (this.EmbeddedCommands != null) {
             clone.EmbeddedCommands = [];
             foreach (Command next in this.EmbeddedCommands) {
-                Command eClone = (Command)next.Clone(reply);
-                clone.Enabled = Enabled;
-                clone.EmbeddedCommands.Add(eClone);
+                clone.EmbeddedCommands.Add(next.Clone(reply));
             }
         }
-
-        //TELEMETRY: Prevent info regarding user defined commands from being collected.
-        clone.UserDefined = this.UserDefined;
-
-        clone.Enabled = this.Enabled;
-
         return clone;
     }
+
+    ICommand ICommand.Clone(Reply reply) => Clone(reply);
 
     /// <summary>
     /// Execute command. Derived classes must call base before processing in order to ensure
@@ -114,19 +104,7 @@ public abstract class Command : ICommand {
         // what: the number of commands of each type (key) received and executed
         // why: to understand what commands are used and which are not
         // how is PII protected: the name of the command, key, is not user definable
-        TelemetryService.Instance!.TelemetryClient!.GetMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed").TrackValue(1);
+        TelemetryService.Instance.TrackMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed", 1);
         return true;
-    }
-
-    /// <summary>
-    /// https://stackoverflow.com/questions/5411694/get-all-inherited-classes-of-an-abstract-class
-    /// </summary>
-    public static ICollection<Command> GetDerivedClassesCollection() {
-        List<Command> objects = [];
-        foreach (Type type in typeof(Command).Assembly.GetTypes()
-            .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(Command)))) {
-            objects.Add((Command)Activator.CreateInstance(type)!);
-        }
-        return objects;
     }
 }

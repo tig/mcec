@@ -1,4 +1,4 @@
-# Strict-mode burn-down — COMPLETE
+# Strict-mode burn-down: COMPLETE
 
 This repo adopts WinPrint's build conventions (.NET 10, `.editorconfig`, `Directory.Build.props`
 with `TreatWarningsAsErrors` + `EnforceCodeStyleInBuild` + `Nullable` + custom Roslyn analyzers).
@@ -31,7 +31,7 @@ reached zero, so the codebase now matches WinPrint's fully-strict posture.
   Only references that were *qualified* by the former outer type needed touching
   (`SocketServer.ServerReplyContext` → `ServerReplyContext` in `MainWindow.cs`, plus a stale
   `CA1034` `GlobalSuppressions` entry removed).
-- **Nullable:** annotations only — nullable `?`, the null-forgiving operator `!`, and `= null!;`
+- **Nullable:** annotations only; nullable `?`, the null-forgiving operator `!`, and `= null!;`
   initializers for late-initialized non-nullable fields/properties (WinForms controls, events,
   XML-serialized members). Event-handler signatures use `object? sender` to match the
   `EventHandler` delegates. No logic, control flow, or values were changed, so the 115-test
@@ -41,8 +41,8 @@ reached zero, so the codebase now matches WinPrint's fully-strict posture.
 
 `<WarningsNotAsErrors>` retains only the two WinForms platform advisories, matching WinPrint:
 
-- `WFO1000` — WinForms source-generator advisory.
-- `WFDEV004` — `Form.Closing` obsoletion in `MainWindow.Designer.cs` (designer-generated code).
+- `WFO1000`: WinForms source-generator advisory.
+- `WFDEV004`: `Form.Closing` obsoletion in `MainWindow.Designer.cs` (designer-generated code).
 
 These are platform/tooling advisories, not part of the house-style burn-down. The
 `MCEControl.Analyzers` house-style rules (MCEC0001/MCEC0002) are defined in

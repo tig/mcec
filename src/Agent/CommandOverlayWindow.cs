@@ -11,7 +11,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The on-screen command overlay (#119): a borderless, top-most, <b>click-through</b>, alpha-blended
-/// window that shows each MCEC command as it executes — the "MainWindow log view, tersified, larger
+/// window that shows each MCEC command as it executes; the "MainWindow log view, tersified, larger
 /// font." It subscribes to <see cref="CommandEventHub"/>, keeps a small <see cref="OverlayFeed"/>, and
 /// paints it over the right ~30% of the primary screen with no border or scrollbars; old lines fade out.
 ///
@@ -31,10 +31,18 @@ public sealed class CommandOverlayWindow : Form {
     // The About box's brand orange (Color.FromArgb(192, 90, 36)) as the item background at ~30% alpha.
     private static readonly Color ItemBackground = Color.FromArgb(77, 192, 90, 36);
 
+    // Emergency stop (#135): a solid, high-contrast red for the persistent STOPPED banner (mostly opaque
+    // so it reads as an alarm, not a fading log line).
+    private static readonly Color StoppedBackground = Color.FromArgb(235, 176, 0, 0);
+
     private readonly OverlayFeed _feed = new(maxLines: 8, lifetime: TimeSpan.FromSeconds(8));
     private readonly Action<CommandEvent> _onEvent;
+    private readonly Action<bool> _onEmergencyStop;
     private readonly System.Windows.Forms.Timer _ageTimer;
     private readonly OverlayPosition _side;
+
+    // True while the operator's emergency stop is engaged; drives the persistent STOPPED banner.
+    private bool _stopped;
 
     // The handle currently registered as ignored, tracked so a WinForms handle recreation never leaves a
     // stale HWND in the resolver's ignore set (a recycled value could otherwise hide a real window).
@@ -52,9 +60,33 @@ public sealed class CommandOverlayWindow : Form {
         _onEvent = OnCommandEvent;
         CommandEventHub.Subscribe(_onEvent);
 
+        _stopped = EmergencyStop.IsStopped;
+        _onEmergencyStop = OnEmergencyStopStateChanged;
+        EmergencyStop.StateChanged += _onEmergencyStop;
+
         _ageTimer = new System.Windows.Forms.Timer { Interval = 300 };
         _ageTimer.Tick += (_, _) => Render();
         _ageTimer.Start();
+    }
+
+    private void OnEmergencyStopStateChanged(bool stopped) {
+        if (IsDisposed || !IsHandleCreated) {
+            return;
+        }
+        try {
+            if (InvokeRequired) {
+                BeginInvoke(_onEmergencyStop, stopped);
+                return;
+            }
+            _stopped = stopped;
+            Render();
+        }
+        catch (ObjectDisposedException) {
+            // Window closed between the check and the marshal; nothing to draw.
+        }
+        catch (InvalidOperationException) {
+            // Handle not ready; drop this update rather than throw on the hook thread.
+        }
     }
 
     /// <summary>Show without ever stealing focus from the app being driven.</summary>
@@ -81,7 +113,7 @@ public sealed class CommandOverlayWindow : Form {
     }
 
     protected override void OnHandleDestroyed(EventArgs e) {
-        // Unregister as the handle is destroyed — not just on Dispose — so a recreated handle (or a value
+        // Unregister as the handle is destroyed (not just on Dispose) so a recreated handle (or a value
         // Windows later reuses for a real window) is never left ignored.
         if (_registeredHandle != 0) {
             WindowResolver.UnregisterIgnoredWindow(_registeredHandle);
@@ -122,6 +154,9 @@ public sealed class CommandOverlayWindow : Form {
             g.Clear(Color.Transparent);
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+            if (_stopped) {
+                DrawStoppedBanner(g, w);
+            }
             DrawFeed(g, w, h);
         }
         PushLayered(bmp);
@@ -173,6 +208,28 @@ public sealed class CommandOverlayWindow : Form {
         }
     }
 
+    /// <summary>
+    /// Draws the persistent emergency-stop (#135) banner across the top of the overlay. Unlike the fading
+    /// command feed, it stays until the operator re-arms; a loud, unmissable "MCEC is halted" indicator.
+    /// </summary>
+    private void DrawStoppedBanner(Graphics g, int width) {
+        const int pad = 8;
+        using Font font = new("Consolas", 16F, FontStyle.Bold, GraphicsUnit.Point);
+        const string text = "⛔ STOPPED by operator; Re-arm to resume";
+        SizeF size = g.MeasureString(text, font, width - pad * 2);
+        float boxH = size.Height + pad * 1.5f;
+        using (SolidBrush bg = new(StoppedBackground))
+        using (GraphicsPath path = RoundedRect(new RectangleF(0, 0, width, boxH), 6f)) {
+            g.FillPath(bg, path);
+        }
+        using (SolidBrush shadow = new(Color.FromArgb(200, 0, 0, 0))) {
+            g.DrawString(text, font, shadow, pad + 1.2f, pad / 2f + 1.2f);
+        }
+        using (SolidBrush fg = new(Color.White)) {
+            g.DrawString(text, font, fg, pad, pad / 2f);
+        }
+    }
+
     /// <summary>Pushes a 32bpp ARGB bitmap to this layered window so its per-pixel alpha composites over the desktop.</summary>
     private void PushLayered(Bitmap bmp) {
         IntPtr screenDc = AgentNativeMethods.GetDC(IntPtr.Zero);
@@ -220,6 +277,7 @@ public sealed class CommandOverlayWindow : Form {
     protected override void Dispose(bool disposing) {
         if (disposing) {
             CommandEventHub.Unsubscribe(_onEvent);
+            EmergencyStop.StateChanged -= _onEmergencyStop;
             _ageTimer?.Dispose();
             // OnHandleDestroyed normally clears the registration; unregister defensively in case the
             // window is disposed without a handle-destroyed notification.

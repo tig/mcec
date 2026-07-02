@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------------
 // Copyright © 2017 Kindel, LLC
 // http://www.kindel.com
-// charlie@kindel.com
+// 
 // 
 // Published under the MIT License.
 // Source control on SourceForge 
@@ -20,7 +20,7 @@ namespace MCEControl;
 /// </summary>
 public class McecCommand : Command {
     public const string CmdPrefix = "mcec:";
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
         new McecCommand { Cmd = $"{CmdPrefix}" },   // Commands that use form of "cmd:" must define a blank version
         new McecCommand { Cmd = $"{CmdPrefix }ver" },
@@ -33,11 +33,15 @@ public class McecCommand : Command {
     public McecCommand() {
     }
 
+    /// <summary>
+    /// mcec: commands report state or exit the app; they never synthesize input, so the dispatcher
+    /// (#195) need not hold <see cref="AgentRuntime.InputGate"/> while they run.
+    /// </summary>
+    internal override bool SynthesizesInput => false;
+
     public override string ToString() {
         return $"Cmd=\"{Cmd}\"";
     }
-
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new McecCommand());
 
     // ICommand:Execute
     public override bool Execute() {
@@ -63,19 +67,30 @@ public class McecCommand : Command {
             // Cause MCE Controller to exit
             case "exit":
                 Reply.WriteLine("exiting");
-                MainWindow.Instance.ShutDown();
+                // #209: shutdown goes through the UI-agnostic host seam. GUI: MainWindow.ShutDown()
+                // (self-marshals, so calling from this dispatcher thread is safe; #195). Headless
+                // (--mcp): HeadlessAppHost schedules a clean deferred process exit so the in-flight
+                // send_command reply reaches the client first; mcec:exit now actually exits
+                // headless instead of the old #195 decline.
+                AgentRuntime.RequestShutdown();
                 return true;
 
             // Return a list of supported commands (really just for testing)
             case "cmds":
                 Command cmd = this;
                 Match? match = null;
+                // #195: read the command table via the UI-agnostic AgentRuntime seam (populated by
+                // both the GUI and headless hosts) instead of MainWindow.Instance; this runs on the
+                // dispatcher thread and must not touch (or lazily construct) the Form.
+                if (AgentRuntime.Invoker is not CommandInvoker invoker) {
+                    Logger.Instance.Log4.Error($"{this.GetType().Name}: ({Cmd}:{Args}) command table is not available");
+                    return false;
+                }
                 try {
                     replyBuilder.Append(Environment.NewLine);
-                    IOrderedEnumerable<string> orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
+                    IOrderedEnumerable<string> orderedKeys = invoker.Keys.Cast<string>().OrderBy(c => c);
                     foreach (string key in orderedKeys) {
-                        cmd = (Command)MainWindow.Instance.Invoker[key]!;
-                        ListViewItem item = new ListViewItem(cmd.Cmd);
+                        cmd = (Command)invoker[key]!;
                         match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                         replyBuilder.Append($"<{match.Groups[1].Value} {cmd.ToString()} />{Environment.NewLine}");
                     }

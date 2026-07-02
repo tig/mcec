@@ -12,14 +12,19 @@ internal class TestService : ServiceBase
         SetStatus(status, msg);
     }
 
-    public void TestSendNotification(ServiceNotification notification, ServiceStatus status, Reply? replyContext = null, string msg = "")
+    public void TestCommandReceived(Reply reply, string command)
     {
-        SendNotification(notification, status, replyContext, msg);
+        OnCommandReceived(reply, command);
     }
 
     public void TestError(string msg)
     {
         Error(msg);
+    }
+
+    public void TestError(ServiceError error)
+    {
+        Error(error);
     }
 
     public override void Send(string text, Reply? replyContext = null)

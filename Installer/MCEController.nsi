@@ -58,7 +58,7 @@ ${If} ${RunningX64}
     SetRegView 64
 ${EndIf}
 # NOTE: This registry key is legacy infrastructure read by the app (TelemetryService /
-# AppSettings DisableInternalCommands) — it stays "MCE Controller" for back-compat (with
+# AppSettings DisableInternalCommands); it stays "MCE Controller" for back-compat (with
 # fallback support in code), even though the product is now branded MCEC.
 WriteRegDWORD HKLM "Software\Kindel\MCE Controller" "Telemetry" $0
 ${If} ${RunningX64}

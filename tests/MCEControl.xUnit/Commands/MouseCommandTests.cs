@@ -105,7 +105,7 @@ public class MouseCommandTests
     public void InterpolatePath_CapsPointsEvenWithManyTinyWaypoints()
     {
         // Regression: a caller passing more waypoints than maxPoints (each 1px apart) must still be
-        // capped — otherwise the drag holds ExecLock and keeps the button down for path.Count*dwell.
+        // capped; otherwise the drag holds ExecLock and keeps the button down for path.Count*dwell.
         List<(int X, int Y)> waypoints = [];
         for (int i = 0; i <= 500; i++)
         {

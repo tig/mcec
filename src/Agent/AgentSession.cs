@@ -30,6 +30,8 @@ public sealed class AgentSession {
     private JsonObject? _lastObservation;
     private string? _lastAction;
     private JsonObject? _lastError;
+    private DateTime? _emergencyStopAtUtc;
+    private string? _emergencyStopSource;
 
     private AgentSession(string sessionId, DateTime startedAtUtc, string artifactRoot) {
         SessionId = sessionId;
@@ -39,7 +41,7 @@ public sealed class AgentSession {
 
     /// <summary>
     /// Creates a session with a fresh 12-hex-char id (matching the evidence harness'
-    /// <c>New-McecSession</c> format) and a reserved — not yet created — artifact directory path under
+    /// <c>New-McecSession</c> format) and a reserved (not yet created) artifact directory path under
     /// <paramref name="artifactRoot"/>.
     /// </summary>
     public static AgentSession Create(string artifactRoot) =>
@@ -82,15 +84,82 @@ public sealed class AgentSession {
         }
     }
 
-    /// <summary>Records a successful observation and, when present, the target window it concerns.</summary>
+    /// <summary>
+    /// Records a successful observation and, when present, the target window it concerns.
+    ///
+    /// <para>PAYLOAD BOMB DEFUSED (#215): a <c>capture</c> observation carries the full base64 PNG.
+    /// The old code deep-cloned it into session state per capture and re-cloned it per read, and any
+    /// LATER failure then embedded megabytes of stale screenshot into <c>error.lastObservation</c>.
+    /// Now an image-bearing observation is compacted BEFORE storage: the PNG bytes are written to a
+    /// file under the per-session artifact directory and the session remembers only a summary
+    /// (window descriptor, dimensions, blankCheck verdict, byte count) plus the artifact path; so
+    /// <c>error.lastObservation</c> never carries raw base64. Non-image observations (query trees,
+    /// find results) are stored as before.</para>
+    /// </summary>
     public void RecordObservation(JsonObject? observation, JsonObject? target = null) {
+        // Compact (and write the artifact) OUTSIDE the lock; file IO must never hold up other
+        // recorders/readers.
+        JsonObject? compact = observation is null ? null : CompactObservation(observation);
         lock (_gate) {
-            if (observation is not null) {
-                _lastObservation = observation.DeepClone() as JsonObject;
+            if (compact is not null) {
+                _lastObservation = compact;
             }
             if (target is not null) {
                 _activeTarget = target.DeepClone() as JsonObject;
             }
+        }
+    }
+
+    /// <summary>
+    /// Returns the session-state form of <paramref name="observation"/>: a clone for ordinary
+    /// payloads, or; when it carries inline image bytes (<c>base64</c>, i.e. a capture); a compact
+    /// summary with the bytes swapped for an artifact file path.
+    /// </summary>
+    private JsonObject? CompactObservation(JsonObject observation) {
+        if (observation["base64"] is not JsonValue b64 || !b64.TryGetValue(out string? base64) || string.IsNullOrEmpty(base64)) {
+            return observation.DeepClone() as JsonObject;
+        }
+
+        JsonObject summary = new() { ["kind"] = "capture-summary" };
+        // The compact fields the contract names: window descriptor, dimensions, blankCheck verdict,
+        // byte count; plus the small metadata capture already reports (encoding, optional file/handle).
+        foreach (string key in (string[])["window", "handle", "width", "height", "encoding", "bytes", "blankCheck", "file"]) {
+            if (observation[key] is JsonNode node) {
+                summary[key] = node.DeepClone();
+            }
+        }
+        string extension = observation["encoding"] is JsonValue ev && ev.TryGetValue(out string? enc) && !string.IsNullOrEmpty(enc)
+            ? enc.ToLowerInvariant()
+            : "png";
+        if (TryWriteArtifact(base64, extension) is string artifact) {
+            summary["artifact"] = artifact;
+        }
+        else {
+            summary["artifactError"] = "The image bytes could not be written to the session artifact directory; only this summary was retained.";
+        }
+        return summary;
+    }
+
+    private int _artifactCounter;
+
+    /// <summary>
+    /// Writes an observation's image bytes to a fresh file in the per-session artifact directory
+    /// (<see cref="EnsureArtifactDir"/>) and returns its path, or null on any decode/IO failure;
+    /// recording an observation must never throw.
+    /// </summary>
+    private string? TryWriteArtifact(string base64, string extension) {
+        try {
+            byte[] bytes = Convert.FromBase64String(base64);
+            string dir = EnsureArtifactDir();
+            string name = string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"capture-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{System.Threading.Interlocked.Increment(ref _artifactCounter)}.{extension}");
+            string path = Path.Combine(dir, name);
+            File.WriteAllBytes(path, bytes);
+            return path;
+        }
+        catch (Exception e) when (e is FormatException or IOException or UnauthorizedAccessException) {
+            Logger.Instance.Log4.Warn($"AgentSession: could not write observation artifact: {e.Message}");
+            return null;
         }
     }
 
@@ -109,10 +178,29 @@ public sealed class AgentSession {
     }
 
     /// <summary>
+    /// Stamps the operator emergency stop (#135) into the session; who/what triggered it and when; so a
+    /// run's evidence bundle shows that a human halted it. Only the first stop of a latched span is kept.
+    /// </summary>
+    public void RecordEmergencyStop(string source, DateTime atUtc) {
+        lock (_gate) {
+            _emergencyStopAtUtc ??= atUtc;
+            _emergencyStopSource ??= source;
+        }
+    }
+
+    /// <summary>Clears the recorded emergency stop when the operator re-arms.</summary>
+    public void ClearEmergencyStop() {
+        lock (_gate) {
+            _emergencyStopAtUtc = null;
+            _emergencyStopSource = null;
+        }
+    }
+
+    /// <summary>
     /// Records the outcome of a tool call: a successful <b>observation</b> (query/capture/find/wait-for)
     /// updates <see cref="LastObservation"/> and, when the payload names a window, <see cref="ActiveTarget"/>;
     /// a failure updates <see cref="LastError"/>. Actuation tools (invoke/send_command) don't record an
-    /// observation. Centralizing the decision keeps every observation tool — wait-for included — consistent.
+    /// observation. Centralizing the decision keeps every observation tool (wait-for included) consistent.
     /// </summary>
     public void RecordToolOutcome(string toolName, AgentToolResult env) {
         if (env.Ok) {
@@ -125,8 +213,9 @@ public sealed class AgentSession {
         }
     }
 
+    /// <summary>The observation set is the <see cref="ToolDescriptor.IsObservation"/> flag in the catalog (#205).</summary>
     private static bool IsObservationTool(string toolName) =>
-        toolName is "query" or "capture" or "find" or "wait-for";
+        ToolCatalog.TryGet(toolName, out ToolDescriptor descriptor) && descriptor.IsObservation;
 
     /// <summary>Creates the per-session artifact directory if it does not yet exist and returns its path.</summary>
     public string EnsureArtifactDir() {
@@ -154,6 +243,12 @@ public sealed class AgentSession {
             }
             if (_lastError is not null) {
                 obj["lastError"] = _lastError.DeepClone();
+            }
+            if (_emergencyStopAtUtc is not null) {
+                obj["emergencyStop"] = new JsonObject {
+                    ["at"] = _emergencyStopAtUtc.Value.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                    ["source"] = _emergencyStopSource,
+                };
             }
             return obj;
         }

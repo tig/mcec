@@ -8,7 +8,6 @@
              to avoid churning every source file; the product is branded "MCEC". -->
         <AssemblyName>mcec</AssemblyName>
         <RootNamespace>MCEControl</RootNamespace>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <!-- Generate the version attributes (AssemblyVersion/FileVersion/InformationalVersion) from
              the build's version properties, which GitVersion populates from git tags. The remaining

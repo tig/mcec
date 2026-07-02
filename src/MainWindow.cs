@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------------
 // Copyright © 2019 Kindel, LLC
 // http://www.kindel.com
-// charlie@kindel.com
+// 
 // 
 // Published under the MIT License.
 // Source on GitHub: https://github.com/tig/mcec  
@@ -13,22 +13,46 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using Gma.UserActivityMonitor;
 using log4net;
 using MCEControl.Dialogs;
 using Microsoft.Win32;
-using Microsoft.Win32.Security;
-using static Gma.UserActivityMonitor.NativeMethods;
+using static MCEControl.Hooks.PowerNativeMethods;
 
 namespace MCEControl; 
-public partial class MainWindow : Form {
-    // MainWindow is a singleton
-    private static readonly Lazy<MainWindow> _lazy = new(() => new MainWindow());
-    public static MainWindow Instance { get { return _lazy.Value; } }
+public partial class MainWindow : Form, IAppHost {
+    // MainWindow is a singleton, but NOT a lazy one (#209): the instance is explicitly assigned by
+    // Program.Main's GUI path before Application.Run. It used to be a Lazy<MainWindow>, so ANY touch
+    //; including from engine code on a worker thread in headless --mcp mode; silently constructed
+    // the Form. Now a touch before assignment (or ever, headless) throws a pointed exception instead.
+    private static MainWindow? _instance;
+    public static MainWindow Instance {
+        get => _instance ?? throw new InvalidOperationException(
+            "MainWindow.Instance touched in headless mode or before Program assigned it; code below " +
+            "the UI layer must use the AgentRuntime seam instead (AgentRuntime.Invoker / SendLine / " +
+            "RequestShutdown / MessageWindowHandle).");
+        internal set => _instance = value;
+    }
 
-    public SocketServer? Server { get; private set; }
-    public SocketClient? Client { get; private set; }
-    public SerialServer? SerialServer { get; private set; }
+    // The live transport instances now live on the ServiceController descriptors (#211);
+    // these properties remain for the code that addresses a transport directly (SendLine,
+    // the Send Awake menu item, the server wakeup quirk).
+    public SocketServer? Server => serverController.Instance as SocketServer;
+    public SocketClient? Client => clientController.Instance as SocketClient;
+    public SerialServer? SerialServer => serialController.Instance as SerialServer;
+
+    // Per-transport descriptors (#211): built once in InitializeServiceControllers; ONE generic
+    // start/stop/toggle/paint/log path iterates serviceControllers instead of the old three
+    // copy-pasted method families.
+    private ServiceController serverController = null!;
+    private ServiceController clientController = null!;
+    private ServiceController serialController = null!;
+    private List<ServiceController> serviceControllers = [];
+
+    // Read-only status entry for the MCP/HTTP agent front door (#211). AgentServer is static
+    // with no lifecycle events (making it a real service is #215), so this is repainted from
+    // Start()/Stop(); the only places the door is started/stopped.
+    private ToolStripStatusLabel statusStripMcp = null!;
+
     public CommandInvoker Invoker { get; set; } = null!;
     private CommandWindow? cmdWindow;
     private CommandFileWatcher? watcher;
@@ -36,9 +60,17 @@ public partial class MainWindow : Form {
     // The on-screen command overlay (#119), when enabled. Null in headless mode or when disabled.
     private CommandOverlayWindow? commandOverlay;
 
+    // Emergency stop (#135): the "Re-arm" affordance, shown on the menu only while a stop is engaged.
+    private ToolStripMenuItem? rearmMenuItem;
+    private bool emergencyStopArmed;
+
     // Indicates whether user hit the close box (minimize)
     // or the app is exiting
     private bool shuttingDown;
+
+    // #213: both exit paths (menu exit and OS logoff) converge on PerformShutdown(); this gate
+    // makes that teardown run exactly once.
+    private readonly OnceGate shutdownGate = new();
 
     // Settings
     public AppSettings Settings { get; set; } = null!;
@@ -52,9 +84,102 @@ public partial class MainWindow : Form {
         notifyIcon.Icon = Icon;
         ShowInTaskbar = true;
 
+        InitializeServiceControllers();
+
         SetStatus("");
         sendAwakeMenuItem.Enabled = false;
         installLatestVersionMenuItem.Enabled = false;
+    }
+
+    /// <summary>
+    /// Builds the per-transport <see cref="ServiceController"/> descriptors (#211). Everything
+    /// transport-specific; construction, start arguments, status-strip item, status formatting,
+    /// and quirks (server wakeup, client restart-on-error, the client's hide-command-window side
+    /// effect); lives here; the start/stop/toggle/paint/log machinery below is generic.
+    /// The lambdas read <see cref="Settings"/> lazily, so building these before settings are
+    /// loaded is safe.
+    /// </summary>
+    private void InitializeServiceControllers() {
+        serverController = new ServiceController {
+            Name = "SocketServer",
+            Create = () => new SocketServer(),
+            StartTransport = (s, _) => ((SocketServer)s).Start(Settings.ServerPort, Settings.SocketServerBindAddress),
+            StopTransport = s => ((SocketServer)s).Stop(),
+            StatusStripItem = statusStripServer,
+            StatusStripText = () => $"Server on port {Settings.ServerPort}",
+            FormatStatus = (status, _) => FormatServerStatus(status, Settings.ServerPort),
+            // Wakeup quirk: send the wakeup command when the server starts, the closing command
+            // when it reports Stopped. (As before #211, an operator-initiated stop unsubscribes
+            // handlers before Stop(), so the closing command fires only when the server itself
+            // reports Stopped; e.g. a failed start.)
+            StatusQuirk = status => {
+                if (!Settings.WakeupEnabled) {
+                    return;
+                }
+                if (status == ServiceStatus.Started) {
+                    Server!.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
+                }
+                else if (status == ServiceStatus.Stopped) {
+                    Server!.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost, Settings.WakeupPort);
+                }
+            },
+            AfterStart = () => sendAwakeMenuItem.Enabled = Settings.WakeupEnabled,
+            AfterStop = () => sendAwakeMenuItem.Enabled = false,
+            IsConfigured = () => Settings.ActAsServer,
+        };
+
+        clientController = new ServiceController {
+            Name = "Client",
+            Create = () => new SocketClient(Settings),
+            StartTransport = (s, delay) => ((SocketClient)s).Start(delay),
+            StopTransport = s => ((SocketClient)s).Stop(),
+            StatusStripItem = statusStripClient,
+            StatusStripText = () => $"Client {Settings.ClientHost}:{Settings.ClientPort}",
+            FormatStatus = (status, _) => FormatClientStatus(status, Settings.ClientHost, Settings.ClientPort, Settings.ClientDelayTime),
+            // Restart-on-error: any client error tears the connection down and (when a reconnect
+            // delay is configured) schedules a delayed reconnect; same contract as before #211.
+            ErrorQuirk = _ => RestartClient(),
+            // Long-standing StopClient side effect, made explicit (#211): stopping the client
+            // also hides the command window, so the operator is not left typing commands into a
+            // connection that no longer exists.
+            AfterStop = () => {
+                if (cmdWindow != null) {
+                    cmdWindow.Visible = false;
+                }
+            },
+            IsConfigured = () => Settings.ActAsClient,
+        };
+
+        serialController = new ServiceController {
+            Name = "SerialServer",
+            Create = () => new SerialServer(),
+            StartTransport = (s, _) => ((SerialServer)s).Start(Settings.SerialServerPortName,
+                Settings.SerialServerBaudRate,
+                Settings.SerialServerParity,
+                Settings.SerialServerDataBits,
+                Settings.SerialServerStopBits,
+                Settings.SerialServerHandshake),
+            StopTransport = s => ((SerialServer)s).Stop(),
+            StatusStripItem = statusStripSerial,
+            // https://en.wikipedia.org/wiki/8-N-1
+            StatusStripText = () => $"Serial {Settings.SerialServerBaudRate}/{Settings.SerialServerPortName} {Settings.SerialServerDataBits}-{Settings.SerialServerParity}-{Settings.SerialServerStopBits}-{Settings.SerialServerHandshake}",
+            FormatStatus = FormatSerialStatus,
+            IsConfigured = () => Settings.ActAsSerialServer,
+        };
+
+        serviceControllers = [serverController, serialController, clientController];
+
+        statusStripMcp = new ToolStripStatusLabel {
+            BackColor = SystemColors.Control,
+            Image = global::MCEControl.Properties.Resources.Trafficlight_gray_icon,
+            ImageAlign = ContentAlignment.MiddleRight,
+            Margin = new Padding(10, 3, 0, 2),
+            Name = "statusStripMcp",
+            RightToLeft = RightToLeft.No,
+            Text = "MCP",
+            TextAlign = ContentAlignment.MiddleLeft,
+        };
+        statusStrip.Items.Add(statusStripMcp);
     }
 
     /// <summary>
@@ -74,23 +199,23 @@ public partial class MainWindow : Form {
 
             components?.Dispose();
 
-            if (Server != null) {
-                // remove our notification handler
-                Server.Notifications -= serverSocketCallbackHandler;
-                Server.Dispose();
-            }
-            if (Client != null) {
-                // remove our notification handler
-                Client.Notifications -= clientSocketNotificationHandler;
-                Client.Dispose();
-            }
-
-            if (SerialServer != null) {
-                SerialServer.Notifications -= HandleSerialServerNotifications;
-                SerialServer.Dispose();
+            // #211: one loop unwires and disposes every transport (the old code repeated
+            // this per service, and again in the per-service Stop methods).
+            foreach (ServiceController controller in serviceControllers) {
+                if (controller.Instance != null) {
+                    UnwireService(controller);
+                    (controller.Instance as IDisposable)?.Dispose();
+                    controller.Instance = null;
+                }
             }
 
             UpdateService.Instance.GotLatestVersion -= UpdateService_GotLatestVersion;
+
+            EmergencyStop.StateChanged -= OnEmergencyStopStateChanged;
+            if (emergencyStopArmed) {
+                EmergencyStop.Stop();
+                emergencyStopArmed = false;
+            }
         }
         base.Dispose(disposing);
     }
@@ -124,14 +249,19 @@ public partial class MainWindow : Form {
         WindowsInput.Native.NativeMethods.GetClassName(hWnd, sb, 256);
         Logger.Instance.Log4.Info($"Window Class - {sb}");
 #endif
-        // Load AppSettings
-        Settings = AppSettings.Deserialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
+        // Load AppSettings (also configures logging; some logging already happened).
+        // #216: SettingsStore.Load never shows UI; the GUI host (here) owns the failure dialogs
+        // that used to live inside AppSettings.Deserialize, gated the same way (headless = no UI).
+        SettingsLoadResult settingsLoad = SettingsStore.Load($@"{Program.ConfigPath}{SettingsStore.SettingsFileName}");
+        ShowSettingsLoadFailure(settingsLoad, $@"{Program.ConfigPath}{SettingsStore.SettingsFileName}");
+        ApplySettings(settingsLoad.Settings);
 
-        // Expose settings to the UI-agnostic agent engine (capture/query/find/invoke + MCP/HTTP).
-        AgentRuntime.Settings = Settings;
+        // TELEMETRY:
+        // what: Settings
+        // why: To understand what settings get changed and which dont
+        // how is PII protected: only settings clearly identified as not containing PII are collected
+        TelemetryService.Instance.TrackEvent("Settings", settingsLoad.Settings.GetTelemetryDictionary());
 
-        // Configure logging (some logging already happened).
-        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![Instance.Settings.TextBoxLogThreshold]!;
         Logger.Instance.Log4.Info($"Logger: Logging to {Logger.Instance.LogFile}");
 
         // Telemetry
@@ -150,7 +280,7 @@ public partial class MainWindow : Form {
 
         if (Settings.HideOnStartup) {
             Opacity = 0;
-            Win32.PostMessage(Handle, (UInt32)WM.SYSCOMMAND, (UInt32)SC.CLOSE, 0);
+            Win32NativeMethods.PostMessage(Handle, Win32NativeMethods.WM_SYSCOMMAND, Win32NativeMethods.SC_CLOSE, 0);
         }
 
         SystemEvents.UserPreferenceChanged += new UserPreferenceChangedEventHandler(SystemEvents_UserPreferenceChanged);
@@ -170,8 +300,42 @@ public partial class MainWindow : Form {
         // Updates - UpdateService.Instance.CheckVersion() is called from VisibleChanged
 
         UpdateService.Instance.GotLatestVersion += UpdateService_GotLatestVersion;
+        UpdateService.Instance.StartPeriodicChecks(); // 24h recheck timer; needs the UI message loop (#214)
+
+        SetUpEmergencyStopUi();
 
         Start();
+    }
+
+    /// <summary>
+    /// Adds the emergency-stop (#135) "Re-arm" menu item and wires it to <see cref="EmergencyStop"/>. The
+    /// item is a clear operator affordance that appears only while a stop is engaged; the latch is never
+    /// cleared automatically. Built in code (not the designer) so the safety UI travels with the feature.
+    /// </summary>
+    private void SetUpEmergencyStopUi() {
+        rearmMenuItem = new ToolStripMenuItem("⛔ &Re-arm (Emergency Stop)") {
+            Visible = false,
+            ForeColor = System.Drawing.Color.Firebrick,
+        };
+        rearmMenuItem.Click += (_, _) => EmergencyStop.Rearm();
+        menuStrip.Items.Add(rearmMenuItem);
+
+        EmergencyStop.StateChanged += OnEmergencyStopStateChanged;
+    }
+
+    private void OnEmergencyStopStateChanged(bool stopped) {
+        // StateChanged fires on the global-hook thread; marshal to the UI thread to touch the menu.
+        if (rearmMenuItem is null) {
+            return;
+        }
+        if (menuStrip.InvokeRequired) {
+            menuStrip.BeginInvoke((Action)(() => OnEmergencyStopStateChanged(stopped)));
+            return;
+        }
+        rearmMenuItem.Visible = stopped;
+        SetStatus(stopped
+            ? $"⛔ STOPPED by operator; Re-arm to resume ({EmergencyStop.StoppedReason})"
+            : $"Version: {Application.ProductVersion}");
     }
 
     private void UpdateService_GotLatestVersion(object? sender, Version version) {
@@ -212,9 +376,9 @@ public partial class MainWindow : Form {
     }
 
     private void LoadCommands() {
-        if (Invoker != null) {
-            // Invoker.Dispose();
-        }
+        // #195: the invoker owns a dispatcher thread; stop the old one (dropping its queue; the
+        // commands file changed, so what's queued is stale) before replacing it.
+        Invoker?.Shutdown();
 
         Invoker = CommandInvoker.Create($@"{Program.ConfigPath}mcec.commands", Application.ProductVersion, Settings.DisableInternalCommands);
         AgentRuntime.Invoker = Invoker;
@@ -241,39 +405,89 @@ public partial class MainWindow : Form {
         }
         else {
             Logger.Instance.Log4.Info("Closing Main Window...");
-            // Save Commands
-            // Stop file system watcher
-            watcher!.Dispose();
-            watcher = null;
 
-            // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
-            //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
-            TelemetryService.Instance.Stop();
+            // #213: two ways to get here with shuttingDown set; menu exit (ShutDown() already ran
+            // PerformShutdown() and then Close()d us; the gate makes this a no-op) and OS
+            // logoff/shutdown (WM_QUERYENDSESSION set the flag and Windows closes the window; this
+            // is the ONLY teardown that will run). The logoff path used to skip Stop() and the
+            // settings save entirely; window size/location changes were silently lost on every
+            // logoff and EmergencyStop/AgentServer relied on process teardown.
+            PerformShutdown();
         }
     }
 
+    /// <summary>
+    /// The single, idempotent application teardown (#213), shared by BOTH exit paths: menu exit
+    /// (<see cref="ShutDown"/>) and OS logoff/shutdown (WM_QUERYENDSESSION →
+    /// <see cref="mainWindow_Closing"/>). Stops the services, persists window placement and
+    /// settings via the SettingsStore path (#216), stops the command dispatcher (#195), and stops
+    /// telemetry. Must run on the UI thread (both callers do).
+    /// </summary>
+    private void PerformShutdown() {
+        if (!shutdownGate.TryEnter()) {
+            return;
+        }
+
+        Stop();
+
+        // hide icon from the systray
+        notifyIcon.Visible = false;
+
+        // Save the window size/location
+        Settings.WindowLocation = Location;
+        Settings.WindowSize = Size;
+        SaveSettings(Settings);
+
+        // #195: stop the command dispatcher thread (drops anything still queued; a drop that
+        // severs a command tree releases held input). The bounded join lets an in-flight
+        // command usually finish cleanly; the thread is background so it can never keep the
+        // process alive past that.
+        Invoker?.Shutdown(joinTimeoutMs: 2000);
+
+        // #215: stop the dedicated UIA worker and dispose its cached UIA3Automation (bounded join).
+        UiaService.Shutdown();
+
+        // Save Commands
+        // Stop file system watcher
+        watcher?.Dispose();
+        watcher = null;
+
+        // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
+        //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
+        TelemetryService.Instance.Stop();
+    }
+
     private void Start() {
-        SetServerStatus(ServiceStatus.Stopped);
-        if (Settings.ActAsServer) {
-            StartServer();
-        }
-
-        SetSerialStatus(ServiceStatus.Stopped);
-        if (Settings.ActAsSerialServer) {
-            StartSerialServer();
-        }
-
-        SetClientStatus(ServiceStatus.Stopped);
-        if (Settings.ActAsClient) {
-            StartClient();
+        // #211: one loop paints the initial light and starts every configured transport
+        // (server, serial, client; the old per-service order).
+        foreach (ServiceController controller in serviceControllers) {
+            PaintServiceStatus(controller, ServiceStatus.Stopped);
+            if (controller.IsConfigured()) {
+                StartService(controller);
+            }
         }
 
         // MCEC 3.0: optional MCP/HTTP agent front door (localhost-bound, off by default).
         if (Settings.McpServerEnabled) {
             AgentServer.StartHttp();
         }
+        PaintMcpStatus();
 
-        // MCEC 3.0: on-screen command overlay (#119) — narrates each command as it executes so anyone
+        // MCEC 3.0: emergency stop (#135); a global panic hotkey that halts an agent session from ANY
+        // focused window. Arm it here in the GUI host (the low-level keyboard hook needs this thread's
+        // message loop) whenever the agent front door could be driving. It reacts to physical input only,
+        // so the agent can never trip or defeat it.
+        if (!AgentRuntime.Headless && Settings.EmergencyStopEnabled && (Settings.McpServerEnabled || Settings.AgentCommandsEnabled)) {
+            EmergencyStopHotkey? parsed = EmergencyStopHotkey.Parse(Settings.EmergencyStopHotkey);
+            if (parsed is null) {
+                Logger.Instance.Log4.Warn($"EmergencyStop: could not parse hotkey '{Settings.EmergencyStopHotkey}'; using default {EmergencyStopHotkey.DefaultSpec}.");
+                parsed = EmergencyStopHotkey.Default;
+            }
+            EmergencyStop.Start(parsed);
+            emergencyStopArmed = true;
+        }
+
+        // MCEC 3.0: on-screen command overlay (#119); narrates each command as it executes so anyone
         // watching sees that MCEC is driving. On by default; never shown headless. Independent (not
         // owned) so it keeps narrating even when the MCEC window is minimized to the tray.
         if (Settings.CommandOverlayEnabled && !AgentRuntime.Headless && commandOverlay is null) {
@@ -299,11 +513,17 @@ public partial class MainWindow : Form {
         else {
             UserActivityMonitorService.Instance.Stop();
             AgentServer.StopHttp();
+            PaintMcpStatus();
+            if (emergencyStopArmed) {
+                EmergencyStop.Stop();
+                emergencyStopArmed = false;
+            }
             commandOverlay?.Dispose();
             commandOverlay = null;
-            StopClient();
-            StopServer();
-            StopSerialServer();
+            // #211: one loop stops every running transport.
+            foreach (ServiceController controller in serviceControllers) {
+                StopService(controller);
+            }
         }
     }
 
@@ -316,112 +536,83 @@ public partial class MainWindow : Form {
         Logger.Instance.Log4.Info("Exiting app...");
         shuttingDown = true;
 
-        Stop();
-
-        // hide icon from the systray
-        notifyIcon.Visible = false;
-
-        // Save the window size/location
-        Settings.WindowLocation = Location;
-        Settings.WindowSize = Size;
-        Settings.Serialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
+        // #213: the one idempotent teardown, shared with the OS-logoff path (mainWindow_Closing).
+        PerformShutdown();
 
         Close();
         Application.Exit();
     }
 
-    private void StartServer() {
-        if (Server == null) {
-            Logger.Instance.Log4.Info("Server: Starting...");
-            Server = new SocketServer();
-            Server!.Notifications += serverSocketCallbackHandler;
-            Server!.Start(Settings.ServerPort);
-            sendAwakeMenuItem.Enabled = Settings.WakeupEnabled;
+    // ----------------------------------------
+    // Generic service wiring (#211): ONE start/stop/toggle path for every transport, driven by
+    // the ServiceController descriptors. Before #211 each of these existed as three
+    // near-identical per-transport copies (with a fourth copy of the teardown in Dispose).
+
+    /// <summary>Creates the transport, wires the typed <see cref="ServiceBase"/> events to the
+    /// generic handlers (handlers first, then start; so no event is missed), and starts it.</summary>
+    /// <param name="delay">The client's "sleep before first connect" restart flag; other
+    /// transports ignore it.</param>
+    private void StartService(ServiceController controller, bool delay = false) {
+        if (controller.Instance != null) {
+            Logger.Instance.Log4.Debug($"{controller.Name}: Start attempted while an instance already exists!");
+            return;
+        }
+
+        Logger.Instance.Log4.Info($"{controller.Name}: Starting...");
+        ServiceBase service = controller.Create();
+        controller.Instance = service;
+        controller.StatusHandler = (status, detail) => OnServiceStatusChanged(controller, status, detail);
+        // Producer-only (#195): commands are enqueued on whatever thread the transport
+        // delivered them; deliberately NOT marshaled to the UI thread (see ReceivedData).
+        controller.CommandHandler = ReceivedData;
+        controller.ErrorHandler = error => OnServiceError(controller, error);
+        service.StatusChanged += controller.StatusHandler;
+        service.CommandReceived += controller.CommandHandler;
+        service.ErrorOccurred += controller.ErrorHandler;
+        controller.StartTransport(service, delay);
+        controller.AfterStart?.Invoke();
+    }
+
+    /// <summary>Unwires the typed events, stops the transport, and drops the instance. Handlers
+    /// are removed BEFORE Stop(); the same ordering the old per-service stops used; so an
+    /// operator-initiated stop does not trigger status-change side effects (notably the server's
+    /// closing wakeup command, which by long-standing behavior fires only when the server itself
+    /// reports Stopped, e.g. on a failed start).</summary>
+    private void StopService(ServiceController controller) {
+        if (controller.Instance == null) {
+            return;
+        }
+
+        Logger.Instance.Log4.Info($"{controller.Name}: Stopping...");
+        ServiceBase service = controller.Instance;
+        UnwireService(controller);
+        controller.StopTransport(service);
+        controller.Instance = null;
+        controller.AfterStop?.Invoke();
+        // The handlers were already removed, so the service's own Stopped status was not seen;
+        // paint the final light explicitly. (The old per-service stops skipped even this,
+        // leaving a stale light after a status-strip toggle.)
+        PaintServiceStatus(controller, ServiceStatus.Stopped);
+    }
+
+    private static void UnwireService(ServiceController controller) {
+        if (controller.Instance == null) {
+            return;
+        }
+        controller.Instance.StatusChanged -= controller.StatusHandler;
+        controller.Instance.CommandReceived -= controller.CommandHandler;
+        controller.Instance.ErrorOccurred -= controller.ErrorHandler;
+        controller.StatusHandler = null;
+        controller.CommandHandler = null;
+        controller.ErrorHandler = null;
+    }
+
+    private void ToggleService(ServiceController controller) {
+        if (controller.Instance == null) {
+            StartService(controller);
         }
         else {
-            Logger.Instance.Log4.Debug("Attempt to StartServer() while an instance already exists!");
-        }
-    }
-
-    private void StopServer() {
-        if (Server != null) {
-            Logger.Instance.Log4.Info("Server: Stopping...");
-            // remove our notification handler
-            Server.Notifications -= serverSocketCallbackHandler;
-            Server.Stop();
-            Server = null;
-            sendAwakeMenuItem.Enabled = false;
-        }
-    }
-
-    private void ToggleServer() {
-        if (Server == null) {
-            StartServer();
-        }
-        else {
-            StopServer();
-        }
-    }
-
-    private void StartSerialServer() {
-        if (SerialServer == null) {
-            Logger.Instance.Log4.Info("Serial: Starting...");
-            SerialServer = new SerialServer();
-            SerialServer!.Notifications += HandleSerialServerNotifications;
-            SerialServer!.Start(Settings.SerialServerPortName,
-                Settings.SerialServerBaudRate,
-                Settings.SerialServerParity,
-                Settings.SerialServerDataBits,
-                Settings.SerialServerStopBits,
-                Settings.SerialServerHandshake);
-        }
-        else {
-            Logger.Instance.Log4.Error("Serial: Attempt to StartSerialServer() while an instance already exists!");
-        }
-    }
-
-    private void StopSerialServer() {
-        if (SerialServer != null) {
-            Logger.Instance.Log4.Info("Serial: Stopping...");
-            // remove our notification handler
-            SerialServer.Notifications -= HandleSerialServerNotifications;
-            SerialServer.Stop();
-            SerialServer = null;
-        }
-    }
-
-    private void StartClient(bool delay = false) {
-        if (Settings.ActAsClient) {
-            if (Client == null) {
-                Logger.Instance.Log4.Info($"Client: Starting (delay = {delay})");
-                Client = new SocketClient(Settings);
-                Client!.Notifications += clientSocketNotificationHandler;
-                Client!.Start(delay);
-            }
-        }
-        else {
-            Logger.Instance.Log4.Debug("Client: StartClient attempt but ActAsClient is not enabled...");
-
-        }
-    }
-
-    private void StopClient() {
-        if (Client != null) {
-            cmdWindow!.Visible = false;
-            Logger.Instance.Log4.Info("Client: Stopping...");
-            Client.Notifications -= clientSocketNotificationHandler;
-            Client.Stop();
-            Client = null;
-        }
-    }
-
-    private void ToggleClient() {
-        Logger.Instance.Log4.Debug("Client: ToggleClient...");
-        if (Client == null) {
-            StartClient();
-        }
-        else {
-            StopClient();
+            StopService(controller);
         }
     }
 
@@ -431,10 +622,10 @@ public partial class MainWindow : Form {
                 this.BeginInvoke((MethodInvoker)delegate () { RestartClient(); });
             }
             else {
-                StopClient();
+                StopService(clientController);
                 if (!shuttingDown && Settings.ActAsClient && Settings.ClientDelayTime > 0) {
                     Logger.Instance.Log4.Info("Client: Reconnecting...");
-                    StartClient(true);
+                    StartService(clientController, delay: true);
                 }
             }
         }
@@ -462,41 +653,46 @@ public partial class MainWindow : Form {
 
     /// <summary>
     /// Anytime a client or server receives data that looks like a command, this function is called.
+    /// Producer-only (#195): decode + enqueue on whatever thread the transport delivered the data;
+    /// the Invoker's own dispatcher thread executes. No UI-thread marshaling; commands no longer
+    /// run on (or block) the UI thread.
     /// </summary>
-    /// <param name="reply">THe reply context any replies should be sent to</param>
+    /// <param name="reply">The reply context any replies should be sent to</param>
     /// <param name="cmd">the command string</param>
     private void ReceivedData(Reply reply, String cmd) {
-        // To ensure we are single-threaded for Invoker, check if we're on UI thread
-        // if not, use Invoke to get onto UI thread.
-        //
-        // TOOD: This is probably not the right model. What we should do is have 
-        // the Invoker run on it's won thread. 
-        if (this.InvokeRequired) {
-            this.BeginInvoke((MethodInvoker)delegate () { ReceivedData(reply, cmd); });
+        try {
+            Invoker.Enqueue(reply, cmd);
         }
-        else {
-            try {
-                Invoker.Enqueue(reply, cmd);
-                Invoker.ExecuteNext();
-            }
-            catch (Exception e) {
-                Logger.Instance.Log4.Error($"Command: ({cmd}) error: {e}");
-            }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"Command: ({cmd}) error: {e}");
         }
     }
 
+    // ----------------------------------------
+    // IAppHost (#209); the GUI half of the AgentRuntime host seam (non-explicit; CA1033 forbids
+    // explicit-only implementations on an unsealed type). SendLine below already matches.
+
+    // ShutDown() self-marshals (BeginInvoke when InvokeRequired), so this is callable from any
+    // thread; the invoker's dispatcher (mcec:exit) and the updater's async download path both do.
+    public void RequestShutdown() => ShutDown();
+
+    // Control.Handle is safe to READ cross-thread once created; the only consumer
+    // (UserActivityMonitorService.StartPowerBroadcastDetection) runs on the UI thread anyway,
+    // called from Start() during load/settings-apply.
+    public IntPtr MessageWindowHandle => Handle;
+
     // Sends a line of text (adds a "\n" to end) to connected client and server
-    public void SendLine(string v) {
-        //Logger.Instance.Log4.Info($"Send: {v}");
+    public void SendLine(string line) {
+        //Logger.Instance.Log4.Info($"Send: {line}");
         if (Client != null) {
-            Client.Send(v + "\n");
+            Client.Send(line + "\n");
         }
         else if (Server != null) {
-            Server.Send(v + "\n");
+            Server.Send(line + "\n");
         }
 
         if (SerialServer != null) {
-            SerialServer.Send(v + "\n");
+            SerialServer.Send(line + "\n");
         }
     }
 
@@ -512,286 +708,104 @@ public partial class MainWindow : Form {
         }
     }
 
-    private void SetServerStatus(ServiceStatus status) {
+    // ----------------------------------------
+    // Generic service event handlers (#211): ONE status handler (paint + log + quirk) and ONE
+    // error handler (log + quirk) replace the old three ~80-line per-transport switch handlers
+    // and three byte-identical painters. These are also the ONE place transport-thread events
+    // are marshaled to the UI thread (the old code repeated the InvokeRequired dance per
+    // painter and left the rest of each handler running on the transport's thread).
+
+    private void OnServiceStatusChanged(ServiceController controller, ServiceStatus status, string detail) {
         if (statusStrip.InvokeRequired) {
-            statusStrip.BeginInvoke((Action)(() => { SetServerStatus(status); }));
+            statusStrip.BeginInvoke((Action)(() => OnServiceStatusChanged(controller, status, detail)));
+            return;
         }
-        else {
-            statusStripServer.Text = $"Server on port {Settings.ServerPort}";
-            switch (status) {
-                case ServiceStatus.Started:
-                    statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
-                    break;
-
-                case ServiceStatus.Waiting:
-                    statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
-                    break;
-
-                case ServiceStatus.Connected:
-                    statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
-                    return;
-
-                case ServiceStatus.Stopped:
-                    statusStripServer.Image = global::MCEControl.Properties.Resources.Trafficlight_gray_icon;
-                    break;
-            }
+        PaintServiceStatus(controller, status);
+        string? line = controller.FormatStatus(status, detail);
+        if (line != null) {
+            Logger.Instance.Log4.Info($"{controller.Name}: {line}");
         }
+        controller.StatusQuirk?.Invoke(status);
     }
 
-    private delegate void SetClientStatusCallback(ServiceStatus status);
-    private void SetClientStatus(ServiceStatus status) {
+    private void OnServiceError(ServiceController controller, ServiceError error) {
         if (statusStrip.InvokeRequired) {
-            statusStrip.BeginInvoke((Action)(() => { SetClientStatus(status); }));
+            statusStrip.BeginInvoke((Action)(() => OnServiceError(controller, error)));
+            return;
         }
-        else {
-            statusStripClient.Text = $"Client {Settings.ClientHost}:{Settings.ClientPort}";
-            switch (status) {
-                case ServiceStatus.Started:
-                    statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
-                    break;
-
-                case ServiceStatus.Waiting:
-                    statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
-                    break;
-
-                case ServiceStatus.Connected:
-                    statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
-                    return;
-
-                case ServiceStatus.Stopped:
-                    statusStripClient.Image = global::MCEControl.Properties.Resources.Trafficlight_gray_icon;
-                    break;
-            }
-        }
+        Logger.Instance.Log4.Error($"{controller.Name}: Error: {error}");
+        controller.ErrorQuirk?.Invoke(error);
     }
 
-    private void SetSerialStatus(ServiceStatus status) {
+    private void PaintServiceStatus(ServiceController controller, ServiceStatus status) {
         if (statusStrip.InvokeRequired) {
-            statusStrip.BeginInvoke((Action)(() => { SetSerialStatus(status); }));
+            statusStrip.BeginInvoke((Action)(() => PaintServiceStatus(controller, status)));
+            return;
         }
-        else {
-            // https://en.wikipedia.org/wiki/8-N-1
-            statusStripSerial.Text = $"Serial {Settings.SerialServerBaudRate}/{Settings.SerialServerPortName} {Settings.SerialServerDataBits}-{Settings.SerialServerParity}-{Settings.SerialServerStopBits}-{Settings.SerialServerHandshake}";
-            switch (status) {
-                case ServiceStatus.Started:
-                    statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
-                    break;
-
-                case ServiceStatus.Waiting:
-                    statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_red_icon;
-                    break;
-
-                case ServiceStatus.Connected:
-                    statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_green_icon;
-                    return;
-
-                case ServiceStatus.Stopped:
-                    statusStripSerial.Image = global::MCEControl.Properties.Resources.Trafficlight_gray_icon;
-                    break;
-            }
+        controller.StatusStripItem.Text = controller.StatusStripText();
+        Image? light = StatusLightImage(status);
+        if (light != null) {
+            controller.StatusStripItem.Image = light;
         }
     }
 
-    // Notify callback for the TCP/IP Server
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "<Pending>")]
-    public void serverSocketCallbackHandler(ServiceNotification notification, ServiceStatus status, Reply reply, String msg) {
-        if (notification == ServiceNotification.StatusChange) {
-            HandleSocketServerStatusChange(status);
+    private void PaintMcpStatus() {
+        if (statusStrip.InvokeRequired) {
+            statusStrip.BeginInvoke((Action)PaintMcpStatus);
+            return;
         }
-        else {
-            HandleSocketServerNotification(notification, status, (ServerReplyContext)reply, msg);
-        }
+        statusStripMcp.Text = $"MCP on port {Settings.McpHttpPort}";
+        statusStripMcp.Image = AgentServer.IsHttpListening
+            ? global::MCEControl.Properties.Resources.Trafficlight_green_icon
+            : global::MCEControl.Properties.Resources.Trafficlight_gray_icon;
     }
 
-    private void HandleSocketServerNotification(ServiceNotification notification, ServiceStatus status,
-        ServerReplyContext serverReplyContext, String msg) {
-        string s = "";
+    // ----------------------------------------
+    // Status formatting (#211); pure functions, extracted from the old per-transport handlers
+    // so they can be unit tested. Null means "nothing to log for this status".
 
-        switch (notification) {
-            case ServiceNotification.ReceivedData:
-                Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                s = $"SocketServer: Received from Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint}: {msg}";
-                Logger.Instance.Log4.Info(s);
-                ReceivedData(serverReplyContext, msg);
-                return;
+    /// <summary>Maps a status to its traffic light. The shipped icon set has only red, green,
+    /// and gray (no yellow), so Started and Waiting both map to red; exactly what the three
+    /// pre-#211 painters did in triplicate; a yellow-ish Waiting needs a new icon first.</summary>
+    internal static StatusLight StatusLightFor(ServiceStatus status) => status switch {
+        ServiceStatus.Connected => StatusLight.Green,
+        ServiceStatus.Stopped => StatusLight.Gray,
+        ServiceStatus.Started or ServiceStatus.Waiting => StatusLight.Red,
+        _ => StatusLight.Unchanged,
+    };
 
-            case ServiceNotification.Write:
-                Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                s = $"Wrote to Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint}: {msg}";
-                break;
+    private static Image? StatusLightImage(ServiceStatus status) => StatusLightFor(status) switch {
+        StatusLight.Green => global::MCEControl.Properties.Resources.Trafficlight_green_icon,
+        StatusLight.Gray => global::MCEControl.Properties.Resources.Trafficlight_gray_icon,
+        StatusLight.Red => global::MCEControl.Properties.Resources.Trafficlight_red_icon,
+        _ => null,
+    };
 
-            case ServiceNotification.WriteFailed:
-                Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                s = $"Write failed to Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint}: {msg}";
-                break;
+    internal static string? FormatServerStatus(ServiceStatus status, int port) => status switch {
+        ServiceStatus.Started => $"Started on port {port}",
+        ServiceStatus.Waiting => "Waiting for a client to connect",
+        ServiceStatus.Stopped => "Stopped",
+        _ => null,
+    };
 
-            case ServiceNotification.ClientConnected:
-                Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                s = $"Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint} connected";
-                break;
+    internal static string? FormatClientStatus(ServiceStatus status, string host, int port, int delayTimeMs) => status switch {
+        ServiceStatus.Started => $"Connecting to {host}:{port}",
+        ServiceStatus.Connected => $"Connected to {host}:{port}",
+        ServiceStatus.Stopped => "Stopped",
+        ServiceStatus.Sleeping => $"Waiting {delayTimeMs / 1000} seconds to connect",
+        _ => null,
+    };
 
-            case ServiceNotification.ClientDisconnected:
-                Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null, notification.ToString());
-                s = $"Client #{serverReplyContext.ClientNumber} at {serverReplyContext.Socket.RemoteEndPoint} has disconnected";
-                break;
+    internal static string? FormatSerialStatus(ServiceStatus status, string detail) => status switch {
+        ServiceStatus.Started => $"Opening port: {detail}",
+        ServiceStatus.Waiting => $"Waiting for commands on {detail}...",
+        ServiceStatus.Stopped => "Stopped",
+        _ => null,
+    };
 
-            case ServiceNotification.Wakeup:
-                s = $"Wakeup: {(string)msg}";
-                break;
-
-            case ServiceNotification.Error:
-                switch (status) {
-                    case ServiceStatus.Waiting:
-                    case ServiceStatus.Stopped:
-                    case ServiceStatus.Sleeping:
-                        s = $"({status}): {msg}";
-                        break;
-
-                    case ServiceStatus.Connected:
-                        if (serverReplyContext != null) {
-                            Debug.Assert(serverReplyContext.Socket != null);
-                            Debug.Assert(serverReplyContext.Socket.RemoteEndPoint != null);
-                            s = $"(Client #{serverReplyContext.ClientNumber} at {(serverReplyContext.Socket == null ? "n/a" : serverReplyContext.Socket.RemoteEndPoint.ToString())}): {msg}";
-                        }
-                        else {
-                            s = msg;
-                        }
-
-                        break;
-                }
-                s = "Error " + s;
-                break;
-
-            default:
-                s = "Unknown notification: " + notification;
-                break;
-        }
-        Logger.Instance.Log4.Info($"SocketServer: {s}");
-    }
-
-    private void HandleSocketServerStatusChange(ServiceStatus status) {
-        SetServerStatus(status);
-        string s = "";
-        switch (status) {
-            case ServiceStatus.Started:
-                s = $"Started on port {Settings.ServerPort}";
-                //SetStatus(s);
-                if (Settings.WakeupEnabled) {
-                    Server!.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost,
-                        Settings.WakeupPort);
-                }
-
-                break;
-
-            case ServiceStatus.Waiting:
-                s = "Waiting for a client to connect";
-                break;
-
-            case ServiceStatus.Connected:
-                //SetStatus("Clients connected, waiting for commands...");
-                return;
-
-            case ServiceStatus.Stopped:
-                s = "Stopped";
-                //SetStatus("Client/Sever Not Active");
-                if (Settings.WakeupEnabled) {
-                    Server!.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost,
-                        Settings.WakeupPort);
-                }
-
-                break;
-        }
-        Logger.Instance.Log4.Info($"SocketServer: {s}");
-    }
-
-    //
-    // Notify callback for the TCP/IP Client
-    //
-    public void clientSocketNotificationHandler(ServiceNotification notify, ServiceStatus status, Reply reply, String msg) {
-        SetClientStatus(status);
-        String? s = null;
-        switch (notify) {
-            case ServiceNotification.StatusChange:
-                if (status == ServiceStatus.Started) {
-                    Logger.Instance.Log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Started");
-                    s = $"Connecting to {Settings.ClientHost}:{Settings.ClientPort}";
-                }
-                else if (status == ServiceStatus.Connected) {
-                    Logger.Instance.Log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Connected");
-                    s = $"Connected to {Settings.ClientHost}:{Settings.ClientPort}";
-                }
-                else if (status == ServiceStatus.Stopped) {
-                    Logger.Instance.Log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Stopped");
-                    s = "Stopped";
-                }
-                else if (status == ServiceStatus.Sleeping) {
-                    Logger.Instance.Log4.Debug("ClientSocketNotificationHandler - ServiceStatus.Sleeping");
-                    s = $"Waiting {(Settings.ClientDelayTime / 1000)} seconds to connect";
-                }
-                break;
-
-            case ServiceNotification.ReceivedData:
-                Logger.Instance.Log4.Info($"Client: Received; {msg}");
-                ReceivedData(reply, (string)msg);
-                return;
-
-            case ServiceNotification.Error:
-                Logger.Instance.Log4.Debug($"ClientSocketNotificationHandler - ServiceStatus.Error: {(string)msg}");
-                Logger.Instance.Log4.Error($"Client: Error; {(string)msg}");
-                RestartClient();
-                return;
-
-            default:
-                s = "Unknown notification";
-                break;
-        }
-        Logger.Instance.Log4.Info($"Client: {s}");
-    }
-
-    //
-    // Notify callback for the Serial Server
-    //
-    public void HandleSerialServerNotifications(ServiceNotification notify, ServiceStatus status, Reply reply, String msg) {
-        SetSerialStatus(status);
-        String? s = null;
-        switch (notify) {
-            case ServiceNotification.StatusChange:
-                switch (status) {
-                    case ServiceStatus.Started:
-                        s = $"SerialServer: Opening port: {msg}";
-                        break;
-
-                    case ServiceStatus.Waiting:
-                        s = $"SerialServer: Waiting for commands on {msg}...";
-                        //SetStatus("Waiting for Serial commands...");
-                        break;
-
-                    case ServiceStatus.Stopped:
-                        s = "SerialServer: Stopped";
-                        //SetStatus("Serial Server Not Active");
-                        break;
-                }
-                break;
-
-            case ServiceNotification.ReceivedData:
-                Logger.Instance.Log4.Info($"SerialServer: Received: {msg}");
-                ReceivedData(reply, (string)msg);
-                return;
-
-            case ServiceNotification.Error:
-                s = $"SerialServer: Error: {msg}";
-                break;
-
-            default:
-                s = "SerialServer: Unknown notification";
-                break;
-        }
-        Logger.Instance.Log4.Info(s);
-    }
-
-    private void ShowSettings(string defaultTabName) {
+    private void ShowSettings(SettingsTab defaultTab) {
         SettingsDialog d = new SettingsDialog(Settings) {
-            DefaultTab = defaultTabName
+            DefaultTab = defaultTab
         };
 
         TelemetryService.Instance.TrackEvent("ShowSettings");
@@ -799,15 +813,94 @@ public partial class MainWindow : Form {
         if (d.ShowDialog(this) == DialogResult.OK) {
             Stop();
 
-            Settings = d.Settings;
+            ApplySettings(d.Settings);
+
+            // #213 ordering decision: persist AFTER the clone has been adopted as the active
+            // settings object (ApplySettings, the single apply path) and BEFORE Start(). The
+            // dialog itself no longer serializes (it used to commit to disk before the owner
+            // applied anything). Saving before Start() is deliberate: Start() has no failure
+            // contract; a service that cannot start with the new config logs the error and shows
+            // it in the status bar, but does NOT roll back the in-memory settings; so disk must
+            // match memory or the next exit/logoff (PerformShutdown saves too) would rewrite it
+            // anyway. The user's OK is the commit point; a Cancel never touches disk.
+            SaveSettings(Settings);
 
             Opacity = (double)Settings.Opacity / 100;
-
-            Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![Settings.TextBoxLogThreshold]!;
 
             Start();
         }
         d.Dispose();
+    }
+
+    /// <summary>
+    /// Adopts <paramref name="settings"/> as the active settings object; for the GUI AND the
+    /// UI-agnostic agent engine. This is the single apply path used both at load and when the
+    /// Settings dialog is OK'd (the dialog hands back a deep clone, so the object identity changes
+    /// and <see cref="AgentRuntime.Settings"/> MUST be re-published; see #196: security gates such
+    /// as <c>AllowSessionProvisioning</c> and pacing read that seam, and a stale pre-dialog object
+    /// would keep honoring old gate values until restart).
+    /// </summary>
+    private void ApplySettings(AppSettings settings) {
+        Settings = settings;
+        PublishAgentRuntimeSettings(settings);
+
+        // #209: register the GUI host capabilities (SendLine / RequestShutdown / message-window
+        // handle) on the same seam, in the same place the settings are published. Idempotent;
+        // the dialog-OK path re-runs this with the same instance.
+        AgentRuntime.Host = this;
+
+        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![settings.TextBoxLogThreshold]!;
+    }
+
+    /// <summary>
+    /// Publishes the settings object to the UI-agnostic agent engine seam
+    /// (capture/query/find/invoke + MCP/HTTP read gating and pacing from
+    /// <see cref="AgentRuntime.Settings"/>). Static and internal so the regression test can
+    /// exercise the republish contract headlessly without constructing a Form
+    /// (InternalsVisibleTo MCEControl.xUnit).
+    /// </summary>
+    internal static void PublishAgentRuntimeSettings(AppSettings settings) {
+        AgentRuntime.Settings = settings;
+    }
+
+    /// <summary>
+    /// GUI-host save path (#216): persists <paramref name="settings"/> via
+    /// <see cref="SettingsStore.TrySave"/> and shows the save-failure MessageBox that used to live
+    /// inside <c>AppSettings.Serialize</c>, gated the same way (never when headless). Used by
+    /// <see cref="ShutDown"/> and the Settings dialog OK path.
+    /// </summary>
+    internal static void SaveSettings(AppSettings settings) {
+        string settingsFile = $@"{Program.ConfigPath}{SettingsStore.SettingsFileName}";
+        if (!SettingsStore.TrySave(settingsFile, settings, out Exception? error) && !AgentRuntime.Headless) {
+            MessageBox.Show($"Settings file could not be written. {settingsFile} {error?.Message}");
+        }
+    }
+
+    /// <summary>
+    /// GUI-host load-failure UI (#216): shows the MessageBoxes that used to live inside
+    /// <c>AppSettings.Deserialize</c>, with the same messages and the same headless gate. A clean
+    /// load (or a normal first-run default creation) shows nothing.
+    /// </summary>
+    private static void ShowSettingsLoadFailure(SettingsLoadResult result, string settingsFile) {
+        if (AgentRuntime.Headless) {
+            return;
+        }
+        switch (result.Outcome) {
+            case SettingsLoadOutcome.ParseError:
+                MessageBox.Show($"Settings file is corrupt or invalid: {settingsFile}\n\n{result.ErrorDetail}\n\n" +
+                    "MCE Controller will use default settings for this run. The file was not overwritten - fix or delete it to recover your settings.");
+                break;
+            case SettingsLoadOutcome.AccessDenied:
+            case SettingsLoadOutcome.UnexpectedError:
+                MessageBox.Show($"Settings file could not be loaded. {result.ErrorDetail}\n\nMCE Controller will use default settings for this run.");
+                break;
+            case SettingsLoadOutcome.CreatedDefault when result.Error is not null:
+                // First run, but the default settings file could not be written.
+                MessageBox.Show($"Settings file could not be written. {settingsFile} {result.ErrorDetail}");
+                break;
+            default:
+                break;
+        }
     }
 
     // ----------------------------------------
@@ -840,7 +933,7 @@ public partial class MainWindow : Form {
 
     private void settingsMenuItem_Click(object sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("settingsMenuItem");
-        ShowSettings("General");
+        ShowSettings(SettingsTab.General);
     }
 
     private void sendAwakeMenuItem_Click(object sender, EventArgs e) {
@@ -878,29 +971,29 @@ public partial class MainWindow : Form {
     }
 
     private void statusStripClient_Click(object sender, EventArgs e) {
-        if (Settings.ActAsClient) {
-            ToggleClient();
+        if (clientController.IsConfigured()) {
+            ToggleService(clientController);
         }
         else {
-            ShowSettings("Client");
+            ShowSettings(SettingsTab.Client);
         }
     }
 
     private void statusStripServer_Click(object sender, EventArgs e) {
-        if (Settings.ActAsServer) {
-            ToggleServer();
+        if (serverController.IsConfigured()) {
+            ToggleService(serverController);
         }
         else {
-            ShowSettings("Server");
+            ShowSettings(SettingsTab.Server);
         }
     }
 
     private void statusStripSerial_Click(object sender, EventArgs e) {
-        ShowSettings("Serial");
+        ShowSettings(SettingsTab.Serial);
     }
 
     private void statusStripStatus_Click(object sender, EventArgs e) {
-        ShowSettings("General");
+        ShowSettings(SettingsTab.General);
     }
 
     // WinForms layout with MenuStrip and StatusStrip has issues (apparently) with

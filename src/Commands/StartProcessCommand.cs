@@ -1,7 +1,7 @@
 ﻿//-------------------------------------------------------------------
 // Copyright © 2019 Kindel, LLC
 // http://www.kindel.com
-// charlie@kindel.com
+// 
 // 
 // Published under the MIT License.
 // Source on GitHub: https://github.com/tig/mcec  
@@ -23,7 +23,7 @@ public class StartProcessCommand : Command {
     private String verb = null!;
     [XmlAttribute("verb")] public string Verb { get => verb; set => verb = value; }
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
               new StartProcessCommand() { Cmd = "code", File ="code" },
               new StartProcessCommand() { Cmd = "tada", File=@"C:\Windows\Media\tada.wav", Verb="Open"  },
@@ -48,24 +48,28 @@ public class StartProcessCommand : Command {
               //    </ Chars >
               //    </ SendInput >
               //</ StartProcess >                  
-              new StartProcessCommand() { 
+              new StartProcessCommand() {
                   // Start notepad.exe
+                  // SECURITY (#145): every embedded child below is Enabled=false ON PURPOSE. This is a
+                  // *demo* users copy and enable deliberately; shipping enabled children means a single
+                  // remote command string actuates synthetic input on the secure default install. Do not
+                  // set these back to Enabled=true.
                   Cmd = "type_into_notepad", File="notepad.exe", EmbeddedCommands = [
                         // pause 100ms
-                        new PauseCommand() { Args = "100", Enabled = true },
+                        new PauseCommand() { Args = "100", Enabled = false },
                         // send some text
-                        new CharsCommand() { Args="this is a test typed into Notepad.", Enabled = true  },
+                        new CharsCommand() { Args="this is a test typed into Notepad.", Enabled = false  },
                         // hit retrun
-                        new SendInputCommand() { Vk = "VK_RETURN", Enabled = true  },
+                        new SendInputCommand() { Vk = "VK_RETURN", Enabled = false  },
                         // hit win-shirt-right to put notepad on the other monitor
-                        new SendInputCommand() { Vk = "VK_RIGHT", Win = true, Shift = true, Enabled = true  },
-                        new SendMessageCommand() { Msg=274, WParam=61488, LParam=0, Enabled = true  },
-                        new CharsCommand() { Args="Second ", Enabled = true  },
-                        new CharsCommand() { Args="line...", Enabled = true, EmbeddedCommands = [
+                        new SendInputCommand() { Vk = "VK_RIGHT", Win = true, Shift = true, Enabled = false  },
+                        new SendMessageCommand() { Msg=274, WParam=61488, LParam=0, Enabled = false  },
+                        new CharsCommand() { Args="Second ", Enabled = false  },
+                        new CharsCommand() { Args="line...", Enabled = false, EmbeddedCommands = [
                             // Bring up help, about
-                            new PauseCommand() { Args = "250", Enabled = true },
-                            new SendInputCommand() { Vk = "h", Alt=true, Enabled = true  },
-                            new SendInputCommand() { Vk = "a", Alt=false, Enabled = true  }
+                            new PauseCommand() { Args = "250", Enabled = false },
+                            new SendInputCommand() { Vk = "h", Alt=true, Enabled = false  },
+                            new SendInputCommand() { Vk = "a", Alt=false, Enabled = false  }
                         ]},
                    ]
               }
@@ -88,12 +92,6 @@ public class StartProcessCommand : Command {
     public override string ToString() {
         return $"Cmd=\"{Cmd}\" File=\"{File}\" Arguments=\"{Arguments}\" Verb=\"{Verb}\"";
     }
-
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new StartProcessCommand() {
-        File = this.File,
-        Arguments = this.Arguments,
-        Verb = this.Verb
-    });
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Process is long lived")]
     // ICommand:Execute

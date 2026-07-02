@@ -15,7 +15,7 @@ namespace MCEControl;
 /// loops a GUI script otherwise grows.
 /// </summary>
 public static class WindowResolver {
-    // Windows MCEC owns that must never be agent targets — notably the on-screen command overlay (#119).
+    // Windows MCEC owns that must never be agent targets; notably the on-screen command overlay (#119).
     // The overlay annotates the screen; if it could be resolved by handle/foreground/process, an agent
     // would see and try to drive its own overlay. Handles are registered by the windows themselves.
     private static readonly HashSet<long> IgnoredHandles = [];
@@ -61,7 +61,7 @@ public static class WindowResolver {
 
         // SECURITY/CORRECTNESS: require at least one explicit criterion. Without this, a call with no
         // target (e.g. an MCP tool call with empty arguments) would silently match the first
-        // enumerated window — screenshotting/driving an arbitrary user window. Refuse instead.
+        // enumerated window; screenshotting/driving an arbitrary user window. Refuse instead.
         if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(processName) && string.IsNullOrEmpty(className)) {
             return null;
         }
