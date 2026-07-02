@@ -49,8 +49,11 @@ An AI agent runs a loop: **observe → target → act → observe**. MCEC gives 
   `launch` an app directly, `click` a point or element, `drag` (atomic press → move-path → release), or
   `send_command` to run any raw MCEC command.
 
-All of this is gated, localhost-bound, and loudly audit-logged. See the
-**[Agent Server user guide](agent-server.md)** for the complete tool reference.
+Understand the trade before enabling any of it: MCEC drives the desktop with real user input, so
+**everything a user can do, an agent can do**; the gates decide *whether* an agent gets that power,
+not *how much*. Every capability is off by default, localhost-bound, narrated by an on-by-default
+on-screen overlay, and loudly audit-logged. See the **[Agent Server user guide](agent-server.md)**
+for the complete tool reference and the security model.
 
 For the classic remote-control role — driving a Windows PC from a home-automation controller over TCP/IP or
 serial — see **[Home Automation & Remote Control](home-automation.md)**.
@@ -145,8 +148,9 @@ them. Details, including the `mcec.commands` XML format, are in
 
 ## Agent safety
 
-When MCEC is driving the desktop the *target app* has focus, not MCEC — so two operator-safety features keep
-you in control (full design in **[Agent safety](safety-emergency-stop-and-provisioning.md)**):
+An enabled agent has your hands: everything you can do at the keyboard, it can do, and no gate can
+meter that down. So beyond the off-by-default gates, two operator-safety features keep you in control
+(details in **[Agent safety](safety-emergency-stop-and-provisioning.md)**):
 
 * **Emergency stop** — a global "dead-man's-switch" hotkey (default `Ctrl+Alt+Shift+S`) you can hit from
   *any* window to instantly halt a session. It latches the actuation gate (every tool call is refused with

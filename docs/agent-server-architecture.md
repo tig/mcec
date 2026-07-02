@@ -13,7 +13,7 @@ pattern and adds no breaking changes to any existing command, transport, or defa
 
 ```
   MCP client ──stdio──▶ McpStdioTransport ──┐
-  HTTP POST  ──:5151──▶ McpHttpTransport ───┤   (transports, #215)
+  HTTP POST  ──:5151──▶ McpHttpTransport ───┤   (transports)
                                             ▼
                                    JsonRpcDispatcher   (protocol layer)
                                             │  tools/call
@@ -46,7 +46,7 @@ The single ambient hook the commands and server talk to:
 and tiny lets both the WinForms host and the `--mcp` headless bootstrap share one
 configuration/gating point without dependency plumbing.
 
-It also holds the host-capability half of the seam (#209): `Host` is a small `IAppHost`
+It also holds the host-capability half of the seam: `Host` is a small `IAppHost`
 each host registers — `MainWindow` in GUI mode (in its settings-apply path, alongside
 `Settings`), `HeadlessAppHost` in `--mcp` mode. Engine code calls the static wrappers:
 
@@ -86,7 +86,7 @@ UI Automation access (UIA3 via FlaUI) backing element-level `find` / `wait-for`
 queries. Isolated behind a service so the rest of the subsystem has no hard FlaUI
 coupling at the command layer.
 
-THREADING (#215): all UIA tree access runs on **one dedicated MTA worker thread**
+THREADING: all UIA tree access runs on **one dedicated MTA worker thread**
 owned by the service, with a single cached `UIA3Automation` (created on the worker,
 disposed by `UiaService.Shutdown()` at app teardown — GUI `PerformShutdown` and the
 headless `--mcp` exit both call it). Timed lookups (`wait-for`, invoke's bounded
@@ -95,11 +95,11 @@ happens on the caller, so a long wait never monopolizes the worker. A debug
 assertion enforces that UIA work never enters from a thread running a WinForms
 message loop (the historical UI-thread self-deadlock). One deliberate exception:
 `invoke`'s **pattern dispatch** runs on its calling thread (the per-invoke
-modal-grace worker, #105) — a modal-opening Invoke blocks until the dialog closes,
+modal-grace worker) — a modal-opening Invoke blocks until the dialog closes,
 and parking the shared worker there would block the very `query`/`capture` the
 agent needs to dismiss that dialog.
 
-### `ToolCatalog` / `ToolDescriptor` (#205)
+### `ToolCatalog` / `ToolDescriptor`
 The single registry of the gated agent tools. Each `ToolDescriptor` carries the tool's
 name, its `tools/list` schema, its MCP-arguments→`Command` mapping, its overlay
 tersifier, and its policy flags (`SerializesOnInput`, `IsObservation`,
@@ -113,7 +113,7 @@ one descriptor plus its command class. The meta-tools (`send_command`,
 1:1 onto a `Command` and keep their own gating, special-cased in `AgentServer` next to
 the catalog dispatch.
 
-## Structured replies (#206: objects, not re-parsed strings)
+## Structured replies (objects, not re-parsed strings)
 
 Agent commands do not write free text. `ExecuteCore()` **returns** a `CommandResult` (in
 `System.Text.Json.Nodes`): `Success`, `Command`, `Error?`, `Data?`, plus the mandatory failure
@@ -124,7 +124,7 @@ options live in `AgentJson` (`Serialize<T>`).
 `AgentCommand`'s sealed template emits the result once per transport: a legacy TCP/serial `Reply`
 receives the single `ToJson()` line (unchanged wire format), while a `CapturingReply : Reply` —
 the in-process tool dispatch — receives the **object** in its typed `Result` slot. The server
-consumes that object directly (`AgentToolResult.FromCommandResult`) to build the #101 envelope:
+consumes that object directly (`AgentToolResult.FromCommandResult`) to build the result-contract envelope:
 no `ToJson → JsonNode.Parse` round-trip of its own output (a capture's base64 PNG used to be
 materialized 3–4×), no prose-sniffing categorization (deleted with `FromLegacy`/`Categorize`),
 and no "non-JSON output is success" fallback. The template also normalizes any failure missing a
@@ -135,19 +135,19 @@ code/category to `unhandled`/`internal`, so every agent failure is categorical b
 ## How the new commands plug into the existing pattern
 
 Each agent command (`capture`, `query`, `find`/`wait-for`, `invoke`, `click`, `drag`,
-`record`, `displays`, `launch`) derives from `AgentCommand : Command` (#208) and follows
+`record`, `displays`, `launch`) derives from `AgentCommand : Command` and follows
 the house pattern:
 
-- No per-command `Clone` code (#207): the MemberwiseClone-based `Command.Clone(Reply)`
+- No per-command `Clone` code: the MemberwiseClone-based `Command.Clone(Reply)`
   copies every field by construction (all serializable command state is value/string-typed),
   installs the fresh `Reply`, and deep-clones `EmbeddedCommands`. A reflection hygiene test
   (`CommandClonePropertyRoundTripTests`) round-trips every public settable property of every
   command through Clone.
 - `BuiltInCommands` returning the command with `Enabled=false` by default, referenced
-  explicitly by the type's one-line `CommandRegistry.Entries` entry (#204) — the single
+  explicitly by the type's one-line `CommandRegistry.Entries` entry — the single
   registration point that drives serialization, the invoker's built-ins table, and the
   registry-completeness hygiene test (`CommandRegistryTests`).
-- `[XmlAttribute]` on serializable props (all-lowercase names — see `XmlNameCasingTests`, #200).
+- `[XmlAttribute]` on serializable props (all-lowercase names — see `XmlNameCasingTests`).
 
 `AgentCommand` owns a **sealed** `Execute()` template method: the base
 `Command.Execute()` (per-command `Enabled` gate + telemetry), then the
@@ -171,27 +171,27 @@ Because they are normal commands, they are dispatched by the existing
 `CommandInvoker` and are reachable through every existing transport as well as the new
 MCP/HTTP façade — no special-casing in the command pipeline.
 
-## The MCP server: transports, dispatcher, executor, facade (#215)
+## The MCP server: transports, dispatcher, executor, facade
 
 The old 1,200-line static `AgentServer` is split along its seams into four types, with
 `AgentServer` remaining as the thin static facade that wires the production instances:
 
 - **`McpStdioTransport`** — the newline-delimited JSON-RPC loop the `--mcp` headless
-  bootstrap runs. Each request line dispatches on a worker (#113); the pending-task
+  bootstrap runs. Each request line dispatches on a worker; the pending-task
   list is pruned per iteration and in-flight dispatches are capped (16, matching the
   HTTP bound) by *backpressure* — the reader stops consuming stdin until a slot frees.
 - **`McpHttpTransport`** — the HTTP floor: one JSON-RPC request per `POST /mcp`, bound
   to `McpBindAddress` (default `127.0.0.1`) on `McpHttpPort` (default `5151`). Owns the
   `HttpListener` lifecycle (Stop **joins the accept thread and drains in-flight workers**,
   both bounded, so a Settings-dialog Stop/Start can't overlap old workers with a new
-  listener), the pure `GateHttpRequest` (#143 Host/Origin/bearer), the #152 loopback-bind
-  canonicalization, the 1 MB body cap, and the 16-worker 503 bound (#151).
+  listener), the pure `GateHttpRequest` (Host/Origin/bearer), the loopback-bind
+  canonicalization, the 1 MB body cap, and the 16-worker 503 bound.
 - **`JsonRpcDispatcher`** — the protocol layer (`initialize`/`ping`/`tools/list`/
   `tools/call` routing, response shapes, the meta-tool schemas), shared by both transports.
 - **`AgentToolExecutor`** — the tool-execution layer: emergency-stop /
   `AgentCommandsEnabled` / per-command gates, argument validation, `ToolCatalog` command
-  building, the #113/#105 dispatch rules, the meta-tools (`send_command`,
-  `provision-session`, `end-session` + its #215 token check), and #101 envelope/overlay
+  building, the concurrency dispatch rules, the meta-tools (`send_command`,
+  `provision-session`, `end-session` + its token check), and envelope/overlay
   publication. An instance type taking settings/invoker/session **accessors** via
   constructor — tests exercise it (or construct their own transports with injected
   dispatch) instead of the old `HttpDispatchOverride`-style static seams.
@@ -200,8 +200,8 @@ The facade exposes the gated agent tools registered in `ToolCatalog` (`capture`,
 `displays`, `find`, `wait-for`, `invoke`, `drag`, `click`, `record`, `launch`) plus the
 meta-tools `send_command` (a generic raw command-line passthrough), `provision-session`,
 and `end-session`. Tool calls are translated into command invocations executed against a
-`CapturingReply`; the command's typed `CommandResult` (its `Result` slot, #206) is wrapped
-in the #101 envelope and returned to the caller.
+`CapturingReply`; the command's typed `CommandResult` (its `Result` slot) is wrapped
+in the result-contract envelope and returned to the caller.
 
 ## `--mcp` headless bootstrap
 

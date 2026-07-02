@@ -27,9 +27,18 @@ success and failure uniformly.
 
 ## SECURITY — read this first
 
-The agent server is powerful: it can see your screen and drive your PC. It is therefore
-locked down by default and uses **layered, independent opt-ins**. Turning one thing on
-does **not** turn the others on.
+**If anything useful is enabled, all bets are off.** MCEC drives the desktop with real user
+input; there is no sandbox, no permission model inside the session, and no way to give an
+agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent
+can do**: read whatever is on screen, type into any app, click anything, launch programs,
+open a browser logged in as you, delete files, send email. The gates below decide *whether*
+an agent gets that power; they do not and cannot meter *how much*. Enable the agent surface
+only on a machine and session where you accept an agent acting **as you**, and prefer a
+disposable [provisioned session](safety-emergency-stop-and-provisioning.md) over enabling
+your installed instance.
+
+With that understood: the agent server is locked down by default and uses **layered,
+independent opt-ins**. Turning one thing on does **not** turn the others on.
 
 1. **Agent commands are DISABLED by default.**
    The new observation/automation commands require their **own** opt-in,
@@ -43,23 +52,27 @@ does **not** turn the others on.
    enabled, the HTTP floor **binds to localhost by default**, and a **loopback** bind is
    the only configuration that needs no authentication. A loopback `McpBindAddress`
    (`localhost`, or a literal loopback IP — any `127.x.y.z`, `::1` / `[::1]`) is
-   **canonicalized** before it reaches the listener ([#152]) — so obfuscated loopback
+   **canonicalized** before it reaches the listener — so obfuscated loopback
    spellings the OS parser still reads as loopback (e.g. `127.1`, `0x7f.0.0.1`,
    `2130706433`, `::ffff:127.0.0.1`) are normalized to a plain loopback literal
    (`127.0.0.1` / `[::1]`) rather than passed through raw, closing a path where the
    underlying HTTP stack could treat the raw form as a wildcard binding. A **non-loopback**
    bind (a specific LAN IP, or the all-interfaces `0.0.0.0` / `::`) is a deliberate
-   off-box exposure and is allowed **only when `McpAuthToken` is set** ([#143]); without a
+   off-box exposure and is allowed **only when `McpAuthToken` is set**; without a
    token MCEC **refuses to start the HTTP listener**, logging a loud error, so a config
    typo can never silently expose unauthenticated UI automation to the network. (The
    `HttpListener` wildcards `+` / `*` and other hostnames are not loopback and are never
    DNS-resolved, so they too require a token — and generally fail to bind.)
 
-3. **Every agent action is loudly audited.**
-   Each agent command logs an `AGENT-AUDIT:` line (action + target) before it runs.
-   These lines are intentionally noisy so that agent activity is impossible to miss in
-   the MCEC log window or log files. If you see `AGENT-AUDIT:` lines you did not expect,
-   something is driving your machine.
+3. **Every agent action is loudly audited: on screen and in the log.**
+   The **on-screen command overlay is ON by default** (`CommandOverlayEnabled`, docked per
+   `CommandOverlayPosition`): it narrates each command as it executes, so anyone looking at
+   the screen can see that MCEC is driving the machine. In addition, each agent command
+   logs an `AGENT-AUDIT:` line (action + target) before it runs; intentionally noisy so
+   agent activity is impossible to miss in the MCEC log window or log files. If you see
+   the overlay narrating or `AGENT-AUDIT:` lines you did not expect, something is driving
+   your machine; hit the [emergency stop](safety-emergency-stop-and-provisioning.md)
+   (default `Ctrl+Alt+Shift+S`).
 
 If any one of these switches is off, the corresponding capability simply refuses to run
 and returns a JSON failure (for commands) — it never silently proceeds.
@@ -70,21 +83,19 @@ flag, over **both** MCP transports (`mcec.exe --mcp` stdio and the HTTP floor): 
 command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
 `AgentCommandsEnabled=true`.
 
-**`send_command` is transport-sensitive (#153).** It is a raw pass-through to the existing command engine,
+**`send_command` is transport-sensitive.** It is a raw pass-through to the existing command engine,
 so it is a command-injection surface. Over the **local stdio** transport (`mcec.exe --mcp`, launched by its
 client — no network/CSRF surface) it keeps the documented pass-through and does **not** require
 `AgentCommandsEnabled`. Over the **network-facing HTTP floor** it honors the **same `AgentCommandsEnabled`
 gate as every other tool**: with `McpServerEnabled=true` but `AgentCommandsEnabled=false`, a `send_command`
 `tools/call` is refused (`error.code: agent-commands-disabled`) and never executed. This is deliberate
 secure-by-default hardening — enabling the HTTP floor alone must not expose a raw-command surface with no
-agent opt-in. Before [#143]'s front-door validation landed, such a request was reachable by browser CSRF /
-DNS-rebinding; with #143's `Host`/`Origin`/token gate now in place **and** this `AgentCommandsEnabled` gate,
+agent opt-in. Before the front-door validation landed, such a request was reachable by browser CSRF /
+DNS-rebinding; with the `Host`/`Origin`/token gate now in place **and** this `AgentCommandsEnabled` gate,
 that surface is closed. In **both** cases the raw command it runs is still subject to that command's own `Enabled`
 flag in `mcec.commands` (the normal MCEC gate). `McpServerEnabled` gates only the HTTP floor; it has no
 bearing on stdio or on which individual tools may run.
 
-[#143]: https://github.com/tig/mcec/issues/143
-[#153]: https://github.com/tig/mcec/issues/153
 
 **The command queue is bounded.** Commands (from any client — network, serial, or an agent's
 `send_command`) are queued and executed paced (`CommandPacing` delay between items). To prevent a remote
@@ -180,7 +191,7 @@ failing call's own partial payload, e.g. a blank capture's suspect PNG):
 
 > **Where the shape comes from.** Internally each agent command returns a structured
 > `CommandResult` **object** (`src/Commands/CommandResult.cs`) carrying `success`/`data` plus the
-> mandatory `errorCode`/`errorCategory` taxonomy on failure (#206). The `AgentServer` builds the
+> mandatory `errorCode`/`errorCategory` taxonomy on failure. The `AgentServer` builds the
 > `{ ok, result, error, … }` envelope from that object at the MCP boundary
 > (`AgentToolResult.FromCommandResult`) — no serialize/re-parse round-trip and no free-text
 > "categorization" — which is the shape an MCP client actually receives and the one specified by
@@ -231,7 +242,7 @@ unbounded region (e.g. `40000x40000` ≈ 6.4 GB of raw ARGB, before PNG encoding
 otherwise exhaust the host's memory. A region may be at most **16384 px per side** and
 **64,000,000 px total** (64 MP ≈ 256 MB raw — roughly eight 4K frames). An oversized region is
 **rejected before anything is allocated or captured** — the call fails with
-`errorCode: "region-too-large"` (`errorCategory: "invalid-argument"`, #191: the recovery is to
+`errorCode: "region-too-large"` (`errorCategory: "invalid-argument"`; the recovery is to
 shrink the request) and a detail stating the limit,
 and the rejection is `AGENT-AUDIT:`-logged. The same caps apply to `record` regions (window
 targets need no cap: they are bounded by the window's own size). These limits are fixed, not
@@ -365,7 +376,7 @@ near-black dominant color is distinguished from a legitimately empty (e.g. white
 - A **window** capture that comes back blank is a failure (`error.category: "capture-blank"`,
   `error.code: "frame-all-black"` or `"frame-uniform"`), so it is never a *silent* bad image — an
   agent branches on the failure rather than trusting the frame. The suspect PNG the command
-  grabbed still rides in `error.partialResult` (#206), so the evidence is not lost.
+  grabbed still rides in `error.partialResult`, so the evidence is not lost.
 - A **region** capture that comes back blank is reported as a `capture-blank` **warning**, since
   a user-specified region can legitimately be empty.
 - The raw numbers are in the success payload's `blankCheck` (`blank`, `dominantFraction`, `dominantIsDark`).
@@ -472,7 +483,7 @@ Agent tool calls follow a simple contract so one slow call never stalls the othe
 - **Global-input actuation serializes.** `drag` and `send_command` synthesize physical mouse/keyboard —
   the one input stream is a shared resource, so they serialize on a single gate
   (`AgentRuntime.InputGate`): `drag` actuates directly under the gate on its worker, while
-  `send_command` enqueues into the command engine, whose single dispatcher thread (#195) holds the same
+  `send_command` enqueues into the command engine, whose single dispatcher thread holds the same
   gate around each input-synthesizing queued command's `Execute` (concurrent requests can't interleave
   keystrokes/mouse). Commands that provably touch no input (`pause`, `mcec:`) run outside the gate, so a
   `pause:60000` in a macro doesn't starve a concurrent `drag` for a minute.
@@ -485,14 +496,14 @@ Agent tool calls follow a simple contract so one slow call never stalls the othe
   and holds the input gate — until the dialog is dismissed. The agent caller is bounded by
   `send_command`'s 30s wait (`send-command-timeout`), but the queue itself stalls until the operator
   closes the dialog. Prefer the `invoke` tool for anything that may open a modal.
-- **The legacy TCP/serial command pipeline shares the same queue and dispatcher (#195).** Home-automation
+- **The legacy TCP/serial command pipeline shares the same queue and dispatcher.** Home-automation
   commands and `send_command` are both *producers* into the one `CommandInvoker` queue; its dedicated
   dispatcher thread is the only consumer and executes every command in order (input-synthesizing ones
   under the input gate), so legacy traffic and agent actuation can never interleave either.
   `send_command` returns only after its command actually executed (a per-enqueue completion the
   dispatcher signals), with a 30s wait bound — a longer-running command keeps executing, but the call
   reports `send-command-timeout`. A command that never enters the queue fails fast instead of reporting
-  ok: `unknown-command` (not in the loaded table) or `command-dropped` (over the #154 bounds / engine
+  ok: `unknown-command` (not in the loaded table) or `command-dropped` (over the queue bounds / engine
   shutting down).
 
 Both MCP transports honor this by dispatching each request on a worker: the HTTP floor serves every
@@ -518,8 +529,8 @@ The address and port come from `McpBindAddress` (default `127.0.0.1`) and `McpHt
 (default `5151`). This is a deliberately minimal floor for local scripts and agents; it is
 not a general-purpose web API. A **loopback** bind (`localhost` or a literal loopback IP —
 `127.x.y.z`, `::1`, `[::1]`) needs no authentication and is canonicalized to a plain
-loopback literal before binding ([#152]). A **non-loopback** bind is a deliberate off-box
-exposure and starts only when `McpAuthToken` is set ([#143]); otherwise the listener
+loopback literal before binding. A **non-loopback** bind is a deliberate off-box
+exposure and starts only when `McpAuthToken` is set; otherwise the listener
 refuses to start and MCEC logs a loud error explaining what to change.
 
 Over this HTTP transport, `send_command` requires `AgentCommandsEnabled=true` (see *Which gate applies
@@ -559,9 +570,6 @@ The floor is hardened against resource exhaustion: a request body larger than
 without a `Content-Length` can't bypass it), and at most **16** requests are served
 concurrently — past that the server answers `503` rather than queueing.
 
-[#151]: https://github.com/tig/mcec/issues/151
-[#152]: https://github.com/tig/mcec/issues/152
-[#143]: https://github.com/tig/mcec/issues/143
 
 ---
 
@@ -569,11 +577,14 @@ concurrently — past that the server answers `503` rather than queueing.
 
 - New, opt-in agent surface: `capture`, `query`, `displays`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `record` (plus `send_command`, and `provision-session`/`end-session`).
 - Structured `{ ok, result, error, … }` JSON result envelope; the commands are exposed as MCP/HTTP tools.
+- **No sandbox: an enabled agent can do everything a user can do.** The gates decide whether,
+  not how much.
 - **Three independent off-by-default gates:** `AgentCommandsEnabled`, per-command
   `Enabled`, and `McpServerEnabled` (localhost-bound).
 - **HTTP front-door validation:** `POST /mcp` only, loopback `Host` and absent-or-loopback
   `Origin` required, optional `McpAuthToken` bearer token — defeats browser CSRF and DNS rebinding.
-- Loud `AGENT-AUDIT:` logging for every agent action.
+- On-by-default **on-screen overlay** narrating every command, plus loud `AGENT-AUDIT:`
+  logging for every agent action.
 - Fully additive — nothing about the existing HTPC behavior changes.
 
 ## Agent safety features

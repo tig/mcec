@@ -10,7 +10,18 @@ It is a small, self-contained native Windows daemon that a computer-use model ca
 mcec.exe --mcp        # run headless as an MCP stdio server an agent can mount
 ```
 
-Every agent capability is **opt-in, disabled by default, localhost-bound, and loudly audit-logged**, with a global emergency-stop hotkey and disposable isolated sessions so the operator stays in control.
+# Security: if anything useful is enabled, all bets are off
+
+MCEC drives the desktop with real user input. There is no sandbox, no permission model inside the session, and no way to give an agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent can do**: read whatever is on screen, type into any app, click anything, launch programs, open a browser logged in as you, delete files, send email. The gates decide *whether* an agent gets that power; they do not and cannot meter *how much*.
+
+So the operator stays in control by construction:
+
+* **Off by default.** Every agent capability is opt-in behind three independent gates (`AgentCommandsEnabled`, per-command `Enabled`, `McpServerEnabled`), and the network door binds to localhost only (a non-loopback bind requires a bearer token, or MCEC refuses to start it).
+* **Visible when on.** An on-by-default on-screen overlay narrates each command as it executes, and every action is logged with a loud `AGENT-AUDIT:` line.
+* **Stoppable.** A global emergency-stop hotkey (default `Ctrl+Alt+Shift+S`) halts a session instantly from any window; it reacts to physical input only, so an agent can never trip or defeat it.
+* **Disposable.** Rather than enabling your installed instance, an authorized agent gets a throwaway provisioned session; teardown is deleting a directory, and a crash leaves the real install untouched.
+
+Enable the agent surface only on a machine and session where you accept an agent acting as you. Details: [Agent Server user guide](docs/agent-server.md) and [Agent safety](docs/safety-emergency-stop-and-provisioning.md).
 
 MCEC is also the same **battle-tested remote control for home-automation systems** it has always been. In its long-standing role it runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that can send text over TCP/IP or RS-232 — [Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/), [Crestron](http://www.crestron.com/), and others — can use MCEC to drive a Windows PC. The agent surface in 3.0 is **purely additive**: every existing home-automation feature is unchanged.
 

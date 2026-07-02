@@ -136,6 +136,6 @@ exe (`winr`, `chars:`, `enter`, `mouse:`, `key_a`, `key_esc`, `alt_f`, `key_x`) 
   (one top-level type per file)** / **MCEC0002 (no nested types)**. New code must be warning-clean.
 - Agent subsystem lives in `src/Agent/` + the MCP server in `src/Services/` (`AgentServer.cs` is a
   thin static facade over `McpStdioTransport`/`McpHttpTransport`/`JsonRpcDispatcher`/
-  `AgentToolExecutor`, #215); commands plug into the existing `Command`/`CommandInvoker` pattern.
+  `AgentToolExecutor`); commands plug into the existing `Command`/`CommandInvoker` pattern.
   Dev notes: [`docs/agent-server-architecture.md`](docs/agent-server-architecture.md).
 - Tests: `dotnet test tests/MCEControl.xUnit/MCEControl.xUnit.csproj`.

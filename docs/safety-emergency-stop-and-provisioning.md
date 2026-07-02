@@ -46,7 +46,7 @@ Engaging the stop (`EmergencyStop.Trigger`):
    only while stopped); the latch is never cleared automatically.
 
 Step 1 — the latch — is the only work performed inside the low-level hook callback; steps 2–4 run
-immediately after on a background thread (#198). A slow log or serial write can therefore never stall the
+immediately after on a background thread. A slow log or serial write can therefore never stall the
 `WH_KEYBOARD_LL` callback past `LowLevelHooksTimeout`, which would make Windows silently evict the hook —
 and the panic hotkey with it. Nothing actuates in the gap: the latch is already set, so every tool call is
 refused before the background steps even run.
@@ -117,12 +117,12 @@ in the throwaway copy, "cleanup" is `rm -rf <dir>`, and a crashed session leaves
      agent commands,
    - returns `{ sessionId, directory, exePath, mcpEndpoint?, token, launch, teardown }`.
 3. Agent runs `mcec.exe` from `directory` and drives it. Over the session's HTTP endpoint every
-   request must carry `Authorization: Bearer <token>` (the instance's own #143 gate enforces its
+   request must carry `Authorization: Bearer <token>` (the instance's own bearer-token gate enforces its
    configured `McpAuthToken`); the stdio transport is process-ownership-authenticated and needs no header.
 4. Agent calls `end-session { sessionId, token }` (after stopping the session's exe) → the directory is
    deleted.
 
-### The session token (#215)
+### The session token
 
 `token` is the **session credential**, doing real work on both surfaces:
 
