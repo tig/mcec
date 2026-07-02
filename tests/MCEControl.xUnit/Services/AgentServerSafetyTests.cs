@@ -113,11 +113,13 @@ public class AgentServerSafetyTests {
             JsonObject result = env["result"]!.AsObject();
             string dir = result["directory"]!.GetValue<string>();
             string sessionId = result["sessionId"]!.GetValue<string>();
+            string token = result["token"]!.GetValue<string>();
             Assert.True(Directory.Exists(dir));
             Assert.True(File.Exists(Path.Combine(dir, "mcec.exe")));
 
-            // end-session removes it.
-            JsonObject endEnv = Envelope(Call(6, "end-session", new JsonObject { ["sessionId"] = sessionId }));
+            // end-session removes it (#215: the token is the required teardown credential).
+            JsonObject endEnv = Envelope(Call(6, "end-session",
+                new JsonObject { ["sessionId"] = sessionId, ["token"] = token }));
             Assert.True(endEnv["ok"]!.GetValue<bool>());
             Assert.True(endEnv["result"]!.AsObject()["removed"]!.GetValue<bool>());
             Assert.False(Directory.Exists(dir));

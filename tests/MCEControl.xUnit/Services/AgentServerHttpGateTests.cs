@@ -22,7 +22,7 @@ public class AgentServerHttpGateTests {
             string? origin = null,
             string? auth = null,
             string? token = null)
-        => AgentServer.GateHttpRequest(method, path, host, origin, auth, Port, token);
+        => McpHttpTransport.GateHttpRequest(method, path, host, origin, auth, Port, token);
 
     [Fact]
     public void LoopbackPost_NoOrigin_NoToken_Allowed() {
@@ -130,7 +130,7 @@ public class AgentServerHttpGateTests {
     [InlineData("192.168.1.10")]
     [InlineData("10.0.0.5")]
     public void NonLoopbackBind_RequiresToken(string bind) {
-        Assert.True(AgentServer.BindRequiresAuthToken(bind));
+        Assert.True(McpHttpTransport.BindRequiresAuthToken(bind));
     }
 
     [Theory]
@@ -142,7 +142,7 @@ public class AgentServerHttpGateTests {
     [InlineData(null)]
     [InlineData("not-an-address")]
     public void LoopbackOrUnparseableBind_DoesNotRequireToken(string? bind) {
-        Assert.False(AgentServer.BindRequiresAuthToken(bind));
+        Assert.False(McpHttpTransport.BindRequiresAuthToken(bind));
     }
 
     [Fact]

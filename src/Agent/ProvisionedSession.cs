@@ -30,7 +30,13 @@ public sealed class ProvisionedSession {
     /// <summary>The TCP port the session's MCP HTTP server uses (when enabled).</summary>
     public required int Port { get; init; }
 
-    /// <summary>An opaque token identifying this provisioning (returned for symmetry with teardown/audit).</summary>
+    /// <summary>
+    /// The session credential (#215). It is written into the session's co-located config as the
+    /// provisioned instance's <c>McpAuthToken</c>, so every HTTP request to the session's MCP
+    /// endpoint must send <c>Authorization: Bearer &lt;token&gt;</c>, and <c>end-session</c> requires
+    /// it as the teardown credential (validated against that same co-located config). Possession of
+    /// the token is ownership of the session.
+    /// </summary>
     public required string Token { get; init; }
 
     /// <summary>The MCP result payload the agent consumes: path, launch, connect, and teardown details.</summary>
@@ -43,12 +49,13 @@ public sealed class ProvisionedSession {
             ["token"] = Token,
             ["launch"] = $"Run \"{ExePath}\" --mcp from workingDir \"{Directory}\" (stdio MCP), or launch it and POST JSON-RPC to the HTTP endpoint below.",
             ["mcpServerEnabled"] = McpServerEnabled,
-            ["teardown"] = "Call the end-session tool with this sessionId when finished (or just delete the directory); MCEC also reaps stale session dirs on launch.",
+            ["teardown"] = "Call the end-session tool with this sessionId AND this token when finished (or just delete the directory); MCEC also reaps stale session dirs on launch.",
         };
         if (McpServerEnabled) {
             obj["bindAddress"] = BindAddress;
             obj["port"] = Port;
             obj["mcpEndpoint"] = $"http://{BindAddress}:{Port}/mcp";
+            obj["authorization"] = "Every HTTP request to mcpEndpoint must send the header 'Authorization: Bearer <token>' (the token above).";
         }
         return obj;
     }

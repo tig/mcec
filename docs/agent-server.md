@@ -586,5 +586,8 @@ Two operator-safety features build on the gates above — see
   (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
   reacts to physical input only, so the agent can never trip or defeat it.
 - **Isolated session provisioning:** `provision-session` (gated by `AllowSessionProvisioning`) hands
-  an agent a disposable, isolated MCEC directory instead of it mutating the installed config; `end-session`
-  (or launch-time reaping) tears it down.
+  an agent a disposable, isolated MCEC directory instead of it mutating the installed config, plus a
+  session `token` that is both the instance's `McpAuthToken` (HTTP requests to the session's endpoint
+  must send `Authorization: Bearer <token>`) and the teardown credential; `end-session` requires the
+  sessionId **and** token (`session-token-invalid` otherwise), and launch-time reaping collects
+  orphans.

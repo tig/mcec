@@ -13,7 +13,7 @@ namespace MCEControl.xUnit.Services;
 /// Tests for the loopback-only bind enforcement (#152). <c>McpBindAddress</c> used to be interpolated
 /// straight into the HttpListener prefix, so a config typo like <c>+</c>, <c>*</c>, or <c>0.0.0.0</c>
 /// bound the unauthenticated (#143) MCP endpoint to every interface. These prove the validation seam
-/// (<see cref="AgentServer.IsLoopbackBindAddress"/>) accepts only <c>localhost</c> and literal loopback
+/// (<see cref="McpHttpTransport.IsLoopbackBindAddress"/>) accepts only <c>localhost</c> and literal loopback
 /// IPs, and that <see cref="AgentServer.StartHttp"/> refuses to open a listener at all for anything else.
 /// NOTE: no test here ever actually binds a non-loopback address — the point is that the listener never
 /// starts.
@@ -37,7 +37,7 @@ public class AgentServerBindAddressTests {
     [InlineData("127.00.00.01")]
     [InlineData("::ffff:127.0.0.1")] // IPv4-mapped IPv6 loopback
     public void IsLoopbackBindAddress_LoopbackValues_Accepted(string address) {
-        Assert.True(AgentServer.IsLoopbackBindAddress(address));
+        Assert.True(McpHttpTransport.IsLoopbackBindAddress(address));
     }
 
     [Theory]
@@ -59,7 +59,7 @@ public class AgentServerBindAddressTests {
     [InlineData("[::1]", "[::1]")]
     [InlineData("::ffff:127.0.0.1", "127.0.0.1")] // IPv4-mapped IPv6 collapses to its IPv4 literal
     public void TryGetLoopbackPrefixHost_AcceptedValue_NormalizesToCanonicalLoopbackLiteral(string address, string expectedHost) {
-        Assert.True(AgentServer.TryGetLoopbackPrefixHost(address, out string host));
+        Assert.True(McpHttpTransport.TryGetLoopbackPrefixHost(address, out string host));
         Assert.Equal(expectedHost, host);
     }
 
@@ -69,7 +69,7 @@ public class AgentServerBindAddressTests {
     [InlineData("evil.example.com")]
     [InlineData("")]
     public void TryGetLoopbackPrefixHost_RejectedValue_ReturnsFalseAndEmptyHost(string address) {
-        Assert.False(AgentServer.TryGetLoopbackPrefixHost(address, out string host));
+        Assert.False(McpHttpTransport.TryGetLoopbackPrefixHost(address, out string host));
         Assert.Equal("", host);
     }
 
@@ -87,7 +87,7 @@ public class AgentServerBindAddressTests {
     [InlineData(" ")]
     [InlineData(null)]
     public void IsLoopbackBindAddress_NonLoopbackValues_Rejected(string? address) {
-        Assert.False(AgentServer.IsLoopbackBindAddress(address));
+        Assert.False(McpHttpTransport.IsLoopbackBindAddress(address));
     }
 
     /// <summary>Asks the OS for a free loopback TCP port by binding to port 0 and reading the assignment.</summary>

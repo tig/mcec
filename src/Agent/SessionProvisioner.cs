@@ -78,6 +78,12 @@ public static class SessionProvisioner {
         string dir = Path.Combine(SessionsRoot, sessionId);
         string version = System.Windows.Forms.Application.ProductVersion;
         int port = mcpServerEnabled ? FindFreeLoopbackPort() : 0;
+        // The session credential (#215): written into the co-located config as the provisioned
+        // instance's McpAuthToken (so every HTTP request to the session's MCP endpoint must carry
+        // `Authorization: Bearer <token>`) and required by end-session as the teardown credential
+        // (validated against that same co-located config). Possession of the token == ownership of
+        // the session.
+        string token = Guid.NewGuid().ToString("N");
         string[] enable = [.. (commands ?? DefaultCommands)
             .Select(c => c.Trim())
             .Where(c => !string.IsNullOrEmpty(c))
@@ -86,7 +92,7 @@ public static class SessionProvisioner {
         try {
             Directory.CreateDirectory(dir);
             CopyBinaries(BinariesDir, dir);
-            WriteSessionSettings(dir, mcpServerEnabled, port);
+            WriteSessionSettings(dir, mcpServerEnabled, port, token);
             WriteSessionCommands(dir, enable, version);
         }
         catch (Exception e) {
@@ -106,8 +112,45 @@ public static class SessionProvisioner {
             McpServerEnabled = mcpServerEnabled,
             BindAddress = "127.0.0.1",
             Port = port,
-            Token = Guid.NewGuid().ToString("N"),
+            Token = token,
         };
+    }
+
+    /// <summary>
+    /// Validates the teardown credential for <paramref name="sessionId"/> against the session's
+    /// co-located config — the token <see cref="Provision"/> wrote as the instance's
+    /// <c>McpAuthToken</c> (#215). Persisting the credential in the session directory (rather than in
+    /// this process) means validation works across installed-instance restarts, and deleting the
+    /// directory retires the credential with it. Fail-closed: an unreadable/defaulted config (or a
+    /// pre-#215 session that never had the token written) rejects — such a directory is still
+    /// collected by the age-based reaper.
+    /// </summary>
+    public static SessionTokenValidation ValidateTeardownToken(string? sessionId, string? token) {
+        string id = sessionId?.Trim() ?? "";
+        if (!SessionIdPattern.IsMatch(id)) {
+            return SessionTokenValidation.InvalidId;
+        }
+        string dir = Path.Combine(SessionsRoot, id);
+        if (!Directory.Exists(dir)) {
+            // Idempotent-teardown case: nothing exists, so there is nothing the credential protects.
+            return SessionTokenValidation.SessionGone;
+        }
+        // Fail closed on a missing config WITHOUT calling SettingsStore.Load — Load would write a
+        // default settings file into the (possibly foreign) directory as a side effect.
+        string settingsFile = Path.Combine(dir, SettingsStore.SettingsFileName);
+        if (!File.Exists(settingsFile)) {
+            return SessionTokenValidation.TokenMismatch;
+        }
+        SettingsLoadResult load = SettingsStore.Load(settingsFile);
+        string expected = load.Outcome == SettingsLoadOutcome.Loaded ? load.Settings.McpAuthToken : "";
+        if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(token)) {
+            return SessionTokenValidation.TokenMismatch;
+        }
+        byte[] a = System.Text.Encoding.UTF8.GetBytes(token);
+        byte[] b = System.Text.Encoding.UTF8.GetBytes(expected);
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(a, b)
+            ? SessionTokenValidation.Valid
+            : SessionTokenValidation.TokenMismatch;
     }
 
     /// <summary>
@@ -212,12 +255,17 @@ public static class SessionProvisioner {
         || name.EndsWith(".log", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Writes the co-located, agent-ready <c>mcec.settings</c> for the session.</summary>
-    private static void WriteSessionSettings(string dir, bool mcpServerEnabled, int port) {
+    private static void WriteSessionSettings(string dir, bool mcpServerEnabled, int port, string token) {
         AppSettings settings = new() {
             AgentCommandsEnabled = true,          // this copy is FOR the agent; enabled only here
             McpServerEnabled = mcpServerEnabled,
             McpBindAddress = "127.0.0.1",         // localhost only
             McpHttpPort = port,
+            // #215: the session credential. The instance's HTTP gate already enforces a configured
+            // McpAuthToken as a required Bearer (#143), so setting it here means only the token
+            // holder can drive the session's MCP endpoint; end-session validates teardown against
+            // this same value (ValidateTeardownToken). Written only into the disposable copy.
+            McpAuthToken = token,
             ActAsServer = false,                  // no TCP server → no Windows Firewall prompt (isolation practice)
             SocketServerBindAddress = "127.0.0.1", // defense in depth: if the TCP server is ever enabled, loopback only (#149)
             ActAsSerialServer = false,

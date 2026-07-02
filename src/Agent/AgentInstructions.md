@@ -71,6 +71,10 @@ or broaden a selector; `ambiguous-selector` means add `processName`/`className`/
 it. Branch on codes and categories, never on the wording of `error.detail` (it is human-readable and may
 change). `error.lastObservation`, when present, is the last good state before the failure, and
 `error.partialResult` is the failing call's OWN partial payload (e.g. a blank capture's suspect PNG).
+When the last good observation was a `capture`, `lastObservation` is a compact summary — the window
+descriptor, dimensions, blankCheck verdict, and byte count, with `kind:"capture-summary"` — plus an
+`artifact` path where the PNG was saved on the host; it never carries the image bytes inline, so
+re-`capture` if you need to SEE the prior state rather than reason about its metadata.
 
 COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
 an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
@@ -114,12 +118,17 @@ PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands
 when done — an abnormal exit leaks those security gates enabled. Instead, when the operator has authorized it,
 call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
 `mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
-launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), and a `sessionId`. Run from
-that directory, do your work there, then call `end-session` with the `sessionId` (after stopping its
-mcec.exe) to delete it — teardown is just removing the directory, so a crash leaves the real install
-untouched. If `provision-session` returns `error.code:provisioning-not-authorized` (these feature-specific
-refusals ride in `error.code`, while `error.category` stays `internal`), the operator has not opted in
-(AllowSessionProvisioning) — tell them, don't retry.
+launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), a `sessionId`, and a
+`token`. The `token` is the session credential — keep it: every HTTP request to the session's
+`mcpEndpoint` must send the header `Authorization: Bearer <token>` (stdio needs no header), and
+`end-session` requires it. Run from that directory, do your work there, then call `end-session` with the
+`sessionId` AND `token` (after stopping its mcec.exe) to delete it — teardown is just removing the
+directory, so a crash leaves the real install untouched. An `end-session` with a wrong/missing token
+fails with `error.code:session-token-invalid` — a session you did not provision is not yours to tear
+down; orphaned sessions are reaped automatically. If `provision-session` returns
+`error.code:provisioning-not-authorized` (these feature-specific refusals ride in `error.code`, while
+`error.category` stays `internal`), the operator has not opted in (AllowSessionProvisioning) — tell them,
+don't retry.
 
 EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
 session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category —

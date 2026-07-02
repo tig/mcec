@@ -153,7 +153,7 @@ public class AgentServerHttpTests {
         string url = StartServer();
         try {
             using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
-            byte[] payload = new byte[AgentServer.MaxHttpBodyBytes + 1];
+            byte[] payload = new byte[McpHttpTransport.MaxHttpBodyBytes + 1];
             Array.Fill(payload, (byte)'x');
             ByteArrayContent content = new(payload);
             content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
@@ -169,21 +169,21 @@ public class AgentServerHttpTests {
 
     [Fact]
     public void TryReadBoundedBody_AtTheCap_ReadsWholeBody() {
-        byte[] payload = new byte[AgentServer.MaxHttpBodyBytes];
+        byte[] payload = new byte[McpHttpTransport.MaxHttpBodyBytes];
         Array.Fill(payload, (byte)'a');
 
-        bool ok = AgentServer.TryReadBoundedBody(new System.IO.MemoryStream(payload), Encoding.UTF8, out string body);
+        bool ok = McpHttpTransport.TryReadBoundedBody(new System.IO.MemoryStream(payload), Encoding.UTF8, out string body);
 
         Assert.True(ok);
-        Assert.Equal(AgentServer.MaxHttpBodyBytes, body.Length);
+        Assert.Equal(McpHttpTransport.MaxHttpBodyBytes, body.Length);
     }
 
     [Fact]
     public void TryReadBoundedBody_OneByteOverTheCap_RefusesWithoutBuffering() {
-        byte[] payload = new byte[AgentServer.MaxHttpBodyBytes + 1];
+        byte[] payload = new byte[McpHttpTransport.MaxHttpBodyBytes + 1];
         Array.Fill(payload, (byte)'a');
 
-        bool ok = AgentServer.TryReadBoundedBody(new System.IO.MemoryStream(payload), Encoding.UTF8, out string body);
+        bool ok = McpHttpTransport.TryReadBoundedBody(new System.IO.MemoryStream(payload), Encoding.UTF8, out string body);
 
         Assert.False(ok);
         Assert.Equal("", body);
@@ -195,17 +195,22 @@ public class AgentServerHttpTests {
         // send one more — it must be refused with 503 rather than spawn an unbounded worker. Releasing
         // the parked dispatches lets all the saturating requests finish normally (200). Deterministic:
         // the overflow request is only sent after the CountdownEvent proves all slots are occupied.
-        string url = StartServer();
-        using System.Threading.CountdownEvent allParked = new(AgentServer.MaxConcurrentHttpRequests);
+        // (#215: the dispatch delegate is injected into a test-owned transport instance — the old
+        // HttpDispatchOverride static seam is gone.)
+        int port = FindFreeLoopbackPort();
+        AgentRuntime.Settings = new AppSettings { McpBindAddress = "127.0.0.1", McpHttpPort = port };
+        string url = $"http://127.0.0.1:{port}/mcp";
+        using System.Threading.CountdownEvent allParked = new(McpHttpTransport.MaxConcurrentHttpRequests);
         using System.Threading.ManualResetEventSlim release = new(false);
-        AgentServer.HttpDispatchOverride = req => {
+        McpHttpTransport transport = new(() => AgentRuntime.Settings, req => {
             allParked.Signal();
             release.Wait(30000);
             return new JsonObject { ["jsonrpc"] = "2.0", ["id"] = req["id"]?.DeepClone(), ["result"] = new JsonObject() };
-        };
+        });
+        transport.Start();
         try {
             using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(60) };
-            Task<HttpResponseMessage>[] saturating = new Task<HttpResponseMessage>[AgentServer.MaxConcurrentHttpRequests];
+            Task<HttpResponseMessage>[] saturating = new Task<HttpResponseMessage>[McpHttpTransport.MaxConcurrentHttpRequests];
             for (int i = 0; i < saturating.Length; i++) {
                 StringContent content = new($"{{\"jsonrpc\":\"2.0\",\"id\":{i},\"method\":\"ping\"}}", Encoding.UTF8, "application/json");
                 saturating[i] = client.PostAsync(url, content);
@@ -224,8 +229,8 @@ public class AgentServerHttpTests {
         }
         finally {
             release.Set();
-            AgentServer.HttpDispatchOverride = null;
-            StopServer();
+            transport.Stop();
+            AgentRuntime.Settings = null;
         }
     }
 
@@ -237,7 +242,7 @@ public class AgentServerHttpTests {
         string url = StartServer();
         try {
             using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
-            byte[] payload = new byte[(AgentServer.MaxHttpBodyBytes * 2) + 1];
+            byte[] payload = new byte[(McpHttpTransport.MaxHttpBodyBytes * 2) + 1];
             Array.Fill(payload, (byte)'x');
             using HttpRequestMessage request = new(HttpMethod.Post, url) { Content = new ByteArrayContent(payload) };
             request.Headers.TransferEncodingChunked = true;

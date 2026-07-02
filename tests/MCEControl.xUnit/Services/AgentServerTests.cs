@@ -74,7 +74,7 @@ public class AgentServerTests {
     }
 
     [Fact]
-    public void RunStdioLoop_DispatchesRequestsConcurrently_NotOneAtATime() {
+    public void StdioLoop_DispatchesRequestsConcurrently_NotOneAtATime() {
         // #113: the stdio transport must dispatch each request on its own worker, or a slow call blocks
         // later ones. Two requests rendezvous: each signals its arrival in dispatch and waits for the
         // other. If the loop dispatched serially, the first would wait alone and time out (met=1); only
@@ -104,7 +104,7 @@ public class AgentServerTests {
             "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"x\"}\n");
         System.IO.StringWriter writer = new();
 
-        AgentServer.RunStdioLoop(reader, writer, dispatch);
+        new McpStdioTransport(dispatch).Run(reader, writer);
 
         string output = writer.ToString();
         Assert.Equal(2, metTheOther); // both dispatches were in flight at once => concurrent

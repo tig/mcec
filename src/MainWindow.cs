@@ -444,6 +444,9 @@ public partial class MainWindow : Form, IAppHost {
         // process alive past that.
         Invoker?.Shutdown(joinTimeoutMs: 2000);
 
+        // #215: stop the dedicated UIA worker and dispose its cached UIA3Automation (bounded join).
+        UiaService.Shutdown();
+
         // Save Commands
         // Stop file system watcher
         watcher?.Dispose();

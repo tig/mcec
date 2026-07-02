@@ -113,10 +113,32 @@ in the throwaway copy, "cleanup" is `rm -rf <dir>`, and a crashed session leaves
      `mcec.commands` / `*.log`),
    - writes a co-located `mcec.settings` (`AgentCommandsEnabled=true`, `ActAsServer=false` to avoid the
      firewall prompt, MCP bound to a free loopback port, `AllowSessionProvisioning=false` so it can't
-     re-provision) and a `mcec.commands` enabling the requested agent commands,
+     re-provision, and `McpAuthToken=<token>` — see below) and a `mcec.commands` enabling the requested
+     agent commands,
    - returns `{ sessionId, directory, exePath, mcpEndpoint?, token, launch, teardown }`.
-3. Agent runs `mcec.exe` from `directory` and drives it.
-4. Agent calls `end-session { sessionId }` (after stopping the session's exe) → the directory is deleted.
+3. Agent runs `mcec.exe` from `directory` and drives it. Over the session's HTTP endpoint every
+   request must carry `Authorization: Bearer <token>` (the instance's own #143 gate enforces its
+   configured `McpAuthToken`); the stdio transport is process-ownership-authenticated and needs no header.
+4. Agent calls `end-session { sessionId, token }` (after stopping the session's exe) → the directory is
+   deleted.
+
+### The session token (#215)
+
+`token` is the **session credential**, doing real work on both surfaces:
+
+- **Connect:** it is the provisioned instance's `McpAuthToken`, so the session's localhost MCP/HTTP
+  endpoint refuses requests without the matching `Authorization: Bearer` header — another local
+  process can't hijack a session it didn't provision.
+- **Teardown:** `end-session` validates the presented token against the session's **co-located**
+  config (`SessionProvisioner.ValidateTeardownToken`) before deleting anything. `end-session` is
+  deliberately *not* behind the `AllowSessionProvisioning` gate (teardown must always be possible),
+  so without the token any MCP caller could delete any session it could name. A wrong/missing token
+  is refused with `error.code:session-token-invalid`; an already-gone session stays idempotent
+  success. Validation is fail-closed: if the session's config can't be read, the token can't be
+  verified and teardown is refused — the age-based reaper still collects the directory later.
+
+The credential lives *in the session directory itself* (never in the installed config), so it
+survives installed-instance restarts and is retired the moment the directory is deleted.
 
 ### Isolation approach: copy binaries
 
