@@ -45,8 +45,14 @@ jobs:
       - name: Determine version
         id: ver
         shell: pwsh
+        # Untrusted values (dispatch input, ref name) are passed via env: so pwsh never
+        # parses them as code (#164). A literal '${{ ... }}' interpolation would let a
+        # value containing a quote inject PowerShell into this privileged job.
+        env:
+          RAW_VERSION: ${{ github.event.inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          $v = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ github.event.inputs.version }}' } else { '${{ github.ref_name }}' }
+          $v = if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') { $env:RAW_VERSION } else { $env:REF_NAME }
           $v = $v.TrimStart('v')
           if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Version '$v' must be X.Y.Z (tag like v2.5.0)" }
           "version=$v" >> $env:GITHUB_OUTPUT

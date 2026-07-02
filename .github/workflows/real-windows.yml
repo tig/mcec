@@ -33,8 +33,12 @@ jobs:
       ready: ${{ vars.INTERACTIVE_RUNNER_READY == 'true' }}
     steps:
       - name: Report gate state
+        # Repo variable passed via env: (not interpolated into the script) so bash never
+        # parses it as code (#164).
+        env:
+          INTERACTIVE_RUNNER_READY: ${{ vars.INTERACTIVE_RUNNER_READY }}
         run: |
-          if [ "${{ vars.INTERACTIVE_RUNNER_READY }}" = "true" ]; then
+          if [ "$INTERACTIVE_RUNNER_READY" = "true" ]; then
             echo "::notice title=Real Windows lane ENABLED::INTERACTIVE_RUNNER_READY=true — running the interactive desktop lane on a self-hosted runner."
           else
             echo "::notice title=Real Windows lane SKIPPED::No interactive self-hosted runner registered yet (#99). This is expected — the lane is intentionally skipped, not failing. To enable: register a runner labelled [self-hosted, Windows, interactive] (see docs/self-hosted-interactive-runner.md), then set repo variable INTERACTIVE_RUNNER_READY=true."
