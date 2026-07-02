@@ -19,7 +19,7 @@ internal class ClientReplyContext : Reply {
             return;
         }
 
-        byte[] buf = System.Text.Encoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
+        byte[] buf = System.Text.Encoding.ASCII.GetBytes(TelnetProtocol.EscapeIac(text));
         _tcpClient.GetStream().Write(buf, 0, buf.Length);
     }
 }
