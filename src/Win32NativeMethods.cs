@@ -13,9 +13,9 @@ namespace MCEControl;
 /// pass. This replaced the vendored <c>Microsoft.Win32.Security</c> fork (58 files / ~5,200
 /// lines of dead token/ACL/SID code) that previously hosted these declarations. Other
 /// subsystems keep their own thematic islands: <c>WindowsInput.Native.NativeMethods</c>
-/// (SendInput), <c>Gma.UserActivityMonitor.NativeMethods</c>/<c>HookManager</c> (global hooks,
-/// power notifications) and <c>AgentNativeMethods</c> (agent observation) — no import is
-/// declared twice.
+/// (SendInput), <c>MCEControl.Hooks</c> (<c>HookNativeMethods</c>/<c>PowerNativeMethods</c> —
+/// global hooks and power notifications) and <c>AgentNativeMethods</c> (agent observation) — no
+/// import is declared twice.
 /// </summary>
 /// <remarks>
 /// Plain <c>[DllImport]</c> is deliberate: <c>[LibraryImport]</c> source generation emits

@@ -13,11 +13,10 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using Gma.UserActivityMonitor;
 using log4net;
 using MCEControl.Dialogs;
 using Microsoft.Win32;
-using static Gma.UserActivityMonitor.NativeMethods;
+using static MCEControl.Hooks.PowerNativeMethods;
 
 namespace MCEControl; 
 public partial class MainWindow : Form {

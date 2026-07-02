@@ -3,7 +3,7 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 //-------------------------------------------------------------------
 
-using Gma.UserActivityMonitor;
+using MCEControl.Hooks;
 
 namespace MCEControl.xUnit.Services;
 
@@ -15,35 +15,27 @@ namespace MCEControl.xUnit.Services;
 public sealed record HookSubscriberBaseline(
     int KeyDown,
     int KeyUp,
-    int KeyPress,
     int KeyDownExt,
     int KeyUpExt,
     int MouseMove,
     int MouseClick,
     int MouseDown,
     int MouseUp,
-    int MouseDoubleClick,
-    int MouseWheel,
-    int MouseMoveExt,
-    int MouseClickExt) {
+    int MouseDoubleClick) {
     /// <summary>Total keyboard-event subscribers — when zero, the keyboard hook must be uninstalled.</summary>
-    public int KeyboardTotal => KeyDown + KeyUp + KeyPress + KeyDownExt + KeyUpExt;
+    public int KeyboardTotal => KeyDown + KeyUp + KeyDownExt + KeyUpExt;
 
     /// <summary>Total mouse-event subscribers — when zero, the mouse hook must be uninstalled.</summary>
-    public int MouseTotal => MouseMove + MouseClick + MouseDown + MouseUp + MouseDoubleClick + MouseWheel + MouseMoveExt + MouseClickExt;
+    public int MouseTotal => MouseMove + MouseClick + MouseDown + MouseUp + MouseDoubleClick;
 
     public static HookSubscriberBaseline Capture() => new(
         HookManager.KeyDownSubscriberCount,
         HookManager.KeyUpSubscriberCount,
-        HookManager.KeyPressSubscriberCount,
         HookManager.KeyDownExtSubscriberCount,
         HookManager.KeyUpExtSubscriberCount,
         HookManager.MouseMoveSubscriberCount,
         HookManager.MouseClickSubscriberCount,
         HookManager.MouseDownSubscriberCount,
         HookManager.MouseUpSubscriberCount,
-        HookManager.MouseDoubleClickSubscriberCount,
-        HookManager.MouseWheelSubscriberCount,
-        HookManager.MouseMoveExtSubscriberCount,
-        HookManager.MouseClickExtSubscriberCount);
+        HookManager.MouseDoubleClickSubscriberCount);
 }

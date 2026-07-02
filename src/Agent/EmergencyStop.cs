@@ -3,7 +3,7 @@
 
 using System;
 using System.Threading;
-using Gma.UserActivityMonitor;
+using MCEControl.Hooks;
 using WindowsInput;
 
 namespace MCEControl;

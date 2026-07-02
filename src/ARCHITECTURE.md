@@ -129,7 +129,7 @@ All services inherit from `ServiceBase` which provides:
 - Debouncing to prevent command flooding
 - Generates configurable activity commands
 
-**Dependencies**: Uses `Gma.UserActivityMonitor` library for low-level hook management
+**Dependencies**: Uses the first-party `MCEControl.Hooks` (`Hooks\`) `HookManager` for low-level hook management (adopted from the vendored Gma.UserActivityMonitor fork in #214)
 
 ### 3. Command System (Command Pattern)
 
@@ -313,19 +313,22 @@ InputSimulator (facade)
 **The four islands**:
 - **`Win32NativeMethods.cs`** (core app): window messaging — `SendMessage`, `PostMessage`, `SetForegroundWindow`, plus the `WM_SYSCOMMAND`/`SC_CLOSE` constants. Used by MainWindow (hide-on-startup), SendMessageCommand, and SetForegroundWindowCommand.
 - **`WindowsInput\Native\NativeMethods.cs`**: input simulation — `SendInput`, `GetKeyState`/`GetAsyncKeyState`, `GetMessageExtraInfo`, `FindWindow`, `GetClassName`.
-- **`Gma.UserActivityMonitor`** (`NativeMethods.cs` + `HookManager`): global low-level hooks (`SetWindowsHookEx`/`UnhookWindowsHookEx`/`CallNextHookEx`, `IntPtr` hook handles) and power-broadcast notifications.
+- **`Hooks\`** (`HookNativeMethods.cs` + `PowerNativeMethods.cs`): global low-level hooks (`SetWindowsHookEx`/`UnhookWindowsHookEx`/`CallNextHookEx`, `IntPtr` hook handles) and power-broadcast notifications. First-party since #214 (formerly the vendored `Gma.UserActivityMonitor` fork).
 - **`Agent\AgentNativeMethods.cs`**: agent observation — `PrintWindow`, window rect/text/class metadata, `EnumWindows`, per-monitor DPI, and the layered-window plumbing for the command overlay.
 
-### 7. Third-Party Libraries
+### 7. Global Input Hooks (MCEControl.Hooks)
 
-**Location**: `Gma.UserActivityMonitor\` namespace
+**Location**: `Hooks\` (namespace `MCEControl.Hooks`)
 
-**Purpose**: Global input hooks for activity monitoring
+**Purpose**: Global input hooks for activity monitoring and the emergency stop (#135)
 
 **Features**:
-- Low-level mouse and keyboard hooks (SetWindowsHookEx)
-- Global event subscription
-- Threaded message pump for hook processing
+- Low-level mouse and keyboard hooks (SetWindowsHookEx), installed on first subscribe / uninstalled on last unsubscribe
+- Injected-key detection (`LLKHF_INJECTED`) on the `KeyDownExt`/`KeyUpExt` events for the emergency stop
+- Power-setting notification P/Invokes (`PowerNativeMethods`)
+
+First-party since #214: adopted from the vendored `Gma.UserActivityMonitor` fork (a dead 2004
+CodeProject sample) because it is load-bearing for the emergency stop; only the used surface was kept.
 
 ## Data Flow
 
@@ -373,7 +376,7 @@ InputSimulator (facade)
 ### Activity Monitoring Flow
 
 ```
-1. Gma.UserActivityMonitor (Global Hooks)
+1. MCEControl.Hooks.HookManager (Global Hooks)
    - Mouse/keyboard events
    - Session change events
    - Power management events
