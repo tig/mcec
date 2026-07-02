@@ -13,7 +13,10 @@ so you can pick a control instead of guessing pixels; `capture` returns a PNG of
 composited WinUI/WPF surfaces). Use `capture` for a single state check; use `record` ONLY to show CHANGE
 over time — a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
-whole duration. An open `start` auto-stops at the operator's limits (default 60 s / 600 frames); `stop`
+whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture` and `record` are size-capped: max
+16384 px per side and 64000000 px total — an oversized region fails fast with `error.code:region-too-large`
+(the detail states the limit); request a smaller region or a window target (windows are bounded by their
+own size). An open `start` auto-stops at the operator's limits (default 60 s / 600 frames); `stop`
 still returns that buffered GIF — exactly once — and after an auto-stop a new recording (`start` or a
 one-shot) is allowed: it discards the unfetched GIF, carrying an `unfetched-recording-discarded` warning
 on its result, so `stop` promptly to collect your output. Check results for trouble: a `capture` with errorCategory `capture-blank` is a black/empty

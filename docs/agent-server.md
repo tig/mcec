@@ -175,6 +175,16 @@ comes back blank the result is a failure with `errorCategory: "capture-blank"` �
 stays in `data` so it is never a *silent* bad image. A blank **region** capture is reported as
 a `capture-blank` warning instead, since a user-specified region can legitimately be empty.
 
+**Region size limits.** Region `width`/`height` are agent-controlled, so they are capped — an
+unbounded region (e.g. `40000x40000` ≈ 6.4 GB of raw ARGB, before PNG encoding and base64) could
+otherwise exhaust the host's memory. A region may be at most **16384 px per side** and
+**64,000,000 px total** (64 MP ≈ 256 MB raw — roughly eight 4K frames). An oversized region is
+**rejected before anything is allocated or captured** — the call fails with
+`errorCode: "region-too-large"` (`errorCategory: "no-target"`) and a detail stating the limit,
+and the rejection is `AGENT-AUDIT:`-logged. The same caps apply to `record` regions (window
+targets need no cap: they are bounded by the window's own size). These limits are fixed, not
+settings: they are an anti-DoS bound sized well beyond real desktop geometry, not a tuning knob.
+
 (Over MCP, `capture` additionally returns the PNG as an `image` content block so the
 model can view it directly, in addition to the JSON text above — including for a blank-frame
 failure, so the agent can see what was grabbed.)
@@ -219,6 +229,11 @@ not failed) keep an agent from producing an unbounded file:
 | `AgentRecordMaxDurationMs` | 60000    | Max recording length (60 s). |
 | `AgentRecordMaxFrames`     | 600      | Hard cap on captured frames. |
 | `AgentRecordMaxWidth`      | 1280     | Frames are downscaled so width fits this. |
+
+A `record` **region** target is additionally subject to the fixed capture region size limits
+(max 16384 px per side, 64,000,000 px total — see
+[Region size limits](#capture-result-example)): an oversized region fails fast with
+`errorCode: "region-too-large"` before any recording starts, rather than being clamped.
 
 A finished `record` (one-shot or `stop`) returns the output path and metadata:
 
