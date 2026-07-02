@@ -21,6 +21,15 @@ public class UpdateService {
 
     private string _tempFilename = null!;
 
+    // SECURITY (#146): the exact release asset the updater will download and run. Selected by name so a
+    // rogue/extra asset that merely sorts first can't be delivered as `Assets[0]`.
+    internal const string InstallerFileName = "mcec.Setup.exe";
+
+    // The publisher name the installer's Authenticode signer certificate subject must contain. The
+    // release is signed via Azure Trusted Signing under the Kindel LLC publisher identity (see
+    // docs/code-signing.md); a substring keeps this stable across certificate rotations.
+    private const string ExpectedPublisher = "Kindel";
+
     public UpdateService() {
         LatestStableVersion = new Version(0, 0);
 
@@ -82,12 +91,24 @@ public class UpdateService {
             Release[] releases =
                 [.. allReleases.Where(r => !r.Prerelease).OrderByDescending(r => new Version(r.TagName.TrimStart('v')))];
             if (releases.Length > 0) {
-                Logger.Instance.Log4.Debug(
-                    $"The latest release is tagged at {releases[0].TagName} and is named '{releases[0].Name}'. Download Url: {releases[0].Assets[0].BrowserDownloadUrl}");
+                Release latest = releases[0];
+                LatestStableVersion = new Version(latest.TagName.TrimStart('v'));
+                ReleasePageUri = new Uri(latest.HtmlUrl);
 
-                LatestStableVersion = new Version(releases[0].TagName.TrimStart('v'));
-                ReleasePageUri = new Uri(releases[0].HtmlUrl);
-                DownloadUri = new Uri(releases[0].Assets[0].BrowserDownloadUrl);
+                // SECURITY (#146): pick the pinned installer asset by name — never a blind Assets[0],
+                // which could be an attacker-added asset that sorts first (and throws on an empty list).
+                string? assetUrl = SelectInstallerAssetUrl(
+                    latest.Assets.Select(a => (a.Name, a.BrowserDownloadUrl)), InstallerFileName);
+                if (assetUrl is null) {
+                    ErrorMessage = $"Release {latest.TagName} has no '{InstallerFileName}' asset";
+                    Logger.Instance.Log4.Warn($"{GetType().Name}: {ErrorMessage}");
+                    DownloadUri = null!;
+                }
+                else {
+                    Logger.Instance.Log4.Debug(
+                        $"The latest release is tagged at {latest.TagName} and is named '{latest.Name}'. Download Url: {assetUrl}");
+                    DownloadUri = new Uri(assetUrl);
+                }
             }
             else {
                 ErrorMessage = "No release found";
@@ -109,8 +130,55 @@ public class UpdateService {
         return CurrentVersion.CompareTo(LatestStableVersion);
     }
 
+    /// <summary>
+    /// Returns the download URL of the asset whose name exactly matches <paramref name="installerFileName"/>
+    /// (case-insensitive), or null if no such asset exists. Pins the asset by name instead of trusting
+    /// position (#146).
+    /// </summary>
+    internal static string? SelectInstallerAssetUrl(IEnumerable<(string Name, string Url)> assets, string installerFileName) {
+        foreach ((string name, string url) in assets) {
+            if (string.Equals(name, installerFileName, StringComparison.OrdinalIgnoreCase)) {
+                return url;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// True only for an absolute <c>https</c> URL whose host is <c>github.com</c> or a
+    /// <c>*.githubusercontent.com</c> asset host. Pins scheme + host so the updater never downloads over
+    /// plain HTTP or from an attacker-influenced host (#146).
+    /// </summary>
+    internal static bool IsTrustedDownloadUri(Uri? uri) {
+        if (uri is null || !uri.IsAbsoluteUri) {
+            return false;
+        }
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        string host = uri.Host;
+        return string.Equals(host, "github.com", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".githubusercontent.com", StringComparison.OrdinalIgnoreCase);
+    }
+
     internal async void StartUpgrade() {
-        _tempFilename = Path.GetTempFileName() + ".exe";
+        if (DownloadUri is null) {
+            Logger.Instance.Log4.Error($"{GetType().Name}: no installer download URL available — aborting upgrade.");
+            return;
+        }
+        // SECURITY (#146): only ever download over https from a GitHub host.
+        if (!IsTrustedDownloadUri(DownloadUri)) {
+            Logger.Instance.Log4.Error(
+                $"{GetType().Name}: refusing to download from untrusted URL '{DownloadUri.AbsoluteUri}' " +
+                "(must be https from github.com / githubusercontent.com).");
+            return;
+        }
+
+        // Download into a fresh, app-private directory (not a predictable %TEMP%\tmpXXXX.tmp.exe that a
+        // local attacker could pre-create or swap). Verify, then launch; clean up on any failure.
+        string dir = Path.Combine(Path.GetTempPath(), "mcec-update-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        _tempFilename = Path.Combine(dir, InstallerFileName);
         Logger.Instance.Log4.Info($"{GetType().Name}: Downloading {DownloadUri.AbsoluteUri} to {_tempFilename}...");
 
         try {
@@ -118,23 +186,46 @@ public class UpdateService {
                 HttpResponseMessage response = await httpClient.GetAsync(DownloadUri);
                 response.EnsureSuccessStatusCode();
                 byte[] data = await response.Content.ReadAsByteArrayAsync();
-                File.WriteAllBytes(_tempFilename, data);
+                await File.WriteAllBytesAsync(_tempFilename, data);
+            }
+            Logger.Instance.Log4.Info($"{GetType().Name}: Download complete");
+
+            // SECURITY (#146): verify the file carries a valid Authenticode signature from the expected
+            // publisher BEFORE launching it. A compromised/wrong asset or any tampering fails here.
+            if (!AuthenticodeVerifier.Verify(_tempFilename, ExpectedPublisher, out string reason)) {
+                Logger.Instance.Log4.Error(
+                    $"{GetType().Name}: signature verification FAILED ({reason}); refusing to run {_tempFilename}.");
+                TryDeleteDirectory(dir);
+                return;
             }
 
-            Logger.Instance.Log4.Info($"{GetType().Name}: Download complete");
-            Logger.Instance.Log4.Info($"{GetType().Name}: Exiting and running installer ({_tempFilename})...");
+            Logger.Instance.Log4.Info($"{GetType().Name}: signature verified; exiting and running installer ({_tempFilename})...");
             Process p = new Process { StartInfo = { FileName = _tempFilename, UseShellExecute = true } };
             try {
                 p.Start();
             }
             catch (Win32Exception we) {
                 Logger.Instance.Log4.Error($"{GetType().Name}: {_tempFilename} failed to run with error: {we.Message}");
+                TryDeleteDirectory(dir);
+                return;
             }
 
             MainWindow.Instance.BeginInvoke((Action)(() => { MainWindow.Instance.ShutDown(); }));
         }
         catch (Exception ex) {
             Logger.Instance.Log4.Error($"{GetType().Name}: Download failed: {ex.Message}");
+            TryDeleteDirectory(dir);
+        }
+    }
+
+    private static void TryDeleteDirectory(string dir) {
+        try {
+            if (Directory.Exists(dir)) {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Warn($"UpdateService: could not clean up '{dir}': {e.Message}");
         }
     }
 }
