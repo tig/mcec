@@ -147,11 +147,12 @@ namespace Gma.UserActivityMonitor {
         /// <remarks>
         /// http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/windowsuserinterface/windowing/hooks/hookreference/hookfunctions/setwindowshookex.asp
         /// </remarks>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Portability", "CA1901:PInvokeDeclarationsShouldBePortable", MessageId = "0")]
+        // #210: the hook handle is a pointer-sized HHOOK, not int — the old int declarations
+        // truncated the handle on x64 (CA1901 was suppressed instead of fixed).
         [DllImport("user32.dll", CharSet = CharSet.Auto,
             CallingConvention = CallingConvention.StdCall)]
         private static extern int CallNextHookEx(
-            int idHook,
+            IntPtr idHook,
             int nCode,
             int wParam,
             IntPtr lParam);
@@ -187,10 +188,9 @@ namespace Gma.UserActivityMonitor {
         /// <remarks>
         /// http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/windowsuserinterface/windowing/hooks/hookreference/hookfunctions/setwindowshookex.asp
         /// </remarks>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Portability", "CA1901:PInvokeDeclarationsShouldBePortable", MessageId = "return")]
         [DllImport("user32.dll", CharSet = CharSet.Auto,
             CallingConvention = CallingConvention.StdCall, SetLastError = true)]
-        private static extern int SetWindowsHookEx(
+        private static extern IntPtr SetWindowsHookEx(
             int idHook,
             HookProc lpfn,
             IntPtr hMod,
@@ -211,7 +211,8 @@ namespace Gma.UserActivityMonitor {
         /// </remarks>
         [DllImport("user32.dll", CharSet = CharSet.Auto,
             CallingConvention = CallingConvention.StdCall, SetLastError = true)]
-        private static extern int UnhookWindowsHookEx(int idHook);
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool UnhookWindowsHookEx(IntPtr idHook);
 
         /// <summary>
         /// The GetDoubleClickTime function retrieves the current double-click time for the mouse. A double-click is a series of two clicks of the 
@@ -290,21 +291,8 @@ namespace Gma.UserActivityMonitor {
         [DllImport("user32")]
         private static extern int GetKeyboardState(byte[] pbKeyState);
 
-        /// <summary>
-        /// The GetKeyState function retrieves the status of the specified virtual key. The status specifies whether the key is up, down, or toggled 
-        /// (on, off—alternating each time the key is pressed). 
-        /// </summary>
-        /// <param name="vKey">
-        /// [in] Specifies a virtual key. If the desired virtual key is a letter or digit (A through Z, a through z, or 0 through 9), nVirtKey must be set to the ASCII value of that character. For other keys, it must be a virtual-key code. 
-        /// </param>
-        /// <returns>
-        /// The return value specifies the status of the specified virtual key, as follows: 
-        ///If the high-order bit is 1, the key is down; otherwise, it is up.
-        ///If the low-order bit is 1, the key is toggled. A key, such as the CAPS LOCK key, is toggled if it is turned on. The key is off and untoggled if the low-order bit is 0. A toggle key's indicator light (if any) on the keyboard will be on when the key is toggled, and off when the key is untoggled.
-        /// </returns>
-        /// <remarks>http://msdn.microsoft.com/en-us/library/ms646301.aspx</remarks>
-        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
-        private static extern short GetKeyState(int vKey);
+        // #210: GetKeyState was also declared here; the duplicate was removed — callers use
+        // WindowsInput.Native.NativeMethods.GetKeyState.
 
         #endregion
     }
