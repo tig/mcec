@@ -103,7 +103,10 @@ public class SerializedCommands {
             }
         }
         catch (FileNotFoundException) {
-            Logger.Instance.Log4.Error($"SerializedCommands: {userCommandsFile} was not found");
+            // Expected, not an error: fresh installs and provisioned/demo subject copies have no
+            // user commands file, and MCEC runs fine on built-ins alone. Only a present-but-unreadable
+            // file (the catch below) is a real problem.
+            Logger.Instance.Log4.Info($"SerializedCommands: No user commands file ({userCommandsFile}); using built-in commands only. Create it to add your own commands.");
         }
         catch (Exception ex) {
             string msg = $"No commands loaded. Error reading {userCommandsFile} - {ex.Message}.\n\nSee log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec";
