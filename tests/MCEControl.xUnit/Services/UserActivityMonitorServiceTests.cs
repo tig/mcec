@@ -5,7 +5,7 @@
 
 using System;
 using System.Windows.Forms;
-using Gma.UserActivityMonitor;
+using MCEControl.Hooks;
 using Xunit;
 
 namespace MCEControl.xUnit.Services;
@@ -26,10 +26,6 @@ public class UserActivityMonitorServiceTests {
     private static void AssertServiceHandlerDelta(HookSubscriberBaseline baseline, int delta) {
         Assert.Equal(baseline.KeyDown + delta, HookManager.KeyDownSubscriberCount);
         Assert.Equal(baseline.KeyUp + delta, HookManager.KeyUpSubscriberCount);
-        // KeyPress is deliberately NEVER subscribed (#198): with zero KeyPress subscribers the
-        // keyboard hook proc skips its ToAscii call, which would otherwise consume dead-key state
-        // and break accented-character composition system-wide.
-        Assert.Equal(baseline.KeyPress, HookManager.KeyPressSubscriberCount);
         Assert.Equal(baseline.MouseMove + delta, HookManager.MouseMoveSubscriberCount);
         Assert.Equal(baseline.MouseClick + delta, HookManager.MouseClickSubscriberCount);
         Assert.Equal(baseline.MouseDown + delta, HookManager.MouseDownSubscriberCount);
@@ -77,31 +73,10 @@ public class UserActivityMonitorServiceTests {
         }
     }
 
-    /// <summary>
-    /// Issue #198 (bonus defect): the monitor must NOT subscribe <see cref="HookManager.KeyPress" />.
-    /// KeyDown suffices for activity detection, and the keyboard hook proc only calls ToAscii when a
-    /// KeyPress subscriber exists — ToAscii consumes the keyboard's dead-key state, breaking
-    /// accented-character composition system-wide while MCEC monitors input.
-    /// </summary>
-    [Fact]
-    public void Start_DoesNotSubscribeKeyPress_SoHookProcSkipsToAscii() {
-        HookManager.SuppressRealHooksForTesting = true;
-        UserActivityMonitorService monitor = UserActivityMonitorService.Instance;
-        monitor.InputDetection = true;
-        monitor.UnlockDetection = false;
-        monitor.PowerBroadcastDetection = false;
-
-        HookSubscriberBaseline baseline = HookSubscriberBaseline.Capture();
-
-        monitor.Start();
-        try {
-            Assert.Equal(baseline.KeyDown + 1, HookManager.KeyDownSubscriberCount);
-            Assert.Equal(baseline.KeyPress, HookManager.KeyPressSubscriberCount);
-        }
-        finally {
-            monitor.Stop();
-        }
-    }
+    // NOTE (#198 → #214): there used to be a test here asserting the monitor never subscribes
+    // HookManager.KeyPress (whose hook-proc ToAscii call consumed dead-key state and broke
+    // accented-character composition system-wide). When the hook code became first-party (#214) the
+    // KeyPress/ToAscii path was deleted outright, making that regression structurally impossible.
 
     /// <summary>
     /// Issue #198: the hook-path handler must do only the cheap debounce check and dispatch the heavy

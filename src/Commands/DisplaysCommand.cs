@@ -16,27 +16,19 @@ namespace MCEControl;
 /// <c>query</c>/<c>find</c> return into pointer actions: it learns screen size and per-monitor scaling
 /// from MCEC rather than doing the host-side <c>SetProcessDPIAware()</c>/<c>GetSystemMetrics()</c> dance
 /// the hero script used to. Pure observation — no input is generated. Gated by
-/// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited. Disabled by default (security).
+/// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited (structurally, via
+/// <see cref="AgentCommand"/>). Disabled by default (security).
 /// </summary>
-public class DisplaysCommand : Command {
+public class DisplaysCommand : AgentCommand {
     public static new List<Command> BuiltInCommands {
         get => [new DisplaysCommand { Cmd = "displays" }];
     }
 
     public override ICommand Clone(Reply reply) => base.Clone(reply, new DisplaysCommand());
 
-    public override bool Execute() {
-        if (!base.Execute()) {
-            return false;
-        }
+    protected override string? AuditDetails() => "displays";
 
-        if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-            return false;
-        }
-        AgentRuntime.Audit(Cmd, "displays");
-
+    protected override bool ExecuteCore() {
         JsonArray displays = [];
         Screen[] screens = Screen.AllScreens;
         for (int i = 0; i < screens.Length; i++) {

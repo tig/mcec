@@ -3,6 +3,7 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 //-------------------------------------------------------------------
 using System;
+using System.Text;
 
 namespace MCEControl;
 
@@ -27,4 +28,14 @@ internal static class TelnetProtocol {
 
         return text.Replace("\xFF", "\xFF\xFF", StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Encodes outbound text for the socket-client send paths (<see cref="SocketClient.Send"/>
+    /// and <see cref="ClientReplyContext.Write"/>): escapes IAC per <see cref="EscapeIac"/> and
+    /// encodes as UTF-8. One helper so the outbound encoding cannot drift per call site
+    /// (#212 — the client paths sent ASCII while the server sends UTF-8, so any non-ASCII
+    /// character was silently flattened to '?').
+    /// </summary>
+    /// <param name="text">The text to encode. Must not be null.</param>
+    public static byte[] EncodeOutbound(string text) => Encoding.UTF8.GetBytes(EscapeIac(text));
 }

@@ -28,7 +28,7 @@ public class SocketServerTelnetParseTests {
         SocketServer.ParseReceivedData(
             buffer,
             count,
-            new StringBuilder(),
+            new CommandAccumulator(),
             reply => replies.Add(reply),
             cmd => cmds.Add(cmd));
         commands = cmds;

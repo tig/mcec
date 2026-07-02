@@ -104,8 +104,10 @@ public static class NativeMethods {
     /// <param name="lpClassName">The class name string.</param>
     /// <param name="nMaxCount">The length of the lpClassName buffer, in characters. The buffer must be large enough to include the terminating null character; otherwise, the class name string is truncated to nMaxCount-1 characters.</param>
     /// <returns>If the function succeeds, the return value is the number of characters copied to the buffer, not including the terminating null character. If the function fails, the return value is zero. To get extended error information, call GetLastError function.</returns>
-    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    internal static extern IntPtr GetClassName(IntPtr hWnd, StringBuilder buf, int nMaxCount);
+    // #210: returns int (the copied character count), not IntPtr — the old IntPtr declaration was
+    // wrong. Explicit CharSet.Unicode matches AgentNativeMethods.GetClassName, the reference model.
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    internal static extern int GetClassName(IntPtr hWnd, StringBuilder buf, int nMaxCount);
 
     /// <summary>
     ///     Retrieves a handle to the top-level window whose class name and window name match the specified strings. This
@@ -143,14 +145,10 @@ public static class NativeMethods {
     ///     retrieve the window name for comparison. For a description of a potential problem that can arise, see the Remarks
     ///     for <see cref="M:GetWindowText" />.
     /// </remarks>
-    // For Windows Mobile, replace user32.dll with coredll.dll
-    [DllImport("user32.dll", SetLastError = true)]
+    // #210: explicit CharSet.Unicode — the previous declaration defaulted to ANSI marshaling, so
+    // window-title matching went through the lossy A entry point.
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     internal static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-    // Find window by Caption only. Note you must pass IntPtr.Zero as the first parameter.
-
-    [DllImport("user32.dll", EntryPoint = "FindWindow", SetLastError = true)]
-    internal static extern IntPtr FindWindowByCaption(IntPtr ZeroOnly, string lpWindowName);
 
     // You can also call FindWindow(default(string), lpWindowName) or FindWindow((string)null, lpWindowName)
 }

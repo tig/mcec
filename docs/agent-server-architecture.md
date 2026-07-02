@@ -72,27 +72,32 @@ the server runs a command against a `CapturingReply : Reply` and reads back
 
 ## How the new commands plug into the existing pattern
 
-Each new command (`capture`, `query`, `find`, `wait-for`, `invoke`) is an ordinary
-`Command` subclass and follows the house pattern exactly:
+Each agent command (`capture`, `query`, `find`/`wait-for`, `invoke`, `click`, `drag`,
+`record`, `displays`, `launch`) derives from `AgentCommand : Command` (#208) and follows
+the house pattern:
 
-- `Clone(Reply)` via `base.Clone(reply, new XxxCommand { ... })`.
-- `Execute()` whose **first** line is `if (!base.Execute()) { return false; }`
-  (preserving the per-command `Enabled` gate + telemetry).
+- `Clone(Reply)` via `base.Clone(reply, new XxxCommand { ... })` (base layers copy the
+  shared properties they host).
 - `BuiltInCommands` returning the command with `Enabled=false` by default.
-- `[XmlAttribute]` on serializable props.
+- `[XmlAttribute]` on serializable props (all-lowercase names — see `XmlNameCasingTests`, #200).
 
-Immediately after `base.Execute()`, every agent command runs the gating block:
+`AgentCommand` owns a **sealed** `Execute()` template method: the base
+`Command.Execute()` (per-command `Enabled` gate + telemetry), then the
+`AgentRuntime.AgentCommandsEnabled` gating block (Warn log + structured
+`CommandResult.Fail` reply, fail-closed), then the `AGENT-AUDIT:` line, then dispatch to
+the command's `ExecuteCore()`. The gate is **structural**: a subclass cannot override
+`Execute()`, so a new agent command cannot forget the opt-in check. This matters because
+agent commands are ordinary `Command`s reachable over the legacy TCP/serial pipeline,
+which has **no** server-side agent gate — in-command enforcement is the only gate on
+those transports (`AgentServer` re-checks it only on the MCP/HTTP path).
+`AgentCommandStructuralGateTests` asserts every agent tool maps to an `AgentCommand`.
 
-```csharp
-if (!AgentRuntime.AgentCommandsEnabled) {
-    Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. " +
-        "Set AgentCommandsEnabled=true to opt in.");
-    Reply?.WriteLine(CommandResult.Fail(Cmd,
-        "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-    return false;
-}
-AgentRuntime.Audit(Cmd, "<target/action>");
-```
+Window-targeting commands additionally derive from
+`WindowTargetingAgentCommand : AgentCommand`, which hosts the five shared selector
+properties (`window`/`handle`/`process`/`classname`/`foreground`) once, performs the
+single `WindowResolver.Resolve` call, and hands `ExecuteCore(WindowInfo? target)` the
+resolved window (commands with window-less modes — pixel `click`/`drag`, region
+`capture`, `record` — override `RequiresWindowTarget`).
 
 Because they are normal commands, they are dispatched by the existing
 `CommandInvoker` and are reachable through every existing transport as well as the new

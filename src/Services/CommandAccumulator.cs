@@ -13,9 +13,11 @@ namespace MCEControl;
 /// <see cref="MaxCommandLength"/> so a peer that streams bytes without a delimiter cannot
 /// grow the buffer without bound (issue #148 — memory-exhaustion DoS). On overflow the
 /// partial command is dropped and further input is discarded until the next delimiter.
-/// Used by <see cref="SerialServer"/> and <see cref="SocketClient"/>; the socket server
-/// enforces the same cap in <see cref="SocketServer.ParseReceivedData"/> (it additionally
-/// handles telnet negotiation and closes the offending connection).
+/// Used by <see cref="SerialServer"/>, <see cref="SocketClient"/>, and
+/// <see cref="SocketServer.ParseReceivedData"/> (which strips telnet negotiation as a thin
+/// byte-level pre-filter before feeding chars here) — since #212 this is the ONE
+/// implementation of the delimiter and overflow policy; the server no longer maintains a
+/// divergent copy.
 /// </summary>
 internal sealed class CommandAccumulator {
     /// <summary>

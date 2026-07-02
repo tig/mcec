@@ -15,18 +15,13 @@ namespace MCEControl;
 /// intermediate waypoints (<see cref="PathSpec"/>). The whole gesture is dispatched atomically by
 /// <see cref="MouseCommand.PerformDrag"/> so it cannot interleave with another command's mouse input
 /// (the hazard #113 warns about when a caller hand-rolls <c>lbd</c>/<c>mt</c>/<c>lbu</c>). Gated by
-/// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited. Disabled by default (security).
+/// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited (structurally, via
+/// <see cref="AgentCommand"/>). Disabled by default (security).
 /// </summary>
-public class DragCommand : Command {
+public class DragCommand : WindowTargetingAgentCommand {
     // NOTE: attribute names MUST be all-lowercase. SerializedCommands.Deserialize runs an XSLT that
     // lower-cases every element/attribute name before deserializing, so a camelCase name (e.g. "fromValue")
     // would never bind on load and the value would be silently lost.
-    [XmlAttribute("window")] public string Window { get; set; } = null!;
-    [XmlAttribute("handle")] public long Handle { get; set; }
-    [XmlAttribute("process")] public string Process { get; set; } = null!;
-    [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
-    [XmlAttribute("foreground")] public bool Foreground { get; set; }
-
     [XmlAttribute("fromby")] public string FromBy { get; set; } = "name";
     [XmlAttribute("fromvalue")] public string FromValue { get; set; } = null!;
     [XmlAttribute("fromx")] public int FromX { get; set; }
@@ -49,11 +44,6 @@ public class DragCommand : Command {
     }
 
     public override ICommand Clone(Reply reply) => base.Clone(reply, new DragCommand {
-        Window = this.Window,
-        Handle = this.Handle,
-        Process = this.Process,
-        ClassName = this.ClassName,
-        Foreground = this.Foreground,
         FromBy = this.FromBy,
         FromValue = this.FromValue,
         FromX = this.FromX,
@@ -65,29 +55,14 @@ public class DragCommand : Command {
         PathSpec = this.PathSpec,
     });
 
-    public override bool Execute() {
-        if (!base.Execute()) {
-            return false;
-        }
+    protected override string? AuditDetails() =>
+        $"drag from (by={FromBy} value='{FromValue}' {FromX},{FromY}) to (by={ToBy} value='{ToValue}' {ToX},{ToY}) window handle={Handle} title='{Window}' process='{Process}'";
 
-        if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-            return false;
-        }
-        AgentRuntime.Audit(Cmd, $"drag from (by={FromBy} value='{FromValue}' {FromX},{FromY}) to (by={ToBy} value='{ToValue}' {ToX},{ToY}) window handle={Handle} title='{Window}' process='{Process}'");
+    // A window is only needed to resolve element endpoints; a pure coordinate drag needs none.
+    protected override bool RequiresWindowTarget => !string.IsNullOrEmpty(FromValue) || !string.IsNullOrEmpty(ToValue);
 
-        // A window is only needed to resolve element endpoints; a pure coordinate drag needs none.
-        bool needsWindow = !string.IsNullOrEmpty(FromValue) || !string.IsNullOrEmpty(ToValue);
-        IntPtr hwnd = IntPtr.Zero;
-        if (needsWindow) {
-            WindowInfo? win = WindowResolver.Resolve(Handle > 0 ? Handle : (long?)null, Window, Process, ClassName, Foreground);
-            if (win is null) {
-                Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window").ToJson());
-                return false;
-            }
-            hwnd = new IntPtr(win.Handle);
-        }
+    protected override bool ExecuteCore(WindowInfo? target) {
+        IntPtr hwnd = target is null ? IntPtr.Zero : new IntPtr(target.Handle);
 
         if (!TryResolvePoint(hwnd, FromBy, FromValue, FromX, FromY, out (int X, int Y) from, out string? fromError)) {
             Reply?.WriteLine(CommandResult.Fail(Cmd, $"Drag start: {fromError}").ToJson());

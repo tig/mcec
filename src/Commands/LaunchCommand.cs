@@ -15,9 +15,10 @@ namespace MCEControl;
 /// and returns structured info including the primary window handle when one appears.
 /// Replaces fragile Win+R + chars + enter composition for agents.
 ///
-/// SECURITY: gated behind <see cref="AgentRuntime.AgentCommandsEnabled"/> and per-command Enabled.
+/// SECURITY: gated behind <see cref="AgentRuntime.AgentCommandsEnabled"/> (enforced structurally by
+/// <see cref="AgentCommand"/>) and per-command Enabled.
 /// </summary>
-public class LaunchCommand : Command {
+public class LaunchCommand : AgentCommand {
     [XmlAttribute("path")] public string Path { get; set; } = null!;
     [XmlAttribute("arguments")] public string Arguments { get; set; } = null!;
     [XmlAttribute("workingdirectory")] public string WorkingDirectory { get; set; } = null!;
@@ -36,17 +37,8 @@ public class LaunchCommand : Command {
         Timeout = Timeout,
     });
 
-    public override bool Execute() {
-        if (!base.Execute()) {
-            return false;
-        }
-
-        if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-            return false;
-        }
-
+    // Audits after path validation (below), with the effective timeout — not via AuditDetails.
+    protected override bool ExecuteCore() {
         if (string.IsNullOrWhiteSpace(Path)) {
             Reply?.WriteLine(CommandResult.Fail(Cmd, "launch requires a non-empty 'path' (executable, shell: protocol, or .lnk).").ToJson());
             return false;

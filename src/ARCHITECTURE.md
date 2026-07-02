@@ -129,7 +129,7 @@ All services inherit from `ServiceBase` which provides:
 - Debouncing to prevent command flooding
 - Generates configurable activity commands
 
-**Dependencies**: Uses `Gma.UserActivityMonitor` library for low-level hook management
+**Dependencies**: Uses the first-party `MCEControl.Hooks` (`Hooks\`) `HookManager` for low-level hook management (adopted from the vendored Gma.UserActivityMonitor fork in #214)
 
 ### 3. Command System (Command Pattern)
 
@@ -235,7 +235,7 @@ InputSimulator (facade)
 - **WindowsInputMessageDispatcher**: Sends INPUT arrays to Win32 SendInput API
 
 **Win32 Integration**:
-- Unsafe code for P/Invoke
+- P/Invoke declarations in `WindowsInput\Native\NativeMethods.cs` (no `unsafe` code)
 - Uses Windows.h structures (INPUT, KEYBDINPUT, MOUSEINPUT)
 - Virtual key codes (VirtualKeyCode enum)
 - Mouse and keyboard flags
@@ -308,27 +308,27 @@ InputSimulator (facade)
 
 ### 6. Win32 Integration Layer
 
-**Location**: `Win32\` namespace
+**Purpose**: Small, per-subsystem P/Invoke declarations for the Windows APIs MCEC actually calls. There is no shared native library and no `unsafe` code; each subsystem declares only what it uses, and no import is declared twice. (The vendored `Microsoft.Win32.Security` fork — token manipulation, ACLs, SIDs — was dead code and was deleted in #210.)
 
-**Purpose**: P/Invoke wrappers for Windows APIs
+**The four islands**:
+- **`Win32NativeMethods.cs`** (core app): window messaging — `SendMessage`, `PostMessage`, `SetForegroundWindow`, plus the `WM_SYSCOMMAND`/`SC_CLOSE` constants. Used by MainWindow (hide-on-startup), SendMessageCommand, and SetForegroundWindowCommand.
+- **`WindowsInput\Native\NativeMethods.cs`**: input simulation — `SendInput`, `GetKeyState`/`GetAsyncKeyState`, `GetMessageExtraInfo`, `FindWindow`, `GetClassName`.
+- **`Hooks\`** (`HookNativeMethods.cs` + `PowerNativeMethods.cs`): global low-level hooks (`SetWindowsHookEx`/`UnhookWindowsHookEx`/`CallNextHookEx`, `IntPtr` hook handles) and power-broadcast notifications. First-party since #214 (formerly the vendored `Gma.UserActivityMonitor` fork).
+- **`Agent\AgentNativeMethods.cs`**: agent observation — `PrintWindow`, window rect/text/class metadata, `EnumWindows`, per-monitor DPI, and the layered-window plumbing for the command overlay.
 
-**Key Areas**:
-- **Security**: Token manipulation, ACLs, SIDs (for process elevation/security)
-- **Window Management**: FindWindow, PostMessage, SendMessage
-- **Input**: SendInput, keybd_event, mouse_event
-- **Process**: CreateProcess wrappers
-- **Memory**: Marshaling utilities for unmanaged structures
+### 7. Global Input Hooks (MCEControl.Hooks)
 
-### 7. Third-Party Libraries
+**Location**: `Hooks\` (namespace `MCEControl.Hooks`)
 
-**Location**: `Gma.UserActivityMonitor\` namespace
-
-**Purpose**: Global input hooks for activity monitoring
+**Purpose**: Global input hooks for activity monitoring and the emergency stop (#135)
 
 **Features**:
-- Low-level mouse and keyboard hooks (SetWindowsHookEx)
-- Global event subscription
-- Threaded message pump for hook processing
+- Low-level mouse and keyboard hooks (SetWindowsHookEx), installed on first subscribe / uninstalled on last unsubscribe
+- Injected-key detection (`LLKHF_INJECTED`) on the `KeyDownExt`/`KeyUpExt` events for the emergency stop
+- Power-setting notification P/Invokes (`PowerNativeMethods`)
+
+First-party since #214: adopted from the vendored `Gma.UserActivityMonitor` fork (a dead 2004
+CodeProject sample) because it is load-bearing for the emergency stop; only the used surface was kept.
 
 ## Data Flow
 
@@ -378,7 +378,7 @@ InputSimulator (facade)
 ### Activity Monitoring Flow
 
 ```
-1. Gma.UserActivityMonitor (Global Hooks)
+1. MCEControl.Hooks.HookManager (Global Hooks)
    - Mouse/keyboard events
    - Session change events
    - Power management events
@@ -417,7 +417,7 @@ InputSimulator (facade)
 3. **Registry Override**: `DisableInternalCommands` registry key can block all built-in commands
 4. **Network Security**: No authentication on socket connections (assumes trusted network)
 5. **Telemetry Privacy**: PII filtering via attributes, user-defined commands not tracked
-6. **Process Elevation**: Uses Win32 security APIs for UAC/token manipulation when needed
+6. **No Token Manipulation**: MCEC contains no privilege/token/ACL code. Shutdown and restart shell out to `shutdown.exe` (ShutdownCommand) at the caller's existing privilege level; nothing elevates.
 
 ## Threading Model
 

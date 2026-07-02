@@ -18,20 +18,16 @@ namespace MCEControl;
 /// handle/title/process/class/foreground, or an explicit region) and the same security gate.
 ///
 /// SECURITY: gated behind <see cref="AgentRuntime.AgentCommandsEnabled"/> (a separate opt-in from
-/// actuation) and the per-command <c>Enabled</c> flag; every start/stop/write is audited via
-/// <see cref="AgentRuntime.Audit"/>. The capture loop is hard-bounded (fps/duration/frames/width) by
-/// the operator's <see cref="AppSettings"/> limits so an agent cannot create an unbounded file.
+/// actuation — enforced structurally by <see cref="AgentCommand"/>) and the per-command <c>Enabled</c>
+/// flag; every start/stop/write is audited via <see cref="AgentRuntime.Audit"/>. The capture loop is
+/// hard-bounded (fps/duration/frames/width) by the operator's <see cref="AppSettings"/> limits so an
+/// agent cannot create an unbounded file.
 ///
 /// PRIVACY: a recording captures whatever is on screen for its whole duration — louder than a single
 /// still <c>capture</c>. See <c>docs/agent-server.md</c>.
 /// </summary>
-public class RecordCommand : Command {
+public class RecordCommand : WindowTargetingAgentCommand {
     [XmlAttribute("action")] public string Action { get; set; } = null!;
-    [XmlAttribute("window")] public string Window { get; set; } = null!;
-    [XmlAttribute("handle")] public long Handle { get; set; }
-    [XmlAttribute("process")] public string Process { get; set; } = null!;
-    [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
-    [XmlAttribute("foreground")] public bool Foreground { get; set; }
     [XmlAttribute("x")] public int X { get; set; }
     [XmlAttribute("y")] public int Y { get; set; }
     [XmlAttribute("width")] public int Width { get; set; }
@@ -56,11 +52,6 @@ public class RecordCommand : Command {
 
     public override ICommand Clone(Reply reply) => base.Clone(reply, new RecordCommand {
         Action = Action,
-        Window = Window,
-        Handle = Handle,
-        Process = Process,
-        ClassName = ClassName,
-        Foreground = Foreground,
         X = X,
         Y = Y,
         Width = Width,
@@ -71,18 +62,11 @@ public class RecordCommand : Command {
         File = File,
     });
 
-    // ICommand:Execute
-    public override bool Execute() {
-        if (!base.Execute()) {
-            return false;
-        }
+    // Window resolution happens per-target inside BuildGrabber (a virtual test seam that also owns
+    // the region-vs-window branch and its distinct error/audit shapes), not in the base template.
+    protected override bool RequiresWindowTarget => false;
 
-        if (!AgentRuntime.AgentCommandsEnabled) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: BLOCKED — agent commands are disabled. Set AgentCommandsEnabled=true to opt in.");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "Agent commands are disabled (AgentCommandsEnabled=false).").ToJson());
-            return false;
-        }
-
+    protected override bool ExecuteCore(WindowInfo? target) {
         // Default the action: `oneshot` when a duration is given, else `start`.
         string action = string.IsNullOrWhiteSpace(Action)
             ? (DurationMs > 0 ? "oneshot" : "start")
@@ -105,13 +89,6 @@ public class RecordCommand : Command {
 
     /// <summary>True when the command targets an explicit screen region (no window selector given).</summary>
     private bool IsRegionTarget => Width > 0 && Height > 0 && !HasWindowTarget;
-
-    /// <summary>True when any window selector (title/handle/process/class/foreground) is given.</summary>
-    private bool HasWindowTarget => !string.IsNullOrEmpty(Window)
-        || Handle > 0
-        || !string.IsNullOrEmpty(Process)
-        || !string.IsNullOrEmpty(ClassName)
-        || Foreground;
 
     /// <summary>Starts a recording; for a one-shot, also waits the duration and stops/encodes/writes.</summary>
     private bool DoStart(bool oneshot) {
@@ -218,8 +195,7 @@ public class RecordCommand : Command {
             return () => ScreenCapture.CaptureRegionBitmap(rx, ry, rw, rh);
         }
 
-        WindowInfo? win = WindowResolver.Resolve(
-            Handle > 0 ? Handle : (long?)null, Window, Process, ClassName, Foreground);
+        WindowInfo? win = ResolveTargetWindow();
         if (win is null) {
             target = null;
             error = "No matching window";

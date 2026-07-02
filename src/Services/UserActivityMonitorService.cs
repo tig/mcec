@@ -12,9 +12,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
-using Gma.UserActivityMonitor;
+using MCEControl.Hooks;
 using Microsoft.Win32;
-using static Gma.UserActivityMonitor.NativeMethods;
+using static MCEControl.Hooks.PowerNativeMethods;
 using Timer = System.Windows.Forms.Timer;
 
 #pragma warning disable CA1416
@@ -231,18 +231,18 @@ public sealed class UserActivityMonitorService : IDisposable {
 
     private void StopPowerBroadcastDetection() {
         if (_hUserPresence != null) {
-            UnregisterPowerSettingNotification(_hUserPresence);
-            _hUserPresence = (IntPtr)null;
+            UnregisterPowerSettingNotification(_hUserPresence.Value);
+            _hUserPresence = null;
         }
 
         if (_hAwayMode != null) {
-            UnregisterPowerSettingNotification(_hAwayMode);
-            _hAwayMode = (IntPtr)null;
+            UnregisterPowerSettingNotification(_hAwayMode.Value);
+            _hAwayMode = null;
         }
 
         if (_hMonitorPower != null) {
-            UnregisterPowerSettingNotification(_hMonitorPower);
-            _hMonitorPower = (IntPtr)null;
+            UnregisterPowerSettingNotification(_hMonitorPower.Value);
+            _hMonitorPower = null;
         }
     }
 
@@ -300,10 +300,10 @@ public sealed class UserActivityMonitorService : IDisposable {
             return;
         }
 
-        // Deliberately NOT subscribed: HookManager.KeyPress. KeyDown suffices for activity detection,
-        // and with zero KeyPress subscribers HookManager's KeyboardHookProc skips its ToAscii call —
-        // the well-known Gma bug where ToAscii consumes the keyboard's dead-key state and breaks
-        // accented-character composition system-wide while the hook is installed (#198).
+        // Note: HookManager has no KeyPress event. KeyDown suffices for activity detection, and the
+        // vendored hook code's KeyPress/ToAscii path — the well-known Gma bug where ToAscii consumes
+        // the keyboard's dead-key state and breaks accented-character composition system-wide while
+        // the hook is installed (#198) — was deleted outright when the code became first-party (#214).
         HookManager.MouseMove += HookManager_MouseMove;
         HookManager.MouseClick += HookManager_MouseClick;
         HookManager.KeyDown += HookManager_KeyDown;
@@ -454,10 +454,6 @@ public sealed class UserActivityMonitorService : IDisposable {
 
     private void HookManager_MouseDoubleClick(object? sender, MouseEventArgs e) {
         Activity("MouseDoubleClick", LogActivity ? $"{e.Button}" : "");
-    }
-
-    private void HookManager_MouseWheel(object sender, MouseEventArgs e) {
-        Activity("MouseWheel", LogActivity ? $"{e.Delta:000}" : "");
     }
 
     #region IDisposable Support
