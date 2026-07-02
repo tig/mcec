@@ -51,6 +51,10 @@ public partial class MainWindow : Form, IAppHost {
     // or the app is exiting
     private bool shuttingDown;
 
+    // #213: both exit paths (menu exit and OS logoff) converge on PerformShutdown(); this gate
+    // makes that teardown run exactly once.
+    private readonly OnceGate shutdownGate = new();
+
     // Settings
     public AppSettings Settings { get; set; } = null!;
 
@@ -298,21 +302,52 @@ public partial class MainWindow : Form, IAppHost {
         else {
             Logger.Instance.Log4.Info("Closing Main Window...");
 
-            // #195: stop the command dispatcher thread (drops anything still queued; a drop that
-            // severs a command tree releases held input). The bounded join lets an in-flight
-            // command usually finish cleanly; the thread is background so it can never keep the
-            // process alive past that.
-            Invoker?.Shutdown(joinTimeoutMs: 2000);
-
-            // Save Commands
-            // Stop file system watcher
-            watcher!.Dispose();
-            watcher = null;
-
-            // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
-            //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
-            TelemetryService.Instance.Stop();
+            // #213: two ways to get here with shuttingDown set — menu exit (ShutDown() already ran
+            // PerformShutdown() and then Close()d us; the gate makes this a no-op) and OS
+            // logoff/shutdown (WM_QUERYENDSESSION set the flag and Windows closes the window; this
+            // is the ONLY teardown that will run). The logoff path used to skip Stop() and the
+            // settings save entirely — window size/location changes were silently lost on every
+            // logoff and EmergencyStop/AgentServer relied on process teardown.
+            PerformShutdown();
         }
+    }
+
+    /// <summary>
+    /// The single, idempotent application teardown (#213), shared by BOTH exit paths: menu exit
+    /// (<see cref="ShutDown"/>) and OS logoff/shutdown (WM_QUERYENDSESSION →
+    /// <see cref="mainWindow_Closing"/>). Stops the services, persists window placement and
+    /// settings via the SettingsStore path (#216), stops the command dispatcher (#195), and stops
+    /// telemetry. Must run on the UI thread (both callers do).
+    /// </summary>
+    private void PerformShutdown() {
+        if (!shutdownGate.TryEnter()) {
+            return;
+        }
+
+        Stop();
+
+        // hide icon from the systray
+        notifyIcon.Visible = false;
+
+        // Save the window size/location
+        Settings.WindowLocation = Location;
+        Settings.WindowSize = Size;
+        SaveSettings(Settings);
+
+        // #195: stop the command dispatcher thread (drops anything still queued; a drop that
+        // severs a command tree releases held input). The bounded join lets an in-flight
+        // command usually finish cleanly; the thread is background so it can never keep the
+        // process alive past that.
+        Invoker?.Shutdown(joinTimeoutMs: 2000);
+
+        // Save Commands
+        // Stop file system watcher
+        watcher?.Dispose();
+        watcher = null;
+
+        // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
+        //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
+        TelemetryService.Instance.Stop();
     }
 
     private void Start() {
@@ -397,15 +432,8 @@ public partial class MainWindow : Form, IAppHost {
         Logger.Instance.Log4.Info("Exiting app...");
         shuttingDown = true;
 
-        Stop();
-
-        // hide icon from the systray
-        notifyIcon.Visible = false;
-
-        // Save the window size/location
-        Settings.WindowLocation = Location;
-        Settings.WindowSize = Size;
-        SaveSettings(Settings);
+        // #213: the one idempotent teardown, shared with the OS-logoff path (mainWindow_Closing).
+        PerformShutdown();
 
         Close();
         Application.Exit();
@@ -875,9 +903,9 @@ public partial class MainWindow : Form, IAppHost {
         Logger.Instance.Log4.Info(s);
     }
 
-    private void ShowSettings(string defaultTabName) {
+    private void ShowSettings(SettingsTab defaultTab) {
         SettingsDialog d = new SettingsDialog(Settings) {
-            DefaultTab = defaultTabName
+            DefaultTab = defaultTab
         };
 
         TelemetryService.Instance.TrackEvent("ShowSettings");
@@ -886,6 +914,16 @@ public partial class MainWindow : Form, IAppHost {
             Stop();
 
             ApplySettings(d.Settings);
+
+            // #213 ordering decision: persist AFTER the clone has been adopted as the active
+            // settings object (ApplySettings, the single apply path) and BEFORE Start(). The
+            // dialog itself no longer serializes (it used to commit to disk before the owner
+            // applied anything). Saving before Start() is deliberate: Start() has no failure
+            // contract — a service that cannot start with the new config logs the error and shows
+            // it in the status bar, but does NOT roll back the in-memory settings — so disk must
+            // match memory or the next exit/logoff (PerformShutdown saves too) would rewrite it
+            // anyway. The user's OK is the commit point; a Cancel never touches disk.
+            SaveSettings(Settings);
 
             Opacity = (double)Settings.Opacity / 100;
 
@@ -995,7 +1033,7 @@ public partial class MainWindow : Form, IAppHost {
 
     private void settingsMenuItem_Click(object sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("settingsMenuItem");
-        ShowSettings("General");
+        ShowSettings(SettingsTab.General);
     }
 
     private void sendAwakeMenuItem_Click(object sender, EventArgs e) {
@@ -1037,7 +1075,7 @@ public partial class MainWindow : Form, IAppHost {
             ToggleClient();
         }
         else {
-            ShowSettings("Client");
+            ShowSettings(SettingsTab.Client);
         }
     }
 
@@ -1046,16 +1084,16 @@ public partial class MainWindow : Form, IAppHost {
             ToggleServer();
         }
         else {
-            ShowSettings("Server");
+            ShowSettings(SettingsTab.Server);
         }
     }
 
     private void statusStripSerial_Click(object sender, EventArgs e) {
-        ShowSettings("Serial");
+        ShowSettings(SettingsTab.Serial);
     }
 
     private void statusStripStatus_Click(object sender, EventArgs e) {
-        ShowSettings("General");
+        ShowSettings(SettingsTab.General);
     }
 
     // WinForms layout with MenuStrip and StatusStrip has issues (apparently) with
