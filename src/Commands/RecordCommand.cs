@@ -113,7 +113,13 @@ public class RecordCommand : Command {
         }
 
         AgentRuntime.Audit(Cmd, $"start {DescribeTarget(target)} fps={limits.Fps} oneshot={oneshot} durationMs={(oneshot ? limits.LoopDurationMs : 0)}");
-        GifRecorder.Start(grab, limits.Fps, limits.MaxFrames, limits.MaxWidth, limits.LoopDurationMs, target);
+        bool discardedUnfetched = GifRecorder.Start(grab, limits.Fps, limits.MaxFrames, limits.MaxWidth, limits.LoopDurationMs, target);
+        if (discardedUnfetched) {
+            // A prior recording auto-stopped (max duration/frames) and its GIF was never fetched with
+            // action=stop. The new recording replaces it — warn so the loss is visible, not silent.
+            Logger.Instance.Log4.Warn($"{GetType().Name}: a previous recording auto-stopped and was never fetched; its buffered GIF was discarded by this start.");
+            AgentRuntime.Audit(Cmd, "start — discarded an unfetched auto-stopped recording");
+        }
 
         if (!oneshot) {
             JsonObject data = new() {
@@ -122,7 +128,12 @@ public class RecordCommand : Command {
                 ["maxDurationMs"] = limits.LoopDurationMs,
                 ["target"] = target?.DeepClone(),
             };
-            Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
+            CommandResult result = CommandResult.Ok(Cmd, data);
+            if (discardedUnfetched) {
+                result.Warn("unfetched-recording-discarded",
+                    "A previous recording auto-stopped and its GIF was never fetched; it has been discarded and replaced by this recording.");
+            }
+            Reply?.WriteLine(result.ToJson());
             return true;
         }
 
@@ -207,11 +218,12 @@ public class RecordCommand : Command {
         return $"window 0x{obj["handle"]?.GetValue<long>():X} \"{obj["title"]?.GetValue<string>()}\" ({obj["processName"]?.GetValue<string>()})";
     }
 
-    /// <summary>Stops the active recording, encodes the GIF, writes it to disk, and replies metadata.</summary>
+    /// <summary>Stops the active recording (or fetches one that already auto-stopped at its limits),
+    /// encodes the GIF, writes it to disk, and replies metadata.</summary>
     private bool DoStop() {
         RecordingResult? result = GifRecorder.Stop();
         if (result is null) {
-            return FailWith("No recording is in progress.");
+            return FailWith("No recording is in progress or awaiting fetch.");
         }
 
         if (result.Frames == 0 || result.Gif.Length == 0) {

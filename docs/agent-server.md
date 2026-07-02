@@ -198,6 +198,17 @@ Two ways to bound a recording:
 - **Segment:** `action: "start"` begins recording and returns immediately; `action: "stop"`
   ends it, encodes, writes the file, and returns metadata. Only one recording runs at a time.
 
+**Recording lifecycle.** An open `start` is never unbounded: the capture loop *auto-stops*
+when it hits the operator's max duration or max frames (or the target vanishes mid-record).
+An auto-stopped recording is **completed, not lost**:
+
+- `action: "stop"` still returns the buffered GIF — exactly once. A second `stop` fails with
+  "No recording is in progress or awaiting fetch", and fetching releases the buffered frames.
+- A new `start` is allowed after an auto-stop. If the auto-stopped GIF was never fetched, the
+  new recording **replaces** it: the discarded output is gone, and the `start` result carries
+  an `unfetched-recording-discarded` warning (also audit-logged). Fetch with `stop` promptly
+  if you want the output.
+
 Safety limits (operator-configurable in `mcec.settings`, requests above them are *clamped*,
 not failed) keep an agent from producing an unbounded file:
 

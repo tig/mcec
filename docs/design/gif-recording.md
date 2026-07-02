@@ -29,7 +29,15 @@ is resolved and fixed at `start`/`oneshot`; `stop` needs no target.
 (downscale longest side, default 1280 to keep GIFs bounded).
 
 Only one recording may be active at a time; `start` while recording returns an error, and
-`stop` with nothing recording returns an error.
+`stop` with nothing recording (and nothing awaiting fetch) returns an error.
+
+State machine (#157): `idle → (start) → recording → (stop) → idle`, or
+`recording → (auto-stop: max duration/frames hit, or the grab fails) → completed`. While
+completed, `stop` still fetches the buffered GIF exactly once (releasing the frames), and a
+new `start` is allowed — it discards an unfetched completed GIF and warns
+(`unfetched-recording-discarded`). The capture loop performs the recording→completed
+transition under the same lock as start/stop, so a self-terminating loop can never leave
+the recorder stuck reporting "a recording is already in progress".
 
 ## Result envelope
 
@@ -95,5 +103,3 @@ animation, a repro of a transient/flicker), and keep it short.
 - ✅ Docs + built-in MCP guidance on GIF-record vs still-`capture`.
 - ✅ Tests for argument validation and the disabled gate; an opt-in manual desktop test for
   real capture.
-</content>
-</invoke>
