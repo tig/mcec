@@ -467,6 +467,13 @@ style used by most clients):
 (`C:/mcec` here is a writable copy of the install directory, or a provisioned session's
 `directory`; the Program Files path itself would be refused, per above.)
 
+`mcp` is a spawned server, not an interactive command: typed at a terminal it refuses
+(stdin is an interactive console; the server would block on the shared console and
+Ctrl+C could not stop it). To experiment by hand, pipe requests in
+(`echo '{...}' | mcec mcp`). A running server stops when its client closes stdin (EOF)
+or sends `send_command mcec:exit` (the reply flushes, then the process exits); a stuck
+one can always be killed (`Stop-Process -Name mcec`).
+
 > The agent commands still obey the security gates above. Running `--mcp` does **not**
 > bypass `AgentCommandsEnabled` or the per-command `Enabled` flags; set those in
 > `mcec.settings` first.

@@ -232,6 +232,26 @@ internal static class Program {
             return ExitCodes.UsageError;
         }
 
+        // mcp serves JSON-RPC over stdio and is meant to be SPAWNED by an MCP client with
+        // stdin/stdout redirected to pipes. Launched from an interactive terminal it can never
+        // work: the shell does not wait for a WinExe, so the server blocks reading the SHARED
+        // console, fights the shell's line editor for every keystroke, and Ctrl+C never reaches
+        // it (the line editor consumes it before it becomes a control event). Refuse with
+        // guidance instead of wedging. (Piped/file stdin, and a missing stdin handle; which reads
+        // as instant EOF; both count as redirected and serve normally.)
+        if (!Console.IsInputRedirected) {
+            const string guidance =
+                "mcec: mcp refused: stdin is an interactive console. This mode speaks JSON-RPC over " +
+                "stdio and is meant to be spawned by an MCP client (which redirects stdin/stdout to " +
+                "pipes); see the mcpServers example in the Agent Server docs. Run from a terminal it " +
+                "would block on the shared console and Ctrl+C could not stop it. To poke at the " +
+                "protocol by hand, pipe requests in: echo '{...}' | mcec mcp. A running server stops " +
+                "when its client closes stdin (EOF) or sends 'send_command mcec:exit'.";
+            Logger.Instance.Log4.Error(guidance);
+            Console.Error.WriteLine(guidance);
+            return ExitCodes.UsageError;
+        }
+
         // Headless: the engine's load/save paths never show a dialog (nothing may block protocol
         // startup; stdout is the JSON-RPC stream). The one deliberate UI exception is the operator
         // safety surface below, which lives on its own pump thread and blocks nothing.
