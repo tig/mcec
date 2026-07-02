@@ -4,7 +4,7 @@
 using System;
 using System.Windows.Forms;
 
-namespace Gma.UserActivityMonitor;
+namespace MCEControl.Hooks;
 
 /// <summary>
 /// Extended global key event surfaced by <see cref="HookManager"/>'s low-level keyboard hook. Unlike the

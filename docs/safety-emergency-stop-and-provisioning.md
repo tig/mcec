@@ -55,7 +55,7 @@ refused before the background steps even run.
 
 MCEC's own agent actuation **injects** keystrokes and mouse input. Windows flags injected low-level events
 with `LLKHF_INJECTED`. The emergency stop reuses MCEC's existing global `WH_KEYBOARD_LL` hook
-([`HookManager`](../src/Gma.UserActivityMonitor/HookManager.cs)) and reacts to **physical input only** —
+([`HookManager`](../src/Hooks/HookManager.cs)) and reacts to **physical input only** —
 injected key events never arm a modifier and never trigger. This is what makes the hotkey a true human
 override rather than something the agent could press or hold to defeat.
 

@@ -46,6 +46,52 @@ public class UpdateServiceVerificationTests {
         Assert.Null(UpdateService.SelectInstallerAssetUrl(Array.Empty<(string, string)>(), "mcec.Setup.exe"));
     }
 
+    // ---- release-tag filtering (#214) ----
+
+    [Theory]
+    [InlineData("v3.0.8", "3.0.8")]
+    [InlineData("3.0.8", "3.0.8")]
+    [InlineData("V2.4", "2.4")]
+    [InlineData("v1.2.3.4", "1.2.3.4")]
+    public void TryParseVersionTag_ParsesValidTags(string tag, string expected) {
+        Assert.Equal(Version.Parse(expected), UpdateService.TryParseVersionTag(tag));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("not-a-version")]
+    [InlineData("v3.0.8-rc.1")] // System.Version has no prerelease syntax
+    [InlineData("latest")]
+    public void TryParseVersionTag_ReturnsNull_ForMalformedTags(string? tag) {
+        Assert.Null(UpdateService.TryParseVersionTag(tag));
+    }
+
+    [Fact]
+    public void PickLatestVersionTag_PicksHighestVersion_NotStringOrder() {
+        // "v2.9.9" sorts after "v2.10.0" as a string; version order must win.
+        string? tag = UpdateService.PickLatestVersionTag(["v2.9.9", "v2.10.0", "v1.0.0"]);
+        Assert.Equal("v2.10.0", tag);
+    }
+
+    [Fact]
+    public void PickLatestVersionTag_IgnoresMalformedTags() {
+        // One malformed GitHub tag must not abort the whole check (#214).
+        string? tag = UpdateService.PickLatestVersionTag(["garbage", "v3.0.8", "v9.1.2.3-Fake+meta", "v3.0.7"]);
+        Assert.Equal("v3.0.8", tag);
+    }
+
+    [Fact]
+    public void PickLatestVersionTag_ReturnsNull_WhenNothingParses() {
+        Assert.Null(UpdateService.PickLatestVersionTag(["garbage", "", null, "latest"]));
+    }
+
+    [Fact]
+    public void PickLatestVersionTag_ReturnsNull_WhenEmpty() {
+        Assert.Null(UpdateService.PickLatestVersionTag([]));
+    }
+
     // ---- (2) download-URL pinning ----
 
     [Theory]

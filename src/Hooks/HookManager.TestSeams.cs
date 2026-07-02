@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Gma.UserActivityMonitor;
+namespace MCEControl.Hooks;
 
 /// <summary>
 /// Test seams (InternalsVisibleTo MCEControl.xUnit) for <see cref="HookManager"/>. They expose the
@@ -28,24 +28,20 @@ public static partial class HookManager {
     internal static bool SuppressRealHooksForTesting { get; set; }
 
     /// <summary>True while the low-level mouse hook is installed (real or fake).</summary>
-    internal static bool IsMouseHookInstalled => s_MouseHookHandle != IntPtr.Zero;
+    internal static bool IsMouseHookInstalled => _mouseHookHandle != IntPtr.Zero;
 
     /// <summary>True while the low-level keyboard hook is installed (real or fake).</summary>
-    internal static bool IsKeyboardHookInstalled => s_KeyboardHookHandle != IntPtr.Zero;
+    internal static bool IsKeyboardHookInstalled => _keyboardHookHandle != IntPtr.Zero;
 
-    internal static int KeyDownSubscriberCount => SubscriberCount(s_KeyDown);
-    internal static int KeyUpSubscriberCount => SubscriberCount(s_KeyUp);
-    internal static int KeyPressSubscriberCount => SubscriberCount(s_KeyPress);
-    internal static int KeyDownExtSubscriberCount => SubscriberCount(s_KeyDownExt);
-    internal static int KeyUpExtSubscriberCount => SubscriberCount(s_KeyUpExt);
-    internal static int MouseMoveSubscriberCount => SubscriberCount(s_MouseMove);
-    internal static int MouseClickSubscriberCount => SubscriberCount(s_MouseClick);
-    internal static int MouseDownSubscriberCount => SubscriberCount(s_MouseDown);
-    internal static int MouseUpSubscriberCount => SubscriberCount(s_MouseUp);
-    internal static int MouseDoubleClickSubscriberCount => SubscriberCount(s_MouseDoubleClick);
-    internal static int MouseWheelSubscriberCount => SubscriberCount(s_MouseWheel);
-    internal static int MouseMoveExtSubscriberCount => SubscriberCount(s_MouseMoveExt);
-    internal static int MouseClickExtSubscriberCount => SubscriberCount(s_MouseClickExt);
+    internal static int KeyDownSubscriberCount => SubscriberCount(_keyDown);
+    internal static int KeyUpSubscriberCount => SubscriberCount(_keyUp);
+    internal static int KeyDownExtSubscriberCount => SubscriberCount(_keyDownExt);
+    internal static int KeyUpExtSubscriberCount => SubscriberCount(_keyUpExt);
+    internal static int MouseMoveSubscriberCount => SubscriberCount(_mouseMove);
+    internal static int MouseClickSubscriberCount => SubscriberCount(_mouseClick);
+    internal static int MouseDownSubscriberCount => SubscriberCount(_mouseDown);
+    internal static int MouseUpSubscriberCount => SubscriberCount(_mouseUp);
+    internal static int MouseDoubleClickSubscriberCount => SubscriberCount(_mouseDoubleClick);
 
     private static int SubscriberCount(Delegate? handler) => handler?.GetInvocationList().Length ?? 0;
 }

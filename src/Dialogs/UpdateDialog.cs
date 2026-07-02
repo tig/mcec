@@ -25,7 +25,9 @@ public partial class UpdateDialog : Form {
     }
 
     private void downloadButton_Click(object sender, EventArgs args) {
-        UpdateService.Instance.StartUpgrade();
+        // Fire-and-forget from the click handler: StartUpgrade logs all failures and its task
+        // never faults (#214).
+        _ = UpdateService.Instance.StartUpgrade();
     }
 
     private void linkReleasePage_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
