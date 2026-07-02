@@ -281,13 +281,19 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     // detects any client writing of data on the stream
     private void OnDataReceived(IAsyncResult async) {
         ServerReplyContext clientContext = (ServerReplyContext)async.AsyncState!;
-        if (_mainSocket == null || !clientContext.Socket.Connected) {
+        if (_mainSocket == null) {
+            // The server is shutting down: Dispose() has already force-closed and drained
+            // every tracked client, so there is nothing left to do here (and nothing to leak).
+            return;
+        }
+        if (!EnsureClientConnectedOrClose(clientContext)) {
+            // Socket is dead but still tracked — closed above; stop receiving (issue #150).
             return;
         }
 
         try {
             // Complete the BeginReceive() asynchronous call by EndReceive() method
-            // which will return the number of characters written to the stream 
+            // which will return the number of characters written to the stream
             // by the client
             int iRx = clientContext.Socket.EndReceive(async, out SocketError err);
             if (err != SocketError.Success || iRx == 0) {
@@ -305,15 +311,44 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             BeginReceive(clientContext);
         }
         catch (SocketException se) {
-            if (se.SocketErrorCode == SocketError.ConnectionReset) // Error code for Connection reset by peer 
-            {
-                SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
-                CloseSocket(clientContext);
-            }
-            else {
-                SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
-            }
+            HandleReceiveError(clientContext, se);
         }
+    }
+
+    /// <summary>
+    /// Precondition for the receive callback: a tracked client whose socket has silently
+    /// dropped to a not-<see cref="Socket.Connected"/> state can never be received from again,
+    /// so it must be closed rather than left dangling. Before issue #150 this path returned
+    /// without <see cref="CloseSocket"/>, permanently leaking the socket handle, the
+    /// <c>_clientList</c> entry, and a connected-count slot. Idempotent: <see cref="CloseSocket"/>
+    /// no-ops (and does not double-decrement — see #147) if the client was already removed.
+    /// Internal so tests can drive it without a live listener (InternalsVisibleTo).
+    /// </summary>
+    /// <returns>true if the client is still connected and receiving may proceed; false if the
+    /// client was closed and the caller must stop.</returns>
+    internal bool EnsureClientConnectedOrClose(ServerReplyContext clientContext) {
+        if (clientContext.Socket.Connected) {
+            return true;
+        }
+        CloseSocket(clientContext);
+        return false;
+    }
+
+    /// <summary>
+    /// Handles a <see cref="SocketException"/> raised on the receive path by
+    /// <see cref="Socket.EndReceive(IAsyncResult, out SocketError)"/>. ANY such error is terminal for the
+    /// connection (we will not re-arm <see cref="BeginReceive"/>), so the client MUST be closed
+    /// exactly once. Before issue #150 only <see cref="SocketError.ConnectionReset"/> closed;
+    /// every other error code merely logged, leaving a dead-but-tracked connection that leaked
+    /// its handle, <c>_clientList</c> entry, and connected-count slot (resource exhaustion under
+    /// repeated non-reset errors on the unauthenticated command port). Idempotent via
+    /// <see cref="CloseSocket"/> (no double-decrement — see #147). Internal so tests can drive it
+    /// without a live listener (InternalsVisibleTo).
+    /// </summary>
+    internal void HandleReceiveError(ServerReplyContext clientContext, SocketException se) {
+        SendNotification(ServiceNotification.Error, CurrentStatus, clientContext,
+            $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+        CloseSocket(clientContext);
     }
 
     /// <summary>
