@@ -34,8 +34,9 @@ Only one recording may be active at a time; `start` while recording returns an e
 State machine (#157): `idle → (start) → recording → (stop) → idle`, or
 `recording → (auto-stop: max duration/frames hit, or the grab fails) → completed`. While
 completed, `stop` still fetches the buffered GIF exactly once (releasing the frames), and a
-new `start` is allowed — it discards an unfetched completed GIF and warns
-(`unfetched-recording-discarded`). The capture loop performs the recording→completed
+new recording (`start` or `oneshot`) is allowed — it discards an unfetched completed GIF
+and its result carries an `unfetched-recording-discarded` warning (a oneshot surfaces it on
+its single final reply). The capture loop performs the recording→completed
 transition under the same lock as start/stop, so a self-terminating loop can never leave
 the recorder stuck reporting "a recording is already in progress".
 

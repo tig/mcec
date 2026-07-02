@@ -204,10 +204,11 @@ An auto-stopped recording is **completed, not lost**:
 
 - `action: "stop"` still returns the buffered GIF — exactly once. A second `stop` fails with
   "No recording is in progress or awaiting fetch", and fetching releases the buffered frames.
-- A new `start` is allowed after an auto-stop. If the auto-stopped GIF was never fetched, the
-  new recording **replaces** it: the discarded output is gone, and the `start` result carries
-  an `unfetched-recording-discarded` warning (also audit-logged). Fetch with `stop` promptly
-  if you want the output.
+- A new recording (`start` **or** a one-shot) is allowed after an auto-stop. If the
+  auto-stopped GIF was never fetched, the new recording **replaces** it: the discarded output
+  is gone, and that command's result carries an `unfetched-recording-discarded` warning (for
+  a one-shot, on its single final reply) — also audit-logged. Fetch with `stop` promptly if
+  you want the output.
 
 Safety limits (operator-configurable in `mcec.settings`, requests above them are *clamped*,
 not failed) keep an agent from producing an unbounded file:

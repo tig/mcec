@@ -44,9 +44,11 @@ public class GifRecorderTests {
         try {
             GifRecorder.Start(() => new Bitmap(8, 8), fps: 50, maxFrames: 3, maxWidth: 64, maxDurationMs: 60000, target: null);
 
-            // The loop hits maxFrames in ~60 ms; IsRecording must go false without an explicit Stop.
+            // The loop hits maxFrames in ~60 ms; IsRecording must go false without an explicit Stop,
+            // and the buffered GIF must move to the completed (fetchable) slot.
             Assert.True(WaitUntil(() => !GifRecorder.IsRecording),
                 "IsRecording stayed true after the capture loop self-terminated on maxFrames");
+            Assert.True(GifRecorder.HasCompletedRecording);
         }
         finally {
             ResetRecorder();
@@ -61,6 +63,7 @@ public class GifRecorderTests {
 
             Assert.True(WaitUntil(() => !GifRecorder.IsRecording),
                 "IsRecording stayed true after the capture loop self-terminated on maxDurationMs");
+            Assert.True(GifRecorder.HasCompletedRecording);
         }
         finally {
             ResetRecorder();
@@ -76,11 +79,13 @@ public class GifRecorderTests {
 
             Assert.True(WaitUntil(() => !GifRecorder.IsRecording),
                 "IsRecording stayed true after the capture loop self-terminated on a grab exception");
+            Assert.True(GifRecorder.HasCompletedRecording);
 
-            // The failure reason must still be fetchable by a later stop.
+            // The failure reason must still be fetchable by a later stop — and fetching releases it.
             RecordingResult? result = GifRecorder.Stop();
             Assert.NotNull(result);
             Assert.Contains("boom-grab", result!.Error);
+            Assert.False(GifRecorder.HasCompletedRecording);
         }
         finally {
             ResetRecorder();
@@ -93,10 +98,12 @@ public class GifRecorderTests {
         try {
             GifRecorder.Start(() => new Bitmap(8, 8), fps: 50, maxFrames: 2, maxWidth: 64, maxDurationMs: 60000, target: null);
             Assert.True(WaitUntil(() => !GifRecorder.IsRecording), "first recording never auto-stopped");
+            Assert.True(GifRecorder.HasCompletedRecording);
 
             // #157: this used to throw "A recording is already in progress." forever.
             GifRecorder.Start(() => new Bitmap(8, 8), fps: 5, maxFrames: 600, maxWidth: 64, maxDurationMs: 60000, target: null);
             Assert.True(GifRecorder.IsRecording);
+            Assert.False(GifRecorder.HasCompletedRecording); // the unfetched GIF was discarded, not kept
         }
         finally {
             ResetRecorder();
@@ -110,6 +117,7 @@ public class GifRecorderTests {
             Stopwatch sw = Stopwatch.StartNew();
             GifRecorder.Start(() => new Bitmap(8, 8), fps: 50, maxFrames: 3, maxWidth: 64, maxDurationMs: 60000, target: null);
             Assert.True(WaitUntil(() => !GifRecorder.IsRecording), "recording never auto-stopped");
+            Assert.True(GifRecorder.HasCompletedRecording);
             long completedAtMs = sw.ElapsedMilliseconds;
 
             // Wait a while before fetching: the buffered frames must survive, and the reported
@@ -124,6 +132,7 @@ public class GifRecorderTests {
                 $"DurationMs {result.DurationMs} kept counting after auto-stop (completed at ~{completedAtMs} ms)");
 
             // Exactly once: the completed recording (and its pinned frames) must be released on fetch.
+            Assert.False(GifRecorder.HasCompletedRecording);
             Assert.Null(GifRecorder.Stop());
         }
         finally {

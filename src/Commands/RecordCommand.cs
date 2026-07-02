@@ -43,6 +43,11 @@ public class RecordCommand : Command {
 
     private const int DefaultFps = 5;
 
+    /// <summary>Warning code emitted when starting a new recording discards a completed-but-unfetched GIF.</summary>
+    private const string DiscardedWarningCode = "unfetched-recording-discarded";
+    private const string DiscardedWarningDetail =
+        "A previous recording auto-stopped and its GIF was never fetched; it has been discarded and replaced by this recording.";
+
     public static new List<Command> BuiltInCommands {
         get => [new RecordCommand { Cmd = "record" }];
     }
@@ -116,9 +121,10 @@ public class RecordCommand : Command {
         bool discardedUnfetched = GifRecorder.Start(grab, limits.Fps, limits.MaxFrames, limits.MaxWidth, limits.LoopDurationMs, target);
         if (discardedUnfetched) {
             // A prior recording auto-stopped (max duration/frames) and its GIF was never fetched with
-            // action=stop. The new recording replaces it — warn so the loss is visible, not silent.
-            Logger.Instance.Log4.Warn($"{GetType().Name}: a previous recording auto-stopped and was never fetched; its buffered GIF was discarded by this start.");
-            AgentRuntime.Audit(Cmd, "start — discarded an unfetched auto-stopped recording");
+            // action=stop. The new recording (start OR oneshot) replaces it — warn so the loss is
+            // visible, not silent.
+            Logger.Instance.Log4.Warn($"{GetType().Name}: a previous recording auto-stopped and was never fetched; its buffered GIF was discarded by this new recording.");
+            AgentRuntime.Audit(Cmd, $"{(oneshot ? "oneshot" : "start")} — discarded an unfetched auto-stopped recording");
         }
 
         if (!oneshot) {
@@ -130,17 +136,17 @@ public class RecordCommand : Command {
             };
             CommandResult result = CommandResult.Ok(Cmd, data);
             if (discardedUnfetched) {
-                result.Warn("unfetched-recording-discarded",
-                    "A previous recording auto-stopped and its GIF was never fetched; it has been discarded and replaced by this recording.");
+                result.Warn(DiscardedWarningCode, DiscardedWarningDetail);
             }
             Reply?.WriteLine(result.ToJson());
             return true;
         }
 
         // One-shot: wait for the bounded loop to finish (it auto-stops at loopDurationMs), with a small
-        // grace so the final frame is captured, then stop + encode + write.
+        // grace so the final frame is captured, then stop + encode + write. The oneshot's single reply
+        // comes from DoStop, so the discard warning must ride along or it would be silently dropped.
         Thread.Sleep((int)Math.Min(limits.LoopDurationMs, int.MaxValue) + 200);
-        return DoStop();
+        return DoStop(discardedUnfetched);
     }
 
     /// <summary>Resolves and clamps fps/duration/frames/width against the operator's policy, auditing clamps.</summary>
@@ -174,9 +180,10 @@ public class RecordCommand : Command {
 
     /// <summary>
     /// Builds the per-frame grabber for the requested target (explicit region, else resolved window).
-    /// Returns null with <paramref name="error"/> set when no window matches.
+    /// Returns null with <paramref name="error"/> set when no window matches. Virtual so tests can
+    /// substitute a synthetic in-memory grabber and exercise start/oneshot without touching the desktop.
     /// </summary>
-    private Func<Bitmap>? BuildGrabber(out JsonNode? target, out string? error) {
+    protected virtual Func<Bitmap>? BuildGrabber(out JsonNode? target, out string? error) {
         error = null;
         bool hasWindowTarget = !string.IsNullOrEmpty(Window)
             || Handle > 0
@@ -219,16 +226,18 @@ public class RecordCommand : Command {
     }
 
     /// <summary>Stops the active recording (or fetches one that already auto-stopped at its limits),
-    /// encodes the GIF, writes it to disk, and replies metadata.</summary>
-    private bool DoStop() {
+    /// encodes the GIF, writes it to disk, and replies metadata. <paramref name="warnDiscardedUnfetched"/>
+    /// is set by the oneshot path when its start discarded an unfetched auto-stopped GIF, so the
+    /// warning surfaces on the oneshot's single (stop-produced) reply.</summary>
+    private bool DoStop(bool warnDiscardedUnfetched = false) {
         RecordingResult? result = GifRecorder.Stop();
         if (result is null) {
-            return FailWith("No recording is in progress or awaiting fetch.");
+            return FailWith("No recording is in progress or awaiting fetch.", warnDiscardedUnfetched);
         }
 
         if (result.Frames == 0 || result.Gif.Length == 0) {
             AgentRuntime.Audit(Cmd, $"stop — no output ({result.Error})");
-            return FailWith(result.Error ?? "Recording produced no frames.");
+            return FailWith(result.Error ?? "Recording produced no frames.", warnDiscardedUnfetched);
         }
 
         string path = string.IsNullOrEmpty(File)
@@ -256,17 +265,27 @@ public class RecordCommand : Command {
             // is no usable output — report failure rather than success-with-fileError.
             Logger.Instance.Log4.Error($"{GetType().Name}: could not write GIF to '{path}': {e.Message}");
             AgentRuntime.Audit(Cmd, $"stop — encode ok ({result.Frames} frames) but write failed: {e.Message}");
-            return FailWith($"Recorded {result.Frames} frames but could not write GIF to '{path}': {e.Message}");
+            return FailWith($"Recorded {result.Frames} frames but could not write GIF to '{path}': {e.Message}", warnDiscardedUnfetched);
         }
 
         data["file"] = path;
         AgentRuntime.Audit(Cmd, $"stop — wrote {result.Frames} frames, {result.Gif.Length} bytes, {result.Width}x{result.Height} to {path}");
-        Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
+        CommandResult ok = CommandResult.Ok(Cmd, data);
+        if (warnDiscardedUnfetched) {
+            ok.Warn(DiscardedWarningCode, DiscardedWarningDetail);
+        }
+        Reply?.WriteLine(ok.ToJson());
         return true;
     }
 
-    private bool FailWith(string error) {
-        Reply?.WriteLine(CommandResult.Fail(Cmd, error).ToJson());
+    /// <summary>Writes a failure envelope; the discard warning still rides along when set — warnings
+    /// are valid on failure too, and the discard already happened regardless of this call's outcome.</summary>
+    private bool FailWith(string error, bool warnDiscardedUnfetched = false) {
+        CommandResult result = CommandResult.Fail(Cmd, error);
+        if (warnDiscardedUnfetched) {
+            result.Warn(DiscardedWarningCode, DiscardedWarningDetail);
+        }
+        Reply?.WriteLine(result.ToJson());
         return false;
     }
 

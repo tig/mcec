@@ -177,6 +177,50 @@ public class RecordCommandTests {
     }
 
     [Fact]
+    public void Execute_Oneshot_AfterAutoStop_WarnsUnfetchedRecordingDiscarded() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        string outFile = Path.Combine(Path.GetTempPath(), $"mcec-rec-test-{System.Guid.NewGuid():N}.gif");
+        try {
+            GifRecorder.Stop(); // clear any prior recording
+            // Leave a completed-but-unfetched recording behind (tiny maxFrames → immediate auto-stop).
+            GifRecorder.Start(() => new Bitmap(8, 8), fps: 50, maxFrames: 2, maxWidth: 64, maxDurationMs: 60000, target: null);
+            System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
+            while (GifRecorder.IsRecording && sw.ElapsedMilliseconds < 5000) {
+                Thread.Sleep(10);
+            }
+            Assert.False(GifRecorder.IsRecording);
+            Assert.True(GifRecorder.HasCompletedRecording);
+
+            // A oneshot issued now discards that unfetched GIF — its reply must say so (M1, #157):
+            // the discard warning may not be silently dropped just because the reply comes from stop.
+            CapturingReply reply = new();
+            SyntheticGrabRecordCommand cmd = new() {
+                Cmd = "record", Enabled = true, Reply = reply, Action = "oneshot", DurationMs = 150, Fps = 20, File = outFile,
+            };
+
+            bool result = cmd.Execute();
+
+            Assert.True(result, reply.Captured);
+            JsonObject json = JsonNode.Parse(reply.Captured.Trim())!.AsObject();
+            Assert.True(json["success"]!.GetValue<bool>(), reply.Captured);
+            Assert.True(File.Exists(outFile));
+
+            JsonArray? warnings = json["warnings"]?.AsArray();
+            Assert.NotNull(warnings);
+            Assert.Contains(warnings!, w => w?["code"]?.GetValue<string>() == "unfetched-recording-discarded");
+
+            // The discarded recording is gone: nothing else is left to fetch.
+            Assert.False(GifRecorder.HasCompletedRecording);
+        }
+        finally {
+            GifRecorder.Stop();
+            AgentRuntime.Settings = null;
+            try { File.Delete(outFile); } catch (IOException) { /* best effort cleanup */ }
+        }
+    }
+
+    [Fact]
     public void Execute_StopWhenNotRecording_Fails() {
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
