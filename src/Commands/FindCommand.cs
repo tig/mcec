@@ -18,7 +18,7 @@ public class FindCommand : WindowTargetingAgentCommand {
     [XmlAttribute("value")] public string Value { get; set; } = null!;
     [XmlAttribute("timeout")] public int Timeout { get; set; }
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
             new FindCommand { Cmd = "find" },
             new FindCommand { Cmd = "wait-for" },

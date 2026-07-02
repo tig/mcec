@@ -11,46 +11,10 @@ namespace MCEControl.xUnit;
 
 public class CommandInvokerTests
 {
-    // NOTE: This test is disabled because it uses MSTest PrivateType which is not available in .NET Core
-    // TODO: Refactor to use reflection or make the tested members internal with InternalsVisibleTo
-    /*
-    [Fact]
-    public void CreateBuiltIns_Test()
-    {
-        // There are currently 9 classses derived from Command
-        var cmdTypes = Command.GetDerivedClassesCollection();
-        Assert.Equal(9, cmdTypes.Count);
-
-        // Get # of built in commands defined
-        var builtIns = new List<Command>();
-        foreach (var cmdType in cmdTypes)
-        {
-            mstest.PrivateType cmdPt = new mstest.PrivateType(cmdType.GetType());
-            List<Command> listOfType = (List<Command>)cmdPt.GetStaticProperty(nameof(Command.BuiltInCommands));
-            foreach (var c in listOfType)
-                builtIns.Add(c);
-        }
-
-        // Ensure there are no duplicates
-        var query = builtIns.GroupBy(x => x.Cmd)
-          .Where(g => g.Count() > 1)
-          .Select(y => y.Key)
-          .ToList();
-        Assert.Empty(query);
-
-        // Invoke the CreateBuiltIns method and compare result to expected
-        // https://stackoverflow.com/questions/9122708/unit-testing-private-methods-in-c-sharp
-        CommandInvoker target = new CommandInvoker();
-        mstest.PrivateType pt = new mstest.PrivateType(typeof(CommandInvoker));
-        CommandInvoker returnedBuiltIns = (CommandInvoker)pt.InvokeStatic("CreateBuiltIns", false);
-        Assert.NotEmpty(returnedBuiltIns);
-        Assert.Equal(builtIns.Count, returnedBuiltIns.Count);
-
-        // Now test with disableBuiltIns true
-        returnedBuiltIns = (CommandInvoker)pt.InvokeStatic("CreateBuiltIns", true);
-        Assert.Empty(returnedBuiltIns);
-    }
-    */
+    // NOTE (#204): a long-dead commented-out CreateBuiltIns_Test lived here, written against the
+    // old reflection dance (Command.GetDerivedClassesCollection + magic BuiltInCommands statics),
+    // both now deleted. CommandRegistryTests covers built-in registration against the explicit
+    // CommandRegistry.
 
     [Fact]
     public void Create_Test()

@@ -23,7 +23,7 @@ public class StartProcessCommand : Command {
     private String verb = null!;
     [XmlAttribute("verb")] public string Verb { get => verb; set => verb = value; }
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
               new StartProcessCommand() { Cmd = "code", File ="code" },
               new StartProcessCommand() { Cmd = "tada", File=@"C:\Windows\Media\tada.wav", Verb="Open"  },

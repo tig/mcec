@@ -15,9 +15,10 @@ namespace MCEControl;
 ///
 /// Deliberately implements <see cref="ICommand"/> directly rather than deriving from
 /// <see cref="Command"/>: it is dispatcher bookkeeping, not a command — it must never appear in the
-/// command table (<see cref="Command.GetDerivedClassesCollection"/> reflects over Command
-/// subclasses), is never gated on <c>Enabled</c>, and is exempt from the #154 queue bounds (one per
-/// completion-tracked enqueue, bounded by the caller's own concurrency).
+/// command table or in <see cref="CommandRegistry.Entries"/> (whose completeness test sweeps
+/// concrete <see cref="Command"/> subclasses, #204), is never gated on <c>Enabled</c>, and is
+/// exempt from the #154 queue bounds (one per completion-tracked enqueue, bounded by the caller's
+/// own concurrency).
 /// </summary>
 internal sealed class CommandDispatchCompletion : ICommand {
     // RunContinuationsAsynchronously so completing on the dispatcher thread never inlines an

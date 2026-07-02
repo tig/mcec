@@ -35,32 +35,25 @@ public class SerializedCommands {
     [XmlAttribute("version")]
     public string Version = null!;
 
-    [XmlArray("commands", Order = 1)]
-    [XmlArrayItem("chars", typeof(CharsCommand))]
-    [XmlArrayItem("startprocess", typeof(StartProcessCommand))]
-    [XmlArrayItem("sendinput", typeof(SendInputCommand))]
-    [XmlArrayItem("sendmessage", typeof(SendMessageCommand))]
-    [XmlArrayItem("setforegroundwindow", typeof(SetForegroundWindowCommand))]
-    [XmlArrayItem("shutdown", typeof(ShutdownCommand))]
-    [XmlArrayItem("pause", typeof(PauseCommand))]
-    [XmlArrayItem("mouse", typeof(MouseCommand))]
-    [XmlArrayItem("mceccommand", typeof(McecCommand))]
-    [XmlArrayItem("capture", typeof(CaptureCommand))]
-    [XmlArrayItem("query", typeof(QueryCommand))]
-    [XmlArrayItem("find", typeof(FindCommand))]
-    [XmlArrayItem("invoke", typeof(InvokeCommand))]
-    [XmlArrayItem("drag", typeof(DragCommand))]
-    [XmlArrayItem("launch", typeof(LaunchCommand))]
-    [XmlArrayItem("click", typeof(ClickCommand))]
-    [XmlArrayItem("displays", typeof(DisplaysCommand))]
-    [XmlArrayItem("record", typeof(RecordCommand))]
-    [XmlArrayItem(typeof(Command))]
-
+    // SERIALIZATION (#204): the [XmlArray("commands", Order = 1)] wrapper and the polymorphic
+    // [XmlArrayItem("name", typeof(T))] map (one per command type, formerly hardcoded here) now
+    // come from CommandRegistry.CreateXmlOverrides(), applied via the cached Serializer below —
+    // register a new command type there, not here.
+    //
     // XmlSerialization does not work with List<>. Must use an array.
     // Must be public for serialization to work
     public Command[] commandArray = null!;
 
     [XmlIgnore] public int Count { get => (commandArray == null ? 0 : commandArray.Length); }
+
+    /// <summary>
+    /// THE XmlSerializer for .commands files, wired to the one explicit command registry (#204) via
+    /// XmlAttributeOverrides. CRITICAL: serializers constructed WITH overrides are NOT cached by the
+    /// runtime — every construction emits a fresh dynamic assembly that is never unloaded (a leak).
+    /// This static is the process-wide cache; XmlSerializer instance methods are thread-safe. Always
+    /// use it — never write `new XmlSerializer(typeof(SerializedCommands), ...)` at a call site.
+    /// </summary>
+    private static readonly XmlSerializer Serializer = new(typeof(SerializedCommands), CommandRegistry.CreateXmlOverrides());
 
     public SerializedCommands() {
     }
@@ -143,7 +136,7 @@ public class SerializedCommands {
         try {
             commands.Version = currentVersion;
             ucFS = new FileStream(userCommandsFile, FileMode.Create);
-            new XmlSerializer(typeof(SerializedCommands)).Serialize(ucFS, commands);
+            Serializer.Serialize(ucFS, commands);
         }
         catch (Exception e) {
             // TODO: Move MessageBox out of here into MainWindow
@@ -187,7 +180,7 @@ public class SerializedCommands {
             stm.Position = 0;
             lcReader = new XmlTextReader(stm); // lower-case reader
 
-            cmds = (SerializedCommands)new XmlSerializer(typeof(SerializedCommands)).Deserialize(lcReader)!;
+            cmds = (SerializedCommands)Serializer.Deserialize(lcReader)!;
         }
         catch (InvalidOperationException ex) {
             Logger.Instance.Log4.Error($"SerializedCommands: No commands loaded. Error parsing .commands XML. {ex.FullMessage()}");

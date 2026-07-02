@@ -445,7 +445,7 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
 
 ## Extensibility Points
 
-1. **New Command Types**: Inherit from `Command`, implement `Execute()`, add to `Command.GetDerivedClassesCollection()`
+1. **New Command Types** (#204): Inherit from `Command` (agent tools: from the gated `AgentCommand` bases, #208), implement `Execute()`, give the type a `public static List<Command> BuiltInCommands` property, and add **one line** to `CommandRegistry.Entries` (`src/Commands/CommandRegistry.cs`) — `(xmlName, type, builtIns factory)`. That single entry drives XML serialization (both the top-level `commandArray` and embedded-command element maps, via `XmlAttributeOverrides`), the invoker's built-ins table, and the command hygiene tests (`CommandRegistryTests` fails the build for an unregistered command type)
 2. **New Communication Services**: Inherit from `ServiceBase`, implement notification pattern
 3. **Custom Input Simulation**: Extend `WindowsInput` namespace
 4. **Plugin System**: None currently (all commands compiled in)
@@ -455,7 +455,7 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
 - **Singleton**: MainWindow, Logger, TelemetryService, UpdateService
 - **Command Pattern**: ICommand, Command, CommandInvoker
 - **Observer Pattern**: ServiceBase notifications via delegates
-- **Factory Pattern**: CommandInvoker.Create(), Command.BuiltInCommands
+- **Factory Pattern**: CommandInvoker.Create(), the per-command `BuiltInCommands` factories referenced explicitly by `CommandRegistry.Entries` (#204)
 - **Strategy Pattern**: Different Command implementations
 - **Facade Pattern**: InputSimulator wraps KeyboardSimulator and MouseSimulator
 - **Lazy Initialization**: Lazy<T> for singletons

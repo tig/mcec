@@ -18,7 +18,7 @@ public class InvokeCommand : WindowTargetingAgentCommand {
     [XmlAttribute("action")] public string Action { get; set; } = "invoke";
     [XmlAttribute("text")] public string Text { get; set; } = null!;
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new InvokeCommand { Cmd = "invoke" }];
     }
 

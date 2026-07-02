@@ -34,7 +34,7 @@ public class CaptureCommand : WindowTargetingAgentCommand {
     [XmlAttribute("file")]
     public string File { get; set; } = null!;
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new CaptureCommand { Cmd = "capture" }];
     }
 

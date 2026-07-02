@@ -151,22 +151,7 @@ public class CommandTests
         Assert.Contains("testargs", result);
     }
 
-    [Fact]
-    public void GetDerivedClassesCollection_ReturnsAllCommandTypes()
-    {
-        var commandTypes = Command.GetDerivedClassesCollection();
-
-        Assert.NotEmpty(commandTypes);
-
-        // Should include all standard command types
-        Assert.Contains(commandTypes, c => c is SendInputCommand);
-        Assert.Contains(commandTypes, c => c is CharsCommand);
-        Assert.Contains(commandTypes, c => c is MouseCommand);
-        Assert.Contains(commandTypes, c => c is StartProcessCommand);
-        Assert.Contains(commandTypes, c => c is PauseCommand);
-        Assert.Contains(commandTypes, c => c is ShutdownCommand);
-        Assert.Contains(commandTypes, c => c is SendMessageCommand);
-        Assert.Contains(commandTypes, c => c is SetForegroundWindowCommand);
-        Assert.Contains(commandTypes, c => c is McecCommand);
-    }
+    // NOTE (#204): GetDerivedClassesCollection_ReturnsAllCommandTypes used to live here. The
+    // reflection sweep it tested is gone — command types are declared in CommandRegistry.Entries,
+    // and CommandRegistryTests asserts the registry covers every concrete Command subclass.
 }

@@ -99,7 +99,7 @@ public class SendInputCommand : Command {
             new SendInputCommand() { Cmd="snapshot", vk="44", Shift=false, Ctrl=false, Alt=false },
             new SendInputCommand() { Cmd="zoom", vk="90", Shift=false, Ctrl=false, Alt=false },
         ];
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => _builtins;
     }
 

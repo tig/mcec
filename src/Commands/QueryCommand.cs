@@ -18,7 +18,7 @@ public class QueryCommand : WindowTargetingAgentCommand {
     /// A clipped walk is reported via a <c>tree-truncated</c> warning. 0 means unbounded.</summary>
     [XmlAttribute("maxnodes")] public int MaxNodes { get; set; } = 1000;
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [new QueryCommand { Cmd = "query" }];
     }
 

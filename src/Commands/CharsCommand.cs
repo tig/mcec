@@ -19,7 +19,7 @@ namespace MCEControl;
 public class CharsCommand : Command {
     public const string CmdPrefix = "chars:";
 
-    public static new List<Command> BuiltInCommands {
+    public static List<Command> BuiltInCommands {
         get => [
             new CharsCommand { Cmd = $"{CmdPrefix}" },
         ];

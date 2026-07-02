@@ -12,9 +12,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Xml;
 using System.Xml.Serialization;
 
 namespace MCEControl;
@@ -30,29 +27,14 @@ public abstract class Command : ICommand {
         Enabled = false; // SECURITY: Explicity
         UserDefined = false; // TELEMERTRY: Explicit
     }
-    public static List<Command> BuiltInCommands { get => []; }
 
     [XmlAttribute("cmd")]
     public string Cmd { get => cmd; set => cmd = value; }
-    [XmlElement("chars", typeof(CharsCommand))]
-    [XmlElement("startprocess", typeof(StartProcessCommand))]
-    [XmlElement("sendinput", typeof(SendInputCommand))]
-    [XmlElement("sendmessage", typeof(SendMessageCommand))]
-    [XmlElement("setforegroundwindow", typeof(SetForegroundWindowCommand))]
-    [XmlElement("shutdown", typeof(ShutdownCommand))]
-    [XmlElement("pause", typeof(PauseCommand))]
-    [XmlElement("mouse", typeof(MouseCommand))]
-    [XmlElement("mceccommand", typeof(McecCommand))]
-    [XmlElement("capture", typeof(CaptureCommand))]
-    [XmlElement("query", typeof(QueryCommand))]
-    [XmlElement("find", typeof(FindCommand))]
-    [XmlElement("invoke", typeof(InvokeCommand))]
-    [XmlElement("drag", typeof(DragCommand))]
-    [XmlElement("launch", typeof(LaunchCommand))]
-    [XmlElement("click", typeof(ClickCommand))]
-    [XmlElement("displays", typeof(DisplaysCommand))]
-    [XmlElement("record", typeof(RecordCommand))]
-    [XmlElement(typeof(Command))]
+
+    // SERIALIZATION (#204): the polymorphic element-name map for embedded commands (one
+    // [XmlElement("name", typeof(T))] per command type, formerly hardcoded here) now comes from
+    // CommandRegistry.CreateXmlOverrides(), applied by SerializedCommands' cached serializer —
+    // register a new command type there, not here.
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
     public List<Command> EmbeddedCommands { get; set; } = null!;
 
@@ -124,17 +106,5 @@ public abstract class Command : ICommand {
         // how is PII protected: the name of the command, key, is not user definable
         TelemetryService.Instance.TrackMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed", 1);
         return true;
-    }
-
-    /// <summary>
-    /// https://stackoverflow.com/questions/5411694/get-all-inherited-classes-of-an-abstract-class
-    /// </summary>
-    public static ICollection<Command> GetDerivedClassesCollection() {
-        List<Command> objects = [];
-        foreach (Type type in typeof(Command).Assembly.GetTypes()
-            .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(Command)))) {
-            objects.Add((Command)Activator.CreateInstance(type)!);
-        }
-        return objects;
     }
 }
