@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using MCEControl;
 using MCEControl.Hooks;
@@ -86,6 +87,41 @@ public class HeadlessOperatorUiTests {
             Assert.False(HeadlessOperatorUi.IsRunning, "Stop must end the hosting state");
         }
         finally {
+            HeadlessOperatorUi.Stop();
+            HookManager.SuppressRealHooksForTesting = false;
+        }
+    }
+
+    [Fact]
+    public async Task Stop_StaysRunning_UntilPumpThreadActuallyExits() {
+        // Regression: Stop must not release its thread tracking before the pump thread has exited.
+        // Doing so reports IsRunning=false early and lets a concurrent Start spin up a second pump
+        // (two hook/overlay hosts fighting). Gate the pump's exit so it is provably still alive
+        // while Stop is in its Join, and assert IsRunning stays true across that window.
+        HookManager.SuppressRealHooksForTesting = true;
+        using ManualResetEventSlim exitGate = new(false);
+        HeadlessOperatorUi.PumpExitGateForTests = exitGate;
+        AppSettings settings = new() { EmergencyStopEnabled = true, CommandOverlayEnabled = false };
+        try {
+            HeadlessOperatorUi.Start(settings);
+            Assert.True(HeadlessOperatorUi.IsRunning);
+
+            // Stop signals the pump to exit, then Joins; the pump blocks in teardown on exitGate,
+            // so Stop cannot complete until we release it.
+            Task stopTask = Task.Run(HeadlessOperatorUi.Stop);
+
+            Task settled = await Task.WhenAny(stopTask, Task.Delay(TimeSpan.FromMilliseconds(500)));
+            Assert.NotSame(stopTask, settled);
+            Assert.True(HeadlessOperatorUi.IsRunning,
+                "IsRunning must stay true until the pump thread has actually exited");
+
+            exitGate.Set(); // let the pump thread finish
+            await stopTask.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.False(HeadlessOperatorUi.IsRunning, "IsRunning must be false after the pump exits");
+        }
+        finally {
+            exitGate.Set();
+            HeadlessOperatorUi.PumpExitGateForTests = null;
             HeadlessOperatorUi.Stop();
             HookManager.SuppressRealHooksForTesting = false;
         }

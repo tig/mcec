@@ -36,8 +36,17 @@ internal static class Program {
                      Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86
                  }) {
             string programFiles = Environment.GetFolderPath(folder);
-            if (!string.IsNullOrEmpty(programFiles) &&
-                path.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase)) {
+            if (string.IsNullOrEmpty(programFiles)) {
+                continue;
+            }
+
+            // Directory-boundary match, not a plain StartsWith: "C:\Program Files (x86)\..." has
+            // "C:\Program Files" as a string prefix, so a bare prefix test would report the x86
+            // install under the 64-bit root (and mangle the ConfigPath %AppData% redirect); and a
+            // sibling like "C:\Program FilesExtra\..." would falsely match. The path must equal the
+            // root or sit under it (root + separator).
+            if (path.Equals(programFiles, StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith(programFiles + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) {
                 return programFiles;
             }
         }

@@ -45,6 +45,15 @@ internal static class HeadlessOperatorUi {
     /// </summary>
     internal static Func<string, bool>? RearmPromptForTests { get; set; }
 
+    /// <summary>
+    /// TEST SEAM: when set, the pump thread blocks on this at the very end of its teardown, just
+    /// before the thread returns. Lets a test hold the pump provably alive to verify that
+    /// <see cref="Stop"/> keeps <see cref="IsRunning"/> true (and does not release its thread
+    /// tracking, which would let a concurrent <see cref="Start"/> spin up a rival pump) until the
+    /// thread has actually exited.
+    /// </summary>
+    internal static ManualResetEventSlim? PumpExitGateForTests { get; set; }
+
     /// <summary>True while the pump thread is hosting.</summary>
     internal static bool IsRunning {
         get {
@@ -95,10 +104,11 @@ internal static class HeadlessOperatorUi {
     /// background so a wedged loop can never hold the process open.
     /// </summary>
     public static void Stop() {
+        // Capture WITHOUT clearing: _thread stays set (so IsRunning stays true, and a concurrent
+        // Start is blocked from spinning up a rival pump) until the thread has actually exited.
         Thread? thread;
         lock (Gate) {
             thread = _thread;
-            _thread = null;
         }
         if (thread is null) {
             return;
@@ -115,8 +125,20 @@ internal static class HeadlessOperatorUi {
         catch (Exception ex) {
             Logger.Instance.Log4.Warn($"HeadlessOperatorUi: stopping pump thread: {ex.Message}");
         }
-        if (!thread.Join(TimeSpan.FromSeconds(3))) {
+
+        bool exited = thread.Join(TimeSpan.FromSeconds(3));
+        if (!exited) {
+            // Leave _thread set: a wedged pump is still alive (background, so it dies with the
+            // process), and recording it keeps a later Start from creating a second, rival host.
             Logger.Instance.Log4.Warn("HeadlessOperatorUi: pump thread did not exit within 3s; abandoned (background thread).");
+            return;
+        }
+        lock (Gate) {
+            // Only clear our own thread; a racing Stop that already joined-and-cleared, then a
+            // fresh Start, must not have its new thread dropped here.
+            if (ReferenceEquals(_thread, thread)) {
+                _thread = null;
+            }
         }
     }
 
@@ -172,6 +194,7 @@ internal static class HeadlessOperatorUi {
             _marshal = null;
             _context?.Dispose();
             _context = null;
+            PumpExitGateForTests?.Wait();
         }
     }
 

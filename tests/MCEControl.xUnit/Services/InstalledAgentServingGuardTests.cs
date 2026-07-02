@@ -35,6 +35,38 @@ public class InstalledAgentServingGuardTests {
     }
 
     [Fact]
+    public void GetProgramFilesRoot_X86Path_ReturnsX86Root_NotThe64BitPrefix() {
+        // "C:\Program Files (x86)\..." has "C:\Program Files" as a plain string prefix, so a
+        // StartsWith without a directory boundary would report the x86 install under the 64-bit
+        // root (and mangle the ConfigPath %AppData% redirect). The x86 root must win.
+        string x86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        Assert.False(string.IsNullOrEmpty(x86), "no 32-bit Program Files on this machine?");
+
+        string installed = Path.Combine(x86, "Kindel Systems", "MCEC") + Path.DirectorySeparatorChar;
+
+        Assert.Equal(x86, Program.GetProgramFilesRoot(installed));
+    }
+
+    [Fact]
+    public void GetProgramFilesRoot_PrefixSiblingDir_IsNotAMatch() {
+        // A directory whose name merely BEGINS with the root (no separator boundary) is a sibling,
+        // not a child: "C:\Program FilesExtra\..." is not installed under "C:\Program Files".
+        string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        Assert.False(string.IsNullOrEmpty(programFiles));
+
+        string sibling = programFiles + "Extra" + Path.DirectorySeparatorChar + "App" + Path.DirectorySeparatorChar;
+
+        Assert.Null(Program.GetProgramFilesRoot(sibling));
+    }
+
+    [Fact]
+    public void GetProgramFilesRoot_ExactRoot_Matches() {
+        string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+
+        Assert.Equal(programFiles, Program.GetProgramFilesRoot(programFiles));
+    }
+
+    [Fact]
     public void GetProgramFilesRoot_MatchIsCaseInsensitive() {
         string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         string installed = (programFiles + @"\MCEC\").ToUpperInvariant();
