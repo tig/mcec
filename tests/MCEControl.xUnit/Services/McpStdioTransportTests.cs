@@ -118,6 +118,7 @@ public class McpStdioTransportTests {
         }
         finally {
             release.Set();
+            reader.Eof(); // idempotent enough for cleanup: unblocks a loop leaked by a failed assert
         }
     }
 
