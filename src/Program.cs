@@ -189,6 +189,18 @@ internal static class Program {
     ///     its dispatch is intercepted in <see cref="Main" />.
     /// </summary>
     private static int RunCli(string[] args) {
+        // Viewer commands (help, agent-guide) default to an INTERACTIVE Terminal.Gui session in
+        // Terminal.Gui.Cli. That can never work here: mcec.exe is a WinExe sharing an attached
+        // console with a live shell, and the shell resumed reading input the moment the process
+        // launched (shells do not wait for GUI-subsystem exes), so a TUI would fight the shell
+        // for the same input queue while painting full-screen frames over its prompt. Force the
+        // headless --cat rendering instead; that output flows like normal console text.
+        if (args.Length > 0 &&
+            Array.Exists(ViewerAliases, v => string.Equals(v, args[0], StringComparison.OrdinalIgnoreCase)) &&
+            !Array.Exists(args, a => string.Equals(a, "--cat", StringComparison.OrdinalIgnoreCase))) {
+            args = [.. args, "--cat"];
+        }
+
         CliHost host = new(options => {
             options.ApplicationName = "mcec";
             options.Version = Application.ProductVersion;
@@ -199,6 +211,10 @@ internal static class Program {
         host.Registry.Register(new McpCommandMetadata());
         return host.RunAsync(args).GetAwaiter().GetResult();
     }
+
+    // The registered viewer commands, kept in sync with RunCli's registrations: any viewer added
+    // later needs the same forced-non-interactive treatment.
+    private static readonly string[] ViewerAliases = ["help", "agent-guide"];
 
     /// <summary>
     ///     Headless bootstrap for <c>mcp</c>/<c>--mcp</c>: loads settings and the command core through
