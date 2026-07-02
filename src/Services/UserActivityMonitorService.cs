@@ -245,7 +245,8 @@ public sealed class UserActivityMonitorService : IDisposable {
         Debug.Assert(_presencePresumedTimer == null);
         _presencePresumedTimer = new Timer();
         _presencePresumedTimer.Tick += ActivityPresumedTimerTick;
-        _presencePresumedTimer.Interval = DebounceTime;
+        // #203: DebounceTime is in seconds everywhere else in this class; Timer.Interval is milliseconds.
+        _presencePresumedTimer.Interval = DebounceTime * 1000;
     }
 
     private void StopPresencePresumedTimer() {
