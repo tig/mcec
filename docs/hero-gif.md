@@ -20,8 +20,11 @@ keyboard, and launches an app):
 pwsh -NoProfile -File scripts/Generate-HeroGif.ps1        # add -Config Release to use a Release build
 ```
 
-The script builds if needed, produces `docs/hero.gif`, and restores config afterward. Review the result;
-if it looks good, commit `docs/hero.gif`.
+The script rebuilds (so the version stamp matches the checkout), produces `docs/hero.gif`, and restores
+config afterward. Because the stamped version string appears in the recorded log window, status bar, and
+About box, the script refuses to record from any branch but `develop` (override with
+`-AllowNonDevelopBuild` when a branch build is deliberate). Review the result (including the log
+window's contents frame-by-frame; it is part of the shot) and if it looks good, commit `docs/hero.gif`.
 
 ## What the script does (and why)
 
