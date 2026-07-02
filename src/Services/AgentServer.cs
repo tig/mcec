@@ -51,7 +51,7 @@ public static class AgentServer {
     /// <see cref="Dispatch"/> (mirrors the dispatch delegate <see cref="RunStdioLoop"/> takes).
     /// Production leaves it null.
     /// </summary>
-    internal static Func<JsonObject, JsonObject?>? HttpDispatchOverride;
+    internal static volatile Func<JsonObject, JsonObject?>? HttpDispatchOverride;
 
     private static readonly object HttpLock = new();
     private static HttpListener? _listener;
@@ -955,6 +955,8 @@ public static class AgentServer {
             }
             buffer.Write(chunk, 0, read);
         }
+        // Unlike the StreamReader this replaced, GetString does not strip a leading BOM; a
+        // BOM-prefixed body now fails JSON parsing with a normal JSON-RPC parse error.
         body = encoding.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
         return true;
     }
