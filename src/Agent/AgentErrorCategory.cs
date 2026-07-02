@@ -23,6 +23,11 @@ public enum AgentErrorCategory {
     /// <summary>A selector matched nothing (no window/element).</summary>
     NoTarget,
 
+    /// <summary>The request itself was malformed or inapplicable — a client-supplied argument was
+    /// invalid (unknown action, oversized region, ill-formed endpoint) or cannot apply to the target.
+    /// Recovery is to FIX the arguments, not to retry the same call or broaden a selector (#191).</summary>
+    InvalidArgument,
+
     /// <summary>A screenshot was produced but detected as black/blank.</summary>
     CaptureBlank,
 

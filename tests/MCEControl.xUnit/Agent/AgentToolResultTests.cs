@@ -18,7 +18,7 @@ namespace MCEControl.xUnit.Agent;
 /// </summary>
 public class AgentToolResultTests {
     private static readonly HashSet<string> CategoryEnum = [
-        "timeout", "ambiguous-selector", "stale-element", "no-target",
+        "timeout", "ambiguous-selector", "stale-element", "no-target", "invalid-argument",
         "capture-blank", "focus", "elevation", "foreground", "internal",
     ];
 
@@ -81,6 +81,22 @@ public class AgentToolResultTests {
     }
 
     [Fact]
+    public void Failure_WithPartialResult_IncludesIt_DistinctFromLastObservation() {
+        // #206: a blank capture's own (suspect) payload rides in error.partialResult — the image the
+        // command paid to keep must not be discarded — while error.lastObservation stays the last
+        // GOOD state from a prior call.
+        JsonObject prior = new() { ["window"] = "About" };
+        JsonObject partial = new() { ["base64"] = "iVBORw0K", ["encoding"] = "png" };
+        JsonObject env = AgentToolResult
+            .Failure(new AgentError("frame-all-black", AgentErrorCategory.CaptureBlank, "blank frame", prior, partial))
+            .ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.Equal("About", env["error"]!["lastObservation"]!["window"]!.GetValue<string>());
+        Assert.Equal("iVBORw0K", env["error"]!["partialResult"]!["base64"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void Failure_WithLastObservation_IncludesIt() {
         JsonObject obs = new() { ["window"] = "About" };
         JsonObject env = AgentToolResult
@@ -116,6 +132,7 @@ public class AgentToolResultTests {
     [InlineData(AgentErrorCategory.AmbiguousSelector, "ambiguous-selector")]
     [InlineData(AgentErrorCategory.StaleElement, "stale-element")]
     [InlineData(AgentErrorCategory.NoTarget, "no-target")]
+    [InlineData(AgentErrorCategory.InvalidArgument, "invalid-argument")]
     [InlineData(AgentErrorCategory.CaptureBlank, "capture-blank")]
     [InlineData(AgentErrorCategory.Focus, "focus")]
     [InlineData(AgentErrorCategory.Elevation, "elevation")]

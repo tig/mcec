@@ -91,7 +91,8 @@ public class RecordCommand : WindowTargetingAgentCommand {
             string? sizeError = ScreenCapture.ValidateRegionSize(Width, Height);
             if (sizeError is not null) {
                 AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height} REJECTED — {sizeError}");
-                return FailWith(sizeError, code: "region-too-large", category: "no-target");
+                // invalid-argument (#191): the recovery is to shrink the request, not broaden a selector.
+                return FailWith(sizeError, code: "region-too-large", category: "invalid-argument");
             }
         }
 

@@ -125,6 +125,7 @@ public sealed class AgentToolResult {
             case "ambiguous-selector": category = AgentErrorCategory.AmbiguousSelector; return true;
             case "stale-element": category = AgentErrorCategory.StaleElement; return true;
             case "no-target": category = AgentErrorCategory.NoTarget; return true;
+            case "invalid-argument": category = AgentErrorCategory.InvalidArgument; return true;
             case "capture-blank": category = AgentErrorCategory.CaptureBlank; return true;
             case "focus": category = AgentErrorCategory.Focus; return true;
             case "elevation": category = AgentErrorCategory.Elevation; return true;

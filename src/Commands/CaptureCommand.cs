@@ -68,10 +68,12 @@ public class CaptureCommand : WindowTargetingAgentCommand {
     private bool CaptureRegion() {
         // SECURITY (#158): region dimensions are agent-controlled — reject oversized
         // requests BEFORE any bitmap/PNG/base64 allocation, with a diagnosable envelope.
+        // Category invalid-argument (#191): the recovery is to SHRINK the request, not to broaden
+        // a selector — no-target's documented recovery would send the agent the wrong way.
         string? sizeError = ScreenCapture.ValidateRegionSize(Width, Height);
         if (sizeError is not null) {
             AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height} REJECTED — {sizeError}");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, sizeError, "region-too-large", "no-target").ToJson());
+            Reply?.WriteLine(CommandResult.Fail(Cmd, sizeError, "region-too-large", "invalid-argument").ToJson());
             return false;
         }
 
