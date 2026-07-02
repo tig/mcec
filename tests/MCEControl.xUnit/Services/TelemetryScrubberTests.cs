@@ -147,6 +147,29 @@ public class TelemetryScrubberTests {
     }
 
     [Fact]
+    public void CreateScrubbedExceptionTelemetry_LongChain_TruncationPreservesRootCause() {
+        // 15-deep chain: 14 wrappers around a distinctive root cause. Truncation to the cap (10)
+        // must keep the deepest exception (the root cause), not silently drop it, and must say
+        // that something was omitted.
+        Exception ex = Thrown(new FileNotFoundException("ROOT-CAUSE: the actual failure"));
+        for (int i = 0; i < 14; i++) {
+            ex = Thrown(new InvalidOperationException($"wrapper {i}", ex));
+        }
+
+        ExceptionTelemetry telex = TelemetryScrubber.CreateScrubbedExceptionTelemetry(ex);
+
+        Assert.Equal(10, telex.ExceptionDetailsInfoList.Count);
+        // Outermost detail first, unchanged.
+        Assert.Equal(typeof(InvalidOperationException).FullName, telex.ExceptionDetailsInfoList[0].TypeName);
+        Assert.Contains("wrapper 13", telex.ExceptionDetailsInfoList[0].Message, StringComparison.Ordinal);
+        // The leaf (root cause) survives, marked as a truncated chain.
+        ExceptionDetailsInfo leaf = telex.ExceptionDetailsInfoList[^1];
+        Assert.Equal(typeof(FileNotFoundException).FullName, leaf.TypeName);
+        Assert.Contains("ROOT-CAUSE: the actual failure", leaf.Message, StringComparison.Ordinal);
+        Assert.Contains("omitted", leaf.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void GetScrubbedStackFrames_KeepsMethodNames_RedactsFileNames() {
         string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         Exception ex = Thrown(new InvalidOperationException("boom"));

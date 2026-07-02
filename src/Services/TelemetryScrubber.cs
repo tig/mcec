@@ -20,12 +20,24 @@ namespace MCEControl;
 /// <c>%USERPROFILE%</c> and the bare username, where it appears as a path segment, with
 /// <c>%USERNAME%</c> — preserving the rest of the message, exception types, and method names.
 /// </summary>
+/// <remarks>
+/// Accepted limitations (by design, to avoid over-redacting diagnostics): the username embedded
+/// inside a longer hyphenated/munged segment (e.g. worktree/cache artifacts like
+/// <c>C--Users-Tig-...</c>), DOS 8.3 short names for long usernames (e.g.
+/// <c>C:\Users\LONGUS~1</c>), and prose mentions outside a path context (e.g.
+/// <c>USERNAME=tig</c>) are not redacted.
+/// </remarks>
 public static class TelemetryScrubber {
     private const string UserProfileToken = "%USERPROFILE%";
     private const string UserNameToken = "%USERNAME%";
 
-    // Cap the inner-exception chain so a pathological exception graph can't bloat the payload.
+    // Cap on the number of exception details shipped. When a chain exceeds this, the outermost
+    // details plus the deepest one (the root cause) are kept — see CreateScrubbedExceptionTelemetry.
     private const int MaxExceptionChainLength = 10;
+
+    // Hard safety bound when walking a pathological exception graph (e.g. huge AggregateException
+    // fan-out) so flattening always terminates quickly.
+    private const int MaxFlattenedChainLength = 128;
 
     /// <summary>
     /// Scrubs user-identifying paths for the current environment
@@ -78,8 +90,40 @@ public static class TelemetryScrubber {
     public static ExceptionTelemetry CreateScrubbedExceptionTelemetry(Exception ex) {
         ArgumentNullException.ThrowIfNull(ex);
 
-        var details = new List<ExceptionDetailsInfo>();
-        AddExceptionDetails(details, ex, outerId: 0);
+        var chain = new List<(Exception Exception, int ParentIndex)>();
+        FlattenExceptionChain(chain, ex, parentIndex: -1);
+
+        // When the chain exceeds the cap, keep the outermost details plus the deepest one: the
+        // leaf is the root cause and must survive truncation (PR #180 review). The kept leaf is
+        // marked so it is obvious that intermediate wrappers were dropped.
+        List<int> keptIndexes;
+        int omitted = 0;
+        if (chain.Count <= MaxExceptionChainLength) {
+            keptIndexes = [.. Enumerable.Range(0, chain.Count)];
+        }
+        else {
+            keptIndexes = [.. Enumerable.Range(0, MaxExceptionChainLength - 1), chain.Count - 1];
+            omitted = chain.Count - MaxExceptionChainLength;
+        }
+
+        var idByIndex = new Dictionary<int, int>();
+        for (int i = 0; i < keptIndexes.Count; i++) {
+            idByIndex[keptIndexes[i]] = i + 1;
+        }
+
+        var details = new List<ExceptionDetailsInfo>(keptIndexes.Count);
+        foreach (int index in keptIndexes) {
+            (Exception e, int parentIndex) = chain[index];
+            int id = idByIndex[index];
+            // If this detail's parent was truncated away, chain it to the previous kept detail
+            // so it stays attached to the tree.
+            int outerId = parentIndex < 0 ? 0
+                : idByIndex.TryGetValue(parentIndex, out int parentId) ? parentId : id - 1;
+            string? messagePrefix = omitted > 0 && index == chain.Count - 1
+                ? $"[{omitted} inner exception(s) omitted] "
+                : null;
+            details.Add(ToDetailsInfo(e, id, outerId, messagePrefix));
+        }
 
         var frames = GetScrubbedStackFrames(ex);
         string topMethod = frames.Count > 0 ? frames[0].Method : "<unknown>";
@@ -113,25 +157,30 @@ public static class TelemetryScrubber {
         return result;
     }
 
-    private static void AddExceptionDetails(List<ExceptionDetailsInfo> details, Exception ex, int outerId) {
-        if (details.Count >= MaxExceptionChainLength) {
+    /// <summary>
+    /// Depth-first flattening of the exception tree (following <see cref="AggregateException"/>
+    /// inners and <see cref="Exception.InnerException"/>) into visitation order with parent links.
+    /// </summary>
+    private static void FlattenExceptionChain(List<(Exception Exception, int ParentIndex)> chain,
+        Exception ex, int parentIndex) {
+        if (chain.Count >= MaxFlattenedChainLength) {
             return;
         }
 
-        int id = details.Count + 1;
-        details.Add(ToDetailsInfo(ex, id, outerId));
+        int index = chain.Count;
+        chain.Add((ex, parentIndex));
 
         if (ex is AggregateException aggregate) {
             foreach (Exception inner in aggregate.InnerExceptions) {
-                AddExceptionDetails(details, inner, id);
+                FlattenExceptionChain(chain, inner, index);
             }
         }
         else if (ex.InnerException != null) {
-            AddExceptionDetails(details, ex.InnerException, id);
+            FlattenExceptionChain(chain, ex.InnerException, index);
         }
     }
 
-    private static ExceptionDetailsInfo ToDetailsInfo(Exception ex, int id, int outerId) {
+    private static ExceptionDetailsInfo ToDetailsInfo(Exception ex, int id, int outerId, string? messagePrefix = null) {
         var frames = GetScrubbedStackFrames(ex);
         var parsedStack = new List<AiStackFrame>(frames.Count);
         for (int level = 0; level < frames.Count; level++) {
@@ -142,6 +191,10 @@ public static class TelemetryScrubber {
         string message = ScrubUserPaths(ex.Message);
         if (string.IsNullOrWhiteSpace(message)) {
             message = "n/a";
+        }
+
+        if (messagePrefix != null) {
+            message = messagePrefix + message;
         }
 
         return new ExceptionDetailsInfo(id, outerId, ex.GetType().FullName ?? ex.GetType().Name, message,
