@@ -27,7 +27,7 @@ public class InvokeCommand : WindowTargetingAgentCommand {
     protected override string? AuditDetails() =>
         $"invoke action={Action} by={By} value='{Value}' window handle={Handle} title='{Window}' process='{Process}'";
 
-    protected override bool ExecuteCore(WindowInfo? target) {
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr h = new IntPtr(target!.Handle);
         UiaInvokeResult outcome = UiaService.Invoke(h, By, Value, Action, Text);
         if (outcome == UiaInvokeResult.Ok) {
@@ -37,11 +37,9 @@ public class InvokeCommand : WindowTargetingAgentCommand {
                 ["by"] = By,
                 ["value"] = Value,
             };
-            Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
-            return true;
+            return CommandResult.Ok(Cmd, data);
         }
-        Reply?.WriteLine(FailureFor(outcome).ToJson());
-        return false;
+        return FailureFor(outcome);
     }
 
     /// <summary>

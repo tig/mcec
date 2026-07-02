@@ -31,10 +31,11 @@ public class LaunchCommand : AgentCommand {
     public LaunchCommand() { }
 
     // Audits after path validation (below), with the effective timeout — not via AuditDetails.
-    protected override bool ExecuteCore() {
+    protected override CommandResult ExecuteCore() {
         if (string.IsNullOrWhiteSpace(Path)) {
-            Reply?.WriteLine(CommandResult.Fail(Cmd, "launch requires a non-empty 'path' (executable, shell: protocol, or .lnk).").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd,
+                "launch requires a non-empty 'path' (executable, shell: protocol, or .lnk).",
+                "launch-path-missing", "invalid-argument");
         }
 
         int timeout = Timeout > 0 ? Timeout : 5000;
@@ -97,13 +98,11 @@ public class LaunchCommand : AgentCommand {
                 data["note"] = "Window did not appear within timeout; use query/process or wait-for by process to locate later.";
             }
 
-            Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
-            return true;
+            return CommandResult.Ok(Cmd, data);
         }
         catch (Exception ex) {
             Logger.Instance.Log4.Error($"{GetType().Name}: launch failed for '{Path}': {ex.Message}");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, $"Launch failed: {ex.Message}", "launch-failed", "internal").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, $"Launch failed: {ex.Message}", "launch-failed", "internal");
         }
     }
 

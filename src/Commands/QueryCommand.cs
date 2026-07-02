@@ -25,12 +25,7 @@ public class QueryCommand : WindowTargetingAgentCommand {
     protected override string? AuditDetails() =>
         $"query window handle={Handle} title='{Window}' process='{Process}' class='{ClassName}' fg={Foreground} maxDepth={MaxDepth} maxNodes={MaxNodes}";
 
-    protected override bool OnWindowNotFound() {
-        Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window", "window-not-found", "no-target").ToJson());
-        return false;
-    }
-
-    protected override bool ExecuteCore(WindowInfo? target) {
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr h = new IntPtr(target!.Handle);
         UiaTreeResult tree = UiaService.DumpTree(h, MaxDepth, MaxNodes);
         JsonObject data = new() {
@@ -43,7 +38,6 @@ public class QueryCommand : WindowTargetingAgentCommand {
         if (tree.Truncated) {
             res.Warn("tree-truncated", $"UIA tree exceeded the {MaxNodes}-node cap and was clipped; raise maxNodes or narrow the target for a complete tree.");
         }
-        Reply?.WriteLine(res.ToJson());
-        return true;
+        return res;
     }
 }

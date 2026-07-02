@@ -144,54 +144,29 @@ public class AgentToolResultTests {
         Assert.Contains(wire, CategoryEnum);
     }
 
-    [Theory]
-    [InlineData("No matching window", "no-target", "window-not-found")]
-    [InlineData("Invoke failed (element not found or pattern unsupported)", "no-target", "element-not-found")]
-    [InlineData("Capture failed: boom", "internal", "capture-exception")]
-    [InlineData("Agent commands are disabled (AgentCommandsEnabled=false).", "internal", "agent-commands-disabled")]
-    [InlineData("command produced no output", "internal", "no-output")]
-    [InlineData("something nobody mapped", "internal", "unhandled")]
-    public void Categorize_MapsKnownErrorStrings(string message, string category, string code) {
-        AgentError error = AgentToolResult.Categorize("invoke", message);
+    // #206: the prose-sniffing Categorize shim is GONE. The envelope is built from the CommandResult
+    // OBJECT the command returned; the tests below pin codes/categories — never error-message text.
 
-        Assert.Equal(category, error.CategoryWire);
-        Assert.Equal(code, error.Code);
-        Assert.Equal(message, error.Detail);
+    [Fact]
+    public void FromCommandResult_Success_MapsDataToResult_SameInstance() {
+        // The object flows through: result IS the command's Data (no serialize → parse → clone chain,
+        // which used to materialize a capture's base64 PNG three to four times).
+        JsonObject data = new() { ["tree"] = "x" };
+        CommandResult command = CommandResult.Ok("query", data);
+
+        AgentToolResult env = AgentToolResult.FromCommandResult(command, "query");
+
+        Assert.True(env.Ok);
+        Assert.Same(data, env.Result);
+        AssertValidEnvelope(env.ToJsonObject());
     }
 
     [Fact]
-    public void FromLegacy_Success_MapsDataToResult() {
-        JsonObject legacy = CommandResult.Ok("query", new JsonObject { ["tree"] = "x" }).ToJsonObject();
+    public void FromCommandResult_Failure_CarriesStructuredCodeAndCategory() {
+        CommandResult command = CommandResult
+            .Fail("capture", "Captured frame is blank (a flat fill).", "frame-all-black", "capture-blank");
 
-        JsonObject env = AgentToolResult.FromLegacy(legacy, "query").ToJsonObject();
-
-        AssertValidEnvelope(env);
-        Assert.True(env["ok"]!.GetValue<bool>());
-        Assert.Equal("x", env["result"]!["tree"]!.GetValue<string>());
-    }
-
-    [Fact]
-    public void FromLegacy_Failure_MapsErrorViaTaxonomy() {
-        JsonObject legacy = CommandResult.Fail("capture", "No matching window").ToJsonObject();
-
-        JsonObject env = AgentToolResult.FromLegacy(legacy, "capture").ToJsonObject();
-
-        AssertValidEnvelope(env);
-        Assert.False(env["ok"]!.GetValue<bool>());
-        Assert.Equal("no-target", env["error"]!["category"]!.GetValue<string>());
-        Assert.Equal("window-not-found", env["error"]!["code"]!.GetValue<string>());
-    }
-
-    [Fact]
-    public void FromLegacy_Failure_PrefersStructuredCategoryAndCode() {
-        // A blank window capture writes a structured Fail (code + category), not a bare string. The
-        // translator must preserve those so an agent takes the documented capture-blank recovery path
-        // rather than seeing internal/unhandled (Codex P2 on #171).
-        JsonObject legacy = CommandResult
-            .Fail("capture", "Captured frame is blank (a flat fill).", "frame-all-black", "capture-blank")
-            .ToJsonObject();
-
-        JsonObject env = AgentToolResult.FromLegacy(legacy, "capture").ToJsonObject();
+        JsonObject env = AgentToolResult.FromCommandResult(command, "capture").ToJsonObject();
 
         AssertValidEnvelope(env);
         Assert.False(env["ok"]!.GetValue<bool>());
@@ -200,43 +175,70 @@ public class AgentToolResultTests {
     }
 
     [Fact]
-    public void FromLegacy_Failure_UnknownStructuredCategory_FallsBackToTaxonomy() {
-        // If a command ever emits a category outside the closed set, don't propagate it — fall back to
-        // free-text categorization so error.category always validates against the schema enum.
-        JsonObject legacy = CommandResult
-            .Fail("capture", "No matching window", "weird-code", "not-a-category")
-            .ToJsonObject();
+    public void FromCommandResult_Failure_KeptData_RidesInPartialResult() {
+        // A blank capture deliberately keeps the (suspect) PNG in its failure Data — the envelope must
+        // carry it in error.partialResult rather than discarding the image the command paid to keep.
+        JsonObject kept = new() { ["base64"] = "iVBORw0K", ["encoding"] = "png" };
+        CommandResult command = CommandResult
+            .Fail("capture", "Captured frame is blank.", "frame-all-black", "capture-blank", kept);
 
-        JsonObject env = AgentToolResult.FromLegacy(legacy, "capture").ToJsonObject();
+        JsonObject env = AgentToolResult.FromCommandResult(command, "capture").ToJsonObject();
 
         AssertValidEnvelope(env);
-        Assert.Equal("no-target", env["error"]!["category"]!.GetValue<string>());
-        Assert.Equal("window-not-found", env["error"]!["code"]!.GetValue<string>());
+        Assert.False(env.ContainsKey("result"));
+        Assert.Equal("iVBORw0K", env["error"]!["partialResult"]!["base64"]!.GetValue<string>());
     }
 
     [Fact]
-    public void FromLegacy_CarriesWarnings_OnSuccessAndFailure() {
-        JsonObject okLegacy = CommandResult.Ok("query", new JsonObject { ["truncated"] = true })
-            .Warn("tree-truncated", "hit the node cap").ToJsonObject();
-        JsonObject okEnv = AgentToolResult.FromLegacy(okLegacy, "query").ToJsonObject();
+    public void FromCommandResult_Failure_WithoutCode_FallsBackToUnhandledInternal() {
+        // A bare-string Fail (which AgentCommand's template also normalizes) must still yield a
+        // categorical envelope — never a prose-derived one.
+        CommandResult command = CommandResult.Fail("capture", "something nobody coded");
+
+        JsonObject env = AgentToolResult.FromCommandResult(command, "capture").ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.Equal("unhandled", env["error"]!["code"]!.GetValue<string>());
+        Assert.Equal("internal", env["error"]!["category"]!.GetValue<string>());
+        Assert.Equal("something nobody coded", env["error"]!["detail"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void FromCommandResult_Failure_UnknownCategory_FallsBackToInternal_KeepsCode() {
+        // If a command ever emits a category outside the closed set, don't propagate it —
+        // error.category must always validate against the schema enum. The (open-set) code survives.
+        CommandResult command = CommandResult.Fail("capture", "No matching window", "weird-code", "not-a-category");
+
+        JsonObject env = AgentToolResult.FromCommandResult(command, "capture").ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.Equal("internal", env["error"]!["category"]!.GetValue<string>());
+        Assert.Equal("weird-code", env["error"]!["code"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void FromCommandResult_CarriesWarnings_OnSuccessAndFailure() {
+        CommandResult okCommand = CommandResult.Ok("query", new JsonObject { ["truncated"] = true })
+            .Warn("tree-truncated", "hit the node cap");
+        JsonObject okEnv = AgentToolResult.FromCommandResult(okCommand, "query").ToJsonObject();
         AssertValidEnvelope(okEnv);
         Assert.Equal("tree-truncated", okEnv["warnings"]![0]!["code"]!.GetValue<string>());
 
-        JsonObject failLegacy = CommandResult
+        CommandResult failCommand = CommandResult
             .Fail("capture", "Captured frame is blank.", "frame-uniform", "capture-blank")
-            .Warn("capture-fallback", "PrintWindow refused; used an on-screen blit").ToJsonObject();
-        JsonObject failEnv = AgentToolResult.FromLegacy(failLegacy, "capture").ToJsonObject();
+            .Warn("capture-fallback", "PrintWindow refused; used an on-screen blit");
+        JsonObject failEnv = AgentToolResult.FromCommandResult(failCommand, "capture").ToJsonObject();
         AssertValidEnvelope(failEnv);
         Assert.Equal("capture-fallback", failEnv["warnings"]![0]!["code"]!.GetValue<string>());
     }
 
     [Fact]
-    public void FromLegacy_WaitForMiss_BecomesTimeoutFailure() {
-        // FindCommand writes Ok{found:false} when a wait-for exhausts its timeout. An agent branches on
+    public void FromCommandResult_WaitForMiss_BecomesTimeoutFailure() {
+        // FindCommand returns Ok{found:false} when a wait-for exhausts its timeout. An agent branches on
         // `ok`, so that must surface as a timeout failure, not ok:true (Codex P2 on #115).
-        JsonObject legacy = CommandResult.Ok("wait-for", new JsonObject { ["found"] = false, ["element"] = null }).ToJsonObject();
+        CommandResult command = CommandResult.Ok("wait-for", new JsonObject { ["found"] = false, ["element"] = null });
 
-        JsonObject env = AgentToolResult.FromLegacy(legacy, "wait-for").ToJsonObject();
+        JsonObject env = AgentToolResult.FromCommandResult(command, "wait-for").ToJsonObject();
 
         AssertValidEnvelope(env);
         Assert.False(env["ok"]!.GetValue<bool>());
@@ -245,11 +247,11 @@ public class AgentToolResultTests {
     }
 
     [Fact]
-    public void FromLegacy_WaitForHit_StaysSuccess() {
-        JsonObject legacy = CommandResult.Ok("wait-for",
-            new JsonObject { ["found"] = true, ["element"] = new JsonObject { ["name"] = "OK" } }).ToJsonObject();
+    public void FromCommandResult_WaitForHit_StaysSuccess() {
+        CommandResult command = CommandResult.Ok("wait-for",
+            new JsonObject { ["found"] = true, ["element"] = new JsonObject { ["name"] = "OK" } });
 
-        JsonObject env = AgentToolResult.FromLegacy(legacy, "wait-for").ToJsonObject();
+        JsonObject env = AgentToolResult.FromCommandResult(command, "wait-for").ToJsonObject();
 
         AssertValidEnvelope(env);
         Assert.True(env["ok"]!.GetValue<bool>());
@@ -257,11 +259,11 @@ public class AgentToolResultTests {
     }
 
     [Fact]
-    public void FromLegacy_FindMiss_StaysSuccess() {
+    public void FromCommandResult_FindMiss_StaysSuccess() {
         // A one-shot `find` miss is not an error ("a miss is not an error"); only a timed-out wait-for is.
-        JsonObject legacy = CommandResult.Ok("find", new JsonObject { ["found"] = false }).ToJsonObject();
+        CommandResult command = CommandResult.Ok("find", new JsonObject { ["found"] = false });
 
-        JsonObject env = AgentToolResult.FromLegacy(legacy, "find").ToJsonObject();
+        JsonObject env = AgentToolResult.FromCommandResult(command, "find").ToJsonObject();
 
         AssertValidEnvelope(env);
         Assert.True(env["ok"]!.GetValue<bool>());
@@ -269,11 +271,11 @@ public class AgentToolResultTests {
     }
 
     [Fact]
-    public void FromLegacy_Failure_AttachesSessionIdAndPriorObservation() {
-        JsonObject legacy = CommandResult.Fail("invoke", "No matching window").ToJsonObject();
+    public void FromCommandResult_Failure_AttachesSessionIdAndPriorObservation() {
+        CommandResult command = CommandResult.Fail("invoke", "No matching window", "window-not-found", "no-target");
         JsonObject prior = new() { ["window"] = "About" };
 
-        JsonObject env = AgentToolResult.FromLegacy(legacy, "invoke", "s-1234", prior).ToJsonObject();
+        JsonObject env = AgentToolResult.FromCommandResult(command, "invoke", "s-1234", prior).ToJsonObject();
 
         AssertValidEnvelope(env);
         Assert.Equal("s-1234", env["sessionId"]!.GetValue<string>());

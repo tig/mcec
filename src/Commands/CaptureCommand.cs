@@ -47,25 +47,23 @@ public class CaptureCommand : WindowTargetingAgentCommand {
     // which fails as window-not-found) does.
     protected override bool RequiresWindowTarget => !IsRegionCapture;
 
-    protected override bool OnWindowNotFound() {
+    protected override CommandResult OnWindowNotFound() {
         AgentRuntime.Audit(Cmd, "no matching window");
-        Reply?.WriteLine(CommandResult.Fail(Cmd, "No matching window", "window-not-found", "no-target").ToJson());
-        return false;
+        return base.OnWindowNotFound();
     }
 
-    protected override bool ExecuteCore(WindowInfo? target) {
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
         try {
             return target is null ? CaptureRegion() : CaptureWindow(target);
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"{GetType().Name}: Capture failed: {e.Message}");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, $"Capture failed: {e.Message}").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, $"Capture failed: {e.Message}", "capture-exception", "internal");
         }
     }
 
     /// <summary>The explicit-region path (no window was required or resolved).</summary>
-    private bool CaptureRegion() {
+    private CommandResult CaptureRegion() {
         // SECURITY (#158): region dimensions are agent-controlled — reject oversized
         // requests BEFORE any bitmap/PNG/base64 allocation, with a diagnosable envelope.
         // Category invalid-argument (#191): the recovery is to SHRINK the request, not to broaden
@@ -73,8 +71,7 @@ public class CaptureCommand : WindowTargetingAgentCommand {
         string? sizeError = ScreenCapture.ValidateRegionSize(Width, Height);
         if (sizeError is not null) {
             AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height} REJECTED — {sizeError}");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, sizeError, "region-too-large", "invalid-argument").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, sizeError, "region-too-large", "invalid-argument");
         }
 
         AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height}");
@@ -96,12 +93,11 @@ public class CaptureCommand : WindowTargetingAgentCommand {
         if (regionCap.Stats.IsBlank) {
             regionRes.Warn("capture-blank", "Captured region is blank (a flat fill); it may be off-screen or genuinely empty.");
         }
-        Reply?.WriteLine(regionRes.ToJson());
-        return true;
+        return regionRes;
     }
 
     /// <summary>The resolved-window path.</summary>
-    private bool CaptureWindow(WindowInfo win) {
+    private CommandResult CaptureWindow(WindowInfo win) {
         AgentRuntime.Audit(Cmd, $"window 0x{win.Handle:X} \"{win.Title}\" ({win.ProcessName})");
 
         CaptureResult cap = ScreenCapture.CaptureWindow(new IntPtr(win.Handle));
@@ -118,10 +114,9 @@ public class CaptureCommand : WindowTargetingAgentCommand {
         WriteFileIfRequested(cap.Png, data);
 
         // A blank window frame is a hard observation failure: don't return a silent bad image.
-        // The PNG stays in `data` (so the agent still sees what was grabbed and it can serve as the
-        // contract's lastObservation), but the result is flagged capture-blank so the agent branches.
+        // The PNG stays in `data` (carried into the envelope's error.partialResult, #206 — the agent
+        // still sees what was grabbed), and the result is flagged capture-blank so the agent branches.
         CommandResult res;
-        bool ok;
         if (cap.Stats.IsBlank) {
             string code = cap.Stats.DominantIsDark ? "frame-all-black" : "frame-uniform";
             string detail = cap.UsedFallback
@@ -129,17 +124,14 @@ public class CaptureCommand : WindowTargetingAgentCommand {
                 : "Captured frame is blank (a flat fill); the window may be minimized, cloaked, or rendering off-screen.";
             AgentRuntime.Audit(Cmd, $"blank frame ({code}, dominant {cap.Stats.DominantFraction:P0}, fallback={cap.UsedFallback})");
             res = CommandResult.Fail(Cmd, detail, code, "capture-blank", data);
-            ok = false;
         }
         else {
             res = CommandResult.Ok(Cmd, data);
-            ok = true;
         }
         if (cap.UsedFallback) {
             res.Warn("capture-fallback", "PrintWindow was refused; used an on-screen blit, which returns black for composited/occluded surfaces and cannot see windows behind others.");
         }
-        Reply?.WriteLine(res.ToJson());
-        return ok;
+        return res;
     }
 
     /// <summary>Serializes the blank-frame analysis so an agent can see why a capture was flagged.</summary>

@@ -26,7 +26,7 @@ public class DisplaysCommand : AgentCommand {
 
     protected override string? AuditDetails() => "displays";
 
-    protected override bool ExecuteCore() {
+    protected override CommandResult ExecuteCore() {
         JsonArray displays = [];
         Screen[] screens = Screen.AllScreens;
         for (int i = 0; i < screens.Length; i++) {
@@ -48,8 +48,7 @@ public class DisplaysCommand : AgentCommand {
             ["virtualBounds"] = RectJson(SystemInformation.VirtualScreen),
             ["displays"] = displays,
         };
-        Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
-        return true;
+        return CommandResult.Ok(Cmd, data);
     }
 
     /// <summary>

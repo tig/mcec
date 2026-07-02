@@ -54,7 +54,7 @@ public class RecordCommand : WindowTargetingAgentCommand {
     // the region-vs-window branch and its distinct error/audit shapes), not in the base template.
     protected override bool RequiresWindowTarget => false;
 
-    protected override bool ExecuteCore(WindowInfo? target) {
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
         // Default the action: `oneshot` when a duration is given, else `start`.
         string action = string.IsNullOrWhiteSpace(Action)
             ? (DurationMs > 0 ? "oneshot" : "start")
@@ -65,13 +65,13 @@ public class RecordCommand : WindowTargetingAgentCommand {
                 "stop" => DoStop(),
                 "start" => DoStart(oneshot: false),
                 "oneshot" => DoStart(oneshot: true),
-                _ => FailWith($"Unknown record action '{action}'. Use start, stop, or oneshot."),
+                _ => FailWith($"Unknown record action '{action}'. Use start, stop, or oneshot.",
+                    code: "record-action-unknown", category: "invalid-argument"),
             };
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"{GetType().Name}: record failed: {e.Message}");
-            Reply?.WriteLine(CommandResult.Fail(Cmd, $"Record failed: {e.Message}").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, $"Record failed: {e.Message}", "record-exception", "internal");
         }
     }
 
@@ -79,9 +79,12 @@ public class RecordCommand : WindowTargetingAgentCommand {
     private bool IsRegionTarget => Width > 0 && Height > 0 && !HasWindowTarget;
 
     /// <summary>Starts a recording; for a one-shot, also waits the duration and stops/encodes/writes.</summary>
-    private bool DoStart(bool oneshot) {
+    private CommandResult DoStart(bool oneshot) {
         if (GifRecorder.IsRecording) {
-            return FailWith("A recording is already in progress. Stop it first (action=stop).");
+            // invalid-argument: the request cannot apply in the current state — stop the active
+            // recording first; retrying the same start unchanged will keep failing.
+            return FailWith("A recording is already in progress. Stop it first (action=stop).",
+                code: "recording-in-progress", category: "invalid-argument");
         }
 
         // SECURITY (#158): an explicit record region feeds the same CaptureRegionBitmap as
@@ -101,7 +104,7 @@ public class RecordCommand : WindowTargetingAgentCommand {
         Func<Bitmap>? grab = BuildGrabber(out JsonNode? target, out string? error);
         if (grab is null) {
             AgentRuntime.Audit(Cmd, error ?? "no matching window");
-            return FailWith(error ?? "No matching window");
+            return FailWith(error ?? "No matching window", code: "window-not-found", category: "no-target");
         }
 
         AgentRuntime.Audit(Cmd, $"start {DescribeTarget(target)} fps={limits.Fps} oneshot={oneshot} durationMs={(oneshot ? limits.LoopDurationMs : 0)}");
@@ -125,8 +128,7 @@ public class RecordCommand : WindowTargetingAgentCommand {
             if (discardedUnfetched) {
                 result.Warn(DiscardedWarningCode, DiscardedWarningDetail);
             }
-            Reply?.WriteLine(result.ToJson());
-            return true;
+            return result;
         }
 
         // One-shot: wait for the bounded loop to finish (it auto-stops at loopDurationMs), with a small
@@ -209,15 +211,18 @@ public class RecordCommand : WindowTargetingAgentCommand {
     /// encodes the GIF, writes it to disk, and replies metadata. <paramref name="warnDiscardedUnfetched"/>
     /// is set by the oneshot path when its start discarded an unfetched auto-stopped GIF, so the
     /// warning surfaces on the oneshot's single (stop-produced) reply.</summary>
-    private bool DoStop(bool warnDiscardedUnfetched = false) {
+    private CommandResult DoStop(bool warnDiscardedUnfetched = false) {
         RecordingResult? result = GifRecorder.Stop();
         if (result is null) {
-            return FailWith("No recording is in progress or awaiting fetch.", warnDiscardedUnfetched);
+            // invalid-argument: there is nothing to stop/fetch — start a recording first.
+            return FailWith("No recording is in progress or awaiting fetch.", warnDiscardedUnfetched,
+                code: "no-recording", category: "invalid-argument");
         }
 
         if (result.Frames == 0 || result.Gif.Length == 0) {
             AgentRuntime.Audit(Cmd, $"stop — no output ({result.Error})");
-            return FailWith(result.Error ?? "Recording produced no frames.", warnDiscardedUnfetched);
+            return FailWith(result.Error ?? "Recording produced no frames.", warnDiscardedUnfetched,
+                code: "record-no-frames", category: "internal");
         }
 
         string path = string.IsNullOrEmpty(File)
@@ -245,7 +250,8 @@ public class RecordCommand : WindowTargetingAgentCommand {
             // is no usable output — report failure rather than success-with-fileError.
             Logger.Instance.Log4.Error($"{GetType().Name}: could not write GIF to '{path}': {e.Message}");
             AgentRuntime.Audit(Cmd, $"stop — encode ok ({result.Frames} frames) but write failed: {e.Message}");
-            return FailWith($"Recorded {result.Frames} frames but could not write GIF to '{path}': {e.Message}", warnDiscardedUnfetched);
+            return FailWith($"Recorded {result.Frames} frames but could not write GIF to '{path}': {e.Message}",
+                warnDiscardedUnfetched, code: "record-write-failed", category: "internal");
         }
 
         data["file"] = path;
@@ -254,22 +260,19 @@ public class RecordCommand : WindowTargetingAgentCommand {
         if (warnDiscardedUnfetched) {
             ok.Warn(DiscardedWarningCode, DiscardedWarningDetail);
         }
-        Reply?.WriteLine(ok.ToJson());
-        return true;
+        return ok;
     }
 
-    /// <summary>Writes a failure envelope (with the structured code/category taxonomy when given);
-    /// the discard warning still rides along when set — warnings are valid on failure too, and the
-    /// discard already happened regardless of this call's outcome.</summary>
-    private bool FailWith(string error, bool warnDiscardedUnfetched = false, string? code = null, string? category = null) {
-        CommandResult result = code is not null && category is not null
-            ? CommandResult.Fail(Cmd, error, code, category)
-            : CommandResult.Fail(Cmd, error);
+    /// <summary>Builds a failure result carrying the structured code/category taxonomy (#206 —
+    /// mandatory for every record failure); the discard warning still rides along when set —
+    /// warnings are valid on failure too, and the discard already happened regardless of this
+    /// call's outcome.</summary>
+    private CommandResult FailWith(string error, bool warnDiscardedUnfetched = false, string? code = null, string? category = null) {
+        CommandResult result = CommandResult.Fail(Cmd, error, code ?? "unhandled", category ?? "internal");
         if (warnDiscardedUnfetched) {
             result.Warn(DiscardedWarningCode, DiscardedWarningDetail);
         }
-        Reply?.WriteLine(result.ToJson());
-        return false;
+        return result;
     }
 
     private static int Clamp(int value, int min, int max) => Math.Max(min, Math.Min(max, value));

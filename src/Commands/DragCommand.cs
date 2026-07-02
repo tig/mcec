@@ -49,16 +49,16 @@ public class DragCommand : WindowTargetingAgentCommand {
     // A window is only needed to resolve element endpoints; a pure coordinate drag needs none.
     protected override bool RequiresWindowTarget => !string.IsNullOrEmpty(FromValue) || !string.IsNullOrEmpty(ToValue);
 
-    protected override bool ExecuteCore(WindowInfo? target) {
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr hwnd = target is null ? IntPtr.Zero : new IntPtr(target.Handle);
 
+        // Endpoint misses are element lookups, so they carry the same element-not-found / no-target
+        // taxonomy as click/invoke (#206) — the recovery (wait-for/re-find the element) is identical.
         if (!TryResolvePoint(hwnd, FromBy, FromValue, FromX, FromY, out (int X, int Y) from, out string? fromError)) {
-            Reply?.WriteLine(CommandResult.Fail(Cmd, $"Drag start: {fromError}").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, $"Drag start: {fromError}", "element-not-found", "no-target");
         }
         if (!TryResolvePoint(hwnd, ToBy, ToValue, ToX, ToY, out (int X, int Y) to, out string? toError)) {
-            Reply?.WriteLine(CommandResult.Fail(Cmd, $"Drag end: {toError}").ToJson());
-            return false;
+            return CommandResult.Fail(Cmd, $"Drag end: {toError}", "element-not-found", "no-target");
         }
 
         List<(int X, int Y)> waypoints = [from];
@@ -73,8 +73,7 @@ public class DragCommand : WindowTargetingAgentCommand {
             ["to"] = new JsonArray { to.X, to.Y },
             ["points"] = waypoints.Count,
         };
-        Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
-        return true;
+        return CommandResult.Ok(Cmd, data);
     }
 
     /// <summary>

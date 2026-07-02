@@ -32,7 +32,7 @@ public class FindCommand : WindowTargetingAgentCommand {
     protected override string? AuditDetails() =>
         $"find by={By} value='{Value}' timeout={EffectiveTimeout} window handle={Handle} title='{Window}' process='{Process}'";
 
-    protected override bool ExecuteCore(WindowInfo? target) {
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr h = new IntPtr(target!.Handle);
         UiaElementInfo? info = UiaService.Find(h, By, Value, EffectiveTimeout);
         bool found = info is not null;
@@ -43,7 +43,6 @@ public class FindCommand : WindowTargetingAgentCommand {
             // that establishes the current control feeds error.lastObservation for a later failing action).
             ["window"] = target.ToJsonObject(),
         };
-        Reply?.WriteLine(CommandResult.Ok(Cmd, data).ToJson());
-        return true;
+        return CommandResult.Ok(Cmd, data);
     }
 }

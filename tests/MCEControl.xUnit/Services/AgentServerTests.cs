@@ -528,6 +528,52 @@ public class AgentServerTests {
         }
     }
 
+    // --- #206: RunAgentCommand consumes the CommandResult OBJECT the command handed to its
+    // CapturingReply — no JsonNode.Parse of its own output, and no "non-JSON output is success"
+    // fallback. `displays` is the one agent tool that runs headlessly end-to-end.
+
+    [Fact]
+    public void RunAgentCommand_Displays_FlowsTheTypedResultIntoTheEnvelope() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = new CommandInvoker { ["displays"] = new DisplaysCommand { Cmd = "displays", Enabled = true } };
+        try {
+            JsonObject resp = AgentServer.RunAgentCommand("displays", []);
+
+            Assert.False(resp["isError"]!.GetValue<bool>());
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp))!.AsObject();
+            Assert.True(envelope["ok"]!.GetValue<bool>());
+            // The command's Data payload IS the envelope's result — the object pipeline end-to-end.
+            Assert.True(envelope["result"]!.AsObject().ContainsKey("displays"));
+            Assert.True(envelope["result"]!["count"]!.GetValue<int>() > 0);
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void RunAgentCommand_WindowNotFound_ReportsStructuredCode_NotProse() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = new CommandInvoker { ["query"] = new QueryCommand { Cmd = "query", Enabled = true } };
+        try {
+            JsonObject resp = AgentServer.RunAgentCommand("query",
+                new JsonObject { ["window"] = $"no-such-window-{Guid.NewGuid():N}" });
+
+            Assert.True(resp["isError"]!.GetValue<bool>());
+            JsonObject error = JsonNode.Parse(FirstTextBlock(resp))!.AsObject()["error"]!.AsObject();
+            // Pinned by CODE and CATEGORY — never by the human-readable message (#206).
+            Assert.Equal("window-not-found", error["code"]!.GetValue<string>());
+            Assert.Equal("no-target", error["category"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
     [Fact]
     public void BuildCommand_UnknownName_ReturnsNull_NeverADefaultCommand() {
         // The old default arm meant an unmapped name became an InvokeCommand. Now it maps to null,
