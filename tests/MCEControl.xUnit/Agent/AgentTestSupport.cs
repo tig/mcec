@@ -8,10 +8,12 @@ namespace MCEControl.xUnit;
 /// <summary>
 /// Shared helpers for the agent tests. The agent commands follow the house pattern where
 /// <see cref="Command.Execute"/> first calls <c>base.Execute()</c>, which (for an Enabled command)
-/// records a telemetry metric via <c>TelemetryService.Instance.TelemetryClient</c>. That client is
-/// null until <see cref="TelemetryService.Start"/> is called, so any test that drives an Enabled
-/// command through Execute must initialize telemetry first. <see cref="EnsureTelemetry"/> does that
-/// exactly once for the whole test run; it is safe to call from multiple threads.
+/// records a telemetry metric via <see cref="TelemetryService.TrackMetric"/>. Since #199 that call
+/// is gated on the opt-in and is a safe no-op while the client is null, so initializing telemetry
+/// is no longer required to avoid a crash — but tests that drive Enabled commands still call
+/// <see cref="EnsureTelemetry"/> so Execute runs against an initialized singleton, matching the
+/// real app. It initializes exactly once for the whole test run; it is safe to call from multiple
+/// threads.
 /// </summary>
 internal static class AgentTestSupport {
     private static readonly object _gate = new();

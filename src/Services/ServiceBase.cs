@@ -45,7 +45,7 @@ public abstract class ServiceBase {
         // why: to understand what commands are used to control other systems and which are not
         // how is PII protected: we only collect the text if it is a key for a built-in command
         Command? userDefined = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(q => (q.Cmd == text.Trim('\r').Trim('\n') && q.UserDefined == false));
-        TelemetryService.Instance.TelemetryClient!.GetMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent").TrackValue(1);
+        TelemetryService.Instance.TrackMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent", 1);
     }
 
     // Send a status notification
@@ -69,7 +69,7 @@ public abstract class ServiceBase {
                     // what: how long the session was connected for
                     // why: to understand the typical/non-typical connection scenarios
                     // how is PII protected: no PII is involved
-                    TelemetryService.Instance.TelemetryClient!.GetMetric($"{this.GetType().Name} Connected Time").TrackValue(_connectedTime.ElapsedMilliseconds);
+                    TelemetryService.Instance.TrackMetric($"{this.GetType().Name} Connected Time", _connectedTime.ElapsedMilliseconds);
                 }
                 break;
         }

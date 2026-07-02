@@ -114,7 +114,7 @@ public abstract class Command : ICommand {
         // what: the number of commands of each type (key) received and executed
         // why: to understand what commands are used and which are not
         // how is PII protected: the name of the command, key, is not user definable
-        TelemetryService.Instance!.TelemetryClient!.GetMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed").TrackValue(1);
+        TelemetryService.Instance.TrackMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed", 1);
         return true;
     }
 
