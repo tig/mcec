@@ -335,9 +335,8 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     }
 
     /// <summary>
-    /// Handles a <see cref="SocketException"/> raised on the receive path — either by
-    /// <see cref="Socket.EndReceive(IAsyncResult, out SocketError)"/> or by a telnet-reply
-    /// <see cref="Socket.Send(byte[])"/> issued mid-parse. ANY such error is terminal for the
+    /// Handles a <see cref="SocketException"/> raised on the receive path by
+    /// <see cref="Socket.EndReceive(IAsyncResult, out SocketError)"/>. ANY such error is terminal for the
     /// connection (we will not re-arm <see cref="BeginReceive"/>), so the client MUST be closed
     /// exactly once. Before issue #150 only <see cref="SocketError.ConnectionReset"/> closed;
     /// every other error code merely logged, leaving a dead-but-tracked connection that leaked
