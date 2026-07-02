@@ -12,21 +12,28 @@ pattern and adds no breaking changes to any existing command, transport, or defa
 ## Layering
 
 ```
-  MCP client ──stdio──┐
-  HTTP POST  ──:5151──┤
-                      ▼
-              AgentServer  (MCP/HTTP façade, tool dispatch)
-                      │  builds command lines / CommandResult
-                      ▼
-              CommandInvoker  (existing)
-                      │  resolves + Execute()s
-                      ▼
+  MCP client ──stdio──▶ McpStdioTransport ──┐
+  HTTP POST  ──:5151──▶ McpHttpTransport ───┤   (transports, #215)
+                                            ▼
+                                   JsonRpcDispatcher   (protocol layer)
+                                            │  tools/call
+                                            ▼
+                                   AgentToolExecutor   (gate → catalog → build → dispatch → envelope)
+                                            │  builds commands / consumes CommandResult
+                                            ▼
+                                   CommandInvoker  (existing)
+                                            │  resolves + Execute()s
+                                            ▼
    capture / query / displays / find / wait-for / invoke /
    drag / click / record / launch   (the ToolCatalog set — new Commands)
         │            │           │
    ScreenCapture  WindowResolver  UiaService
-   (PrintWindow)  (Win32 enum)    (FlaUI / UIA3)
+   (PrintWindow)  (Win32 enum)    (FlaUI / UIA3, one dedicated MTA worker)
         └──────── AgentNativeMethods (P/Invoke) ────────┘
+
+   AgentServer = the thin static facade wiring the production instances
+   (settings/invoker/session accessors from AgentRuntime) and re-exposing
+   Dispatch / RunStdio / StartHttp / StopHttp / IsHttpListening / Instructions.
 ```
 
 ## Key seams
@@ -78,6 +85,19 @@ resources.
 UI Automation access (UIA3 via FlaUI) backing element-level `find` / `wait-for`
 queries. Isolated behind a service so the rest of the subsystem has no hard FlaUI
 coupling at the command layer.
+
+THREADING (#215): all UIA tree access runs on **one dedicated MTA worker thread**
+owned by the service, with a single cached `UIA3Automation` (created on the worker,
+disposed by `UiaService.Shutdown()` at app teardown — GUI `PerformShutdown` and the
+headless `--mcp` exit both call it). Timed lookups (`wait-for`, invoke's bounded
+find) poll attempt-by-attempt: each attempt is one short worker item and the sleep
+happens on the caller, so a long wait never monopolizes the worker. A debug
+assertion enforces that UIA work never enters from a thread running a WinForms
+message loop (the historical UI-thread self-deadlock). One deliberate exception:
+`invoke`'s **pattern dispatch** runs on its calling thread (the per-invoke
+modal-grace worker, #105) — a modal-opening Invoke blocks until the dialog closes,
+and parking the shared worker there would block the very `query`/`capture` the
+agent needs to dismiss that dialog.
 
 ### `ToolCatalog` / `ToolDescriptor` (#205)
 The single registry of the gated agent tools. Each `ToolDescriptor` carries the tool's
@@ -151,21 +171,37 @@ Because they are normal commands, they are dispatched by the existing
 `CommandInvoker` and are reachable through every existing transport as well as the new
 MCP/HTTP façade — no special-casing in the command pipeline.
 
-## `AgentServer` (MCP / HTTP)
+## The MCP server: transports, dispatcher, executor, facade (#215)
 
-`AgentServer` is the network façade, gated by `AppSettings.McpServerEnabled`. It exposes
-the gated agent tools registered in `ToolCatalog` (`capture`, `query`, `displays`, `find`,
-`wait-for`, `invoke`, `drag`, `click`, `record`, `launch`) plus the meta-tools
-`send_command` (a generic raw command-line passthrough), `provision-session`, and
-`end-session`. Two transports share one dispatch path:
+The old 1,200-line static `AgentServer` is split along its seams into four types, with
+`AgentServer` remaining as the thin static facade that wires the production instances:
 
-- **MCP stdio** — used by the `--mcp` headless bootstrap.
-- **HTTP floor** — one JSON-RPC request per `POST` to `/mcp`, bound to
-  `McpBindAddress` (default `127.0.0.1`) on `McpHttpPort` (default `5151`).
+- **`McpStdioTransport`** — the newline-delimited JSON-RPC loop the `--mcp` headless
+  bootstrap runs. Each request line dispatches on a worker (#113); the pending-task
+  list is pruned per iteration and in-flight dispatches are capped (16, matching the
+  HTTP bound) by *backpressure* — the reader stops consuming stdin until a slot frees.
+- **`McpHttpTransport`** — the HTTP floor: one JSON-RPC request per `POST /mcp`, bound
+  to `McpBindAddress` (default `127.0.0.1`) on `McpHttpPort` (default `5151`). Owns the
+  `HttpListener` lifecycle (Stop **joins the accept thread and drains in-flight workers**,
+  both bounded, so a Settings-dialog Stop/Start can't overlap old workers with a new
+  listener), the pure `GateHttpRequest` (#143 Host/Origin/bearer), the #152 loopback-bind
+  canonicalization, the 1 MB body cap, and the 16-worker 503 bound (#151).
+- **`JsonRpcDispatcher`** — the protocol layer (`initialize`/`ping`/`tools/list`/
+  `tools/call` routing, response shapes, the meta-tool schemas), shared by both transports.
+- **`AgentToolExecutor`** — the tool-execution layer: emergency-stop /
+  `AgentCommandsEnabled` / per-command gates, argument validation, `ToolCatalog` command
+  building, the #113/#105 dispatch rules, the meta-tools (`send_command`,
+  `provision-session`, `end-session` + its #215 token check), and #101 envelope/overlay
+  publication. An instance type taking settings/invoker/session **accessors** via
+  constructor — tests exercise it (or construct their own transports with injected
+  dispatch) instead of the old `HttpDispatchOverride`-style static seams.
 
-Tool calls are translated into command invocations executed against a `CapturingReply`; the
-command's typed `CommandResult` (its `Result` slot, #206) is wrapped in the #101 envelope and
-returned to the caller.
+The facade exposes the gated agent tools registered in `ToolCatalog` (`capture`, `query`,
+`displays`, `find`, `wait-for`, `invoke`, `drag`, `click`, `record`, `launch`) plus the
+meta-tools `send_command` (a generic raw command-line passthrough), `provision-session`,
+and `end-session`. Tool calls are translated into command invocations executed against a
+`CapturingReply`; the command's typed `CommandResult` (its `Result` slot, #206) is wrapped
+in the #101 envelope and returned to the caller.
 
 ## `--mcp` headless bootstrap
 
