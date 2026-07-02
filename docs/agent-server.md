@@ -159,7 +159,7 @@ failed call is debuggable without rerunning it):
 > The `AgentServer` translates that into the `{ ok, result, error, … }` envelope at the MCP
 > boundary (`AgentToolResult.FromLegacy`), which is the shape an MCP client actually receives and
 > the one specified by the shared result contract in
-> [`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md) (#101). A
+> [`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md). A
 > couple of feature-specific refusals ride in `error.code` while `error.category` stays `internal`:
 > `emergency-stopped` (the operator engaged the [emergency stop](safety-emergency-stop-and-provisioning.md)),
 > `provisioning-not-authorized` (`AllowSessionProvisioning` is off), and `command-disabled` (the
@@ -347,8 +347,7 @@ Known limits:
 
 - **Locked / disconnected sessions:** when the workstation is locked or the session is detached,
   the desktop cannot be rendered and captures are blank. This is detected (blank frame) but cannot
-  be worked around from user space. Live validation of locked-session behavior is tracked
-  separately in [#78].
+  be worked around from user space.
 - **Elevation (UAC):** MCEC running at medium integrity cannot read the UIA tree of, drive, or
   reliably capture a window owned by an elevated (high-integrity) process. Such targets surface as
   empty/failed observations; run MCEC elevated only if you explicitly need to automate elevated
@@ -368,7 +367,6 @@ trees (e.g. a virtualized list with thousands of items):
 Individual stale or unsupported UIA nodes never abort the whole walk — they are skipped and the
 rest of the tree is returned.
 
-[#78]: https://github.com/tig/mcec/issues/78
 
 ---
 
@@ -490,12 +488,11 @@ origin, remote endpoint) so drive-by and rebinding attempts are visible to the o
 > HTTP listener and logs an error. To expose the door off-box, set a bearer token (and prefer a
 > network-level control too).
 
-The floor is hardened against resource exhaustion ([#151]): a request body larger than
+The floor is hardened against resource exhaustion: a request body larger than
 **1 MB** is refused with `413` (the cap is enforced by a bounded read, so chunked bodies
 without a `Content-Length` can't bypass it), and at most **16** requests are served
 concurrently — past that the server answers `503` rather than queueing.
 
-[#151]: https://github.com/tig/mcec/issues/151
 
 ---
 
@@ -515,10 +512,10 @@ concurrently — past that the server answers `503` rather than queueing.
 Two operator-safety features build on the gates above — see
 [`safety-emergency-stop-and-provisioning.md`](safety-emergency-stop-and-provisioning.md):
 
-- **Emergency stop (#135):** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
+- **Emergency stop:** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
   `EmergencyStopHotkey`) that instantly halts a session from any window — latching the actuation gate
   (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
   reacts to physical input only, so the agent can never trip or defeat it.
-- **Isolated session provisioning (#138):** `provision-session` (gated by `AllowSessionProvisioning`) hands
+- **Isolated session provisioning:** `provision-session` (gated by `AllowSessionProvisioning`) hands
   an agent a disposable, isolated MCEC directory instead of it mutating the installed config; `end-session`
   (or launch-time reaping) tears it down.
