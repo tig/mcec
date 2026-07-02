@@ -396,7 +396,7 @@ public partial class MainWindow : Form {
             Logger.Instance.Log4.Info("Server: Starting...");
             Server = new SocketServer();
             Server!.Notifications += serverSocketCallbackHandler;
-            Server!.Start(Settings.ServerPort);
+            Server!.Start(Settings.ServerPort, Settings.SocketServerBindAddress);
             sendAwakeMenuItem.Enabled = Settings.WakeupEnabled;
         }
         else {

@@ -115,6 +115,27 @@ The *Server* Settings tab controls **MCEC’s** TCP/IP server functionality. Whe
 
 The status of the Server is displayed on the main window status bar. Double-clicking on the status will cause the Server to toggle between connected / not connected. Green means one or more clients are connected, red means the Server is running but no clients are connected, and gray means the Server is not active.
 
+#### Restricting the Server to this machine (bind address)
+
+The command server has **no socket authentication** — anything that can reach the port can send commands that press keys, move the mouse, and start processes. By default the server binds to **all network interfaces** (`0.0.0.0`), so it is reachable from every host on your LAN/VPN (and from anywhere the port is forwarded). This preserves the long-standing behavior for setups that are driven from another machine on a trusted network.
+
+If nothing off this machine needs to connect (for example, another local app talks to **MCEC** over `localhost`), restrict the server to loopback so the unauthenticated port is not exposed on the network. Edit `mcec.settings` and set:
+
+```xml
+<SocketServerBindAddress>127.0.0.1</SocketServerBindAddress>
+```
+
+Accepted values (case-insensitive):
+
+| Value | Binds to |
+| --- | --- |
+| `0.0.0.0`, `any`, `*` | All interfaces (default — LAN/VPN reachable) |
+| `127.0.0.1`, `localhost`, `loopback` | This machine only (recommended for single-machine setups) |
+| `::1` | IPv6 loopback (this machine only) |
+| a specific local IP (e.g. `192.168.1.50`) | That interface only |
+
+An unparseable value is rejected with an error in the log and **falls back to loopback** (`127.0.0.1`) rather than silently exposing the port. Restart **MCEC** after editing the setting.
+
 ### The Serial Server Tab
 
 The *Serial Server* Settings controls **MCEC’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCEC** will open the specified COM port (e.g. COM1) and wait commands to be sent.

@@ -71,11 +71,54 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     //-----------------------------------------------------------
     // Control functions (Start, Stop, etc...)
     //-----------------------------------------------------------
-    public void Start(int port) {
+    /// <summary>
+    /// Resolves the operator-configured <see cref="AppSettings.SocketServerBindAddress"/> string into
+    /// the <see cref="IPAddress"/> the command listener binds to (issue #149). The command server turns
+    /// received strings into keyboard/mouse/process actions with NO socket authentication (by design,
+    /// trusted-network model), so which interface it listens on is a security control:
+    /// <list type="bullet">
+    ///   <item><c>"any"</c>/<c>"0.0.0.0"</c>/<c>"*"</c>/empty → <see cref="IPAddress.Any"/> (all
+    ///   interfaces — the long-standing default, reachable from every host on the LAN/VPN; kept for
+    ///   backward compatibility on upgrade).</item>
+    ///   <item><c>"localhost"</c>/<c>"loopback"</c> → <see cref="IPAddress.Loopback"/> (single-machine
+    ///   only — the recommended setting when nothing off-box needs to connect).</item>
+    ///   <item>a parseable IP (<c>"127.0.0.1"</c>, <c>"::1"</c>, a specific LAN IP) → that address.</item>
+    ///   <item>anything else (junk) → <see cref="IPAddress.Loopback"/>, logged loudly — a misconfigured
+    ///   bind must fail closed to the safe interface, never silently expose the port on all interfaces.</item>
+    /// </list>
+    /// Case-insensitive. Mirrors the agent HTTP floor's loopback handling
+    /// (<see cref="AgentServer.BindRequiresAuthToken"/>). Internal so it can be unit-tested without
+    /// opening a live listener (InternalsVisibleTo).
+    /// </summary>
+    internal static IPAddress ResolveBindAddress(string? bindAddress) {
+        string trimmed = bindAddress?.Trim() ?? string.Empty;
+        switch (trimmed.ToLowerInvariant()) {
+            case "":
+            case "any":
+            case "0.0.0.0":
+            case "*":
+                return IPAddress.Any;
+            case "localhost":
+            case "loopback":
+                return IPAddress.Loopback;
+        }
+        if (IPAddress.TryParse(trimmed, out IPAddress? ip)) {
+            return ip;
+        }
+        Logger.Instance.Log4.Error(
+            $"SocketServer: SocketServerBindAddress '{bindAddress}' is not a valid bind address " +
+            "(expected \"0.0.0.0\"/\"any\", \"127.0.0.1\"/\"localhost\", \"::1\", or a specific local IP). " +
+            "Falling back to loopback (127.0.0.1) so the unauthenticated command port is not exposed on all interfaces.");
+        return IPAddress.Loopback;
+    }
+
+    public void Start(int port, string? bindAddress = null) {
         try {
-            // Create the listening socket...
-            _mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint ipLocal = new IPEndPoint(IPAddress.Any, port);
+            // Create the listening socket on the address family of the resolved bind address (#149),
+            // so an IPv6 bind (e.g. "::1") gets an IPv6 socket rather than throwing on an IPv4 one.
+            IPAddress bindTo = ResolveBindAddress(bindAddress);
+            _mainSocket = new Socket(bindTo.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            IPEndPoint ipLocal = new IPEndPoint(bindTo, port);
             // Bind to local IP Address...
             Log4.Debug("SocketServer - Binding to IP address: " + ipLocal.Address + ":" + ipLocal.Port);
             _mainSocket.Bind(ipLocal);
