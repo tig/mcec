@@ -76,4 +76,27 @@ public class MachinePolicyTests
                 : throw new System.Security.SecurityException("deny-read ACE on legacy key"));
         Assert.Equal(false, result);
     }
+
+    /// <summary>
+    /// Fallback-key behavior (#216): a value absent under the current (Kindel) key must be read
+    /// from the legacy (Kindel Systems) key, so upgraded machines keep their policy.
+    /// </summary>
+    [Fact]
+    public void GetRegistryValue_CurrentKeyAbsent_FallsBackToLegacyKey()
+    {
+        object? result = MachinePolicy.GetRegistryValue("Telemetry", 0,
+            (key, name, def) => key == MachinePolicy.RegistryKeyPath ? null : (object?)1);
+        Assert.Equal(1, result);
+    }
+
+    /// <summary>
+    /// The current (Kindel) key wins when both keys have the value.
+    /// </summary>
+    [Fact]
+    public void GetRegistryValue_CurrentKeyPresent_LegacyIgnored()
+    {
+        object? result = MachinePolicy.GetRegistryValue("Telemetry", 0,
+            (key, name, def) => key == MachinePolicy.RegistryKeyPath ? (object?)1 : (object?)0);
+        Assert.Equal(1, result);
+    }
 }
