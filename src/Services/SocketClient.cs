@@ -320,7 +320,8 @@ public sealed class SocketClient : ServiceBase, IDisposable {
             for (int i = 0; i < charCount; i++) {
                 string? cmd = accumulator.ProcessChar(chars[i], onOverflow);
                 if (cmd != null) {
-                    SendNotification(ServiceNotification.ReceivedData, ServiceStatus.Connected, new ClientReplyContext(tcpClient), cmd);
+                    Log4.Info($"Client: Received; {cmd}");
+                    OnCommandReceived(new ClientReplyContext(tcpClient), cmd);
                 }
             }
         }
@@ -335,10 +336,10 @@ public sealed class SocketClient : ServiceBase, IDisposable {
             default:
                 string? s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
                 if (s == null) {
-                    Error($"{e.Message} ({e.ErrorCode})");
+                    Error(ServiceError.FromSocketException($"{e.Message} ({e.ErrorCode})", e));
                 }
                 else {
-                    Error($"{e.Message}. {s} ({e.ErrorCode})");
+                    Error(ServiceError.FromSocketException($"{e.Message}. {s} ({e.ErrorCode})", e));
                 }
                 break;
         }

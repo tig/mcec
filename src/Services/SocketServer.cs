@@ -179,7 +179,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             _mainSocket.BeginAccept(OnClientConnect, null);
         }
         catch (SocketException se) {
-            SendNotification(ServiceNotification.Error, CurrentStatus, null, $"{se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+            Error(ServiceError.FromSocketException(se.Message, se));
             SetStatus(ServiceStatus.Stopped);
         }
     }
@@ -222,7 +222,9 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             Log4.Debug("Opened Socket #" + serverReplyContext.ClientNumber);
 
             SetStatus(ServiceStatus.Connected);
-            SendNotification(ServiceNotification.ClientConnected, CurrentStatus, serverReplyContext);
+            // Connection-level diagnostics are logged here at the emission site (#211); the old
+            // ClientConnected notification existed only so MainWindow could produce this line.
+            Log4.Info($"SocketServer: Client #{serverReplyContext.ClientNumber} at {DescribeEndPoint(workerSocket)} connected");
 
             // Send a welcome message to client
             // TODO: Notify client # & IP address
@@ -249,7 +251,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             return;
         }
         catch (SocketException se) {
-            SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+            Error(ServiceError.FromSocketException($"OnClientConnect: {se.Message}", se));
             // See http://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
             //if (se.SocketErrorCode == SocketError.ConnectionReset) // WSAECONNRESET (10054)
             if (serverReplyContext != null) {
@@ -258,7 +260,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             }
         }
         catch (Exception e) {
-            SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {e.Message}");
+            Error($"OnClientConnect: {e.Message}");
             if (serverReplyContext != null) {
                 CloseSocket(serverReplyContext);
             }
@@ -311,8 +313,25 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                                 serverReplyContext);
         }
         catch (SocketException se) {
-            SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"BeginReceive: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+            Error(ServiceError.FromSocketException($"BeginReceive: {se.Message}", se));
             CloseSocket(serverReplyContext);
+        }
+    }
+
+    /// <summary>
+    /// Formats a socket's remote endpoint for diagnostics without ever throwing: a socket that
+    /// was never connected, already reset, or already closed makes <see cref="Socket.RemoteEndPoint"/>
+    /// throw, and these log sites run on exactly those teardown paths.
+    /// </summary>
+    private static string DescribeEndPoint(Socket? socket) {
+        try {
+            return socket?.RemoteEndPoint?.ToString() ?? "n/a";
+        }
+        catch (SocketException) {
+            return "n/a";
+        }
+        catch (ObjectDisposedException) {
+            return "n/a";
         }
     }
 
@@ -329,7 +348,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         if (socket != null) {
             Log4.Debug("Closing Socket #" + serverReplyContext.ClientNumber);
             Interlocked.Decrement(ref _clientCount);
-            SendNotification(ServiceNotification.ClientDisconnected, CurrentStatus, serverReplyContext);
+            Log4.Info($"SocketServer: Client #{serverReplyContext.ClientNumber} at {DescribeEndPoint(socket)} has disconnected");
             socket.Close();
         }
     }
@@ -403,8 +422,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// without a live listener (InternalsVisibleTo).
     /// </summary>
     internal void HandleReceiveError(ServerReplyContext clientContext, SocketException se) {
-        SendNotification(ServiceNotification.Error, CurrentStatus, clientContext,
-            $"OnDataReceived: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+        Error(ServiceError.FromSocketException($"OnDataReceived: {se.Message}", se));
         CloseSocket(clientContext);
     }
 
@@ -428,12 +446,14 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                 count,
                 clientContext.Accumulator,
                 reply => clientContext.Socket.Send(reply),
-                command => SendNotification(ServiceNotification.ReceivedData, CurrentStatus, clientContext, command),
-                () => SendNotification(ServiceNotification.Error, CurrentStatus, clientContext,
-                    $"OnDataReceived: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); discarding input until next delimiter"));
+                command => {
+                    Log4.Info($"SocketServer: Received from Client #{clientContext.ClientNumber} at {DescribeEndPoint(clientContext.Socket)}: {command}");
+                    OnCommandReceived(clientContext, command);
+                },
+                () => Error($"OnDataReceived: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); discarding input until next delimiter"));
         }
         catch (Exception ex) {
-            SendNotification(ServiceNotification.Error, CurrentStatus, clientContext, $"OnDataReceived: parse error: {ex.Message}");
+            Error($"OnDataReceived: parse error: {ex.Message}");
             CloseSocket(clientContext);
             return false;
         }
@@ -521,14 +541,21 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         }
     }
 
+    // Wakeup progress is a SocketServer-only diagnostic. The old ServiceNotification.Wakeup
+    // existed solely so MainWindow could log these lines; with the typed events (#211) the
+    // smaller change is to log them here at the emission site instead of modeling an event.
+    private void LogWakeup(string msg) {
+        Log4.Info($"SocketServer: Wakeup: {msg}");
+    }
+
     public void SendAwakeCommand(String cmd, String host, int port) {
         Log4.Debug("SocketServer SendAwakeCommand");
         if (String.IsNullOrEmpty(host)) {
-            SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "No wakeup host specified");
+            LogWakeup("No wakeup host specified");
             return;
         }
         if (port == 0) {
-            SendNotification(ServiceNotification.Wakeup, CurrentStatus, null, "Invalid port");
+            LogWakeup("Invalid port");
             return;
         }
         try {
@@ -540,42 +567,36 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                 // Create the endpoint that describes the destination
                 IPEndPoint destination = new IPEndPoint(resolvedHost.AddressList[0], port);
 
-                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                 $"Attempting connection to: {destination}");
+                LogWakeup($"Attempting connection to: {destination}");
                 clientSocket.Connect(destination);
             }
             catch (SocketException err) {
                 // Connect failed so close the socket and try the next address
                 clientSocket.Close();
                 clientSocket = null;
-                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                 "Error connecting.\r\n" + $"   Error: {err.Message}");
+                LogWakeup("Error connecting.\r\n" + $"   Error: {err.Message}");
             }
             // Make sure we have a valid socket before trying to use it
             if ((clientSocket != null)) {
                 try {
                     _ = clientSocket.Send(Encoding.ASCII.GetBytes(cmd + "\r\n"));
 
-                    SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                     "Sent request " + cmd + " to wakeup host.");
+                    LogWakeup("Sent request " + cmd + " to wakeup host.");
 
                     // For TCP, shutdown sending on our side since the client won't send any more data
                     clientSocket.Shutdown(SocketShutdown.Send);
                 }
                 catch (SocketException err) {
-                    SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                     $"Error occured while sending or receiving data.\r\n   Error: {err.Message}");
+                    LogWakeup($"Error occured while sending or receiving data.\r\n   Error: {err.Message}");
                 }
                 clientSocket.Dispose();
             }
             else {
-                SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                                 "Unable to establish connection to server!");
+                LogWakeup("Unable to establish connection to server!");
             }
         }
         catch (SocketException err) {
-            SendNotification(ServiceNotification.Wakeup, CurrentStatus, null,
-                             $"Socket error occured: {err.Message}");
+            LogWakeup($"Socket error occured: {err.Message}");
         }
     }
 
@@ -610,30 +631,32 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// tracking lookup and the send; before issue #202 the resulting exception escaped
     /// <see cref="Send"/> into whatever command handler triggered the write. A failed send is
     /// terminal for that client: it is closed and removed from tracking (complementing the
-    /// receive-path fix from #150) and a <see cref="ServiceNotification.WriteFailed"/> is
-    /// emitted — never an unhandled throw. Internal so tests can drive it without a live
+    /// receive-path fix from #150) and <see cref="ServiceBase.ErrorOccurred"/> is
+    /// raised — never an unhandled throw. Internal so tests can drive it without a live
     /// listener (InternalsVisibleTo).
     /// </summary>
     internal void SendToClient(string text, ServerReplyContext replyContext) {
+        // A failed write surfaces as ErrorOccurred (#211): the old Write/WriteFailed
+        // notifications only existed so MainWindow could log them, and a write failure is
+        // terminal for the client (it is closed and untracked below) — an error by any measure.
         try {
             if (replyContext.Socket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
-                SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());
+                Log4.Info($"SocketServer: Wrote to Client #{replyContext.ClientNumber} at {DescribeEndPoint(replyContext.Socket)}: {text.Trim()}");
             }
             else {
-                SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext, text);
+                Error($"Write failed to Client #{replyContext.ClientNumber} at {DescribeEndPoint(replyContext.Socket)}: {text}");
             }
         }
         catch (SocketException se) {
-            SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext,
-                $"Send: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+            Error(ServiceError.FromSocketException(
+                $"Write failed to Client #{replyContext.ClientNumber} at {DescribeEndPoint(replyContext.Socket)}: Send: {se.Message}", se));
             CloseSocket(replyContext);
         }
         catch (ObjectDisposedException) {
             // The client's socket was closed out from under us (e.g. the receive path
             // closed it between the tracking lookup and this send) — treat as a failed
             // write and make sure the client is fully untracked.
-            SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext,
-                "Send: client socket was already closed");
+            Error($"Write failed to Client #{replyContext.ClientNumber}: Send: client socket was already closed");
             CloseSocket(replyContext);
         }
     }

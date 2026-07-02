@@ -86,11 +86,9 @@ public class SocketServerLifecycleTests : IDisposable {
     [Fact]
     public void Stop_WithPendingAccept_EmitsNoErrorNotification() {
         var errors = new List<string>();
-        _server.Notifications += (notify, status, reply, msg) => {
-            if (notify == ServiceNotification.Error) {
-                lock (errors) {
-                    errors.Add(msg);
-                }
+        _server.ErrorOccurred += error => {
+            lock (errors) {
+                errors.Add(error.Message);
             }
         };
 
@@ -139,11 +137,13 @@ public class SocketServerLifecycleTests : IDisposable {
         // broadcast loop's TryGetValue and the Send.
         using Socket dead = NewSocket();
         var context = _server.RegisterClient(dead);
+        // #211: write failures surface via the typed ErrorOccurred event (the old
+        // WriteFailed notification existed only to be logged).
         var writeFailures = new List<string>();
-        _server.Notifications += (notify, status, reply, msg) => {
-            if (notify == ServiceNotification.WriteFailed) {
+        _server.ErrorOccurred += error => {
+            if (error.Message.Contains("Write failed", StringComparison.Ordinal)) {
                 lock (writeFailures) {
-                    writeFailures.Add(msg);
+                    writeFailures.Add(error.Message);
                 }
             }
         };
