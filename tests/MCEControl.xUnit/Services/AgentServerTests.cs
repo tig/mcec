@@ -437,14 +437,14 @@ public class AgentServerTests {
     }
 
     [Fact]
-    public void Dispatch_ToolsCall_SendCommand_IsNotGatedByAgentCommandsEnabled() {
+    public void Dispatch_ToolsCall_SendCommand_OverStdio_IsNotGatedByAgentCommandsEnabled() {
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = null; // AgentCommandsEnabled = false
         try {
-            // send_command is a raw pass-through routed to RunSendCommand BEFORE the AgentCommandsEnabled
-            // check (unlike the agent tools). An empty command therefore returns bad-arguments — proving it
-            // reached RunSendCommand — not agent-commands-disabled. (The raw command it runs is still gated
-            // by that command's own Enabled flag in the table; this only asserts the agent gate is skipped.)
+            // #153: over the LOCAL stdio transport (the default), send_command keeps its documented raw
+            // pass-through — it is not gated by AgentCommandsEnabled. An empty command therefore returns
+            // bad-arguments — proving it reached RunSendCommand — not agent-commands-disabled. (The raw
+            // command it runs is still gated by that command's own Enabled flag in the table.)
             JsonObject resp = AgentServer.Dispatch(Request(22, "tools/call",
                 new JsonObject { ["name"] = "send_command", ["arguments"] = new JsonObject { ["command"] = "" } }))!;
 
@@ -452,6 +452,48 @@ public class AgentServerTests {
         }
         finally {
             AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_SendCommand_OverHttp_WhenAgentDisabled_IsRefused() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = null; // AgentCommandsEnabled = false
+        AgentRuntime.Invoker = [];
+        try {
+            // #153: over the network-facing HTTP transport, send_command honors the AgentCommandsEnabled
+            // gate. A NON-empty command with a live invoker present would execute (and pass the empty-arg
+            // check) if the gate were absent; instead the gate refuses it up front with agent-commands-disabled.
+            JsonObject resp = AgentServer.Dispatch(Request(23, "tools/call",
+                new JsonObject { ["name"] = "send_command", ["arguments"] = new JsonObject { ["command"] = "chars:pwnd" } }),
+                AgentTransport.Http)!;
+
+            Assert.Equal("agent-commands-disabled", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_ToolsCall_SendCommand_OverHttp_WhenAgentEnabled_ReachesPassThrough() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = [];
+        try {
+            // #153: with the agent surface opted in, send_command over HTTP gets past the gate and runs the
+            // pass-through. An empty command now surfaces bad-arguments (from RunSendCommand) — NOT the gate
+            // refusal — proving the request reached execution.
+            JsonObject resp = AgentServer.Dispatch(Request(24, "tools/call",
+                new JsonObject { ["name"] = "send_command", ["arguments"] = new JsonObject { ["command"] = "" } }),
+                AgentTransport.Http)!;
+
+            Assert.Equal("bad-arguments", ToolErrorCode(resp));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
         }
     }
 
