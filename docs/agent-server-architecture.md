@@ -205,7 +205,16 @@ in the result-contract envelope and returned to the caller.
 
 ## `--mcp` headless bootstrap
 
-The `--mcp` command-line switch starts MCEC without the MainWindow host: it initializes
+`Program.Main` dispatches three ways: no args → the WinForms GUI; `mcp` (or the legacy
+`--mcp`) → the headless MCP bootstrap below, intercepted before the Terminal.Gui.Cli
+host because stdout is the JSON-RPC stream and Terminal.Gui must never initialize
+around it; anything else → the Terminal.Gui.Cli surface (`--help`/`--version`/
+`--opencli`/`agent-guide`). SECURITY: both agent-serving paths (`mcp` and
+`AgentServer.StartHttp`) refuse when the exe runs from Program Files
+(`Program.IsProgramFilesInstall`); the installed, operator-owned copy never serves
+agents (see the safety doc).
+
+The `mcp` mode starts MCEC without the MainWindow host: it initializes
 `AgentRuntime` (settings + invoker + the `HeadlessAppHost`), starts `HeadlessOperatorUi`
 (a dedicated STA pump thread hosting the operator safety surface: the emergency-stop
 hotkey, the command overlay, and the modal re-arm prompt; both features are

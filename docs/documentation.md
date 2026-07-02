@@ -80,12 +80,23 @@ minimizes it to the tray; double-click the tray icon to show it again, or right-
 hidden, check **Hide Window at Startup** in **Settings**.
 
 To run headless as an **MCP server** (no main window, no tray icon; the command overlay and the
-emergency-stop hotkey still work), launch it with `--mcp`; an MCP client can spawn it on demand and talk
-JSON-RPC over stdio:
+emergency-stop hotkey still work), launch it with `mcp` (or the equivalent `--mcp`); an MCP client can
+spawn it on demand and talk JSON-RPC over stdio:
 
 ```
-mcec.exe --mcp
+mcec.exe mcp
 ```
+
+The **installed** copy (under Program Files) refuses to run as an MCP server or to serve the MCP/HTTP
+endpoint: enabling agent gates in the installed configuration would leak them enabled if a session
+crashed. Use [session provisioning](safety-emergency-stop-and-provisioning.md) to get a disposable,
+isolated copy, or copy the install directory somewhere writable and run from there.
+
+`mcec.exe` also has a command-line surface (built on
+[Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--help`, `--version`, `--opencli` (machine-readable
+command metadata for tools and agents), and `agent-guide` (prints the same agent guidance the MCP server
+hands connecting clients). Run these from a terminal; with no arguments `mcec.exe` starts the GUI as
+always.
 
 To have MCEC start automatically, create a shortcut to `mcec.exe` (installed to `C:\Program
 Files\Kindel\MCEC` by default; pre-3.0 installs used `Kindel Systems\MCEC`) and put it in the Windows

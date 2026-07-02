@@ -1,7 +1,8 @@
-﻿// Copyright © Kindel, LLC - http://www.kindel.com
+// Copyright © Kindel, LLC - http://www.kindel.com
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System.Diagnostics;
+using Terminal.Gui.Cli;
 
 namespace MCEControl;
 
@@ -10,26 +11,68 @@ internal static class Program {
         get {
             // Get dir of mcec.exe
             string path = AppDomain.CurrentDomain.BaseDirectory;
-            string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
             // If we're running from a (read-only) Program Files install location, redirect log/
-            // settings/command files to %AppData%. Check both 64-bit ("Program Files") and 32-bit
-            // ("Program Files (x86)") roots; the installer puts the self-contained x64 build under
-            // 64-bit Program Files, while older installs used the x86 path.
-            foreach (Environment.SpecialFolder folder in new[] {
-                         Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86
-                     }) {
-                string programFiles = Environment.GetFolderPath(folder);
-                if (!string.IsNullOrEmpty(programFiles) &&
-                    path.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase)) {
-                    path = $@"{appdata}\{path.Substring(programFiles.Length + 1)}";
-                    break;
-                }
+            // settings/command files to %AppData%.
+            string? programFiles = GetProgramFilesRoot(path);
+            if (programFiles is not null) {
+                string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                path = $@"{appdata}\{path.Substring(programFiles.Length + 1)}";
             }
 
             return path;
         }
     }
+
+    /// <summary>
+    ///     Returns the Program Files root <paramref name="path" /> lives under, or null when it is not
+    ///     an installed location. Checks both 64-bit ("Program Files") and 32-bit ("Program Files
+    ///     (x86)") roots; the installer puts the self-contained x64 build under 64-bit Program Files,
+    ///     while older installs used the x86 path. Shared by <see cref="ConfigPath" /> (the %AppData%
+    ///     redirect) and <see cref="IsProgramFilesInstall" /> (the agent-serving refusal).
+    /// </summary>
+    internal static string? GetProgramFilesRoot(string path) {
+        foreach (Environment.SpecialFolder folder in new[] {
+                     Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86
+                 }) {
+            string programFiles = Environment.GetFolderPath(folder);
+            if (!string.IsNullOrEmpty(programFiles) &&
+                path.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase)) {
+                return programFiles;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>TEST SEAM: forces <see cref="IsProgramFilesInstall" /> for tests.</summary>
+    internal static bool? IsProgramFilesInstallOverrideForTests { get; set; }
+
+    /// <summary>
+    ///     True when the running exe lives under Program Files; the installed, operator-owned copy.
+    ///     SECURITY: the installed copy must never serve agents (no <c>--mcp</c>, no MCP/HTTP server).
+    ///     Serving from it requires enabling agent security gates in the one config the operator's own
+    ///     MCEC reads (redirected to %AppData%), where a crashed or killed session leaks them enabled;
+    ///     exactly what isolated session provisioning (#138) exists to prevent. Agent serving is only
+    ///     allowed from non-installed locations (a provisioned session or a manual copy), which read a
+    ///     disposable co-located config instead.
+    /// </summary>
+    internal static bool IsProgramFilesInstall =>
+        IsProgramFilesInstallOverrideForTests ??
+        GetProgramFilesRoot(AppDomain.CurrentDomain.BaseDirectory) is not null;
+
+    /// <summary>
+    ///     The operator-facing explanation both refusal sites share (the <c>--mcp</c> exit and the
+    ///     MCP/HTTP server start).
+    /// </summary>
+    internal const string InstalledAgentServingGuidance =
+        "MCEC will not serve agents from its installed (Program Files) location: enabling agent " +
+        "security gates in the installed copy's configuration would leak them enabled if a session " +
+        "crashed. Either (1) run the installed MCEC normally and have your agent call the " +
+        "'provision-session' MCP tool (requires AllowSessionProvisioning=true in Settings) to get a " +
+        "disposable, isolated copy to drive, or (2) copy the MCEC install directory somewhere " +
+        "writable and run it from there; a non-installed copy reads its own co-located mcec.settings. " +
+        "See the Agent Server documentation (docs/agent-server.md).";
 
     /// <summary>
     ///     Safely launches a URL, file, or folder using the shell (UseShellExecute).
@@ -59,15 +102,44 @@ internal static class Program {
     }
 
     /// <summary>
-    ///     The main entry point for the application.
+    ///     The main entry point. Three dispatch shapes: no args → the WinForms GUI (unchanged);
+    ///     <c>mcp</c> / legacy <c>--mcp</c> → the headless MCP stdio server, intercepted BEFORE the CLI
+    ///     host because it owns the process for its lifetime and stdout is the JSON-RPC stream
+    ///     (Terminal.Gui must never initialize around it); anything else → the Terminal.Gui.Cli surface
+    ///     (<c>--help</c>, <c>--version</c>, <c>--opencli</c>, <c>agent-guide</c>).
     /// </summary>
     [STAThread]
-    private static void Main(string[] args) {
+    private static int Main(string[] args) {
+        // mcec.exe is a WinExe: it has no console unless the parent hands it one. Attaching to the
+        // parent's console (best effort; fails harmlessly when there is none or stdio is piped)
+        // makes the CLI surface and error messages visible when run from a terminal.
+        if (args.Length > 0) {
+            _ = ConsoleNativeMethods.AttachConsole(ConsoleNativeMethods.AttachParentProcess);
+        }
+
         // Start logging
         Logger.Instance.LogFile = $@"{ConfigPath}mcec.log";
         Logger.Instance.Log4.Debug(
             $"------ START: v{Application.ProductVersion} - OS: {Environment.OSVersion} on {(Environment.Is64BitProcess ? "x64" : "x86")} - .NET: {Environment.Version.ToString()} ------");
 
+        if (args.Length == 0) {
+            Bootstrap();
+            RunGui();
+            return 0;
+        }
+
+        if (IsMcpInvocation(args)) {
+            Bootstrap();
+            return RunHeadlessMcp();
+        }
+
+        // The CLI surface runs no app mode, so it skips Bootstrap (a --version query should not
+        // migrate configs or reap session directories).
+        return RunCli(args);
+    }
+
+    /// <summary>App-mode initialization shared by the GUI and MCP paths (not the CLI surface).</summary>
+    private static void Bootstrap() {
         // v3.0: carry an existing user's MCEControl.settings/.commands forward to the new mcec.* names.
         ConfigMigration.Run(ConfigPath);
 
@@ -77,15 +149,17 @@ internal static class Program {
 
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+    }
 
-        // MCEC 3.0: headless MCP server mode. An MCP client launches `mcec.exe --mcp` and speaks
-        // JSON-RPC over stdio. This thread never pumps messages (stdout is reserved for the protocol);
-        // the operator safety surface (e-stop hotkey + overlay) pumps on HeadlessOperatorUi's thread.
-        if (Array.Exists(args, a => string.Equals(a, "--mcp", StringComparison.OrdinalIgnoreCase))) {
-            RunHeadlessMcp();
-            return;
-        }
+    /// <summary>
+    ///     <c>mcp</c> as the first token (the Terminal.Gui.Cli-style spelling) or <c>--mcp</c> anywhere
+    ///     (the v3.0 spelling existing MCP client configs use).
+    /// </summary>
+    private static bool IsMcpInvocation(string[] args) =>
+        string.Equals(args[0], "mcp", StringComparison.OrdinalIgnoreCase) ||
+        Array.Exists(args, a => string.Equals(a, "--mcp", StringComparison.OrdinalIgnoreCase));
 
+    private static void RunGui() {
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
@@ -97,16 +171,44 @@ internal static class Program {
         MainWindow.Instance = mainWindow;
         Application.Run(mainWindow);
 
-        Logger.Instance.Log4.Debug($"------ END runtime: {TelemetryService.Instance.RunTime!.Elapsed:g} ------");
+        Logger.Instance.Log4.Debug($"------ END runtime: {TelemetryService.Instance.RunTime?.Elapsed:g} ------");
     }
 
     /// <summary>
-    ///     Headless bootstrap for <c>--mcp</c>: loads settings and the command core through the
-    ///     UI-agnostic <see cref="AgentRuntime" /> seam (no <c>MainWindow</c>), starts the operator
-    ///     safety surface (<see cref="HeadlessOperatorUi" />: e-stop hotkey + overlay on their own STA
-    ///     pump thread), then serves MCP over stdio.
+    ///     The Terminal.Gui.Cli surface: <c>--help</c>, <c>--version</c>, <c>--opencli</c>
+    ///     (machine-readable command metadata), and <c>agent-guide</c> (the embedded
+    ///     AgentInstructions.md, the same guidance the MCP server hands connecting agents). The
+    ///     <c>mcp</c> command is registered for metadata so help and OpenCLI output describe it, but
+    ///     its dispatch is intercepted in <see cref="Main" />.
     /// </summary>
-    private static void RunHeadlessMcp() {
+    private static int RunCli(string[] args) {
+        CliHost host = new(options => {
+            options.ApplicationName = "mcec";
+            options.Version = Application.ProductVersion;
+            options.AgentGuide = "MCEControl.AgentInstructions.md";
+            options.AgentGuideIsResource = true;
+            options.ResourceAssembly = typeof(Program).Assembly;
+        });
+        host.Registry.Register(new McpCommandMetadata());
+        return host.RunAsync(args).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    ///     Headless bootstrap for <c>mcp</c>/<c>--mcp</c>: loads settings and the command core through
+    ///     the UI-agnostic <see cref="AgentRuntime" /> seam (no <c>MainWindow</c>), starts the operator
+    ///     safety surface (<see cref="HeadlessOperatorUi" />: e-stop hotkey + overlay on their own STA
+    ///     pump thread), then serves MCP over stdio. Returns the process exit code.
+    /// </summary>
+    private static int RunHeadlessMcp() {
+        // SECURITY: the installed copy never serves agents (see IsProgramFilesInstall). stderr so a
+        // terminal user and an MCP client's error log both see WHY the server exited immediately.
+        if (IsProgramFilesInstall) {
+            Logger.Instance.Log4.Error($"MCEC: --mcp refused from the installed location. {InstalledAgentServingGuidance}");
+            Console.Error.WriteLine("mcec: --mcp refused: running from the installed (Program Files) location.");
+            Console.Error.WriteLine(InstalledAgentServingGuidance);
+            return ExitCodes.UsageError;
+        }
+
         // Headless: the engine's load/save paths never show a dialog (nothing may block protocol
         // startup; stdout is the JSON-RPC stream). The one deliberate UI exception is the operator
         // safety surface below, which lives on its own pump thread and blocks nothing.
@@ -162,10 +264,12 @@ internal static class Program {
         // process alive; this is a deliberate, clean stop that drops anything still queued (a
         // drop that severs a command tree releases held input) and briefly joins so an in-flight
         // command usually finishes before the process ends.
-        AgentRuntime.Invoker?.Shutdown(2000);
+        AgentRuntime.Invoker?.Shutdown(joinTimeoutMs: 2000);
 
         // #215: stop the dedicated UIA worker and dispose its cached UIA3Automation (bounded join).
         UiaService.Shutdown();
+
+        return ExitCodes.Ok;
     }
 
     private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
@@ -177,7 +281,7 @@ internal static class Program {
     }
 
     private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e) {
-        Exception ex = (e.ExceptionObject as Exception)!;
+        Exception ex = e.ExceptionObject as Exception ?? new InvalidOperationException($"Unhandled non-exception object: {e.ExceptionObject}");
         Logger.DumpException(ex);
         TelemetryService.Instance.TrackException(ex);
         MessageBox.Show(@$"Unhandled Exception: {ex.Message}\n\n" +

@@ -40,20 +40,30 @@ public partial class MainWindow : Form, IAppHost {
     public SocketClient? Client => clientController.Instance as SocketClient;
     public SerialServer? SerialServer => serialController.Instance as SerialServer;
 
-    // Per-transport descriptors (#211): built once in InitializeServiceControllers; ONE generic
+    // Per-transport descriptors (#211): built by the Create*Controller factories in the
+    // constructor (readonly; no construction window exists); ONE generic
     // start/stop/toggle/paint/log path iterates serviceControllers instead of the old three
     // copy-pasted method families.
-    private ServiceController serverController = null!;
-    private ServiceController clientController = null!;
-    private ServiceController serialController = null!;
-    private List<ServiceController> serviceControllers = [];
+    private readonly ServiceController serverController;
+    private readonly ServiceController clientController;
+    private readonly ServiceController serialController;
+    private readonly List<ServiceController> serviceControllers;
 
     // Read-only status entry for the MCP/HTTP agent front door (#211). AgentServer is static
     // with no lifecycle events (making it a real service is #215), so this is repainted from
     // Start()/Stop(); the only places the door is started/stopped.
-    private ToolStripStatusLabel statusStripMcp = null!;
+    private readonly ToolStripStatusLabel statusStripMcp;
 
-    public CommandInvoker Invoker { get; set; } = null!;
+    // The command dispatcher (#195): created by LoadCommands during mainWindow_Load and replaced
+    // whenever the commands file changes. The nullable FIELD models the real pre-load window; the
+    // non-nullable property turns a too-early touch into a pointed error instead of a silent NRE.
+    private CommandInvoker? _invoker;
+    public CommandInvoker Invoker {
+        get => _invoker ?? throw new InvalidOperationException(
+            "MainWindow.Invoker touched before mainWindow_Load ran LoadCommands.");
+        private set => _invoker = value;
+    }
+
     private CommandWindow? cmdWindow;
     private CommandFileWatcher? watcher;
 
@@ -72,35 +82,50 @@ public partial class MainWindow : Form, IAppHost {
     // makes that teardown run exactly once.
     private readonly OnceGate shutdownGate = new();
 
-    // Settings
-    public AppSettings Settings { get; set; } = null!;
+    // Settings: applied by ApplySettings (the single apply path; load and dialog-OK). The nullable
+    // FIELD models the real pre-load window (the controller lambdas read Settings lazily and only
+    // run post-load); the non-nullable property turns a too-early touch into a pointed error
+    // instead of a silent NRE.
+    private AppSettings? _settings;
+    public AppSettings Settings {
+        get => _settings ?? throw new InvalidOperationException(
+            "MainWindow.Settings touched before mainWindow_Load applied settings (ApplySettings).");
+        private set => _settings = value;
+    }
 
     public MainWindow() {
         InitializeComponent();
         Logger.Instance.LogTextBox = logTextBox;
-        logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, MainMenuStrip!.Font.SizeInPoints - 1,
+        // menuStrip (the designer field), not Form.MainMenuStrip: same object, but the designer
+        // field is non-nullable after InitializeComponent while MainMenuStrip is Control?-typed.
+        logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, menuStrip.Font.SizeInPoints - 1,
             System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
 
         notifyIcon.Icon = Icon;
         ShowInTaskbar = true;
 
-        InitializeServiceControllers();
+        serverController = CreateServerController();
+        clientController = CreateClientController();
+        serialController = CreateSerialController();
+        serviceControllers = [serverController, serialController, clientController];
+
+        statusStripMcp = CreateMcpStatusLabel();
+        statusStrip.Items.Add(statusStripMcp);
 
         SetStatus("");
         sendAwakeMenuItem.Enabled = false;
         installLatestVersionMenuItem.Enabled = false;
     }
 
-    /// <summary>
-    /// Builds the per-transport <see cref="ServiceController"/> descriptors (#211). Everything
-    /// transport-specific; construction, start arguments, status-strip item, status formatting,
-    /// and quirks (server wakeup, client restart-on-error, the client's hide-command-window side
-    /// effect); lives here; the start/stop/toggle/paint/log machinery below is generic.
-    /// The lambdas read <see cref="Settings"/> lazily, so building these before settings are
-    /// loaded is safe.
-    /// </summary>
-    private void InitializeServiceControllers() {
-        serverController = new ServiceController {
+    // ----------------------------------------
+    // Per-transport descriptor factories (#211). Everything transport-specific; construction,
+    // start arguments, status-strip item, status formatting, and quirks (server wakeup, client
+    // restart-on-error, the client's hide-command-window side effect); lives here; the
+    // start/stop/toggle/paint/log machinery below is generic. The lambdas read
+    // <see cref="Settings"/> lazily, so building these before settings are loaded is safe.
+
+    private ServiceController CreateServerController() =>
+        new() {
             Name = "SocketServer",
             Create = () => new SocketServer(),
             StartTransport = (s, _) => ((SocketServer)s).Start(Settings.ServerPort, Settings.SocketServerBindAddress),
@@ -111,16 +136,18 @@ public partial class MainWindow : Form, IAppHost {
             // Wakeup quirk: send the wakeup command when the server starts, the closing command
             // when it reports Stopped. (As before #211, an operator-initiated stop unsubscribes
             // handlers before Stop(), so the closing command fires only when the server itself
-            // reports Stopped; e.g. a failed start.)
+            // reports Stopped; e.g. a failed start.) The pattern guard replaces the old
+            // null-forgiving Server!: the quirk only fires while the instance is wired, but a
+            // vanished instance now degrades to a no-op instead of an NRE.
             StatusQuirk = status => {
-                if (!Settings.WakeupEnabled) {
+                if (!Settings.WakeupEnabled || Server is not SocketServer server) {
                     return;
                 }
                 if (status == ServiceStatus.Started) {
-                    Server!.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
+                    server.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
                 }
                 else if (status == ServiceStatus.Stopped) {
-                    Server!.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost, Settings.WakeupPort);
+                    server.SendAwakeCommand(Settings.ClosingCommand, Settings.WakeupHost, Settings.WakeupPort);
                 }
             },
             AfterStart = () => sendAwakeMenuItem.Enabled = Settings.WakeupEnabled,
@@ -128,7 +155,8 @@ public partial class MainWindow : Form, IAppHost {
             IsConfigured = () => Settings.ActAsServer,
         };
 
-        clientController = new ServiceController {
+    private ServiceController CreateClientController() =>
+        new() {
             Name = "Client",
             Create = () => new SocketClient(Settings),
             StartTransport = (s, delay) => ((SocketClient)s).Start(delay),
@@ -150,7 +178,8 @@ public partial class MainWindow : Form, IAppHost {
             IsConfigured = () => Settings.ActAsClient,
         };
 
-        serialController = new ServiceController {
+    private ServiceController CreateSerialController() =>
+        new() {
             Name = "SerialServer",
             Create = () => new SerialServer(),
             StartTransport = (s, _) => ((SerialServer)s).Start(Settings.SerialServerPortName,
@@ -167,9 +196,8 @@ public partial class MainWindow : Form, IAppHost {
             IsConfigured = () => Settings.ActAsSerialServer,
         };
 
-        serviceControllers = [serverController, serialController, clientController];
-
-        statusStripMcp = new ToolStripStatusLabel {
+    private static ToolStripStatusLabel CreateMcpStatusLabel() =>
+        new() {
             BackColor = SystemColors.Control,
             Image = global::MCEControl.Properties.Resources.Trafficlight_gray_icon,
             ImageAlign = ContentAlignment.MiddleRight,
@@ -179,8 +207,6 @@ public partial class MainWindow : Form, IAppHost {
             Text = "MCP",
             TextAlign = ContentAlignment.MiddleLeft,
         };
-        statusStrip.Items.Add(statusStripMcp);
-    }
 
     /// <summary>
     /// Clean up any resources being used.
@@ -238,12 +264,12 @@ public partial class MainWindow : Form, IAppHost {
         base.WndProc(ref m);
     }
 
-    private void mainWindow_Load(object sender, EventArgs e) {
+    private void mainWindow_Load(object? sender, EventArgs e) {
         Logger.Instance.Log4.Info($"MCEC v{System.Windows.Forms.Application.ProductVersion}" +
             $" - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")}" +
             $" - .NET: {Environment.Version.ToString()}");
 
-        IntPtr hWnd = WindowsInput.Native.NativeMethods.FindWindow(null!, this.Text);
+        IntPtr hWnd = WindowsInput.Native.NativeMethods.FindWindow(null, this.Text);
 #if _DEBUG
         var sb = new StringBuilder(256);
         WindowsInput.Native.NativeMethods.GetClassName(hWnd, sb, 256);
@@ -276,7 +302,7 @@ public partial class MainWindow : Form, IAppHost {
         LoadCommands();
         // watch .command file for changes
         watcher = new CommandFileWatcher($@"{Program.ConfigPath}mcec.commands");
-        watcher!.ChangedEvent += (o, a) => CmdTable_CommandsChangedEvent(o!, a);
+        watcher.ChangedEvent += CmdTable_CommandsChangedEvent;
 
         if (Settings.HideOnStartup) {
             Opacity = 0;
@@ -338,7 +364,7 @@ public partial class MainWindow : Form, IAppHost {
             : $"Version: {Application.ProductVersion}");
     }
 
-    private void UpdateService_GotLatestVersion(object? sender, Version version) {
+    private void UpdateService_GotLatestVersion(object? sender, Version? version) {
         if (InvokeRequired) {
             BeginInvoke((Action)(() => { UpdateService_GotLatestVersion(sender, version); }));
         }
@@ -365,10 +391,14 @@ public partial class MainWindow : Form, IAppHost {
         }
     }
 
-    private void CmdTable_CommandsChangedEvent(object sender, EventArgs e) {
-
-        if (cmdWindow!.InvokeRequired) {
-            cmdWindow!.BeginInvoke((Action)(() => { CmdTable_CommandsChangedEvent(sender, e); }));
+    private void CmdTable_CommandsChangedEvent(object? sender, EventArgs e) {
+        // The watcher only exists after mainWindow_Load created the command window, but a change
+        // event racing teardown degrades to a no-op instead of an NRE.
+        if (cmdWindow is not CommandWindow window) {
+            return;
+        }
+        if (window.InvokeRequired) {
+            window.BeginInvoke((Action)(() => { CmdTable_CommandsChangedEvent(sender, e); }));
         }
         else {
             LoadCommands();
@@ -377,22 +407,22 @@ public partial class MainWindow : Form, IAppHost {
 
     private void LoadCommands() {
         // #195: the invoker owns a dispatcher thread; stop the old one (dropping its queue; the
-        // commands file changed, so what's queued is stale) before replacing it.
-        Invoker?.Shutdown();
+        // commands file changed, so what's queued is stale) before replacing it. The field, not
+        // the property: on the first load there IS no old invoker, and that is not an error.
+        _invoker?.Shutdown();
 
+        // Create never returns null (it falls back to the built-in commands), so the old
+        // "no invoker → hide the tray icon" branch was dead and is gone.
         Invoker = CommandInvoker.Create($@"{Program.ConfigPath}mcec.commands", Application.ProductVersion, Settings.DisableInternalCommands);
         AgentRuntime.Invoker = Invoker;
-        if (Invoker == null) {
-            notifyIcon.Visible = false;
-        }
-        else {
-            cmdWindow!.RefreshList();
-            Logger.Instance.Log4.Info($"CommandInvoker: {Invoker.Values.Cast<Command>().Count(cmd => (cmd.Enabled))} " +
-                $"commands enabled ({Invoker.Values.Cast<Command>().Count(cmd => (!cmd.Enabled))} commands disabled).");
-        }
+        cmdWindow?.RefreshList();
+        Logger.Instance.Log4.Info($"CommandInvoker: {Invoker.Values.Cast<Command>().Count(cmd => (cmd.Enabled))} " +
+            $"commands enabled ({Invoker.Values.Cast<Command>().Count(cmd => (!cmd.Enabled))} commands disabled).");
     }
 
-    private void mainWindow_Closing(object sender, CancelEventArgs e) {
+    // FormClosing, not the obsolete Closing (WFDEV004); FormClosingEventArgs derives from
+    // CancelEventArgs, so the minimize-to-tray Cancel contract is unchanged.
+    private void mainWindow_Closing(object? sender, FormClosingEventArgs e) {
         if (!shuttingDown) {
             Logger.Instance.Log4.Info("Hiding Main Window...");
             // If we're NOT shutting down (the user hit the close button or pressed
@@ -441,8 +471,8 @@ public partial class MainWindow : Form, IAppHost {
         // #195: stop the command dispatcher thread (drops anything still queued; a drop that
         // severs a command tree releases held input). The bounded join lets an in-flight
         // command usually finish cleanly; the thread is background so it can never keep the
-        // process alive past that.
-        Invoker?.Shutdown(joinTimeoutMs: 2000);
+        // process alive past that. The field: shutting down before any load is not an error.
+        _invoker?.Shutdown(joinTimeoutMs: 2000);
 
         // #215: stop the dedicated UIA worker and dispose its cached UIA3Automation (bounded join).
         UiaService.Shutdown();
@@ -632,8 +662,8 @@ public partial class MainWindow : Form, IAppHost {
             TelemetryService.Instance.TrackEvent("ShowCommandWindow");
             this.BeginInvoke((MethodInvoker)delegate () { ShowCommandWindow(); });
         }
-        else {
-            cmdWindow!.Visible = Settings.ShowCommandWindow = true;
+        else if (cmdWindow is not null) {
+            cmdWindow.Visible = Settings.ShowCommandWindow = true;
         }
     }
 
@@ -643,7 +673,10 @@ public partial class MainWindow : Form, IAppHost {
             this.BeginInvoke((MethodInvoker)delegate () { HideCommandWindow(); });
         }
         else {
-            Settings.ShowCommandWindow = cmdWindow!.Visible = false;
+            Settings.ShowCommandWindow = false;
+            if (cmdWindow is not null) {
+                cmdWindow.Visible = false;
+            }
         }
     }
 
@@ -845,7 +878,15 @@ public partial class MainWindow : Form, IAppHost {
         // the dialog-OK path re-runs this with the same instance.
         AgentRuntime.Host = this;
 
-        Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![settings.TextBoxLogThreshold]!;
+        // LevelMap's indexer returns null for a name it does not know (e.g. a hand-edited
+        // settings file); keep the current threshold instead of dereferencing the miss.
+        log4net.Core.Level? threshold = LogManager.GetLogger("MCEControl").Logger?.Repository?.LevelMap[settings.TextBoxLogThreshold];
+        if (threshold is null) {
+            Logger.Instance.Log4.Warn($"Unknown TextBoxLogThreshold '{settings.TextBoxLogThreshold}'; keeping the current threshold.");
+        }
+        else {
+            Logger.Instance.TextBoxThreshold = threshold;
+        }
     }
 
     /// <summary>
@@ -901,11 +942,11 @@ public partial class MainWindow : Form, IAppHost {
 
     // ----------------------------------------
     // User action handlers
-    private void exitMenuItem_Click(object sender, EventArgs e) {
+    private void exitMenuItem_Click(object? sender, EventArgs e) {
         ShutDown();
     }
 
-    private void notifyIcon_DoubleClick(object sender, EventArgs e) {
+    private void notifyIcon_DoubleClick(object? sender, EventArgs e) {
         // Show the form when the user double clicks on the notify icon.
 
         // Set the WindowState to normal if the form is minimized.
@@ -920,53 +961,55 @@ public partial class MainWindow : Form, IAppHost {
         Opacity = (double)Settings.Opacity / 100;
     }
 
-    private void aboutMenuItem_Click(object sender, EventArgs e) {
+    private void aboutMenuItem_Click(object? sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("aboutMenuItem");
         About a = new About();
         a.ShowDialog(this);
         a.Dispose();
     }
 
-    private void settingsMenuItem_Click(object sender, EventArgs e) {
+    private void settingsMenuItem_Click(object? sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("settingsMenuItem");
         ShowSettings(SettingsTab.General);
     }
 
-    private void sendAwakeMenuItem_Click(object sender, EventArgs e) {
+    private void sendAwakeMenuItem_Click(object? sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("sendAwakeMenuItem");
 
-        Server!.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
+        // The menu item is only enabled while the server runs, but Enabled toggles race the
+        // click queue; a vanished server degrades to a no-op instead of an NRE.
+        Server?.SendAwakeCommand(Settings.WakeupCommand, Settings.WakeupHost, Settings.WakeupPort);
     }
 
-    private void commandsMenuItem_Click(object sender, EventArgs e) {
+    private void commandsMenuItem_Click(object? sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("commandsMenuItem");
         ShowCommandWindow();
     }
-    private void openCommandsFolderMenuItem_Click(object sender, EventArgs e) {
+    private void openCommandsFolderMenuItem_Click(object? sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("openCommandsFolderMenuItem");
 
         Program.LaunchExternal(Program.ConfigPath);
     }
 
 
-    private void docsMenuItem_Click(object sender, EventArgs e) {
+    private void docsMenuItem_Click(object? sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("docsMenuItem");
 
         Program.LaunchExternal("https://tig.github.io/mcec/");
     }
 
-    private void MenuItemEditCommands_Click(object sender, EventArgs e) {
+    private void MenuItemEditCommands_Click(object? sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("MenuItemEditCommands");
 
         Program.LaunchExternal(Program.ConfigPath);
     }
 
-    private void updatesMenuItem_Click(object sender, EventArgs e) {
+    private void updatesMenuItem_Click(object? sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("updatesMenuItem");
         UpdateDialog.Instance.ShowDialog(this);
     }
 
-    private void statusStripClient_Click(object sender, EventArgs e) {
+    private void statusStripClient_Click(object? sender, EventArgs e) {
         if (clientController.IsConfigured()) {
             ToggleService(clientController);
         }
@@ -975,7 +1018,7 @@ public partial class MainWindow : Form, IAppHost {
         }
     }
 
-    private void statusStripServer_Click(object sender, EventArgs e) {
+    private void statusStripServer_Click(object? sender, EventArgs e) {
         if (serverController.IsConfigured()) {
             ToggleService(serverController);
         }
@@ -984,28 +1027,28 @@ public partial class MainWindow : Form, IAppHost {
         }
     }
 
-    private void statusStripSerial_Click(object sender, EventArgs e) {
+    private void statusStripSerial_Click(object? sender, EventArgs e) {
         ShowSettings(SettingsTab.Serial);
     }
 
-    private void statusStripStatus_Click(object sender, EventArgs e) {
+    private void statusStripStatus_Click(object? sender, EventArgs e) {
         ShowSettings(SettingsTab.General);
     }
 
     // WinForms layout with MenuStrip and StatusStrip has issues (apparently) with
     // Anchor. This works around that.
-    private void MainWindow_Layout(object sender, LayoutEventArgs e) {
+    private void MainWindow_Layout(object? sender, LayoutEventArgs e) {
         // Adjust vertical location & height of TextBox to deal with font scaling changes.
         // Note we add a little margin on the left
         logTextBox.Location = new System.Drawing.Point(4, menuStrip.Height);
         logTextBox.Size = new System.Drawing.Size(this.ClientSize.Width - logTextBox.Location.X, this.ClientSize.Height - menuStrip.Height - statusStrip.Height);
     }
 
-    private void SystemEvents_UserPreferenceChanged(object sender, EventArgs e) {
+    private void SystemEvents_UserPreferenceChanged(object? sender, EventArgs e) {
         logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, menuStrip.Font.SizeInPoints - 1, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
     }
 
-    private void MainWindow_VisibleChanged(object sender, EventArgs e) {
+    private void MainWindow_VisibleChanged(object? sender, EventArgs e) {
         if (Visible)
             UpdateService.Instance.CheckVersion();
     }

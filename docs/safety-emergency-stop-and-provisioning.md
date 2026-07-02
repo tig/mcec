@@ -116,6 +116,11 @@ containing `mcec.exe` + dependencies and a **co-located, agent-ready config** (a
 **only** inside the copy). The agent runs from there and deletes it when done; so enabled state lives only
 in the throwaway copy, "cleanup" is `rm -rf <dir>`, and a crashed session leaves the real install untouched.
 
+The installed copy **enforces** its side of this: `mcec.exe` running from Program Files refuses
+`mcp`/`--mcp` and refuses to start the MCP/HTTP endpoint (`Program.IsProgramFilesInstall`), with an
+error pointing at provisioning or a manual writable copy. The operator's install cannot be turned into
+an agent server even by editing its settings.
+
 ### Flow
 
 1. Operator opts in once: `AppSettings.AllowSessionProvisioning = true` (the one thing that can't be

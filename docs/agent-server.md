@@ -432,8 +432,23 @@ on-screen command overlay and the emergency-stop hotkey still work) so an MCP cl
 input/output:
 
 ```
-mcec.exe --mcp
+mcec.exe mcp        # or the equivalent legacy spelling: mcec.exe --mcp
 ```
+
+**Never point an MCP client at the installed copy.** `mcec.exe` under Program Files
+refuses `mcp`/`--mcp` (and refuses to start the MCP/HTTP endpoint) with an error
+explaining the alternatives: serving agents from the installed, operator-owned copy
+would mean enabling agent security gates in the one configuration the operator's own
+MCEC reads, where a crashed session leaks them enabled. Instead, either have an agent
+call `provision-session` (see
+[Agent safety](safety-emergency-stop-and-provisioning.md)) to get a disposable,
+isolated copy, or copy the install directory somewhere writable and point the client
+there; a non-installed copy reads its own co-located `mcec.settings`.
+
+The exe also exposes a CLI surface (built on
+[Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--opencli` emits machine-readable
+command metadata, and `agent-guide` prints the same agent guidance the MCP server
+hands connecting clients.
 
 Wire it into your MCP client config (the `claude_desktop_config.json` / `mcp.json`
 style used by most clients):
@@ -442,12 +457,15 @@ style used by most clients):
 {
   "mcpServers": {
     "mcec": {
-      "command": "C:/Program Files/Kindel Systems/MCEC/mcec.exe",
-      "args": ["--mcp"]
+      "command": "C:/mcec/mcec.exe",
+      "args": ["mcp"]
     }
   }
 }
 ```
+
+(`C:/mcec` here is a writable copy of the install directory, or a provisioned session's
+`directory`; the Program Files path itself would be refused, per above.)
 
 > The agent commands still obey the security gates above. Running `--mcp` does **not**
 > bypass `AgentCommandsEnabled` or the per-command `Enabled` flags; set those in

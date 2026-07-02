@@ -115,7 +115,9 @@ you will never see or target it, and it is never a candidate window; but it DOES
 full-screen/region `capture`s and `record`ings (not in window-targeted captures).
 
 PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it and disabling them
-when done; an abnormal exit leaks those security gates enabled. Instead, when the operator has authorized it,
+when done; an abnormal exit leaks those security gates enabled. The installed copy enforces this: run from
+Program Files, `mcec.exe mcp`/`--mcp` exits with an error and the MCP/HTTP endpoint refuses to start, so do
+not try to spawn or point at the installed exe. Instead, when the operator has authorized it,
 call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
 `mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
 launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), a `sessionId`, and a
