@@ -279,10 +279,11 @@ public partial class MainWindow : Form {
         else {
             Logger.Instance.Log4.Info("Closing Main Window...");
 
-            // #195: stop the command dispatcher thread (drops anything still queued). It is a
-            // background thread so it could never keep the process alive, but exiting deliberately
-            // beats abandoning it mid-queue.
-            Invoker?.Shutdown();
+            // #195: stop the command dispatcher thread (drops anything still queued; a drop that
+            // severs a command tree releases held input). The bounded join lets an in-flight
+            // command usually finish cleanly; the thread is background so it can never keep the
+            // process alive past that.
+            Invoker?.Shutdown(joinTimeoutMs: 2000);
 
             // Save Commands
             // Stop file system watcher

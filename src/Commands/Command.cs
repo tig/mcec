@@ -70,6 +70,16 @@ public abstract class Command : ICommand {
     [XmlIgnore]
     public bool UserDefined { get; set; }
 
+    /// <summary>
+    /// Whether executing this command can synthesize physical desktop input (keys/mouse/window
+    /// messages). The dispatcher (#195) holds <see cref="AgentRuntime.InputGate"/> around
+    /// <see cref="Execute"/> only when this is true — so a command that provably touches no input
+    /// (e.g. <c>pause</c>) doesn't starve a concurrent agent <c>drag</c> for its whole duration.
+    /// DEFAULTS TO TRUE; overrides must be conservative — claim false only when Execute can never
+    /// emit input, directly or transitively. Getting this wrong re-opens the #113 interleaving hazard.
+    /// </summary>
+    internal virtual bool SynthesizesInput => true;
+
     public abstract ICommand Clone(Reply reply);
 
     public virtual Command Clone(Reply reply, Command clone) {

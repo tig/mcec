@@ -468,17 +468,27 @@ Agent tool calls follow a simple contract so one slow call never stalls the othe
   the one input stream is a shared resource, so they serialize on a single gate
   (`AgentRuntime.InputGate`): `drag` actuates directly under the gate on its worker, while
   `send_command` enqueues into the command engine, whose single dispatcher thread (#195) holds the same
-  gate around each queued command's `Execute` (concurrent requests can't interleave keystrokes/mouse).
+  gate around each input-synthesizing queued command's `Execute` (concurrent requests can't interleave
+  keystrokes/mouse). Commands that provably touch no input (`pause`, `mcec:`) run outside the gate, so a
+  `pause:60000` in a macro doesn't starve a concurrent `drag` for a minute.
 - **`invoke` is UIA-pattern actuation**, dispatched on a worker with a short *modal grace*: because
   invoking a control can open a modal dialog that blocks synchronously, `invoke` never holds the input
   gate for the dialog's lifetime — otherwise the agent couldn't `query`/`capture`/`invoke` to dismiss the
-  very dialog it opened (see the `invoke` notes above).
+  very dialog it opened (see the `invoke` notes above). **Caveat — queue-path invoke:** that grace exists
+  only for the `invoke` *tool*. An invoke-style command executed from the queue (in a macro, or raw via
+  `send_command`) has no modal grace: if it opens a modal dialog, its `Execute` blocks the dispatcher —
+  and holds the input gate — until the dialog is dismissed. The agent caller is bounded by
+  `send_command`'s 30s wait (`send-command-timeout`), but the queue itself stalls until the operator
+  closes the dialog. Prefer the `invoke` tool for anything that may open a modal.
 - **The legacy TCP/serial command pipeline shares the same queue and dispatcher (#195).** Home-automation
   commands and `send_command` are both *producers* into the one `CommandInvoker` queue; its dedicated
-  dispatcher thread is the only consumer and executes every command in order under the input gate, so
-  legacy traffic and agent actuation can never interleave either. `send_command` returns only after its
-  command actually executed (a per-enqueue completion the dispatcher signals), with a 30s wait bound —
-  a longer-running command keeps executing, but the call reports `send-command-timeout`.
+  dispatcher thread is the only consumer and executes every command in order (input-synthesizing ones
+  under the input gate), so legacy traffic and agent actuation can never interleave either.
+  `send_command` returns only after its command actually executed (a per-enqueue completion the
+  dispatcher signals), with a 30s wait bound — a longer-running command keeps executing, but the call
+  reports `send-command-timeout`. A command that never enters the queue fails fast instead of reporting
+  ok: `unknown-command` (not in the loaded table) or `command-dropped` (over the #154 bounds / engine
+  shutting down).
 
 Both MCP transports honor this by dispatching each request on a worker: the HTTP floor serves every
 `POST` on a thread-pool task, and the stdio loop dispatches each line concurrently (writes are serialized;

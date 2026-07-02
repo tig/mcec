@@ -201,19 +201,197 @@ public class CommandInvokerDispatcherTests {
     }
 
     [Fact]
-    public async Task Shutdown_DropsQueuedCommands_AndFailsNewCompletions() {
+    public async Task Shutdown_DropsQueuedCommands_FailsNewCompletions_AndReleasesHeldInput() {
+        // Dropping queued commands at shutdown can sever a partially executed tree (shiftdown: ran,
+        // shiftup: dropped), so the drop must run the same held-input release the emergency stop
+        // uses. Swap the release seam so the test observes the call without injecting real input.
+        Action originalRelease = CommandInvoker.ReleaseHeldInputOnDrop;
+        int releaseCalls = 0;
+        CommandInvoker.ReleaseHeldInputOnDrop = () => Interlocked.Increment(ref releaseCalls);
+        try {
+            CommandInvoker invoker = new() { SuppressDispatcherForTests = true };
+            DelegateTestCommand queued = new() { Cmd = "queued" };
+            invoker.EnqueueCommand(queued);
+
+            invoker.Shutdown();
+
+            Assert.Equal(1, releaseCalls); // a real command was dropped → input released, exactly once
+
+            // A completion requested after shutdown must fail fast, not hang its awaiter.
+            Assert.False(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
+
+            // Nothing queued before shutdown executes, even if someone pumps.
+            invoker.PumpQueueForTests();
+            Assert.Equal(0, queued.ExecuteCount);
+        }
+        finally {
+            CommandInvoker.ReleaseHeldInputOnDrop = originalRelease;
+        }
+    }
+
+    [Fact]
+    public async Task Shutdown_WithLiveDispatcher_DropsTail_ReleasesInput_AndFailsPendingCompletionFast() {
+        Action originalRelease = CommandInvoker.ReleaseHeldInputOnDrop;
+        int releaseCalls = 0;
+        CommandInvoker.ReleaseHeldInputOnDrop = () => Interlocked.Increment(ref releaseCalls);
+        CommandInvoker invoker = [];
+        using ManualResetEventSlim firstStarted = new(false);
+        using ManualResetEventSlim releaseFirst = new(false);
+        try {
+            // First command blocks mid-Execute (a long-running command); the second is the queued
+            // "tail" (think shiftup: after shiftdown:) that Shutdown will drop.
+            DelegateTestCommand first = new() {
+                Cmd = "long-runner",
+                OnExecute = _ => {
+                    firstStarted.Set();
+                    Assert.True(releaseFirst.Wait(Wait), "test never released the blocking command");
+                },
+            };
+            DelegateTestCommand tail = new() { Cmd = "tail" };
+            invoker.EnqueueCommand(first);
+            invoker.EnqueueCommand(tail);
+            Task<bool> pending = invoker.SignalWhenQueueDrained();
+
+            Assert.True(firstStarted.Wait(Wait), "dispatcher never started the first command");
+            invoker.Shutdown(); // no join: must not block on the still-running command
+
+            // #195 review: the pending completion is failed IMMEDIATELY from Shutdown — it must not
+            // wait behind the in-flight command (which is still blocked right now).
+            Assert.False(await pending.WaitAsync(Wait));
+
+            releaseFirst.Set(); // let the in-flight command finish; the dispatcher then drops the tail
+
+            SpinWait.SpinUntil(() => Volatile.Read(ref releaseCalls) > 0, Wait);
+            Assert.Equal(1, releaseCalls); // the dropped tail triggered exactly one input release
+            Assert.Equal(1, first.ExecuteCount);
+            Assert.Equal(0, tail.ExecuteCount);
+        }
+        finally {
+            releaseFirst.Set();
+            CommandInvoker.ReleaseHeldInputOnDrop = originalRelease;
+            invoker.Shutdown();
+        }
+    }
+
+    [Fact]
+    public async Task Dispatcher_HoldsInputGate_OnlyForInputSynthesizingCommands() {
+        CommandInvoker invoker = [];
+        using ManualResetEventSlim commandStarted = new(false);
+        using ManualResetEventSlim releaseCommand = new(false);
+        try {
+            // A non-input command (SynthesizesInput=false, like pause) blocks mid-Execute: the gate
+            // must be FREE — a pause:60000 in a macro must not starve a concurrent agent drag.
+            DelegateTestCommand pauseLike = new() {
+                Cmd = "pause-like",
+                SynthesizesInputForTest = false,
+                OnExecute = _ => {
+                    commandStarted.Set();
+                    Assert.True(releaseCommand.Wait(Wait), "test never released the pause-like command");
+                },
+            };
+            invoker.EnqueueCommand(pauseLike);
+            Assert.True(commandStarted.Wait(Wait), "dispatcher never started the pause-like command");
+            Assert.True(TryProbeInputGate(), "InputGate must NOT be held while a non-input command executes");
+            releaseCommand.Set();
+            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
+
+            // An input-synthesizing command (the conservative default) blocking mid-Execute: the
+            // gate must be HELD — that is the #113 no-interleaving invariant.
+            commandStarted.Reset();
+            releaseCommand.Reset();
+            DelegateTestCommand inputLike = new() {
+                Cmd = "input-like",
+                OnExecute = _ => {
+                    commandStarted.Set();
+                    Assert.True(releaseCommand.Wait(Wait), "test never released the input-like command");
+                },
+            };
+            invoker.EnqueueCommand(inputLike);
+            Assert.True(commandStarted.Wait(Wait), "dispatcher never started the input-like command");
+            Assert.False(TryProbeInputGate(), "InputGate MUST be held while an input-synthesizing command executes");
+            releaseCommand.Set();
+            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
+        }
+        finally {
+            releaseCommand.Set();
+            invoker.Shutdown();
+        }
+    }
+
+    /// <summary>Tries to take <see cref="AgentRuntime.InputGate"/> without blocking; true = it was free.</summary>
+    private static bool TryProbeInputGate() {
+        if (!Monitor.TryEnter(AgentRuntime.InputGate, 0)) {
+            return false;
+        }
+        Monitor.Exit(AgentRuntime.InputGate);
+        return true;
+    }
+
+    [Fact]
+    public void SynthesizesInput_Classification_IsConservative() {
+        // pause and mcec: provably emit no input and may run outside the gate; everything else
+        // stays true by default (the conservative posture — a wrong false re-opens #113).
+        Assert.False(new PauseCommand().SynthesizesInput);
+        Assert.False(new McecCommand().SynthesizesInput);
+        Assert.True(new SendInputCommand().SynthesizesInput);
+        Assert.True(new CharsCommand().SynthesizesInput);
+        Assert.True(new MouseCommand().SynthesizesInput);
+        Assert.True(new StartProcessCommand().SynthesizesInput); // WaitForInputIdle precedes embedded input
+    }
+
+    [Fact]
+    public async Task SendCommand_UnknownCommand_ReturnsUnknownCommandError() {
+        // #195 review: send_command must not report ok for a command that never entered the queue.
+        AgentTestSupport.EnsureTelemetry();
+        CommandInvoker invoker = [];
+        AgentRuntime.Settings = new AppSettings();
+        AgentRuntime.Invoker = invoker;
+        try {
+            JsonObject resp = await Task.Run(() => AgentServer.Dispatch(new JsonObject {
+                ["jsonrpc"] = "2.0",
+                ["id"] = 7,
+                ["method"] = "tools/call",
+                ["params"] = new JsonObject {
+                    ["name"] = "send_command",
+                    ["arguments"] = new JsonObject { ["command"] = "no-such-command" },
+                },
+            })!).WaitAsync(Wait);
+
+            JsonObject toolResult = resp["result"]!.AsObject();
+            Assert.True(toolResult["isError"]!.GetValue<bool>());
+            JsonObject env = ParseEnvelope(toolResult);
+            Assert.False(env["ok"]!.GetValue<bool>());
+            Assert.Equal("unknown-command", env["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Invoker = null;
+            AgentRuntime.Settings = null;
+            invoker.Shutdown();
+        }
+    }
+
+    [Fact]
+    public void TryEnqueueWithCompletion_BoundsDrop_ReportsDropped_NotEnqueued() {
+        // #195 review: a known command whose tree is refused by the #154 queue-depth cap must
+        // surface as Dropped (send_command turns that into a command-dropped error), never as a
+        // silent success. Suppressed dispatcher keeps the queue full for the whole test.
         CommandInvoker invoker = new() { SuppressDispatcherForTests = true };
-        DelegateTestCommand queued = new() { Cmd = "queued" };
-        invoker.EnqueueCommand(queued);
+        DelegateTestCommand echo = new() { Cmd = "echo" };
+        invoker.Add("echo", (ICommand)echo);
+        for (int i = 0; i < CommandInvoker.MaxQueueDepth; i++) {
+            invoker.EnqueueCommand(new DelegateTestCommand { Cmd = $"fill{i}" });
+        }
 
-        invoker.Shutdown();
+        CommandEnqueueResult result = invoker.TryEnqueueWithCompletion(new TestReply(), "echo", out Task<bool>? completion);
 
-        // A completion requested after shutdown must fail fast, not hang its awaiter.
-        Assert.False(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
+        Assert.Equal(CommandEnqueueResult.Dropped, result);
+        Assert.Null(completion);
+        Assert.Equal(CommandInvoker.MaxQueueDepth, invoker.QueuedCommandCount); // nothing added
 
-        // Nothing queued before shutdown executes, even if someone pumps.
-        invoker.PumpQueueForTests();
-        Assert.Equal(0, queued.ExecuteCount);
+        // And the unknown path reports UnknownCommand, distinctly.
+        Assert.Equal(CommandEnqueueResult.UnknownCommand,
+            invoker.TryEnqueueWithCompletion(new TestReply(), "nope", out Task<bool>? none));
+        Assert.Null(none);
     }
 
     private static JsonObject ParseEnvelope(JsonObject toolResult) {

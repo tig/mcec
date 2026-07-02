@@ -33,6 +33,12 @@ public class McecCommand : Command {
     public McecCommand() {
     }
 
+    /// <summary>
+    /// mcec: commands report state or exit the app — they never synthesize input, so the dispatcher
+    /// (#195) need not hold <see cref="AgentRuntime.InputGate"/> while they run.
+    /// </summary>
+    internal override bool SynthesizesInput => false;
+
     public override string ToString() {
         return $"Cmd=\"{Cmd}\"";
     }

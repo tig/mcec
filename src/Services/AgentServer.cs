@@ -590,12 +590,27 @@ public static class AgentServer {
         // dispatcher-drained queue (the same queue the legacy TCP/serial pipeline feeds); the
         // dispatcher thread executes the command under AgentRuntime.InputGate (the #113
         // no-interleaving invariant) and the completion task fires only after it ran — so reading
-        // reply.Captured below no longer races the execution.
+        // reply.Captured below no longer races the execution. A command that never entered the queue
+        // (unknown name, or dropped whole by the #154 bounds) is a failure, not the old always-"ok"
+        // (the richer taxonomy stays #206; these two codes are the minimum honest signal).
         CapturingReply reply = new();
-        Task<bool> completion = invoker.EnqueueWithCompletion(reply, command);
+        CommandEnqueueResult enqueued = invoker.TryEnqueueWithCompletion(reply, command, out Task<bool>? completion);
 
         AgentSession session = AgentRuntime.Session;
         session.RecordAction("send_command");
+
+        if (enqueued == CommandEnqueueResult.UnknownCommand) {
+            return ToolError(
+                $"Unknown command: '{command}' is not in the loaded command table. Nothing was executed.",
+                "unknown-command");
+        }
+        if (enqueued != CommandEnqueueResult.Enqueued || completion is null) {
+            return ToolError(
+                $"The command '{command}' was dropped whole and never executed: it exceeds the queue bounds " +
+                "(over the embedded-expansion limit, or the execute queue is full) or the command engine is shutting down. " +
+                "Send less at once and let the queue drain before retrying.",
+                "command-dropped");
+        }
 
         if (!completion.Wait(SendCommandCompletionTimeoutMs)) {
             return ToolError(
@@ -605,7 +620,8 @@ public static class AgentServer {
         }
         if (!completion.Result) {
             return ToolError(
-                "The command was dropped from the queue before executing (emergency stop engaged or the command engine shut down).",
+                "The queue was dropped before this command finished (emergency stop engaged or the command engine shut down). " +
+                "It may have PARTIALLY executed — verify the desktop state with query/capture before assuming nothing ran.",
                 "emergency-stopped");
         }
 

@@ -191,12 +191,14 @@ public static class EmergencyStop {
     }
 
     /// <summary>
-    /// Releases any input the agent may have left held: lifts every mouse button and resets the shift /
+    /// Releases any input that may have been left held: lifts every mouse button and resets the shift /
     /// ctrl / alt / win modifiers (the same reset <see cref="MainWindow"/> runs on exit). These are
     /// injected events, so the hook flags them <c>LLKHF_INJECTED</c> and the detector ignores them — the
-    /// release can never re-trigger the stop.
+    /// release can never re-trigger the stop. Internal because the <see cref="CommandInvoker"/>
+    /// dispatcher shares it (#195): a Shutdown that drops the queued tail of a command tree can sever
+    /// paired input (shiftdown:/shiftup:), so the shutdown drop performs this same release.
     /// </summary>
-    private static void ReleaseHeldInput() {
+    internal static void ReleaseHeldInput() {
         try {
             InputSimulator sim = new();
             sim.Mouse.LeftButtonUp();

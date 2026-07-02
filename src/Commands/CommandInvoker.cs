@@ -45,6 +45,23 @@ public class CommandInvoker : Hashtable {
     private Thread? dispatcherThread;
     private volatile bool shutdown;
 
+    // PRODUCER-side gate making the #154 bounds check + enqueue atomic: with genuinely concurrent
+    // producers (socket/serial threads, MCP workers) an unlocked check-then-act could admit N trees
+    // that each saw room, overshooting MaxQueueDepth. LOCK ORDERING: held only across the depth
+    // check and the queue Adds; the DISPATCHER never takes it, and nothing is acquired while holding
+    // it (EnsureDispatcherStarted/dispatcherGate happen outside), so it can never interact with
+    // InputGate or dispatcherGate.
+    private readonly object enqueueGate = new();
+
+    /// <summary>
+    /// TEST SEAM (#195): what the shutdown drop runs to release possibly-held input. A Shutdown that
+    /// drops the queued tail of a command tree can sever paired input (shiftdown: ran, shiftup:
+    /// dropped) and leave a modifier latched host-wide — the same hazard the emergency stop
+    /// compensates for — so the drop paths invoke the SAME release the stop uses. Tests swap in a
+    /// probe (the default injects real input).
+    /// </summary>
+    internal static Action ReleaseHeldInputOnDrop { get; set; } = EmergencyStop.ReleaseHeldInput;
+
     /// <summary>
     /// SECURITY (#154): Maximum number of commands the execute queue will hold. The queue is drained
     /// by the single dispatcher thread with `CommandPacing` sleeps between items, so a remote client
@@ -178,11 +195,15 @@ public class CommandInvoker : Hashtable {
     }
 
     /// <summary>
-    /// Decodes a commands tring and enqueues the associated Command for execution.
+    /// Decodes a command string and enqueues the associated Command for execution. Returns what
+    /// happened (#195): <see cref="CommandEnqueueResult.Enqueued"/>, an unknown command, or a
+    /// bounds/shutdown drop — so a caller with an error channel (the agent's <c>send_command</c>)
+    /// can report failure instead of pretending success. The legacy TCP/serial path ignores the
+    /// result (its behavior — log and continue — is unchanged).
     /// </summary>
     /// <param name="reply">Reply context</param>
     /// <param name="cmdString">The command string that was received</param>
-    public void Enqueue(Reply reply, String cmdString) {
+    public CommandEnqueueResult Enqueue(Reply reply, String cmdString) {
         if (cmdString == null) {
             throw new ArgumentNullException(nameof(cmdString));
         }
@@ -215,53 +236,63 @@ public class CommandInvoker : Hashtable {
             // Use shiftdown:/shiftup: to simulate the pressing of the shift, control, alt, and windows keys.
             // Cmd is set so a drop of this command (queue full, #154) logs something identifiable.
             SendInputCommand siCmd = new SendInputCommand() { Cmd = cmdString, Vk = cmdString, Enabled = true, Reply = reply };
-            EnqueueCommand(siCmd);
+            return EnqueueCommand(siCmd) ? CommandEnqueueResult.Enqueued : CommandEnqueueResult.Dropped;
         }
-        else {
-            // See if we know about this Command - case insensitive
-            if (this[cmd.ToLowerInvariant()] != null) {
-                // Always create a clone for enqueing (so Reply context can be independent)
-                Command clone = (Command)((Command)this[cmd.ToLowerInvariant()]!).Clone(reply);
 
-                // This supports commands of the form 'chars:args'; these
-                // commands do not need to originate in CommandTable
-                if (string.IsNullOrEmpty(clone.Args)) {
-                    clone.Args = args;
-                }
+        // See if we know about this Command - case insensitive
+        if (this[cmd.ToLowerInvariant()] != null) {
+            // Always create a clone for enqueing (so Reply context can be independent)
+            Command clone = (Command)((Command)this[cmd.ToLowerInvariant()]!).Clone(reply);
 
-                EnqueueCommand(clone);
+            // This supports commands of the form 'chars:args'; these
+            // commands do not need to originate in CommandTable
+            if (string.IsNullOrEmpty(clone.Args)) {
+                clone.Args = args;
             }
-            else {
-                Logger.Instance.Log4.Info($"{this.GetType().Name}: Unknown command: {cmdString}");
-            }
+
+            return EnqueueCommand(clone) ? CommandEnqueueResult.Enqueued : CommandEnqueueResult.Dropped;
         }
+
+        Logger.Instance.Log4.Info($"{this.GetType().Name}: Unknown command: {cmdString}");
+        return CommandEnqueueResult.UnknownCommand;
     }
 
     /// <summary>
-    /// Enques a Command for execution. Recursively enques embedded commands.
+    /// Enques a Command for execution. Recursively enques embedded commands. Returns true when the
+    /// tree entered the queue, false when it was dropped whole.
     /// SECURITY (#154): enqueue is ALL-OR-NOTHING per command tree. The whole tree (this command
     /// plus all recursively embedded commands) is counted first; if it exceeds
     /// `MaxEmbeddedExpansion` or does not fit in the queue's remaining capacity (`MaxQueueDepth`),
     /// the ENTIRE tree is dropped with a warning and nothing is enqueued. A partial enqueue must
     /// never happen: it could split paired input commands (e.g. shiftdown:/shiftup:) and leave a
-    /// modifier key latched host-wide.
+    /// modifier key latched host-wide. The depth check and the Adds happen atomically under the
+    /// producer-side <see cref="enqueueGate"/> (#195): concurrent producers must not each pass the
+    /// check and jointly overshoot the cap. (The dispatcher draining concurrently only FREES
+    /// capacity, so the check remains conservative.)
     /// </summary>
     /// <param name="cmd">Command to enqueue</param>
-    internal void EnqueueCommand(ICommand cmd) {
+    internal bool EnqueueCommand(ICommand cmd) {
         int treeSize = CountCommandTree(cmd);
 
         if (treeSize > MaxEmbeddedExpansion) {
             Logger.Instance.Log4.Warn($"{GetType().Name}: command expands to {treeSize} commands, over the {MaxEmbeddedExpansion} bound; whole command dropped (nothing enqueued): {((Command)cmd).Cmd}");
-            return;
+            return false;
         }
 
-        if (executeQueue.Count + treeSize > MaxQueueDepth) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: execute queue cannot hold {treeSize} more command(s) ({executeQueue.Count}/{MaxQueueDepth} queued); whole command dropped (nothing enqueued): {((Command)cmd).Cmd}");
-            return;
-        }
+        lock (enqueueGate) {
+            if (executeQueue.Count + treeSize > MaxQueueDepth) {
+                Logger.Instance.Log4.Warn($"{GetType().Name}: execute queue cannot hold {treeSize} more command(s) ({executeQueue.Count}/{MaxQueueDepth} queued); whole command dropped (nothing enqueued): {((Command)cmd).Cmd}");
+                return false;
+            }
 
-        EnqueueCommandTree(cmd);
+            EnqueueCommandTree(cmd);
+        }
+        if (shutdown) {
+            // Lost the race with Shutdown — AddToQueue already dropped/logged whatever didn't make it.
+            return false;
+        }
         EnsureDispatcherStarted();
+        return true;
     }
 
     // Counts a command's whole tree: itself plus all recursively embedded commands.
@@ -356,12 +387,19 @@ public class CommandInvoker : Hashtable {
 
     /// <summary>
     /// Stops the dispatcher: no further commands are accepted, and anything still queued is dropped
-    /// (completion markers are signalled as dropped so no <c>send_command</c> awaiter hangs). Called
-    /// when the invoker is replaced (mcec.commands reload) and on app exit. Does NOT join the thread —
-    /// a command mid-<c>Execute</c> (e.g. a long <c>pause</c>) finishes on the background thread,
-    /// which cannot keep the process alive.
+    /// (completion markers are signalled as dropped so no <c>send_command</c> awaiter hangs — they
+    /// are failed IMMEDIATELY from here, not when the dispatcher gets around to them, so a pending
+    /// awaiter never waits out a long-running in-flight command). Because a drop can sever a command
+    /// tree mid-execution (shiftdown: ran, shiftup: still queued), the drop paths release held input
+    /// (<see cref="ReleaseHeldInputOnDrop"/>). Called when the invoker is replaced (mcec.commands
+    /// reload) and on app exit.
     /// </summary>
-    internal void Shutdown() {
+    /// <param name="joinTimeoutMs">
+    /// When &gt; 0, waits up to this long for the dispatcher thread to finish its in-flight command
+    /// and exit — exit sites pass ~2s so the current command usually completes cleanly. The thread
+    /// is background either way, so it can never keep the process alive.
+    /// </param>
+    internal void Shutdown(int joinTimeoutMs = 0) {
         lock (dispatcherGate) {
             if (shutdown) {
                 return;
@@ -369,9 +407,22 @@ public class CommandInvoker : Hashtable {
             shutdown = true;
             executeQueue.CompleteAdding();
         }
-        // If no dispatcher ever started (nothing was enqueued, or a test suppressed it), drain any
-        // leftovers here so completion markers can't be orphaned.
-        if (dispatcherThread is null) {
+
+        // Fail every pending completion marker NOW (#195 review): the dispatcher may be mid-Execute
+        // of a long command; awaiters must not wait behind it. The dispatcher's own later
+        // SignalDropped/SignalExecuted on the same marker is a no-op (TrySetResult).
+        foreach (ICommand icmd in executeQueue.ToArray()) {
+            (icmd as CommandDispatchCompletion)?.SignalDropped();
+        }
+
+        if (dispatcherThread is Thread dispatcher) {
+            if (joinTimeoutMs > 0 && dispatcher != Thread.CurrentThread) {
+                dispatcher.Join(joinTimeoutMs);
+            }
+        }
+        else {
+            // No dispatcher ever started (nothing was enqueued, or a test suppressed it): drain any
+            // leftovers here so nothing is orphaned.
             DropRemainingQueue("invoker shut down");
         }
     }
@@ -401,10 +452,29 @@ public class CommandInvoker : Hashtable {
     /// EXACT production logic rather than a parallel implementation.
     /// </summary>
     private void DispatchOne(ICommand icmd) {
+        // Shutdown drop: discard this item and drain the remainder in one pass. Dropping can sever a
+        // command tree whose head already executed (shiftdown: ran, shiftup: dropped), so when any
+        // real command is discarded, release held input — the same compensation the emergency stop
+        // performs (see ReleaseHeldInputOnDrop).
         if (shutdown) {
-            (icmd as CommandDispatchCompletion)?.SignalDropped();
-            if (icmd is not CommandDispatchCompletion) {
-                Logger.Instance.Log4.Warn($"{GetType().Name}: invoker shut down — dropped queued command without executing: {(icmd as Command)?.Cmd}");
+            int dropped = 0;
+            if (icmd is CommandDispatchCompletion first) {
+                first.SignalDropped();
+            }
+            else {
+                dropped = 1;
+            }
+            while (executeQueue.TryTake(out ICommand? leftover)) {
+                if (leftover is CommandDispatchCompletion completion) {
+                    completion.SignalDropped();
+                }
+                else {
+                    dropped++;
+                }
+            }
+            if (dropped > 0) {
+                Logger.Instance.Log4.Warn($"{GetType().Name}: invoker shut down — dropped {dropped} queued command(s) without executing; releasing held input in case a command tree was severed.");
+                ReleaseHeldInputOnDrop();
             }
             return;
         }
@@ -444,24 +514,35 @@ public class CommandInvoker : Hashtable {
             return;
         }
 
-        // #113/#195: queue-driven commands synthesize physical input; holding the input gate for
-        // each Execute means they can never interleave with a drag gesture actuating on an MCP
-        // worker. InputGate is a leaf lock — Execute must not wait on the dispatcher/queue.
-        lock (AgentRuntime.InputGate) {
-            try {
-                ((Command)icmd).Execute();
+        // #113/#195: a queue-driven command that can synthesize physical input executes under the
+        // input gate so it can never interleave with a drag gesture actuating on an MCP worker.
+        // Commands that provably touch no input (Command.SynthesizesInput == false, e.g. pause)
+        // run outside the gate — a pause:60000 must not starve a concurrent drag for a minute.
+        // InputGate is a leaf lock — Execute must not wait on the dispatcher/queue.
+        Command command = (Command)icmd;
+        if (command.SynthesizesInput) {
+            lock (AgentRuntime.InputGate) {
+                ExecuteIsolated(command);
             }
-            catch (Exception e) {
-                // Per-command isolation (#195): a throwing command must not strand the rest of the
-                // queue (the old drain aborted here, leaving leftovers to fire at a surprising later
-                // time). Log and keep dispatching.
-                Logger.Instance.Log4.Error($"{GetType().Name}: command '{(icmd as Command)?.Cmd}' threw during Execute: {e}");
-            }
+        }
+        else {
+            ExecuteIsolated(command);
         }
 
         // Read pacing via the UI-agnostic AgentRuntime seam so the engine works headless
         // (--mcp) where there is no MainWindow. In GUI mode this is the same settings object.
         Thread.Sleep(AgentRuntime.Settings?.CommandPacing ?? 0);
+    }
+
+    // Per-command isolation (#195): a throwing command must not strand the rest of the queue (the
+    // old drain aborted on a throw, leaving leftovers to fire at a surprising later time).
+    private void ExecuteIsolated(Command command) {
+        try {
+            command.Execute();
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"{GetType().Name}: command '{command.Cmd}' threw during Execute: {e}");
+        }
     }
 
     /// <summary>
@@ -480,32 +561,38 @@ public class CommandInvoker : Hashtable {
 
     /// <summary>
     /// The agent <c>send_command</c> entry point (#195): decodes and enqueues <paramref name="cmdString"/>
-    /// exactly like <see cref="Enqueue"/>, then returns a task that completes only after the
-    /// dispatcher has executed it (so the caller can read the command's <see cref="Reply"/> output
-    /// without racing the execution — the pre-#195 bug). <c>false</c> means the queue was dropped
-    /// before the command ran (emergency stop / shutdown).
+    /// exactly like <see cref="Enqueue"/>. When the tree entered the queue, <paramref name="completion"/>
+    /// is a task that completes only after the dispatcher has executed it (so the caller can read the
+    /// command's <see cref="Reply"/> output without racing the execution — the pre-#195 bug);
+    /// <c>false</c> from that task means the queue was dropped before the command ran (emergency
+    /// stop / shutdown). When nothing was enqueued (unknown command, bounds drop), the returned
+    /// result says why and <paramref name="completion"/> is null — the caller reports the failure
+    /// instead of pretending success.
     /// </summary>
-    internal Task<bool> EnqueueWithCompletion(Reply reply, string cmdString) {
-        Enqueue(reply, cmdString);
-        return SignalWhenQueueDrained();
+    internal CommandEnqueueResult TryEnqueueWithCompletion(Reply reply, string cmdString, out Task<bool>? completion) {
+        CommandEnqueueResult result = Enqueue(reply, cmdString);
+        completion = result == CommandEnqueueResult.Enqueued ? SignalWhenQueueDrained() : null;
+        return result;
     }
 
     /// <summary>
     /// TEST SEAM: synchronously drains whatever is queued, running the production
-    /// <see cref="DispatchOne"/> logic on the calling thread. Only valid with
-    /// <see cref="SuppressDispatcherForTests"/> set — with a live dispatcher this would be a second
-    /// concurrent drain, the exact #195 hazard, so it throws instead.
+    /// <see cref="DispatchOne"/> logic on the calling thread. Only valid while no dispatcher thread
+    /// exists (use <see cref="SuppressDispatcherForTests"/> before the first enqueue) — beside a
+    /// live dispatcher this would be a second concurrent drain, the exact #195 hazard, so it throws.
     /// </summary>
     internal void PumpQueueForTests() {
-        if (!SuppressDispatcherForTests && dispatcherThread is not null) {
-            throw new InvalidOperationException("PumpQueueForTests requires SuppressDispatcherForTests — a second drain beside the live dispatcher is the #195 bug.");
+        if (dispatcherThread is not null) {
+            throw new InvalidOperationException("PumpQueueForTests requires that no dispatcher thread was started (set SuppressDispatcherForTests before the first enqueue) — a second drain beside the live dispatcher is the #195 bug.");
         }
         while (executeQueue.TryTake(out ICommand? icmd)) {
             DispatchOne(icmd);
         }
     }
 
-    // Emergency-drop helper for Shutdown when no dispatcher thread exists to consume leftovers.
+    // Shutdown-drop helper for when no dispatcher thread exists to consume leftovers. Mirrors
+    // DispatchOne's shutdown branch: dropping queued commands can sever a partially executed tree,
+    // so any real drop also releases held input.
     private void DropRemainingQueue(string reason) {
         int dropped = 0;
         while (executeQueue.TryTake(out ICommand? leftover)) {
@@ -517,7 +604,8 @@ public class CommandInvoker : Hashtable {
             }
         }
         if (dropped > 0) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: {reason} — dropped {dropped} queued command(s) without executing.");
+            Logger.Instance.Log4.Warn($"{GetType().Name}: {reason} — dropped {dropped} queued command(s) without executing; releasing held input in case a command tree was severed.");
+            ReleaseHeldInputOnDrop();
         }
     }
 }

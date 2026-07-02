@@ -26,15 +26,26 @@ public static class AgentRuntime {
     /// <summary>
     /// The single gate over the ONE physical desktop input stream (#113/#195). Two actuation paths
     /// synthesize global input and must never interleave: (1) the <see cref="CommandInvoker"/>
-    /// dispatcher thread, which holds this around each queued command's <c>Execute</c>, and (2)
-    /// <c>AgentServer</c>'s <c>drag</c> tool, which actuates a press→move→release gesture directly on
-    /// an MCP worker under this lock. It lives here — not in <c>AgentServer</c> — because both the
-    /// command engine and the agent front door need it, and the engine must work headless.
+    /// dispatcher thread, which holds this around a queued command's <c>Execute</c> when the command
+    /// can synthesize input (<c>Command.SynthesizesInput</c> — e.g. <c>pause</c> opts out so a long
+    /// sleep can't starve a drag), and (2) <c>AgentServer</c>'s <c>drag</c> tool, which actuates a
+    /// press→move→release gesture directly on an MCP worker under this lock. It lives here — not in
+    /// <c>AgentServer</c> — because both the command engine and the agent front door need it, and
+    /// the engine must work headless.
     /// <para>
     /// LOCK ORDERING: this is a LEAF lock. Never acquire another lock, block on the command queue, or
     /// wait on a task/thread while holding it — a command's <c>Execute</c> may take seconds (paced
-    /// macros, <c>pause</c>), and anything that waits on the dispatcher while holding this deadlocks
-    /// it. Observation (query/capture/find/wait-for/record) deliberately never takes it.
+    /// macros), and anything that waits on the dispatcher while holding this deadlocks it.
+    /// Observation (query/capture/find/wait-for/record) deliberately never takes it.
+    /// </para>
+    /// <para>
+    /// KNOWN HAZARD (queue-path modal invoke): the agent's <c>invoke</c> TOOL runs on a worker with
+    /// the #105 modal grace and never holds this gate, but an <c>invoke</c>-style command executed
+    /// FROM THE QUEUE (in a macro, or raw via <c>send_command</c>) has no such grace — if it opens a
+    /// modal dialog its Execute blocks the dispatcher (and holds this gate) until the dialog is
+    /// dismissed. Agent callers are bounded by <c>send_command</c>'s 30s completion wait; the queue
+    /// itself stalls until the operator closes the dialog. Prefer the <c>invoke</c> tool for
+    /// anything that may open a modal.
     /// </para>
     /// </summary>
     internal static readonly object InputGate = new();

@@ -20,6 +20,14 @@ internal sealed class DelegateTestCommand : Command {
     /// <summary>Behavior to run inside Execute; receives the executing instance (the clone).</summary>
     public Action<DelegateTestCommand>? OnExecute { get; set; }
 
+    /// <summary>
+    /// What <see cref="Command.SynthesizesInput"/> reports for this instance (#195): true (default)
+    /// makes the dispatcher hold InputGate around Execute; false makes it run outside the gate.
+    /// </summary>
+    public bool SynthesizesInputForTest { get; set; } = true;
+
+    internal override bool SynthesizesInput => SynthesizesInputForTest;
+
     /// <summary>How many times Execute ran (across this instance only).</summary>
     public int ExecuteCount => _executeCount;
 
@@ -31,7 +39,7 @@ internal sealed class DelegateTestCommand : Command {
     }
 
     public override ICommand Clone(Reply reply) =>
-        base.Clone(reply, new DelegateTestCommand { OnExecute = OnExecute });
+        base.Clone(reply, new DelegateTestCommand { OnExecute = OnExecute, SynthesizesInputForTest = SynthesizesInputForTest });
 
     public override bool Execute() {
         // Don't call base.Execute() to avoid the TelemetryService dependency.

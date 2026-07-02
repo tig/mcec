@@ -102,7 +102,9 @@ public class AgentServerHttpTests {
     [Fact]
     public async Task Http_SendCommand_WhenAgentSurfaceOptedIn_IsAllowed() {
         // #153: with the agent surface opted in (AgentCommandsEnabled=true) send_command over HTTP works —
-        // it reaches the pass-through and returns ok=true (empty capture → the "ok" payload).
+        // it gets past the gate and reaches the pass-through. The invoker table is empty, so the engine
+        // reports unknown-command (#195 made send_command honest about a command that will never run) —
+        // which is exactly the proof the call was NOT refused at the AgentCommandsEnabled gate.
         AgentTestSupport.EnsureTelemetry();
         string url = StartServer();
         AgentRuntime.Settings!.AgentCommandsEnabled = true;
@@ -113,10 +115,10 @@ public class AgentServerHttpTests {
 
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
             JsonObject body = JsonNode.Parse(await resp.Content.ReadAsStringAsync())!.AsObject();
-            Assert.False(body["result"]!.AsObject()["isError"]!.GetValue<bool>());
 
             JsonObject env = EnvelopeOf(body);
-            Assert.True(env["ok"]!.GetValue<bool>());
+            Assert.False(env["ok"]!.GetValue<bool>());
+            Assert.Equal("unknown-command", env["error"]!.AsObject()["code"]!.GetValue<string>());
         }
         finally {
             StopServer();
