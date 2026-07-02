@@ -86,7 +86,9 @@ jobs:
 
       - name: Sign installer (Azure Trusted Signing)
         if: ${{ env.SIGN == 'true' }}
-        continue-on-error: true
+        # SECURITY (#160): do NOT swallow signing failures. When signing is expected (SIGN == 'true')
+        # a failed/rotated secret or service outage must FAIL the job, not silently publish an unsigned
+        # installer that every client's auto-updater (#146) would fetch and run.
         uses: azure/artifact-signing-action@v2
         with:
           endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
@@ -97,6 +99,22 @@ jobs:
           file-digest: SHA256
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
+
+      - name: Verify installer is Authenticode-signed
+        if: ${{ env.SIGN == 'true' }}
+        shell: pwsh
+        # SECURITY (#160): defense in depth — even if the signing action reports success, prove the
+        # artifact is actually signed by the expected publisher before publishing. Fails the job otherwise.
+        run: |
+          $sig = Get-AuthenticodeSignature artifacts/mcec.Setup.exe
+          Write-Host "Signature status: $($sig.Status); signer: $($sig.SignerCertificate.Subject)"
+          if ($sig.Status -ne 'Valid') {
+            throw "mcec.Setup.exe is not validly signed (status: $($sig.Status)). Refusing to publish."
+          }
+          if ($sig.SignerCertificate.Subject -notmatch 'Kindel') {
+            throw "mcec.Setup.exe signer '$($sig.SignerCertificate.Subject)' is not the expected Kindel publisher. Refusing to publish."
+          }
+          Write-Host "::notice::Installer signature verified (Valid, Kindel publisher)."
 
       - name: Warn that installer is unsigned
         if: ${{ env.SIGN != 'true' }}
