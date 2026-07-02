@@ -96,7 +96,10 @@ the house pattern:
   installs the fresh `Reply`, and deep-clones `EmbeddedCommands`. A reflection hygiene test
   (`CommandClonePropertyRoundTripTests`) round-trips every public settable property of every
   command through Clone.
-- `BuiltInCommands` returning the command with `Enabled=false` by default.
+- `BuiltInCommands` returning the command with `Enabled=false` by default, referenced
+  explicitly by the type's one-line `CommandRegistry.Entries` entry (#204) — the single
+  registration point that drives serialization, the invoker's built-ins table, and the
+  registry-completeness hygiene test (`CommandRegistryTests`).
 - `[XmlAttribute]` on serializable props (all-lowercase names — see `XmlNameCasingTests`, #200).
 
 `AgentCommand` owns a **sealed** `Execute()` template method: the base
