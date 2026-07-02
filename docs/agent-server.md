@@ -27,9 +27,18 @@ success and failure uniformly.
 
 ## SECURITY — read this first
 
-The agent server is powerful: it can see your screen and drive your PC. It is therefore
-locked down by default and uses **layered, independent opt-ins**. Turning one thing on
-does **not** turn the others on.
+**If anything useful is enabled, all bets are off.** MCEC drives the desktop with real user
+input — there is no sandbox, no permission model inside the session, and no way to give an
+agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent
+can do**: read whatever is on screen, type into any app, click anything, launch programs,
+open a browser logged in as you, delete files, send email. The gates below decide *whether*
+an agent gets that power — they do not and cannot meter *how much*. Enable the agent surface
+only on a machine and session where you accept an agent acting **as you**, and prefer a
+disposable [provisioned session](safety-emergency-stop-and-provisioning.md) over enabling
+your installed instance.
+
+With that understood: the agent server is locked down by default and uses **layered,
+independent opt-ins**. Turning one thing on does **not** turn the others on.
 
 1. **Agent commands are DISABLED by default.**
    The new observation/automation commands require their **own** opt-in,
@@ -45,11 +54,15 @@ does **not** turn the others on.
    no authentication bypass — if you need off-box access, front it with your own
    reverse proxy and auth.
 
-3. **Every agent action is loudly audited.**
-   Each agent command logs an `AGENT-AUDIT:` line (action + target) before it runs.
-   These lines are intentionally noisy so that agent activity is impossible to miss in
-   the MCEC log window or log files. If you see `AGENT-AUDIT:` lines you did not expect,
-   something is driving your machine.
+3. **Every agent action is loudly audited — on screen and in the log.**
+   The **on-screen command overlay is ON by default** (`CommandOverlayEnabled`, docked per
+   `CommandOverlayPosition`): it narrates each command as it executes, so anyone looking at
+   the screen can see that MCEC is driving the machine. In addition, each agent command
+   logs an `AGENT-AUDIT:` line (action + target) before it runs — intentionally noisy so
+   agent activity is impossible to miss in the MCEC log window or log files. If you see
+   the overlay narrating or `AGENT-AUDIT:` lines you did not expect, something is driving
+   your machine — hit the [emergency stop](safety-emergency-stop-and-provisioning.md)
+   (default `Ctrl+Alt+Shift+S`).
 
 If any one of these switches is off, the corresponding capability simply refuses to run
 and returns a JSON failure (for commands) — it never silently proceeds.

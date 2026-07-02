@@ -10,7 +10,7 @@ It is a small, self-contained native Windows daemon that a computer-use model ca
 mcec.exe --mcp        # run headless as an MCP stdio server an agent can mount
 ```
 
-Every agent capability is **opt-in, disabled by default, localhost-bound, and loudly audit-logged**, with a global emergency-stop hotkey and disposable isolated sessions so the operator stays in control.
+Be clear-eyed about what enabling it means: **everything a user can do, an agent can do** — there is no sandbox, and the gates decide *whether* an agent gets your hands, not *how much*. So every agent capability is **opt-in, disabled by default, localhost-bound, narrated by an on-screen overlay, and loudly audit-logged**, with a global emergency-stop hotkey and disposable isolated sessions so the operator stays in control.
 
 MCEC is also the same **battle-tested remote control for home-automation systems** it has always been. In its long-standing role it runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that can send text over TCP/IP or RS-232 — [Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/), [Crestron](http://www.crestron.com/), and others — can use MCEC to drive a Windows PC. The agent surface in 3.0 is **purely additive**: every existing home-automation feature is unchanged.
 
