@@ -1,534 +1,166 @@
+<!--
+// Copyright © Kindel, LLC - http://www.kindel.com
+// Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
+-->
+
 # MCEC Documentation
 
-**MCEC** (Model Context Environment Controller) provides robust control of Windows PCs for smart home systems. It runs in the background listening on the network (or serial port) for *Commands*. It then translates those commands into actions such as keystrokes, text input, and the starting of programs. Any remote control, home control system, or application that can send text strings via TCP/IP or a serial port can use **MCEC** to control a Windows PC.
+**MCEC** — the **Model Context Environment Controller** — gives an AI agent eyes, hands, and a safe front
+door on a Windows PC. It is a small, self-contained native Windows daemon that a computer-use model can
+**mount, see through, and drive**: capture a window, read its UI Automation tree, find and wait for
+controls, launch apps, and actuate keyboard/mouse/window input — exposed to agents and scripts over the
+**Model Context Protocol (MCP)**.
 
-> New in 3.0, MCEC is also an opt-in **agent-automation server** — it can see the screen and drive native Windows apps for AI agents over the Model Context Protocol (MCP). All agent capabilities are disabled by default. See the **[Agent Server user guide](agent-server.md)** for details; the rest of this document covers the remote-control features unchanged from prior versions.
+MCEC also remains the same battle-tested **remote control for home-automation systems** it has always been:
+a network/serial listener that turns text commands into keystrokes, mouse moves, window messages, and app
+launches for Control4, Crestron, iRule, and similar systems.
 
-For example:
+```
+mcec.exe --mcp        # run headless as an MCP stdio server an agent can mount
+```
 
-* The command `netflix` will cause the Netflix application to start.
-* The command `maximize` will cause the current window to be maximized on the display. This is equivalent to choosing the "Maximize" button on the window's window menu.
-* The command `chars:Hello World!` will cause the text "Hello World" to be typed, as though it were typed on the keyboard.
-* The command `VK_MEDIA_NEXT_TRACK` will cause the currently running media player app (Spotify, Windows Media Player, etc...) to jump to the next media track, just as if the user had pressed th "next track" key on the keyboard.
-* The commands that **MCEC** supports is extensible through a configuration file. If it does not natively support a function you wish, you can add new commands easily.
+> **Two front doors, one command core.** MCEC 3.0's agent surface is **purely additive** and **off by
+> default**. Every classic remote-control feature is unchanged; every agent capability must be explicitly
+> enabled. If you do nothing, MCEC behaves exactly as it did before.
 
-**MCEC** was initially developed to enable integration of a Windows Media Center based home theater PC (HTPC) into a Crestron whole-house audio/video system. However, it is general enough that others have used it within other control system that support sending text strings to a TCP/IP port. Most control systems, such as Crestron or AMX, support IR emitting.
+**Where to go next**
 
-**MCEC** can act as either a TCP/IP client or server. When acting as a client the target host and port can be configured. When acting as a server the incoming port can be configured.
+* **[Agent Server user guide](agent-server.md)** — the full agent/MCP reference: the tools, the result
+  envelope, observation hardening, running as an MCP server, and the security gates. Start here for AI/agent
+  use.
+* **[Agent safety](safety-emergency-stop-and-provisioning.md)** — the emergency-stop hotkey and isolated
+  session provisioning.
+* **[Home Automation & Remote Control](home-automation.md)** — the classic TCP/serial command surface: the
+  command language, the Client/Server/Serial transports, the User Activity Monitor, testing, and examples.
+* **[AGENTS.md](https://github.com/tig/mcec/blob/main/AGENTS.md)** — the connect-time guidance an agent
+  gets, plus the "dogfood" recipe (MCEC driving MCEC).
 
-**MCEC** can also listen on an RS-232 serial port.
+## What MCEC does
 
-**MCEC** can run showing only a taskbar icon. By double clicking on the taskbar a status window is displayed that shows a log of all activity. You can also right-click on the taskbar icon for a menu.
+An AI agent runs a loop: **observe → target → act → observe**. MCEC gives it all four:
 
-## Windows PC Control Capabilities
+* **Observe** — `capture` a window as a PNG (renders composited WinUI/WPF surfaces via `PrintWindow`, with
+  blank-frame detection); `query` the UI Automation tree (control type, name, automation id, bounds, state,
+  value); `displays` for per-monitor geometry and DPI; `record` a window/region to an animated GIF over
+  time.
+* **Target** — resolve a window by title substring, process name, class name, handle, or "the foreground
+  window"; `find` / `wait-for` a specific UI element by name / automation id / class.
+* **Act** — `invoke` a UI Automation pattern (invoke/toggle/setvalue/setfocus/expand/collapse/select),
+  `launch` an app directly, `click` a point or element, `drag` (atomic press → move-path → release), or
+  `send_command` to run any raw MCEC command.
 
-By default **MCEC** supports over 250 built-in commands for controlling a Windows PC remotely. The list below summarizes these control capabilities.
+All of this is gated, localhost-bound, and loudly audit-logged. See the
+**[Agent Server user guide](agent-server.md)** for the complete tool reference.
 
-* Supports simulating key presses (e.g. Alt-Tab, or Win-S) with `SendInput` commands.
-* Supports simulating the mouse with `mouse:` commands.
-* Supports simulating Windows messages (e.g. `WM_SYSCOMMAND` / `SC_MAXIMIZE`) with `SendMessage`commands.
-* Supports simulating start process commands (e.g. run `notepad.exe`) with the `StartProcess`command.
-* Supports simulating changing the window focus with the `SetForegroundWindow` command.
-* Supports sending text (e.g. simulating typing) with the `chars:` command.
-* Commands can be paced (slowed down) and there's a `pause` command enabling waiting for apps to open etc...
-* Includes built-in support for common Windows Media Center commands.
-* It can easily be extended to suit your needs through a `mcec.commands` file.
-
-## Key Features
-
-* Can act as a TCP/IP client. Specify a `host` (as a `hostname` or `IP address`) and `port` to connect to. The host can then send commands back on the TCP/IP connection for MCEC to act on.
-* Can act as a TCP/IP server. Specify a 'port' for it to listen on and any TCP/IP client can connect and send commands. The Server supports any number of simultaneous clients. The Telnet protocol is supported.
-* Can act as a Serial server listening on RS-232 COM port.
-* Supports running multiple instances.
-* Can start minimized as a taskbar icon. This can be changed in Settings...
-* Has a built-in test mode that makes it easy to test commands.
-* The **User Activity Monitor** feature will send a command to the home automation system when a user is using the PC (moving the mouse or typing).
-* Automatically checks to see if newer versions are available.
-* Logs diagnostics information to a file.
-* Detects new version and makes it easy to install them from the **Help** menu.
+For the classic remote-control role — driving a Windows PC from a home-automation controller over TCP/IP or
+serial — see **[Home Automation & Remote Control](home-automation.md)**.
 
 ## Installation
 
-**MCEC** V2 was developed for Windows 10. It has not been tested on older versions of Windows. Submit an [Issue](https://github.com/tig/mcec/issues) to request a specific version of Windows to be supported.
+MCEC 3.0 targets Windows 10 and later. Submit an [Issue](https://github.com/tig/mcec/issues) to request
+support for another version.
 
-To install, go here: **[Download and Install the Latest Version](https://github.com/tig/mcec/releases)**
+**[Download and install the latest version](https://github.com/tig/mcec/releases)**
 
-If **Collect Telemetry** is checked during setup, usage information will be sent to a telemetry service to enable improvements. Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel\MCE Controller` `Telemetry` DWORD registry key (`1` enables and `0` disables). (This key and "MCE Controller" subkey keep legacy names for back-compat even though the product is now branded MCEC; app code falls back from `Kindel Systems` variants.) See [this page](telemetry.md) for details on what telemetry is collected and how it is used.
+If **Collect Telemetry** is checked during setup, anonymous usage information is sent to help improve MCEC.
+Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel\MCE Controller` `Telemetry` DWORD
+registry value (`1` enables, `0` disables). (The "MCE Controller" registry name and `Kindel Systems`
+fallback are kept for back-compat even though the product is now branded MCEC.) See the
+[telemetry page](telemetry.md) for details.
 
-Un-install **MCEC** via add/remove programs.
+Uninstall MCEC via Add/Remove Programs.
 
 ## Running
 
-When **MCEC** runs, it defaults to showing itself. If you close the main MCEC window the app will minimize to an icon in the taskbar. Double clicking on the taskbar icon will cause the window to show itself again.
+MCEC runs as a normal windowed app that can minimize to a taskbar (tray) icon. Closing the main window
+minimizes it to the tray; double-click the tray icon to show it again, or right-click for a menu. To start
+hidden, check **Hide Window at Startup** in **Settings**.
 
-If you would like **MCEC** to automatically hide upon startup, check the _Hide Window at Startup_ checkbox in the **Settings** dialog.
+To run headless as an **MCP server** (no UI, no tray icon), launch it with `--mcp` — an MCP client can spawn
+it on demand and talk JSON-RPC over stdio:
 
-To have **MCEC** start automatically do the following:
+```
+mcec.exe --mcp
+```
 
-1. Create a Windows shortcut to `mcec.exe` (found in `C:\Program Files\Kindel\MCEC` by default for new installs; pre-3.0 installs used `Kindel Systems\MCEC`).
-2. Put the shortcut file into the Windows Startup Folder (`C:\Users\[User Name]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup`).
+To have MCEC start automatically, create a shortcut to `mcec.exe` (installed to `C:\Program
+Files\Kindel\MCEC` by default; pre-3.0 installs used `Kindel Systems\MCEC`) and put it in the Windows
+Startup folder (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`).
 
-Run multiple instances of **MCEC** by simply copying the contents of the installation directory to another directory. Each copy will then have its own independent `.settings`, `.commands`, and `.log` files.
+Run multiple instances by copying the installation directory elsewhere — each copy gets its own independent
+`.settings`, `.commands`, and `.log` files. (This directory-per-instance isolation is exactly what the
+agent [session-provisioning](safety-emergency-stop-and-provisioning.md) feature automates.)
 
-## Closing
-
-Use the **File.Exit** menu to shut down the app.
+Use **File ▸ Exit** to shut down.
 
 ## Settings
 
 ![Settings](settings_general.png "Settings")
 
-Configuration settings are stored in `mcec.settings` found in the `%APPDATA%\Kindel\MCEC` directory (new installs; pre-3.0 used `Kindel Systems\MCEC` subfolder; app provides compatibility fallback for legacy paths).
+Settings are stored as XML in `mcec.settings`, in the `%APPDATA%\Kindel\MCEC` directory (new installs;
+pre-3.0 used a `Kindel Systems\MCEC` subfolder, for which a compatibility fallback exists). Most settings
+are edited from the **File ▸ Settings…** dialog; the agent settings below are edited directly in
+`mcec.settings`.
 
-All settings can be configured from **Settings** dialog box the **File.Settings...** menu. The **General** tab shown above supports the following settings:
+The **General** tab:
 
-* **Hide Window at Startup** - If checked the **MCEC** will start minimized to tray icon.
-* **Log Threshold** - By default only informational log events will be shown in the MCEC main window. This setting over-rides this enabling the display of `INFO`, `DEBUG`, or `ALL` log settings. Note that the log files always include `ALL` events.
-* **Default command pacing (ms)** - If this value is greater than 0, **MCEC** will delay executing each command it receives by the value (in milliseconds). The default is 0.
+* **Hide Window at Startup** — start minimized to the tray icon.
+* **Log Threshold** — how much is shown in the main window (`INFO`, `DEBUG`, or `ALL`). Log *files* always
+  contain `ALL` events.
+* **Default command pacing (ms)** — delay MCEC applies before executing each received command (default 0).
 
-### The Client Tab
+The **Client**, **Server**, **Serial Server**, and **Activity Monitor** tabs configure the classic
+remote-control transports and are documented in
+**[Home Automation & Remote Control](home-automation.md)**.
 
-The *Client* Settings tab controls **MCEC’s** TCP/IP client functionality. When acting as a client, **MCEC** will repeatedly try to connect to the specified port on the specified host and wait for commands to be sent from the host. **MCEC** sends nothing to the host by default.
+### Agent settings (in `mcec.settings`)
 
-![Client](settings_client.png "Client")
+The agent surface is configured by these keys. All are off/safe by default — see the
+**[Agent Server user guide](agent-server.md)** for the full security model.
 
-* **Enable Client** - This checkbox enables or disables the TCP/IP client functionality. If enabled, the followings settings apply:
-* **Host** - This is the IP address or host name of the server **MCEC** will connect to.
-* **Port** - This is the port that **MCEC** will connect to.
-* **Reconnect Wait Time (ms)** - This is the number of milliseconds (default is 30 seconds or 30000 ms) **MCEC** will wait before trying to reconnect to the host once a connection has been dropped.
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `AgentCommandsEnabled` | `false` | Master opt-in for the agent observation/actuation commands. Separate from the classic command enable. |
+| `McpServerEnabled` | `false` | Enables the localhost HTTP/JSON-RPC floor (`POST /mcp`). |
+| `McpBindAddress` | `127.0.0.1` | Address the HTTP floor binds to (localhost only by default). |
+| `McpHttpPort` | `5151` | Port for the HTTP floor. |
+| `CommandOverlayEnabled` | `true` | Shows an on-screen overlay narrating each agent command as it runs, so anyone watching can see MCEC is driving. |
+| `CommandOverlayPosition` | `Right` | Which side of the primary screen the overlay docks to. |
+| `EmergencyStopEnabled` | `true` | Arms the global emergency-stop hotkey while the agent front door could be driving. |
+| `EmergencyStopHotkey` | `Ctrl+Alt+Shift+S` | The panic-hotkey chord (a `+`-separated spec). |
+| `AllowSessionProvisioning` | `false` | Operator opt-in that lets an agent request a fresh, isolated MCEC instance via `provision-session`. |
+| `AgentRecordMaxFps` / `AgentRecordMaxDurationMs` / `AgentRecordMaxFrames` / `AgentRecordMaxWidth` | 30 / 60000 / 600 / 1280 | Safety limits for the `record` tool (requests above them are clamped, not failed). |
 
-The status of the Client is displayed on the main window status bar. Double-clicking on the status will cause the Client to toggle between connected / not connected. Green means connected, red means active but not connected, and gray means the client is not active.
-
-### The Server Tab
-
-**MCEC** can act as either a TCP/IP client or server (it can actually operate as both simultaneously, which can be useful for testing, but not much else). By default MCEC is configured to act as a TCP/IP server listening on port 5150. You can change this behavior using the Settings dialog described below.
-
-The *Server* Settings tab controls **MCEC’s** TCP/IP server functionality. When acting as a server, **MCEC** will open the specified port and wait for a client to connect. When a client does connect **MCEC** will wait for incoming commands until the client closes the connection.
-
-**MCEC** supports any number of multiple-simultaneous connections to the Server.
-
-![Server](settings_server.png "Server")
-
-* **Enable Server** - This checkbox enables or disables the TCP/IP server functionality. If enabled, the followings settings apply:
-* **Port**- This is the port that **MCEC** will listen on.
-* **Enable Wakeup** - If enabled, **MCEC** will attempt to connect to the specified host/port, send the “Wakeup command” and disconnect when it first starts. When it shuts down it will send the “Closing command”. This functionality is useful when the remote client needs to be notified that **MCEC** is ready (for example after the control system has rebooted).
-
-The status of the Server is displayed on the main window status bar. Double-clicking on the status will cause the Server to toggle between connected / not connected. Green means one or more clients are connected, red means the Server is running but no clients are connected, and gray means the Server is not active.
-
-#### Restricting the Server to this machine (bind address)
-
-The command server has **no socket authentication** — anything that can reach the port can send commands that press keys, move the mouse, and start processes. By default the server binds to **all network interfaces** (`0.0.0.0`), so it is reachable from every host on your LAN/VPN (and from anywhere the port is forwarded). This preserves the long-standing behavior for setups that are driven from another machine on a trusted network.
-
-If nothing off this machine needs to connect (for example, another local app talks to **MCEC** over `localhost`), restrict the server to loopback so the unauthenticated port is not exposed on the network. Edit `mcec.settings` and set:
-
-```xml
-<SocketServerBindAddress>127.0.0.1</SocketServerBindAddress>
-```
-
-Accepted values (case-insensitive):
-
-| Value | Binds to |
-| --- | --- |
-| `0.0.0.0`, `any`, `*`, or empty/blank | All interfaces (default — LAN/VPN reachable) |
-| `::` | All interfaces, IPv6 only (binds IPv6 `Any`) |
-| `127.0.0.1`, `localhost`, `loopback` | This machine only (recommended for single-machine setups) |
-| `::1` | IPv6 loopback (this machine only) |
-| a specific local IP (e.g. `192.168.1.50`) | That interface only |
-
-When the resolved bind is **not** loopback (e.g. the `0.0.0.0` default), **MCEC** writes a loud **WARN** to the log at startup noting the command port is unauthenticated and reachable off-box, with the recommendation to set `127.0.0.1`. An unparseable value is rejected with an error in the log and **falls back to loopback** (`127.0.0.1`) rather than silently exposing the port. Restart **MCEC** after editing the setting.
-
-### The Serial Server Tab
-
-The *Serial Server* Settings controls **MCEC’s** serial port (RS-232) functionality. When the Serial Server is enabled, **MCEC** will open the specified COM port (e.g. COM1) and wait commands to be sent.
-
-![Serial](settings_serialserver.png "Serial")
-
-* **Enable Serial Server** - This checkbox enables or disables the Serial Server functionality. It is disabled by default. If enabled, the followings settings apply:
-* **Port** - This is the serial port that **MCEC** will listen on (e.g. COM1).
-* **Baud Rate** - Sets the speed of the serial port.
-* **Data Bits**, `Parity`, `Stop Bits`, and `Handshake`: Set the serial port configuration.
-
-The status of the Serial Server is displayed on the main window status bar. Double-clicking on the status will cause the Serial Server to toggle between connected / not connected. Green means connected, red means not connected, and gray means the Serial Server is not active.
-
-### The Activity Monitor Tab
-
-**MCEC**'s **User Activity Monitor** sends a command (`activity` by default) to the home automation system when a user is using the PC. It knows the user is using the PC monitoring keyboard and mouse movement. If the mouse is moving or keys are being pressed, the PC is in use. This is useful for adding additional context to a room occupancy sensor in a home automation system.
-
-![Activity Monitor](settings_activity.png "Activity Monitor")
-
-* **Enable User Activity Monitor** - This checkbox enables or disables the Activity Monitor. It is disabled by default. If enabled, the followings settings apply:
-* **Command to send** - The string that will be sent when user activity is detected. `activity` is default.
-* **Debounce time (seconds)** - The activity message will be sent no more frequently than **Debounce time** seconds.
-
-See [Control4 User Activity Driver](https://github.com/tig/User_Activity) for an example Control4 driver that utilizes this functionality.
+Restart MCEC (or relaunch `--mcp`) after editing `mcec.settings`.
 
 ## Enabling or Disabling Commands
 
-By default ALL commands are disabled to reduce the surface area *MCEC* exposes on the network. Use the **Commands Window** to enable/disable commands.
-
-![Commands](commands_enable.png "Commands")
-
-Clicking the **Save MCECommmands.commands. file** button will immediately save changes. Note the `.commands` file will be saved automatically whenever *MCEC* exits.
-
-## Testing MCEC
-
-The built-in TCP/IP client can send commands to another instance of **MCEC** running on the same or different PC. Or, if both the Client and Server in a single instance are set to connect to `localhost` and the same port they can connect to each other, enabling easy testing of commands.
-
-By default **MCEC** is configured such the following will configure "test mode".
-
-1. Open the Settings dialog from the **File.Settings...** menu.
-2. Click on the Client tab and check the **Act as Client** check-box.
-3. Enter `localhost` in the **Host** edit box.
-4. Click on the Server tab and check the **Act as Server** check-box
-5. Hit **Ok**
-6. Click on the **Commands.Enable and Test Commands...** menu and start testing commands.
-
-![Commands](commands_test.png "Commands")
-
-The **Commands Window** shows a list of all *Commands* **MCEC** is configured to 'listen for'. It is useful to see the full list and to be able to test them.
-
-* Double click on any command to cause it to be sent from the Client to the Server (be careful, because if you double click on 'shutdown' your PC will literally shut down!).
-* Type anything into the **Send "chars:" command** edit box and press **Send** to send a `chars:` command.
-* Type a command (or list of *Commands*, one per line) into the **Send any command** edit box and press **Send** to send those commands.
-
-The example in the screenshot above will start the movie Blade Runner playing on Netflix (if the Netflix app is installed from the Windows Store).
-
-Try this as a quick test (the 2nd line is a space (` `)):
-
-    shiftdown:lwin
-    x
-    shiftup:lwin
-
-This will cause the Windows Quick Link Menu to pop up just like a user typed `Win-X`.
-
-Turn on the **Activity Monitor** while in test mode and you'll see events in the log for when activity is detected.
-
-### Using PUTTY
-
-PuTTY is a free terminal emulator (and Telnet and SSH client). It works well for testing **MCEC**. You can download [PuTTY here](http://www.chiark.greenend.org.uk/~sgtatham/putty/).
-
-#### Using PUTTY to test TCP/IP interactions
-
-1. Run PUTTY.EXE
-2. Set **Host Name** to `localhost` (or the network name of the PC running MCEC
-3. Set **Port** to the port MCEC is set to listen on (e.g. 5150)
-4. Set the **Connection Type** to **Raw**.
-5. Click **Open**
-
-Type commands in the PuTTY Window and see how MCEC reacts.
-
-#### Using PUTTY to test serial connections
-
-PuTTY supports connecting via serial ports. The usage is the same as in the TCP/IP example above except you set the appropriate COM port settings in PuTTY and choose the **Serial** destination type.
-
-## Commands Details
-
-**MCEC** works with ***Commands***. *Commands* are text strings like `greenbutton`, `hibernate`, and `winkey` tha **MCEC** listens to and acts on. Each command has a **Type**. When **MCEC** receives a command it causes an action to happen on the PC it is running on. The action taken is dependent on the type of command and the parameters set for that command.
-
-*IMPORTANT*: As of version 2.2.1, ALL commands are disabled by default to reduce the surface area *MCEC* exposes on the network. Use the **Commands Window** to enable/disable commands.
-
-### Types
-The following command types are supported by **MCEC**:
-
-* **`StartProcess`** - Starts the specified process. Can specify the path to an executable, shortcut, or a URI. Supports embedded `nextCommand` elements allowing other form of MCEC commands to be invoke after the process starts.
-* **`SetForgroundWindow`** - Causes the specified window to be brought to the foreground.
-* **`Shutdown`** - Allows the host computer to be shutdown, restarted, put in standby, or hibernate mode.
-* **`SendMessage`** - Enables the sending of window messages to windows. E.g. the 'mcemaximize' command causes the Media Center window to go full screen.
-* **`SendInput`** - Sends keyboard input as though it were typed on a keyboard.
-* **`Chars`** - Sends text.
-* **`Mouse`** - Sends mouse movement and button actions.
-* **`Pause`** - Pauses after a command before another is exectued (in milliseconds).
-* **Built-In** - Single characters, `VK_` codes, `chars:`, `shiftdown:`, `shiftup:`, `pause:`, and `mcec:.`
-
-### Built-in Commands
-
-**MCEC** includes a set of pre-defined commands for controlling a Windows PC as well as standard keyboard input. Pre-defined commands can be viewed in the **Commands Window**. See the section titled “Defining Your Own Commands” below for instructions on how to add or change the commands **MCEC** supports.
-
-**MCEC** commands (`Cmd` values) are _not_ case-sensitive. Thus `VK_UP` is equivalent to `vk_up` and `shutdown` is equivalent to `ShutDown`.
-
-The following describes the Built-In commands:
-
-#### Commands for Simulating Keyboard Input
-
-Any Windows virtual key code is supported by default. The form of the commands are `VK_<key name>`. For example you can send **MCEC** any of the following commands and the corresponding key press will be simulated.
-
-```
-VK_ESCAPE
-VK_LWIN
-VK_VOLUME_MUTE
-VK_VOLUME_UP
-VK_MEDIA_PLAY_PAUSE
-VK_F1
-```
-
-A list of all Window's virtual key codes can be found here: [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx)
-
-Anytime **MCEC** receives `chars:` plus some text, it simulates the typing of that text on the keyboard. The syntax of the command is `chars:*` where '*'' represents one or more characters. This is equivalent to typing those characters on the keyboard. E.g. `chars:3` will cause the number 3 to be typed as though the user had pressed the 3 key on the keyboard. `chars:Hello` will be just like the user pressed the following keys:
-
-```
-Shift key down
-h
-Shift key up
-e
-l
-l
-o
-```
-
-The string that follows `chars:` can include *character escapes*. This enables sending unprintable characters. E.g. `chars:\\` sends `\` and `chars:\u263A` sends `☺` and `chars:\f` sends a form feed character. The set of character escapes supported is documented [here](https://docs.microsoft.com/en-us/dotnet/standard/base-types/character-escapes-in-regular-expressions).
-
-Note, how `chars:` behaves relative to the state of `shift`, `alt`, `ctrl`, and `win` keys is dependent on which modifier key is used and the application that is in the foreground. Specifically, `shift` is ignored and for the other modifier keys, the behavior is app dependent. Using `<SendInput/>` commands is recommended for fine-grain control of behavior that depends on modifier keys. See [Issue #14](https://github.com/tig/mcec/issues/14) for more details.
-
-Sending a single character without the `chars:` command (e.g. just `c`) is equivalent to a `SendInput` command defined as `<SendInput Cmd="cmdname" Vk="c" />` (see below). In other words, sending a single character is the same as a single key press of a key on the keyboard. For example sending `a` will result in the A key being pressed. `1` will result in the `1` key being pressed. There is no difference between sending `a` and `A`. Use `shiftdown:/shiftup:` to simulate the pressing of the shift, control, alt, and windows keys.
-
-Unicode (and other escaped character sequences are supported). `chars:\u20AC` will cause the € character to be input into the foreground window on the machine **MCEC** is running on.
-
-Note: the `chars:` command must be enabled for single character commands to work.
-
-#### Simulating Shift, Control, Alt, and the Windows keys
-
-To simulate a key down event for one of the modifiers keys (shift, control, alt, and the Windows key) send a `shiftdown:` or `shiftup:` command. The syntax is:
-
-    shiftdown:[shift|ctrl|alt|lwin|rwin]
-
-and
-
-    shiftup:[shift|ctrl|alt|lwin|rwin]
-
-For example, to simulate the typing of 'Test!' send the following lines:
-
-    shiftdown:shift
-    t
-    shiftup:shift
-    e
-    s
-    t
-    shiftdown:shift
-    1
-    shiftup:shift
-
-This would do the same thing as if `chars:Test!` were sent.
-
-This scheme can be used as an alternative way of sending ctrl-, alt-, and win- keystrokes. For example to simulate ctrl-s:
-
-    shiftdown:ctrl
-    s
-    shiftup:ctrl
-
-#### Mouse Commands
-
-With `Mouse` commands it is possible to build a remote control that acts like a mouse (I built a test app for Windows Phone 7 that enables WP7 to work like a touchpad; contact me if you are interested in it).
-
-The general format of the mouse commands is:
-
-    mouse:<action>[,<param>,...,<param>]
-
-The available mouse actions are:
-
-* **`lbc`** - Left button click (`mouse:lbc`)
-* **`lbdc`** - Left button double-click (`mouse:lbdc`)
-* **`lbd`** - Left button down (`mouse:lbd`)
-* **`lbu`** - Left button up (`mouse:lbu`)
-* **`rbc`, `rbdc`, `rbd`, `rbu`** - Same same but for the right mouse button.
-* **`mbc`, `mbdc`, `mbd`, `mbu`** - Same same but for the middle mouse button.
-* **`xbc`, etc...** - x button click where x is a button number (`mouse:xbc,3` for XButton 3 click...whatever that is)
-* **`mm,x,y`** - Move the mouse x, y pixels (`mouse:mm,7,-3` would move the mouse right 7 and up 3 pixels)
-* **`mt,x,y`** - Move the mouse to a location. The coordinates represent the absolute X/Y-coordinates on the primary display device where 0 is the extreme left/bottom of the display device and 65535 is the extreme right/bottom hand side of the display device (`mouse:mt,0,65535` would move the mouse to the bottom left corner of the primary display).
-* **`mtv,x,y`** - Move the mouse to a location on the virtual desktop. The coordinates represent the absolute X/Y-coordinates on the virtual desktop where 0 is the extreme left/top of the virtual desktop and 65535 is the extreme right/bottom (`mouse:mtv,65535,0` would move the mouse to the top right corner of the virtual desktop).
-* **`mtp,x,y`** - Move the mouse to an absolute **screen pixel** — the same coordinate space the agent `query`/`find` tools report control bounds in (and the `displays` tool reports). Unlike `mt`/`mtv`, which take raw 0–65535 units, `mtp` takes real pixels and normalizes them across the virtual desktop internally, so negative or secondary-monitor coordinates land correctly (`mouse:mtp,812,562`).
-* **`hs,n`** - Simlate a horizontal scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated to the right; a negative value indicates that the wheel was rotated to the left (`mouse:hs,3`).
-* **`vs,n`** - Simlate a vertical scroll gesture. `n` is the amount to scroll in clicks. A positive value indicates that the wheel was rotated forward, away from the user; a negative value indicates that the wheel was rotated backward, toward the user (`mouse:vs,3`).
-* **`drag,x1,y1,x2,y2[,x3,y3,...]`** - Press the left button at the first point, move through every subsequent point with the button held, and release at the last — a full press → move-path → release gesture dispatched *atomically* (it runs to completion in one command, so nothing else can interleave with it). Unlike `mt`/`mtv`, the coordinates are **absolute screen pixels** (they are normalized across the virtual desktop internally, so points on a secondary monitor or with negative coordinates work). Motion between points is smoothed so slow drop targets track the button. Use it to resize a window by its sizing border, move one by its title bar, drag a slider, marquee-select, or drag-reorder (`mouse:drag,400,300,700,500` drags from (400,300) to (700,500)). Agents get a higher-level `drag` tool (see the [Agent Server user guide](agent-server.md)) that also accepts UI Automation elements as endpoints.
-
-When sending mouse movements it is best if the **MCEC** window is hidden as the display log tends to chew up a lot of resources, making things jerky.
-
-#### mcec: Commands
-
-The following commands control **MCEC** itself:
-
-* **`mcec:ver`** – Gets the version number.
-* **`mcec:exit`** – Causes **MCEC** to exit.
-* **`mcec:cmds`** – Lists all commands.
-
-Values returned by commands in **MCEC** are of the format `command=value` where command is the command to the left of the command prefix (`mcec:`).
-
-### Defining Your Own Commands
-
-**MCEC** provides almost 300 built-in commands. The first time MCEC runs, it creates an `mcec.commands` file including all built-in commands (with `Enabled="false"` set on ALL of them). After running MCEC once, you can You can override or augment this set by editing the `mcec.commands` file and (Use the **Commands.Open commands folder...** menu to find the file location on your machine.
-
-Note deleting a built-in command from the `.commands` file will not remove it permanently. Anytime **MCEC* saves the file built-in commands will be re-added; however, `Enabled="false"` will be set which is functionally equivalent to deleting them.
-
-Some of the built-in commands are obviously just examples.
-
-[See more examples here.](example_commands.md)
-
-#### File Format
-
-The file format is XML and must include the headers. `Commands` are defined within the `<commands>` element.
-
-```xml
-<?xml version="1.0"?>
-<mcecontroller xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.2.1.159">
-  <commands xmlns="http://www.kindel.com/products/mcecontroller">
-    ...
-  </commands>
-</mcecontroler>
-```
-
-Whenever the `mcec.commands` changes, it is reloaded. You do not need to exit the program and restart it to test changes (as was the case in v1).
-
-`mcec.commands` supports defining the following types of commands.
-
-* `Chars` - Simulates text input.
-* `Mcec` - MCEC control.
-* `Pause` - Delays.
-* `SendInput` - Simulates keyboard input.
-* `SendMessage` - Sends Windows messages.
-* `SetForegroundWindow` - Brings a Window to the foreground, enabling control.
-* `Shutdown` - Commands for rebooting, suspending, and shutting down the computer.
-* `StartProcess` - Start other programs.
-
-The form of a Command definition is:
-
-```xml
-    <type Cmd="text to trigger on" Args="optioal args" etc.../>
-```
-
-**Note on case sensitivity**: All XML element and attribute names are case-insensitive. E.g. `ctrl` is the same as `Ctrl`.  The value of the `Cmd` attribute is NOT case-sensitive. E.g. `MonitorOff` will be treated the same as `monitoroff`. Some attribute values ARE case sensitive (e.g. in `<SendInput/>` commands `Ctrl="true"` will work but `Ctrl="False"` will not).
-
-Do not make commands a single character or it will interfere with the ability to simulate individual character key presses.
-
-#### Nesting
-
-*Commands* support chaining by nesting elements. The nested commands will be executed after the started application starts processing windows messages.
-
-For example, the following launches Notepad, waits 1 second and then types some text.
-
-```xml
-<StartProcess Cmd="notepad" File="notepad.exe" >
-    <Pause Args="1000"/>
-    <Chars Cmd="test" Args="this is a test." />
-</StartProcess>
-```
-
-**Note on case sensitivity**: In the `mcec.commands` file, all XML element and attribute names are case-insensitive. E.g. `ctrl` IS the same as `Ctrl`. The value of the `Cmd` attribute is NOT case-sensitive (e.g. `Cmd="MonitorOff"` will be treated the same as `cmd="monitoroff"`. The values of any `true/false` attribute must be lower case `true` or `false`.
-
-#### SendInput Commands
-
-`SendInput` commands simulate keyboard key-presses. Any combination of shift, ctrl, alt, and left/right Windows keys can be used with any "virtual key code". See the `winuser.h` file in the Windows SDK or [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx) for a definition of all standard `VK_` codes. `SendInput` commands understand single characters (e.g. `x` or `\u0020`), key codes in hex (e.g. `0x2a`) or decimal format, or as a `VK_` name. Under the covers, the Windows `SendInput()` API is used send keystrokes. Keystrokes always go to the foreground window.
-
-For example, the following causes a **Ctrl-P** to be sent to the foreground window, and if that window is Media Center, the My Pictures page appears:
-
-```xml
-<SendInput Cmd="mypictures" vk="73" Shift="false" Ctrl="true" Alt="false" />
-<SendInput Cmd="mypictures" vk="P" Shift="false" Ctrl="true" Alt="false" />
-```
-
-This example causes a Windows-X to be simulated, which causes the Windows 10 "expert" menu to pop up:
-
-```xml
-<SendInput Cmd="winx" vk="VK_X" Win="true"/>
-```
-
-The below illustrate how single character commands (see below) are implemented. Each of these does precisely the same thing as if **MCEC* received a space (` `) character (assuming `chars:` command was enabled, of course):
-
-```xml
-<SendInput Cmd="space" vk="VK_SPACE" Enabled="true"/>
-<SendInput Cmd="space" vk=" " Enabled="true"/>
-<SendInput Cmd="space" vk="\u0020" Enabled="true"/>
-<SendInput Cmd="space" vk="0x20" Enabled="true"/>
-```
-
-#### SendMessage Commands
-
-`SendMessage` commands cause a Windows message to be sent using the `SendMessage()` API to the foreground window if no class name is specified, or to a particular window if that window’s class is specified. `Msg`, `wParam`, and `lParam` must be specified in decimal (**not hex!**).
-
-For example, the following is equivalent to sending a `WM_SYSCOMMAND` with the `SC_MAXIMIZE` flag, causing the window with the class name of `ehshell` to be maximized (`WM_SYSCOMMAND == 247` and `SC_MAXIMIZE == 61488`):
-
-```xml
-<SendMessage Cmd="mce_maximize" ClassName="ehshell" Msg="274" wParam="61488" lParam="0" />
-```
-
-These example commands might be useful in some scenarios:
-
-```xml
-<!--      WM_SYSCOMMAND, SC_SCREENSAVE                                 -->
-<SendMessage Cmd="screensaver" Msg="274" wParam="61760" lParam="0" />
-<!--      WM_SYSCOMMAND, SC_MONITORPOWER, 2 = off, -1 = on             -->
-<SendMessage Cmd="monitoroff" Msg="274" wParam="61808" lParam="2" />
-<SendMessage Cmd="monitoron" Msg="274" wParam="61808" lParam="-1" />
-```
-
-See the [MSDN documentation](http://msdn.microsoft.com/en-us/library/ms646360(v=VS.85).aspx) for more `WM_SYSCOMMAND` possibilities.
-
-#### StartProcess Commands
-
-`StartProcess` commands start processes (programs). Process commands support chaining using nested command elements. For `Start Process` commands the first embedded command will be executed after the started application starts processing windows messages.
-
-Examples:
-
-```xml
-<Startprocess cmd="code" file="code" Arguments="foo.cs" />
-<StartProcess Cmd="tada" File="C:\Windows\Media\tada.wav" Verb="Open" />
-<StartProcess Cmd="term" File="shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" />
-<StartProcess Cmd="netflix" File="shell:AppsFolder\4DF9E0F8.Netflix_mcm4njqhnhss8!Netflix.App" />
-```
-
-#### Shutdown Commands
-
-The supported shutdown commands are self-explanatory.
-
-```xml
-<Shutdown Cmd="shutdown" Type="shutdown" Timeout="30"/>
-<Shutdown Cmd="restart" Type="restart"/>
-<Shutdown Cmd="abort" Type="abort"/>
-<Shutdown Cmd="standby" Type="standby"/>
-<Shutdown Cmd="hibernate" Type="hibernate"/>
-```
-
-#### SetForgroundWindow Commands
-
-The `SetForegroundWindow` command sets the specified process's main window to the foreground.
-
-For example, eiter of the following makes Notepad the foreground Window (assuming Notepad is running):
-
-```xml
-<SetForegroundWindow Cmd="activatenotepad" AppName="Notepad"/>
-<SetForegroundWindow Cmd="activatenotepad" ClassName="Notepad"/>
-```
-
-`AppName` is the "friendly process name" of an app. This is the name shown in *Properties* dialog for items listed in the *Details* tab of *Windows Task Manager.*
-
-**MCEC** uses the Windows `GetProcessesByName` API which returns a list of all instances of an app with the given process name. **MCE** picks the first process in the list that has a main window.
-
-Note, the argument `ClassName` is mis-named and preserved for backwards compatibility. It is a hold-over when *MCEC* worked on older versions of Windows that enabled setting any window to the foreground. Starting with Windows Vista it is no longer possible for one app to set arbitrary windows of another app to the foreground.
-
-#### Chars Commands
-
-The `Chars` command  is how the `chars:` commands get processed. `<Chars Cmd="foo" Arg="bar"/>` defines `foo` such that if **MCEC** receives `foo` it will type `bar` just as it had received `chars:bar`.
-
-#### Pause Commands
-
-The `Pause` command delays executing the next command. `<Pause Cmd="pause3sec" Arg="3000"/>` will pause 3 seconds. This is the same as sending `pause:3000`.
-
-Pause commands cause a delay _in addition to_ any delay introduced by the `Pacing` setting in Settings.
-
-### Disabling All Internal Commands
-
-You can force **MCEC** to only listen to and act on commands defined in the mcec.commands file. To do this use the Windows registry editor to create the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel\MCE Controller` registry key (legacy "MCE Controller" name + Kindel company kept for back-compat; code falls back from `Kindel Systems` variants) and set `DisableInternalCommands` (a DWORD value) to anything other than 0.
-
-This will disable ALL internal commands.
-
-This is a machine wide setting and will apply to all instances of MCEC.
+For security, **every** command is disabled by default — this reduces the surface area MCEC exposes. This
+applies to both the classic commands and the agent commands: an agent command runs only when
+`AgentCommandsEnabled=true` **and** that individual command is enabled.
+
+Use the **Commands Window** (**Commands ▸ Enable and Test Commands…**) to enable/disable commands and test
+them. Details, including the `mcec.commands` XML format, are in
+**[Home Automation & Remote Control](home-automation.md#enabling-or-disabling-commands)**.
+
+## Agent safety
+
+When MCEC is driving the desktop the *target app* has focus, not MCEC — so two operator-safety features keep
+you in control (full design in **[Agent safety](safety-emergency-stop-and-provisioning.md)**):
+
+* **Emergency stop** — a global "dead-man's-switch" hotkey (default `Ctrl+Alt+Shift+S`) you can hit from
+  *any* window to instantly halt a session. It latches the actuation gate (every tool call is refused with
+  `emergency-stopped` until you re-arm), aborts in-flight actuation, and releases held input. It reacts to
+  **physical input only** — an agent's injected keystrokes can never trip or defeat it.
+* **Isolated session provisioning** — instead of enabling agent commands in your installed MCEC (a crash
+  could leave those gates enabled), an authorized agent calls `provision-session` to get a disposable,
+  isolated copy with its own agent-ready config. Teardown is just deleting the directory; the installed
+  config is never touched.
 
 ## Logging
 
-Informational, debug, and diagnostic events are logged to `mcec.log` while MCEC is operating. These are also shown in the main window . If the program is started from the default location (in Program Files) the log will be written to `%APPDATA%\Kindel\MCEC\mcec.log` (mirrors the install subfolder; legacy installs used `Kindel Systems`). Otherwise the log will be written to the directory the program is started from.
-
-## Usage Notes
-
-The `mcestart` command will launch Media Center and cause it to be maximized. If you do not want this behavior, change `mcec.commands` such that the `mcestart` command does not have the embedded `nextCommand` element.
-
-For **MCEC** to work property the target application (Media Center) must be the active window (foreground) on the desktop. You can use the `mceactivate` command to cause Media Center to be the foreground app if it’s already running. Alternatively you can just use `mcestart` as it will end up causing the same thing to happen (although not as quickly).
-
-Also, you may find that `greenbutton` is a better function than `mcestart` because it is equivalent to the green-button on a Windows remote control. `mcestart` is a bit different because if Media Center is already running `mcestart` will not go to the "Start" screen of Media Center while `greenbutton` will. However, `greenbutton` does not cause the Media Center window to be maximized.
+Informational, debug, and diagnostic events are logged to `mcec.log` and shown in the main window. Installs
+under Program Files write the log to `%APPDATA%\Kindel\MCEC\mcec.log` (mirroring the install subfolder;
+legacy installs used `Kindel Systems`). Otherwise the log is written to the directory MCEC is started from.
+Every agent action is additionally logged with a loud `AGENT-AUDIT:` line so agent activity is impossible
+to miss.

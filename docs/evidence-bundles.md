@@ -1,7 +1,5 @@
 # MCEC evidence bundles
 
-*Issue #87 — trace, replay, and artifact bundles.*
-
 Every MCEC dogfood run (Customer 0 self-dogfood, Customer 1 WinPrint, future benchmarks) produces
 the **same** evidence bundle, so a failed run can be understood without rerunning it and a bundle can
 be attached to an issue as-is. The bundle is produced by [`scripts/McecEvidence.psm1`](../scripts/McecEvidence.psm1)
@@ -78,5 +76,5 @@ Complete-McecSession -Session $s -Passed $true -Environment (Get-McecEnvironment
 `tool-calls.jsonl` is an ordered, replayable transcript: each `request` line is a literal JSON-RPC call
 that can be re-POSTed to a fresh MCEC `/mcp` to reproduce the sequence, and each `response` line is the
 expected result to diff against. A full deterministic replayer (timing, window-handle remapping, screenshot
-diffing) is future work; the format is stable enough to build it on. GIF recording (#80) lands as additional
+diffing) is future work; the format is stable enough to build it on. GIF recordings land as additional
 `*.gif` artifacts in the same bundle.
