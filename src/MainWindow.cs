@@ -172,6 +172,7 @@ public partial class MainWindow : Form {
         // Updates - UpdateService.Instance.CheckVersion() is called from VisibleChanged
 
         UpdateService.Instance.GotLatestVersion += UpdateService_GotLatestVersion;
+        UpdateService.Instance.StartPeriodicChecks(); // 24h recheck timer; needs the UI message loop (#214)
 
         SetUpEmergencyStopUi();
 

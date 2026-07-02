@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Octokit;
@@ -30,17 +31,32 @@ public class UpdateService {
     // docs/code-signing.md); a substring keeps this stable across certificate rotations.
     private const string ExpectedPublisher = "Kindel";
 
-    public UpdateService() {
+    private UpdateService() {
         LatestStableVersion = new Version(0, 0);
-
-        // Every ~24 hours check for a new version again
-        Timer t = new Timer();
-        t.Interval = 24 * 60 * 60 * 1000;
-        t.Tick += (sender, args) => OnCheckForUpdates();
-        t.Start();
     }
 
     public static UpdateService Instance => _lazy.Value;
+
+    // The 24h recheck timer. A WinForms Timer needs a message pump on its creating thread, so it is
+    // NOT created in the Lazy singleton ctor (#214): first-touched off the UI thread or in the
+    // headless --mcp host, a ctor-created timer silently never ticked. MainWindow starts it
+    // explicitly once the message loop exists.
+    private Timer? _periodicCheckTimer;
+
+    /// <summary>
+    /// Starts the periodic (~24h) update recheck. Call from the UI thread once the message loop is
+    /// up (MainWindow startup) — never from the headless host. Idempotent.
+    /// </summary>
+    public void StartPeriodicChecks() {
+        if (_periodicCheckTimer != null) {
+            return;
+        }
+        _periodicCheckTimer = new Timer { Interval = 24 * 60 * 60 * 1000 };
+        // CheckVersion logs its own failures (see the continuation there); the returned task is
+        // deliberately not awaited here.
+        _periodicCheckTimer.Tick += (sender, args) => CheckVersion();
+        _periodicCheckTimer.Start();
+    }
 
     public string ErrorMessage { get; private set; } = null!;
 
@@ -67,11 +83,21 @@ public class UpdateService {
     public event EventHandler CheckForUpdates = null!;
     protected void OnCheckForUpdates() => CheckForUpdates?.Invoke(this, null!);
 
-    public void CheckVersion() {
-        Task.Run(() => {
-            GetLatestStableVersionAsync().ConfigureAwait(false);
-        });
-        ;
+    /// <summary>
+    /// Checks GitHub for the latest stable release, raising <see cref="GotLatestVersion"/> when
+    /// done. Returns the in-flight check so callers can await it; fire-and-forget callers get
+    /// failures logged by the attached continuation instead of silently discarded (#214 — the old
+    /// shape was Task.Run with a no-op ConfigureAwait).
+    /// </summary>
+    public Task CheckVersion() {
+        Task check = GetLatestStableVersionAsync();
+        _ = check.ContinueWith(
+            static t => Logger.Instance.Log4.Error(
+                $"UpdateService: update check failed: {t.Exception?.GetBaseException().Message}"),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+        return check;
     }
 
     private async Task GetLatestStableVersionAsync() {
@@ -88,11 +114,14 @@ public class UpdateService {
                 !r.Name.Contains("Fake", StringComparison.OrdinalIgnoreCase) &&
                 !r.Name.Contains("Testing Update", StringComparison.OrdinalIgnoreCase))];
 
-            Release[] releases =
-                [.. allReleases.Where(r => !r.Prerelease).OrderByDescending(r => new Version(r.TagName.TrimStart('v')))];
-            if (releases.Length > 0) {
-                Release latest = releases[0];
-                LatestStableVersion = new Version(latest.TagName.TrimStart('v'));
+            // Pick the stable release with the highest valid version tag. Malformed tags are
+            // ignored (#214) — the old new Version(...) inside an OrderBy meant one bad tag on the
+            // releases list aborted the entire check.
+            Release[] stableReleases = [.. allReleases.Where(r => !r.Prerelease)];
+            string? latestTag = PickLatestVersionTag(stableReleases.Select(r => r.TagName));
+            if (latestTag is not null) {
+                Release latest = stableReleases.First(r => r.TagName == latestTag);
+                LatestStableVersion = TryParseVersionTag(latestTag)!;
                 ReleasePageUri = new Uri(latest.HtmlUrl);
 
                 // SECURITY (#146): pick the pinned installer asset by name — never a blind Assets[0],
@@ -128,6 +157,34 @@ public class UpdateService {
     // < 0 - A newer version available
     public int CompareVersions() {
         return CurrentVersion.CompareTo(LatestStableVersion);
+    }
+
+    /// <summary>
+    /// Parses a GitHub release tag ("v3.0.8" or "3.0.8") into a <see cref="Version"/>, or null when
+    /// the tag is malformed. One bad tag must never abort the whole update check (#214).
+    /// </summary>
+    internal static Version? TryParseVersionTag(string? tagName) {
+        if (string.IsNullOrWhiteSpace(tagName)) {
+            return null;
+        }
+        return Version.TryParse(tagName.TrimStart('v', 'V'), out Version? version) ? version : null;
+    }
+
+    /// <summary>
+    /// Picks the tag carrying the highest valid version from a sequence of release tag strings,
+    /// ignoring malformed tags; null when none parse. Pure — unit tested directly.
+    /// </summary>
+    internal static string? PickLatestVersionTag(IEnumerable<string?> tagNames) {
+        string? bestTag = null;
+        Version? bestVersion = null;
+        foreach (string? tag in tagNames) {
+            Version? version = TryParseVersionTag(tag);
+            if (version is not null && (bestVersion is null || version > bestVersion)) {
+                bestVersion = version;
+                bestTag = tag;
+            }
+        }
+        return bestTag;
     }
 
     /// <summary>
@@ -173,7 +230,12 @@ public class UpdateService {
         "release-assets.githubusercontent.com",
     ];
 
-    internal async void StartUpgrade() {
+    /// <summary>
+    /// Downloads, verifies, and launches the installer. Returns the in-flight upgrade so callers
+    /// can await it (#214 — this was <c>async void</c>, so a fault crashed the process instead of
+    /// being observable). Every failure path logs and cleans up; the returned task does not fault.
+    /// </summary>
+    internal async Task StartUpgrade() {
         if (DownloadUri is null) {
             Logger.Instance.Log4.Error($"{GetType().Name}: no installer download URL available — aborting upgrade.");
             return;
@@ -189,11 +251,11 @@ public class UpdateService {
         // Download into a fresh, app-private directory (not a predictable %TEMP%\tmpXXXX.tmp.exe that a
         // local attacker could pre-create or swap). Verify, then launch; clean up on any failure.
         string dir = Path.Combine(Path.GetTempPath(), "mcec-update-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        _tempFilename = Path.Combine(dir, InstallerFileName);
-        Logger.Instance.Log4.Info($"{GetType().Name}: Downloading {DownloadUri.AbsoluteUri} to {_tempFilename}...");
-
         try {
+            Directory.CreateDirectory(dir);
+            _tempFilename = Path.Combine(dir, InstallerFileName);
+            Logger.Instance.Log4.Info($"{GetType().Name}: Downloading {DownloadUri.AbsoluteUri} to {_tempFilename}...");
+
             using (HttpClient httpClient = new HttpClient()) {
                 HttpResponseMessage response = await httpClient.GetAsync(DownloadUri);
                 response.EnsureSuccessStatusCode();
@@ -225,7 +287,7 @@ public class UpdateService {
             MainWindow.Instance.BeginInvoke((Action)(() => { MainWindow.Instance.ShutDown(); }));
         }
         catch (Exception ex) {
-            Logger.Instance.Log4.Error($"{GetType().Name}: Download failed: {ex.Message}");
+            Logger.Instance.Log4.Error($"{GetType().Name}: Upgrade failed: {ex.Message}");
             TryDeleteDirectory(dir);
         }
     }
