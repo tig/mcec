@@ -39,7 +39,7 @@ public partial class TelemetryService {
     public void Start(string appName, IDictionary<string, string>? startProperties = null) {
         RunTime = Stopwatch.StartNew();
 
-        object? val = AppSettings.GetRegistryValue("Telemetry", 0);
+        object? val = MachinePolicy.GetRegistryValue("Telemetry", 0);
         TelemetryEnabled = val != null && val.ToString() == "1" ? true : false;
 
         // Setup telemetry via Azure Application Insights.

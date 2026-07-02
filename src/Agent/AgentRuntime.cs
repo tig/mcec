@@ -138,7 +138,7 @@ public static class AgentRuntime {
 
     private static string DefaultArtifactRoot() {
         try {
-            string baseDir = AppSettings.GetSettingsPath(System.Windows.Forms.Application.StartupPath);
+            string baseDir = SettingsStore.GetSettingsPath(System.Windows.Forms.Application.StartupPath);
             return Path.Combine(baseDir, "sessions");
         }
         catch (Exception e) {

@@ -1069,7 +1069,7 @@ public class SettingsDialog : Form {
     }
 
     private void ButtonOkClick(object? sender, EventArgs e) {
-        Settings.Serialize($@"{Program.ConfigPath}{AppSettings.SettingsFileName}");
+        MainWindow.SaveSettings(Settings);
         DialogResult = DialogResult.OK;
         Close();
     }

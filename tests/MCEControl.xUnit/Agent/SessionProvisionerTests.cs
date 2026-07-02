@@ -34,7 +34,7 @@ public class SessionProvisionerTests : IDisposable {
         // config + a log (must NOT be copied — the session gets its own fresh config).
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.exe"), "stub");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.dll"), "stub");
-        File.WriteAllText(Path.Combine(_fakeBinaries, AppSettings.SettingsFileName), "<AppSettings><AgentCommandsEnabled>false</AgentCommandsEnabled></AppSettings>");
+        File.WriteAllText(Path.Combine(_fakeBinaries, SettingsStore.SettingsFileName), "<AppSettings><AgentCommandsEnabled>false</AgentCommandsEnabled></AppSettings>");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.commands"), "<installed/>");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.log"), "old log");
         Directory.CreateDirectory(Path.Combine(_fakeBinaries, "runtimes"));
@@ -77,7 +77,7 @@ public class SessionProvisionerTests : IDisposable {
     public void Provision_WritesAgentReadyConfig_EnabledOnlyInTheCopy() {
         ProvisionedSession session = SessionProvisioner.Provision(mcpServerEnabled: true);
 
-        string settings = File.ReadAllText(Path.Combine(session.Directory, AppSettings.SettingsFileName));
+        string settings = File.ReadAllText(Path.Combine(session.Directory, SettingsStore.SettingsFileName));
         Assert.Contains("<AgentCommandsEnabled>true</AgentCommandsEnabled>", settings);
         Assert.Contains("<McpServerEnabled>true</McpServerEnabled>", settings);
         // Isolation practice: no TCP server (avoids the firewall prompt) and it can't re-provision.
@@ -91,11 +91,11 @@ public class SessionProvisionerTests : IDisposable {
 
     [Fact]
     public void Provision_LeavesInstalledConfigUntouched() {
-        string before = File.ReadAllText(Path.Combine(_fakeBinaries, AppSettings.SettingsFileName));
+        string before = File.ReadAllText(Path.Combine(_fakeBinaries, SettingsStore.SettingsFileName));
 
         SessionProvisioner.Provision(mcpServerEnabled: false);
 
-        string after = File.ReadAllText(Path.Combine(_fakeBinaries, AppSettings.SettingsFileName));
+        string after = File.ReadAllText(Path.Combine(_fakeBinaries, SettingsStore.SettingsFileName));
         Assert.Equal(before, after); // the real install's settings are never written
     }
 
