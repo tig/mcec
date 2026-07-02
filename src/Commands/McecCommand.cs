@@ -67,16 +67,12 @@ public class McecCommand : Command {
             // Cause MCE Controller to exit
             case "exit":
                 Reply.WriteLine("exiting");
-                // #195: commands now execute on the invoker's dispatcher thread. ShutDown()
-                // self-marshals (BeginInvoke when InvokeRequired), so calling it from here is safe
-                // in GUI mode. Headless (--mcp) has no MainWindow — touching the lazy singleton
-                // would construct a Form on this worker thread — so decline there (the MCP client
-                // owns the process lifetime; it exits MCEC by closing stdin).
-                if (AgentRuntime.Headless) {
-                    Logger.Instance.Log4.Info($"{this.GetType().Name}: '{Cmd}{Args}' ignored in headless MCP mode — the MCP client owns the process lifetime.");
-                    return true;
-                }
-                MainWindow.Instance.ShutDown();
+                // #209: shutdown goes through the UI-agnostic host seam. GUI: MainWindow.ShutDown()
+                // (self-marshals, so calling from this dispatcher thread is safe — #195). Headless
+                // (--mcp): HeadlessAppHost schedules a clean deferred process exit so the in-flight
+                // send_command reply reaches the client first — mcec:exit now actually exits
+                // headless instead of the old #195 decline.
+                AgentRuntime.RequestShutdown();
                 return true;
 
             // Return a list of supported commands (really just for testing)

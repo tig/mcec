@@ -284,7 +284,9 @@ public class UpdateService {
                 return;
             }
 
-            MainWindow.Instance.BeginInvoke((Action)(() => { MainWindow.Instance.ShutDown(); }));
+            // #209: shutdown via the UI-agnostic host seam (GUI: MainWindow.ShutDown(), which
+            // already self-marshals to the UI thread — the old explicit BeginInvoke was redundant).
+            AgentRuntime.RequestShutdown();
         }
         catch (Exception ex) {
             Logger.Instance.Log4.Error($"{GetType().Name}: Upgrade failed: {ex.Message}");

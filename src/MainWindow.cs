@@ -19,10 +19,19 @@ using Microsoft.Win32;
 using static MCEControl.Hooks.PowerNativeMethods;
 
 namespace MCEControl; 
-public partial class MainWindow : Form {
-    // MainWindow is a singleton
-    private static readonly Lazy<MainWindow> _lazy = new(() => new MainWindow());
-    public static MainWindow Instance { get { return _lazy.Value; } }
+public partial class MainWindow : Form, IAppHost {
+    // MainWindow is a singleton, but NOT a lazy one (#209): the instance is explicitly assigned by
+    // Program.Main's GUI path before Application.Run. It used to be a Lazy<MainWindow>, so ANY touch
+    // — including from engine code on a worker thread in headless --mcp mode — silently constructed
+    // the Form. Now a touch before assignment (or ever, headless) throws a pointed exception instead.
+    private static MainWindow? _instance;
+    public static MainWindow Instance {
+        get => _instance ?? throw new InvalidOperationException(
+            "MainWindow.Instance touched in headless mode or before Program assigned it — code below " +
+            "the UI layer must use the AgentRuntime seam instead (AgentRuntime.Invoker / SendLine / " +
+            "RequestShutdown / MessageWindowHandle).");
+        internal set => _instance = value;
+    }
 
     public SocketServer? Server { get; private set; }
     public SocketClient? Client { get; private set; }
@@ -549,18 +558,31 @@ public partial class MainWindow : Form {
         }
     }
 
+    // ----------------------------------------
+    // IAppHost (#209) — the GUI half of the AgentRuntime host seam (non-explicit; CA1033 forbids
+    // explicit-only implementations on an unsealed type). SendLine below already matches.
+
+    // ShutDown() self-marshals (BeginInvoke when InvokeRequired), so this is callable from any
+    // thread — the invoker's dispatcher (mcec:exit) and the updater's async download path both do.
+    public void RequestShutdown() => ShutDown();
+
+    // Control.Handle is safe to READ cross-thread once created; the only consumer
+    // (UserActivityMonitorService.StartPowerBroadcastDetection) runs on the UI thread anyway,
+    // called from Start() during load/settings-apply.
+    public IntPtr MessageWindowHandle => Handle;
+
     // Sends a line of text (adds a "\n" to end) to connected client and server
-    public void SendLine(string v) {
-        //Logger.Instance.Log4.Info($"Send: {v}");
+    public void SendLine(string line) {
+        //Logger.Instance.Log4.Info($"Send: {line}");
         if (Client != null) {
-            Client.Send(v + "\n");
+            Client.Send(line + "\n");
         }
         else if (Server != null) {
-            Server.Send(v + "\n");
+            Server.Send(line + "\n");
         }
 
         if (SerialServer != null) {
-            SerialServer.Send(v + "\n");
+            SerialServer.Send(line + "\n");
         }
     }
 
@@ -883,6 +905,11 @@ public partial class MainWindow : Form {
     private void ApplySettings(AppSettings settings) {
         Settings = settings;
         PublishAgentRuntimeSettings(settings);
+
+        // #209: register the GUI host capabilities (SendLine / RequestShutdown / message-window
+        // handle) on the same seam, in the same place the settings are published. Idempotent —
+        // the dialog-OK path re-runs this with the same instance.
+        AgentRuntime.Host = this;
 
         Logger.Instance.TextBoxThreshold = LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap![settings.TextBoxLogThreshold]!;
     }

@@ -216,15 +216,21 @@ public sealed class UserActivityMonitorService : IDisposable {
     }
 
     private void StartPowerBroadcastDetection() {
-        _hUserPresence = RegisterPowerSettingNotification(MainWindow.Instance.Handle,
+        // #209: the handle comes from the AgentRuntime host seam, not MainWindow directly. In GUI
+        // mode this is the MainWindow handle (whose WndProc forwards WM_POWERBROADCAST to
+        // HandlePowerBroadcast); this service is only ever started by the GUI host, so headless the
+        // seam throws with a pointed message rather than lazily constructing a Form.
+        IntPtr messageWindowHandle = AgentRuntime.MessageWindowHandle;
+
+        _hUserPresence = RegisterPowerSettingNotification(messageWindowHandle,
             ref GUID_SESSION_USER_PRESENCE,
             DEVICE_NOTIFY_WINDOW_HANDLE);
 
-        _hAwayMode = RegisterPowerSettingNotification(MainWindow.Instance.Handle,
+        _hAwayMode = RegisterPowerSettingNotification(messageWindowHandle,
             ref GUID_SYSTEM_AWAYMODE,
             DEVICE_NOTIFY_WINDOW_HANDLE);
 
-        _hMonitorPower = RegisterPowerSettingNotification(MainWindow.Instance.Handle,
+        _hMonitorPower = RegisterPowerSettingNotification(messageWindowHandle,
             ref GUID_MONITOR_POWER_ON,
             DEVICE_NOTIFY_WINDOW_HANDLE);
     }
@@ -424,7 +430,10 @@ public sealed class UserActivityMonitorService : IDisposable {
         // how is PII protected: the frequency of activity is not PII
         TelemetryService.Instance.TrackMetric("activity Sent", 1);
 
-        MainWindow.Instance.SendLine(ActivityMsg);
+        // #209: outbound line goes through the AgentRuntime host seam (GUI: MainWindow.SendLine to
+        // the connected transports; no host registered: logged drop — never an exception on this
+        // background dispatch path).
+        AgentRuntime.SendLine(ActivityMsg);
     }
 
     private void HookManager_KeyDown(object? sender, KeyEventArgs e) {

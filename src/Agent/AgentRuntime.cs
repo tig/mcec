@@ -24,6 +24,55 @@ public static class AgentRuntime {
     public static CommandInvoker? Invoker { get; set; }
 
     /// <summary>
+    /// The host-capability half of the seam (#209): outbound lines, shutdown, and the message-window
+    /// handle — the few genuinely host-specific things engine code needs. GUI mode registers
+    /// <c>MainWindow</c> (in its settings-apply path, alongside <see cref="Settings"/>); headless
+    /// <c>--mcp</c> registers <see cref="HeadlessAppHost"/>. Engine code calls the wrappers below,
+    /// never <c>MainWindow</c> — touching <c>MainWindow.Instance</c> below the UI layer throws.
+    /// </summary>
+    public static IAppHost? Host { get; set; }
+
+    /// <summary>
+    /// Sends a line to every connected transport via the registered <see cref="Host"/>. With no host
+    /// registered (early startup, tests) the line is dropped with a log trace — never an exception,
+    /// because callers include the activity monitor's background dispatch path.
+    /// </summary>
+    public static void SendLine(string line) {
+        IAppHost? host = Host;
+        if (host is null) {
+            Logger.Instance.Log4.Debug($"AgentRuntime: SendLine with no host registered — dropped: {line}");
+            return;
+        }
+        host.SendLine(line);
+    }
+
+    /// <summary>
+    /// Requests an orderly application shutdown via the registered <see cref="Host"/> (GUI:
+    /// <c>MainWindow.ShutDown()</c>; headless: clean process exit after replies flush). With no host
+    /// registered this logs and returns — a stray <c>mcec:exit</c> in a test process must not kill the
+    /// test runner.
+    /// </summary>
+    public static void RequestShutdown() {
+        IAppHost? host = Host;
+        if (host is null) {
+            Logger.Instance.Log4.Warn("AgentRuntime: RequestShutdown with no host registered — ignored.");
+            return;
+        }
+        host.RequestShutdown();
+    }
+
+    /// <summary>
+    /// A window handle for OS notification registration (see <see cref="IAppHost.MessageWindowHandle"/>).
+    /// Throws with a pointed message when no host is registered — better than the silent Form
+    /// construction a stray <c>MainWindow.Instance.Handle</c> used to cause.
+    /// </summary>
+    public static IntPtr MessageWindowHandle =>
+        (Host ?? throw new InvalidOperationException(
+            "AgentRuntime.MessageWindowHandle requires a registered IAppHost (AgentRuntime.Host) — " +
+            "GUI mode registers MainWindow; headless --mcp has no message window."))
+        .MessageWindowHandle;
+
+    /// <summary>
     /// The single gate over the ONE physical desktop input stream (#113/#195). Two actuation paths
     /// synthesize global input and must never interleave: (1) the <see cref="CommandInvoker"/>
     /// dispatcher thread, which holds this around a queued command's <c>Execute</c> when the command
