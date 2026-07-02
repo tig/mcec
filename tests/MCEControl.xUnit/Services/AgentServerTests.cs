@@ -46,6 +46,9 @@ public class AgentServerTests {
     [InlineData("wait-for", false)]
     [InlineData("record", false)]
     [InlineData("invoke", false)]
+    [InlineData("click", false)]
+    [InlineData("displays", false)]
+    [InlineData("launch", false)]
     public void SerializesOnInputLock_OnlyGlobalInputActuation(string tool, bool expected) {
         Assert.Equal(expected, AgentServer.SerializesOnInputLock(tool));
     }
