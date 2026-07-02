@@ -23,13 +23,13 @@ namespace MCEControl;
 /// <para>THREADING (#215): all UIA tree access runs on ONE dedicated MTA worker thread owned by this
 /// service, with a single cached <see cref="UIA3Automation"/> instance (created on the worker,
 /// disposed by <see cref="Shutdown"/>). Before, each call constructed and disposed its own
-/// <see cref="UIA3Automation"/> on whatever thread it arrived on — HTTP pool workers, stdio workers,
+/// <see cref="UIA3Automation"/> on whatever thread it arrived on; HTTP pool workers, stdio workers,
 /// the invoke grace thread, and (pre-#195, via legacy TCP) even the STA UI thread, a classic
 /// self-deadlock when MCEC drives its own window. The worker centralizes the apartment; a debug
 /// assertion (<see cref="AssertNotOnMessageLoopThread"/>) documents and enforces that UIA work never
 /// arrives from a thread running a WinForms message loop. ONE deliberate exception: an
 /// <c>invoke</c>'s pattern dispatch runs on its calling thread (the executor's per-invoke
-/// modal-grace worker, #105), NOT on the shared worker — a modal-opening Invoke blocks until the
+/// modal-grace worker, #105), NOT on the shared worker; a modal-opening Invoke blocks until the
 /// dialog closes, and parking the shared worker there would block the very <c>query</c>/<c>capture</c>
 /// the agent needs to read or dismiss that dialog. UIA3's client objects are free-threaded, so an
 /// element resolved on the worker is safely driven from another MTA thread.</para>
@@ -38,7 +38,7 @@ public static class UiaService {
     /// <summary>
     /// Timeout for the element lookup an <c>invoke</c> performs before dispatching its action. It is kept
     /// below <see cref="AgentServer.InvokeModalGraceMs"/> on purpose: the grace assumes that an invoke
-    /// still running afterward is blocked on a modal dialog, so the lookup itself must finish first — a
+    /// still running afterward is blocked on a modal dialog, so the lookup itself must finish first; a
     /// missing element must fail fast (no-target) rather than be misreported as a pending modal (#107).
     /// Agents are instructed to <c>wait-for</c>/<c>find</c> a control before acting on it, so invoke does
     /// not need a long implicit wait of its own.
@@ -49,7 +49,7 @@ public static class UiaService {
     /// Interval between lookup attempts while a timed <see cref="Find"/> (or invoke's bounded lookup)
     /// polls for an element. Each ATTEMPT runs as one short item on the shared UIA worker; the sleep
     /// between attempts happens on the calling thread, so a long <c>wait-for</c> never monopolizes the
-    /// worker — concurrent <c>query</c>/<c>capture</c> items interleave between polls (#215).
+    /// worker; concurrent <c>query</c>/<c>capture</c> items interleave between polls (#215).
     /// </summary>
     public const int FindPollIntervalMs = 100;
 
@@ -109,12 +109,12 @@ public static class UiaService {
     }
 
     /// <summary>
-    /// Finds an element (a short <see cref="InvokeFindTimeoutMs"/> lookup — invoke fast-fails rather
+    /// Finds an element (a short <see cref="InvokeFindTimeoutMs"/> lookup; invoke fast-fails rather
     /// than waiting; see that constant) and dispatches <paramref name="action"/>
     /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>/<c>select</c>).
-    /// Returns a <see cref="UiaInvokeResult"/> that keeps the four failure modes distinct (#206) — the
+    /// Returns a <see cref="UiaInvokeResult"/> that keeps the four failure modes distinct (#206); the
     /// old bare bool made an agent re-find elements that existed but lacked the pattern, i.e. loop.
-    /// <c>expand</c> opens a collapsed menu/treeitem so its children become reachable —
+    /// <c>expand</c> opens a collapsed menu/treeitem so its children become reachable;
     /// a closed WinForms menu's sub-items are not in the UIA tree until the parent is opened. It uses
     /// the ExpandCollapse pattern, falling back to Invoke for WinForms menu items that lack it.
     /// </summary>
@@ -125,7 +125,7 @@ public static class UiaService {
         // Reject an unknown/typo action (e.g. "click", "set-value") rather than silently activating the
         // element via the default Invoke pattern. The caller defaults a missing action to "invoke".
         if (!IsSupportedAction(action)) {
-            Logger.Instance.Log4.Warn($"UiaService.Invoke: unsupported action '{action}' — rejected.");
+            Logger.Instance.Log4.Warn($"UiaService.Invoke: unsupported action '{action}'; rejected.");
             return UiaInvokeResult.ActionUnknown;
         }
         try {
@@ -134,8 +134,8 @@ public static class UiaService {
             if (el is null) {
                 return UiaInvokeResult.ElementNotFound;
             }
-            // ...but the PATTERN DISPATCH runs here, on the calling thread — the executor's per-invoke
-            // modal-grace worker (#105) — deliberately NOT on the shared worker: an Invoke that opens a
+            // ...but the PATTERN DISPATCH runs here, on the calling thread; the executor's per-invoke
+            // modal-grace worker (#105); deliberately NOT on the shared worker: an Invoke that opens a
             // modal dialog blocks synchronously until the dialog closes, and a wedged shared worker
             // would block the query/capture the agent needs to read or dismiss that very dialog. The
             // caller is a message-loop-free MTA thread (asserted), and UIA3 client objects are
@@ -249,12 +249,12 @@ public static class UiaService {
     /// Asserts (debug builds) that UIA work is not entering from a thread that runs a WinForms
     /// message loop. A UIA client call against MCEC's OWN window from the UI thread self-deadlocks:
     /// the provider side needs the very message loop the call is blocking (the historical
-    /// legacy-TCP-path hazard, gone since #195 moved queue execution to the dispatcher thread — this
+    /// legacy-TCP-path hazard, gone since #195 moved queue execution to the dispatcher thread; this
     /// assertion documents and enforces the contract so it cannot regress).
     /// </summary>
     private static void AssertNotOnMessageLoopThread() =>
         System.Diagnostics.Debug.Assert(!System.Windows.Forms.Application.MessageLoop,
-            "UiaService: UIA work must never run on a thread with a WinForms message loop — a UIA call " +
+            "UiaService: UIA work must never run on a thread with a WinForms message loop; a UIA call " +
             "against MCEC's own window would self-deadlock. Dispatch tool work on MCP workers, the " +
             "command dispatcher thread, or the invoke grace thread instead.");
 
@@ -384,7 +384,7 @@ public static class UiaService {
         }
         // WinForms menu items (ToolStripMenuItem) open their dropdown via the Invoke pattern and do
         // not expose ExpandCollapse. Fall back to Invoke so `expand` opens menus uniformly across
-        // WinForms and WPF/WinUI — letting an agent reach sub-items that aren't yet in the tree.
+        // WinForms and WPF/WinUI; letting an agent reach sub-items that aren't yet in the tree.
         var invoke = el.Patterns.Invoke.PatternOrDefault;
         if (invoke is not null) {
             invoke.Invoke();

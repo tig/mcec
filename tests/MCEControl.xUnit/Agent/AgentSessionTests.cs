@@ -170,7 +170,7 @@ public class AgentSessionTests {
     [Fact]
     public void RecordObservation_CaptureSummary_FlowsIntoErrorLastObservation_WithoutBase64() {
         // The end-to-end point of the compaction: a failure AFTER a capture carries the summary (not
-        // the screenshot) in error.lastObservation, exactly as the executor builds it — it snapshots
+        // the screenshot) in error.lastObservation, exactly as the executor builds it; it snapshots
         // session.LastObservation into the AgentError.
         string root = TempRoot();
         AgentSession session = AgentSession.Create(root);

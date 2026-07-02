@@ -44,7 +44,7 @@ public class CapturingReplyTests {
     [Fact]
     public void Captured_BufferedText_TakesPrecedenceOverTypedResult() {
         // A command that wrote text AND set a typed result (not a shape agent commands produce, but
-        // the contract must be deterministic): the buffered text wins — Result is the typed side-channel.
+        // the contract must be deterministic): the buffered text wins; Result is the typed side-channel.
         CapturingReply reply = new() { Result = CommandResult.Ok("x") };
         reply.Write("buffered");
 

@@ -12,8 +12,8 @@ namespace MCEControl;
 /// modifiers are down. Kept free of any hook/UI/actuation dependency so the trigger logic is fully
 /// unit-testable; <see cref="EmergencyStop"/> owns the global-hook wiring and the actual stop.
 ///
-/// <para>SECURITY: injected events (<see cref="GlobalKeyEventArgs.Injected"/>) are ignored entirely — they
-/// never arm a modifier and never trigger — so MCEC's own agent keystrokes can neither trip nor defeat the
+/// <para>SECURITY: injected events (<see cref="GlobalKeyEventArgs.Injected"/>) are ignored entirely; they
+/// never arm a modifier and never trigger; so MCEC's own agent keystrokes can neither trip nor defeat the
 /// stop. Only real hardware input drives the machine, which is what makes the hotkey a true human override.</para>
 /// </summary>
 public sealed class EmergencyStopDetector {

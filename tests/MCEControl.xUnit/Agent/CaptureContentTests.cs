@@ -11,7 +11,7 @@ namespace MCEControl.xUnit.Agent;
 /// Tests for <see cref="CaptureContent"/>: building the MCP image content block for a capture result
 /// WITHOUT stripping the base64 bytes from the envelope's <c>result</c>. The contract says the PNG is
 /// "additionally" emitted as an image block while "the same image is referenced from result for
-/// text-only agents" — so clients that parse the envelope text but ignore MCP image blocks must still
+/// text-only agents"; so clients that parse the envelope text but ignore MCP image blocks must still
 /// get the bytes (Codex P2 on #115).
 /// </summary>
 public class CaptureContentTests {

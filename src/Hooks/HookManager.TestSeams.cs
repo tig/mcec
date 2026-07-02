@@ -7,23 +7,23 @@ namespace MCEControl.Hooks;
 
 /// <summary>
 /// Test seams (InternalsVisibleTo MCEControl.xUnit) for <see cref="HookManager"/>. They expose the
-/// subscribe/unsubscribe bookkeeping so tests can verify consumers detach symmetrically — the
+/// subscribe/unsubscribe bookkeeping so tests can verify consumers detach symmetrically; the
 /// regression guarded is issue #197, where a consumer that never detached left the global
 /// WH_MOUSE_LL/WH_KEYBOARD_LL hooks installed system-wide and stacked duplicate handlers on every
-/// Stop/Start cycle — without installing real global hooks (hosted CI has no interactive desktop).
+/// Stop/Start cycle; without installing real global hooks (hosted CI has no interactive desktop).
 /// </summary>
 public static partial class HookManager {
     /// <summary>
     /// Sentinel stored in the hook-handle fields when <see cref="SuppressRealHooksForTesting"/> is
     /// set, so install/uninstall state stays observable without a real hook. A real
-    /// SetWindowsHookEx handle is never -1. (IntPtr since #210 — hook handles are pointer-sized.)
+    /// SetWindowsHookEx handle is never -1. (IntPtr since #210; hook handles are pointer-sized.)
     /// </summary>
     private static readonly IntPtr FakeHookHandle = new(-1);
 
     /// <summary>
     /// When true, the real SetWindowsHookEx/UnhookWindowsHookEx calls are skipped while ALL of the
     /// subscribe/unsubscribe bookkeeping still runs (handle fields get <see cref="FakeHookHandle"/>).
-    /// For tests only — never set in production code.
+    /// For tests only; never set in production code.
     /// </summary>
     internal static bool SuppressRealHooksForTesting { get; set; }
 

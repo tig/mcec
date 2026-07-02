@@ -15,7 +15,7 @@ namespace MCEControl.xUnit.Services;
 /// bound the unauthenticated (#143) MCP endpoint to every interface. These prove the validation seam
 /// (<see cref="McpHttpTransport.IsLoopbackBindAddress"/>) accepts only <c>localhost</c> and literal loopback
 /// IPs, and that <see cref="AgentServer.StartHttp"/> refuses to open a listener at all for anything else.
-/// NOTE: no test here ever actually binds a non-loopback address — the point is that the listener never
+/// NOTE: no test here ever actually binds a non-loopback address; the point is that the listener never
 /// starts.
 /// </summary>
 [Collection("AgentSerial")]
@@ -44,7 +44,7 @@ public class AgentServerBindAddressTests {
     // The prefix host StartHttp feeds HttpListener must ALWAYS be a canonical loopback literal, never
     // the raw obfuscated string (#152 review follow-up). http.sys parses forms like 0x7f.0.0.1 and
     // ::ffff:127.0.0.1 as hostname/wildcard registrations that, under an elevated MCEC, bind
-    // non-loopback — so a LAN attacker with a matching Host header would reach the unauthenticated
+    // non-loopback; so a LAN attacker with a matching Host header would reach the unauthenticated
     // endpoint. Canonicalizing via the parsed IPAddress collapses every accepted form to a literal
     // http.sys binds to loopback.
     [InlineData("localhost", "localhost")]
@@ -81,7 +81,7 @@ public class AgentServerBindAddressTests {
     [InlineData("[::]")]
     [InlineData("192.168.1.5")] // non-loopback literal IP
     [InlineData("10.0.0.1")]
-    [InlineData("evil.example.com")] // hostnames other than localhost are never resolved — could point anywhere
+    [InlineData("evil.example.com")] // hostnames other than localhost are never resolved; could point anywhere
     [InlineData("localhost.attacker.com")]
     [InlineData("")]
     [InlineData(" ")]
@@ -104,7 +104,7 @@ public class AgentServerBindAddressTests {
 
     [Fact]
     public void StartHttp_NonLoopbackBindAddress_DoesNotOpenAListener() {
-        // A settings file with McpBindAddress=0.0.0.0 must NOT start the HTTP transport at all —
+        // A settings file with McpBindAddress=0.0.0.0 must NOT start the HTTP transport at all;
         // not on all interfaces, and not "fixed up" to loopback either. Proof: after StartHttp,
         // nothing accepts a connection on the port, even from loopback.
         int port = FindFreeLoopbackPort();

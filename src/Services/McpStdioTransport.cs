@@ -25,7 +25,7 @@ namespace MCEControl;
 /// BOUNDS (#215): the old loop's pending-task list grew unboundedly (one entry per request line for
 /// the process lifetime) and had no concurrency cap, unlike HTTP's 503 bound (#151). Now completed
 /// tasks are pruned each iteration and in-flight dispatches are capped at
-/// <see cref="MaxConcurrentStdioRequests"/> — by BACKPRESSURE, not refusal: stdio has exactly one
+/// <see cref="MaxConcurrentStdioRequests"/>; by BACKPRESSURE, not refusal: stdio has exactly one
 /// local client (the operator's MCP client), so the reader simply stops consuming stdin until a slot
 /// frees, which is both lossless and the natural pipe semantics.
 /// </summary>
@@ -42,7 +42,7 @@ public sealed class McpStdioTransport {
     private readonly SemaphoreSlim _workerSlots = new(MaxConcurrentStdioRequests, MaxConcurrentStdioRequests);
 
     /// <param name="dispatch">JSON-RPC dispatch for one request object; the production wiring tags
-    /// <see cref="AgentTransport.Stdio"/> — the local, opt-in-preserving path (#153).</param>
+    /// <see cref="AgentTransport.Stdio"/>; the local, opt-in-preserving path (#153).</param>
     public McpStdioTransport(Func<JsonObject, JsonObject?> dispatch) {
         _dispatch = dispatch ?? throw new ArgumentNullException(nameof(dispatch));
     }
@@ -71,7 +71,7 @@ public sealed class McpStdioTransport {
             if (line.Length == 0) {
                 continue;
             }
-            // Prune finished dispatches so the pending list tracks only in-flight work — the old
+            // Prune finished dispatches so the pending list tracks only in-flight work; the old
             // list accumulated one completed Task per request for the whole process lifetime.
             pending.RemoveAll(t => t.IsCompleted);
             // Concurrency cap by backpressure: don't read the next request until a slot frees.
@@ -103,7 +103,7 @@ public sealed class McpStdioTransport {
     /// <summary>
     /// The number of pending dispatch tasks currently tracked by a running loop. Test seam
     /// (InternalsVisibleTo): read only while the loop is quiescent (blocked in ReadLine), where the
-    /// list is stable — it lets tests prove the prune keeps the list from growing without bound.
+    /// list is stable; it lets tests prove the prune keeps the list from growing without bound.
     /// </summary>
     internal int PendingCountForTests => Volatile.Read(ref _pendingCount);
 

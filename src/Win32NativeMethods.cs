@@ -13,8 +13,8 @@ namespace MCEControl;
 /// pass. This replaced the vendored <c>Microsoft.Win32.Security</c> fork (58 files / ~5,200
 /// lines of dead token/ACL/SID code) that previously hosted these declarations. Other
 /// subsystems keep their own thematic islands: <c>WindowsInput.Native.NativeMethods</c>
-/// (SendInput), <c>MCEControl.Hooks</c> (<c>HookNativeMethods</c>/<c>PowerNativeMethods</c> —
-/// global hooks and power notifications) and <c>AgentNativeMethods</c> (agent observation) — no
+/// (SendInput), <c>MCEControl.Hooks</c> (<c>HookNativeMethods</c>/<c>PowerNativeMethods</c>;
+/// global hooks and power notifications) and <c>AgentNativeMethods</c> (agent observation); no
 /// import is declared twice.
 /// </summary>
 /// <remarks>
@@ -27,10 +27,10 @@ namespace MCEControl;
 internal static class Win32NativeMethods {
     private const string User32 = "user32.dll";
 
-    /// <summary>WM_SYSCOMMAND — a window menu command (winuser.h).</summary>
+    /// <summary>WM_SYSCOMMAND; a window menu command (winuser.h).</summary>
     public const uint WM_SYSCOMMAND = 0x0112;
 
-    /// <summary>SC_CLOSE — WM_SYSCOMMAND wParam: close the window (winuser.h).</summary>
+    /// <summary>SC_CLOSE; WM_SYSCOMMAND wParam: close the window (winuser.h).</summary>
     public const nint SC_CLOSE = 0xF060;
 
     // #203: WPARAM/LPARAM are pointer-sized (UINT_PTR/LONG_PTR), not 32-bit DWORDs.

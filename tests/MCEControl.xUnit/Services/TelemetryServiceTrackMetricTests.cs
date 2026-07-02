@@ -14,7 +14,7 @@ namespace MCEControl.xUnit.Services;
 /// Tests for #199: <see cref="TelemetryService.TrackMetric"/> is the only supported way to send
 /// metrics and must honor the user's telemetry opt-in (<c>TelemetryEnabled</c>) exactly like
 /// <c>TrackEvent</c>/<c>TrackException</c>, and must never throw when the client has not been
-/// constructed yet (i.e., before <c>Start()</c>). Uses a stub channel — no telemetry leaves the
+/// constructed yet (i.e., before <c>Start()</c>). Uses a stub channel; no telemetry leaves the
 /// process, and the real registry opt-in is never touched (the tests set
 /// <c>TelemetryEnabled</c> directly).
 /// Joins the "AgentSerial" collection because tests in that collection initialize the
@@ -88,7 +88,7 @@ public class TelemetryServiceTrackMetricTests {
 
         try {
             svc.TelemetryClient = null;
-            // Enabled on purpose: the null-client guard alone must make this safe (#199 —
+            // Enabled on purpose: the null-client guard alone must make this safe (#199;
             // previously anything sending a metric before Start() dereferenced null).
             svc.TelemetryEnabled = true;
 

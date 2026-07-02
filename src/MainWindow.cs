@@ -22,12 +22,12 @@ namespace MCEControl;
 public partial class MainWindow : Form, IAppHost {
     // MainWindow is a singleton, but NOT a lazy one (#209): the instance is explicitly assigned by
     // Program.Main's GUI path before Application.Run. It used to be a Lazy<MainWindow>, so ANY touch
-    // — including from engine code on a worker thread in headless --mcp mode — silently constructed
+    //; including from engine code on a worker thread in headless --mcp mode; silently constructed
     // the Form. Now a touch before assignment (or ever, headless) throws a pointed exception instead.
     private static MainWindow? _instance;
     public static MainWindow Instance {
         get => _instance ?? throw new InvalidOperationException(
-            "MainWindow.Instance touched in headless mode or before Program assigned it — code below " +
+            "MainWindow.Instance touched in headless mode or before Program assigned it; code below " +
             "the UI layer must use the AgentRuntime seam instead (AgentRuntime.Invoker / SendLine / " +
             "RequestShutdown / MessageWindowHandle).");
         internal set => _instance = value;
@@ -50,7 +50,7 @@ public partial class MainWindow : Form, IAppHost {
 
     // Read-only status entry for the MCP/HTTP agent front door (#211). AgentServer is static
     // with no lifecycle events (making it a real service is #215), so this is repainted from
-    // Start()/Stop() — the only places the door is started/stopped.
+    // Start()/Stop(); the only places the door is started/stopped.
     private ToolStripStatusLabel statusStripMcp = null!;
 
     public CommandInvoker Invoker { get; set; } = null!;
@@ -93,9 +93,9 @@ public partial class MainWindow : Form, IAppHost {
 
     /// <summary>
     /// Builds the per-transport <see cref="ServiceController"/> descriptors (#211). Everything
-    /// transport-specific — construction, start arguments, status-strip item, status formatting,
+    /// transport-specific; construction, start arguments, status-strip item, status formatting,
     /// and quirks (server wakeup, client restart-on-error, the client's hide-command-window side
-    /// effect) — lives here; the start/stop/toggle/paint/log machinery below is generic.
+    /// effect); lives here; the start/stop/toggle/paint/log machinery below is generic.
     /// The lambdas read <see cref="Settings"/> lazily, so building these before settings are
     /// loaded is safe.
     /// </summary>
@@ -111,7 +111,7 @@ public partial class MainWindow : Form, IAppHost {
             // Wakeup quirk: send the wakeup command when the server starts, the closing command
             // when it reports Stopped. (As before #211, an operator-initiated stop unsubscribes
             // handlers before Stop(), so the closing command fires only when the server itself
-            // reports Stopped — e.g. a failed start.)
+            // reports Stopped; e.g. a failed start.)
             StatusQuirk = status => {
                 if (!Settings.WakeupEnabled) {
                     return;
@@ -137,7 +137,7 @@ public partial class MainWindow : Form, IAppHost {
             StatusStripText = () => $"Client {Settings.ClientHost}:{Settings.ClientPort}",
             FormatStatus = (status, _) => FormatClientStatus(status, Settings.ClientHost, Settings.ClientPort, Settings.ClientDelayTime),
             // Restart-on-error: any client error tears the connection down and (when a reconnect
-            // delay is configured) schedules a delayed reconnect — same contract as before #211.
+            // delay is configured) schedules a delayed reconnect; same contract as before #211.
             ErrorQuirk = _ => RestartClient(),
             // Long-standing StopClient side effect, made explicit (#211): stopping the client
             // also hides the command window, so the operator is not left typing commands into a
@@ -250,7 +250,7 @@ public partial class MainWindow : Form, IAppHost {
         Logger.Instance.Log4.Info($"Window Class - {sb}");
 #endif
         // Load AppSettings (also configures logging; some logging already happened).
-        // #216: SettingsStore.Load never shows UI — the GUI host (here) owns the failure dialogs
+        // #216: SettingsStore.Load never shows UI; the GUI host (here) owns the failure dialogs
         // that used to live inside AppSettings.Deserialize, gated the same way (headless = no UI).
         SettingsLoadResult settingsLoad = SettingsStore.Load($@"{Program.ConfigPath}{SettingsStore.SettingsFileName}");
         ShowSettingsLoadFailure(settingsLoad, $@"{Program.ConfigPath}{SettingsStore.SettingsFileName}");
@@ -334,7 +334,7 @@ public partial class MainWindow : Form, IAppHost {
         }
         rearmMenuItem.Visible = stopped;
         SetStatus(stopped
-            ? $"⛔ STOPPED by operator — Re-arm to resume ({EmergencyStop.StoppedReason})"
+            ? $"⛔ STOPPED by operator; Re-arm to resume ({EmergencyStop.StoppedReason})"
             : $"Version: {Application.ProductVersion}");
     }
 
@@ -376,7 +376,7 @@ public partial class MainWindow : Form, IAppHost {
     }
 
     private void LoadCommands() {
-        // #195: the invoker owns a dispatcher thread; stop the old one (dropping its queue — the
+        // #195: the invoker owns a dispatcher thread; stop the old one (dropping its queue; the
         // commands file changed, so what's queued is stale) before replacing it.
         Invoker?.Shutdown();
 
@@ -406,11 +406,11 @@ public partial class MainWindow : Form, IAppHost {
         else {
             Logger.Instance.Log4.Info("Closing Main Window...");
 
-            // #213: two ways to get here with shuttingDown set — menu exit (ShutDown() already ran
+            // #213: two ways to get here with shuttingDown set; menu exit (ShutDown() already ran
             // PerformShutdown() and then Close()d us; the gate makes this a no-op) and OS
             // logoff/shutdown (WM_QUERYENDSESSION set the flag and Windows closes the window; this
             // is the ONLY teardown that will run). The logoff path used to skip Stop() and the
-            // settings save entirely — window size/location changes were silently lost on every
+            // settings save entirely; window size/location changes were silently lost on every
             // logoff and EmergencyStop/AgentServer relied on process teardown.
             PerformShutdown();
         }
@@ -459,7 +459,7 @@ public partial class MainWindow : Form, IAppHost {
 
     private void Start() {
         // #211: one loop paints the initial light and starts every configured transport
-        // (server, serial, client — the old per-service order).
+        // (server, serial, client; the old per-service order).
         foreach (ServiceController controller in serviceControllers) {
             PaintServiceStatus(controller, ServiceStatus.Stopped);
             if (controller.IsConfigured()) {
@@ -473,7 +473,7 @@ public partial class MainWindow : Form, IAppHost {
         }
         PaintMcpStatus();
 
-        // MCEC 3.0: emergency stop (#135) — a global panic hotkey that halts an agent session from ANY
+        // MCEC 3.0: emergency stop (#135); a global panic hotkey that halts an agent session from ANY
         // focused window. Arm it here in the GUI host (the low-level keyboard hook needs this thread's
         // message loop) whenever the agent front door could be driving. It reacts to physical input only,
         // so the agent can never trip or defeat it.
@@ -487,7 +487,7 @@ public partial class MainWindow : Form, IAppHost {
             emergencyStopArmed = true;
         }
 
-        // MCEC 3.0: on-screen command overlay (#119) — narrates each command as it executes so anyone
+        // MCEC 3.0: on-screen command overlay (#119); narrates each command as it executes so anyone
         // watching sees that MCEC is driving. On by default; never shown headless. Independent (not
         // owned) so it keeps narrating even when the MCEC window is minimized to the tray.
         if (Settings.CommandOverlayEnabled && !AgentRuntime.Headless && commandOverlay is null) {
@@ -549,7 +549,7 @@ public partial class MainWindow : Form, IAppHost {
     // near-identical per-transport copies (with a fourth copy of the teardown in Dispose).
 
     /// <summary>Creates the transport, wires the typed <see cref="ServiceBase"/> events to the
-    /// generic handlers (handlers first, then start — so no event is missed), and starts it.</summary>
+    /// generic handlers (handlers first, then start; so no event is missed), and starts it.</summary>
     /// <param name="delay">The client's "sleep before first connect" restart flag; other
     /// transports ignore it.</param>
     private void StartService(ServiceController controller, bool delay = false) {
@@ -563,7 +563,7 @@ public partial class MainWindow : Form, IAppHost {
         controller.Instance = service;
         controller.StatusHandler = (status, detail) => OnServiceStatusChanged(controller, status, detail);
         // Producer-only (#195): commands are enqueued on whatever thread the transport
-        // delivered them — deliberately NOT marshaled to the UI thread (see ReceivedData).
+        // delivered them; deliberately NOT marshaled to the UI thread (see ReceivedData).
         controller.CommandHandler = ReceivedData;
         controller.ErrorHandler = error => OnServiceError(controller, error);
         service.StatusChanged += controller.StatusHandler;
@@ -574,7 +574,7 @@ public partial class MainWindow : Form, IAppHost {
     }
 
     /// <summary>Unwires the typed events, stops the transport, and drops the instance. Handlers
-    /// are removed BEFORE Stop() — the same ordering the old per-service stops used — so an
+    /// are removed BEFORE Stop(); the same ordering the old per-service stops used; so an
     /// operator-initiated stop does not trigger status-change side effects (notably the server's
     /// closing wakeup command, which by long-standing behavior fires only when the server itself
     /// reports Stopped, e.g. on a failed start).</summary>
@@ -654,7 +654,7 @@ public partial class MainWindow : Form, IAppHost {
     /// <summary>
     /// Anytime a client or server receives data that looks like a command, this function is called.
     /// Producer-only (#195): decode + enqueue on whatever thread the transport delivered the data;
-    /// the Invoker's own dispatcher thread executes. No UI-thread marshaling — commands no longer
+    /// the Invoker's own dispatcher thread executes. No UI-thread marshaling; commands no longer
     /// run on (or block) the UI thread.
     /// </summary>
     /// <param name="reply">The reply context any replies should be sent to</param>
@@ -669,11 +669,11 @@ public partial class MainWindow : Form, IAppHost {
     }
 
     // ----------------------------------------
-    // IAppHost (#209) — the GUI half of the AgentRuntime host seam (non-explicit; CA1033 forbids
+    // IAppHost (#209); the GUI half of the AgentRuntime host seam (non-explicit; CA1033 forbids
     // explicit-only implementations on an unsealed type). SendLine below already matches.
 
     // ShutDown() self-marshals (BeginInvoke when InvokeRequired), so this is callable from any
-    // thread — the invoker's dispatcher (mcec:exit) and the updater's async download path both do.
+    // thread; the invoker's dispatcher (mcec:exit) and the updater's async download path both do.
     public void RequestShutdown() => ShutDown();
 
     // Control.Handle is safe to READ cross-thread once created; the only consumer
@@ -761,11 +761,11 @@ public partial class MainWindow : Form, IAppHost {
     }
 
     // ----------------------------------------
-    // Status formatting (#211) — pure functions, extracted from the old per-transport handlers
+    // Status formatting (#211); pure functions, extracted from the old per-transport handlers
     // so they can be unit tested. Null means "nothing to log for this status".
 
     /// <summary>Maps a status to its traffic light. The shipped icon set has only red, green,
-    /// and gray (no yellow), so Started and Waiting both map to red — exactly what the three
+    /// and gray (no yellow), so Started and Waiting both map to red; exactly what the three
     /// pre-#211 painters did in triplicate; a yellow-ish Waiting needs a new icon first.</summary>
     internal static StatusLight StatusLightFor(ServiceStatus status) => status switch {
         ServiceStatus.Connected => StatusLight.Green,
@@ -819,8 +819,8 @@ public partial class MainWindow : Form, IAppHost {
             // settings object (ApplySettings, the single apply path) and BEFORE Start(). The
             // dialog itself no longer serializes (it used to commit to disk before the owner
             // applied anything). Saving before Start() is deliberate: Start() has no failure
-            // contract — a service that cannot start with the new config logs the error and shows
-            // it in the status bar, but does NOT roll back the in-memory settings — so disk must
+            // contract; a service that cannot start with the new config logs the error and shows
+            // it in the status bar, but does NOT roll back the in-memory settings; so disk must
             // match memory or the next exit/logoff (PerformShutdown saves too) would rewrite it
             // anyway. The user's OK is the commit point; a Cancel never touches disk.
             SaveSettings(Settings);
@@ -833,7 +833,7 @@ public partial class MainWindow : Form, IAppHost {
     }
 
     /// <summary>
-    /// Adopts <paramref name="settings"/> as the active settings object — for the GUI AND the
+    /// Adopts <paramref name="settings"/> as the active settings object; for the GUI AND the
     /// UI-agnostic agent engine. This is the single apply path used both at load and when the
     /// Settings dialog is OK'd (the dialog hands back a deep clone, so the object identity changes
     /// and <see cref="AgentRuntime.Settings"/> MUST be re-published; see #196: security gates such
@@ -845,7 +845,7 @@ public partial class MainWindow : Form, IAppHost {
         PublishAgentRuntimeSettings(settings);
 
         // #209: register the GUI host capabilities (SendLine / RequestShutdown / message-window
-        // handle) on the same seam, in the same place the settings are published. Idempotent —
+        // handle) on the same seam, in the same place the settings are published. Idempotent;
         // the dialog-OK path re-runs this with the same instance.
         AgentRuntime.Host = this;
 

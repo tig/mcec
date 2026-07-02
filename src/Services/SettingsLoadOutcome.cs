@@ -5,7 +5,7 @@ namespace MCEControl;
 
 /// <summary>
 /// How a <see cref="SettingsStore.Load"/> attempt turned out. Every outcome still yields usable
-/// settings (issue #155: a bad settings file must never put MCEC into a fail-to-start state) —
+/// settings (issue #155: a bad settings file must never put MCEC into a fail-to-start state);
 /// the outcome tells the host what happened so IT can decide what UI (if any) to show (#216).
 /// </summary>
 public enum SettingsLoadOutcome {

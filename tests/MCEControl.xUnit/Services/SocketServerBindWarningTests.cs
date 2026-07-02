@@ -15,7 +15,7 @@ namespace MCEControl.xUnit.Services;
 
 /// <summary>
 /// Issue #149 (MAJOR-1): the unauthenticated command server keeps its long-standing all-interfaces
-/// default for backward compatibility, so — unlike the MCP HTTP door, which refuses an exposed bind — it
+/// default for backward compatibility, so; unlike the MCP HTTP door, which refuses an exposed bind; it
 /// must at least WARN loudly at startup when the resolved bind is non-loopback. These tests exercise the
 /// warning decision against a resolved address (no listener is opened), asserting via a log4net
 /// MemoryAppender exactly like the CommandInvoker queue-cap tests. Serial because the log4net hierarchy

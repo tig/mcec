@@ -9,7 +9,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The Settings dialog's "Server" tab (#213): the TCP/IP server and wakeup settings. Mechanical
-/// decomposition of the old SettingsDialog monolith — controls, pixel positions, tooltips, tab
+/// decomposition of the old SettingsDialog monolith; controls, pixel positions, tooltips, tab
 /// order, and handler behavior are preserved as-is.
 /// </summary>
 public partial class ServerSettingsTab : UserControl, ISettingsTab {

@@ -8,14 +8,14 @@ namespace MCEControl;
 /// <summary>
 /// An <see cref="AgentCommand"/> that targets a window with the shared selector set
 /// (<c>window</c> title substring / <c>handle</c> / <c>process</c> / <c>classname</c> /
-/// <c>foreground</c>). Hosts the five selector properties once (they were copy-pasted — and had
-/// drifted, #200 — across seven commands), performs the single
+/// <c>foreground</c>). Hosts the five selector properties once (they were copy-pasted; and had
+/// drifted, #200; across seven commands), performs the single
 /// <see cref="WindowResolver.Resolve(long?, string?, string?, string?, bool)"/> incantation, and
 /// hands <see cref="ExecuteCore(WindowInfo?)"/> the resolved window.
 ///
 /// Not every command resolves unconditionally: <c>click</c>/<c>drag</c> only need a window for
 /// element endpoints, <c>capture</c> supports a window-less region grab, and <c>record</c> resolves
-/// inside its (test-overridable) grabber factory — those override <see cref="RequiresWindowTarget"/>
+/// inside its (test-overridable) grabber factory; those override <see cref="RequiresWindowTarget"/>
 /// and receive <c>null</c>. When resolution fails, <see cref="OnWindowNotFound"/> returns the ONE
 /// structured window-not-found failure (#206 unified the per-command shapes); a command overrides it
 /// only to add behavior (e.g. <c>capture</c> audits the miss).
@@ -51,7 +51,7 @@ public abstract class WindowTargetingAgentCommand : AgentCommand {
 
     /// <summary>
     /// Builds the command's window-not-found failure: one structured shape for every window-targeting
-    /// command (#206) — code <c>window-not-found</c>, category <c>no-target</c>. Commands override
+    /// command (#206); code <c>window-not-found</c>, category <c>no-target</c>. Commands override
     /// only to ADD behavior (e.g. <c>capture</c> audits the miss), not to change the envelope.
     /// </summary>
     protected virtual CommandResult OnWindowNotFound() =>

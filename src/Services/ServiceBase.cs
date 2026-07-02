@@ -31,7 +31,7 @@ public abstract class ServiceBase {
     // (with its god-enum ServiceNotification) that forced every subscriber to demultiplex
     // lifecycle, data, and diagnostics out of one callback. Events are raised on whatever
     // thread the transport happens to be running on (ThreadPool callbacks, read threads,
-    // async continuations) — subscribers own any UI-thread marshaling.
+    // async continuations); subscribers own any UI-thread marshaling.
 
     /// <summary>Raised when the service's lifecycle status changes. <c>detail</c> is optional
     /// human-readable context (e.g. the bound endpoint for Started).</summary>
@@ -59,7 +59,7 @@ public abstract class ServiceBase {
         // why: to understand what commands are used to control other systems and which are not
         // how is PII protected: we only collect the text if it is a key for a built-in command
         // #209: read the command table via the UI-agnostic AgentRuntime seam (populated by both the
-        // GUI and headless hosts) — never MainWindow, which this engine-layer code must not touch.
+        // GUI and headless hosts); never MainWindow, which this engine-layer code must not touch.
         Command? userDefined = AgentRuntime.Invoker?.Values.Cast<Command>().FirstOrDefault(q => (q.Cmd == text.Trim('\r').Trim('\n') && q.UserDefined == false));
         TelemetryService.Instance.TrackMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent", 1);
     }

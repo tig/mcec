@@ -8,7 +8,7 @@
   <!-- MCEControl.Analyzers is intentionally NOT a solution member. It is consumed only via the
        analyzer ProjectReference in Directory.Build.props (OutputItemType=Analyzer, a netstandard2.0
        build with RID/platform global properties removed). Including it here too made MSBuild build
-       it twice with conflicting global properties — two concurrent csc invocations writing the same
-       MCEControl.Analyzers.dll — which fails on Windows with CS2012 (file locked). It still builds
+       it twice with conflicting global properties; two concurrent csc invocations writing the same
+       MCEControl.Analyzers.dll; which fails on Windows with CS2012 (file locked). It still builds
        and restores on demand as a dependency. -->
 </Solution>

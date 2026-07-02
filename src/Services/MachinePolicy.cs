@@ -21,7 +21,7 @@ public static class MachinePolicy {
     /// <summary>
     /// Read a registry value preferring the current (Kindel) key, falling back to legacy (Kindel Systems) key.
     /// SECURITY (issue #155): a registry problem (deny-read ACE, key marked for deletion) must never
-    /// crash startup — such failures return <paramref name="defaultValue"/> and are logged.
+    /// crash startup; such failures return <paramref name="defaultValue"/> and are logged.
     /// </summary>
     public static object? GetRegistryValue(string valueName, object? defaultValue) {
         return GetRegistryValue(valueName, defaultValue, Registry.GetValue);
@@ -50,7 +50,7 @@ public static class MachinePolicy {
     /// <summary>
     /// Converts a raw registry value to a bool, tolerating junk (issue #155). A REG_SZ like "banana"
     /// makes <see cref="Convert.ToBoolean(object?, IFormatProvider)"/> throw FormatException (and a
-    /// REG_BINARY blob throws InvalidCastException) — a machine-policy value that cannot be parsed
+    /// REG_BINARY blob throws InvalidCastException); a machine-policy value that cannot be parsed
     /// must not crash startup. Falls back to <paramref name="defaultValue"/> and logs the bad value
     /// so an admin can fix it.
     /// </summary>

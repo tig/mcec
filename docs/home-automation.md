@@ -8,7 +8,7 @@
 **MCEC** (Model Context Environment Controller) began life as **MCE Controller**, and its original job is
 still first-class: it is a robust, battle-tested way to control a Windows PC from a home-automation or
 remote-control system. It runs in the background listening on the network (or a serial port) for
-*Commands*, and translates them into actions on the PC — keystrokes, text input, mouse movement, window
+*Commands*, and translates them into actions on the PC: keystrokes, text input, mouse movement, window
 messages, and launching programs.
 
 Any remote control, home-control system, or application that can send text strings over **TCP/IP** or an
@@ -22,7 +22,7 @@ whole-house A/V system, but it is general enough for any control system that can
 port or serial port.
 
 > **Looking for the agent/AI side?** MCEC 3.0 is also an opt-in automation server for AI agents over the
-> **Model Context Protocol (MCP)** — see the [Agent Server user guide](agent-server.md) and the
+> **Model Context Protocol (MCP)**: see the [Agent Server user guide](agent-server.md) and the
 > [main documentation](documentation.md). This page covers the classic remote-control features, which are
 > unchanged and remain the default behavior.
 
@@ -58,7 +58,7 @@ engine can:
 
 ## Transports: Client, Server, and Serial
 
-MCEC can act as a TCP/IP **client**, a TCP/IP **server**, and/or a **serial server** — simultaneously if
+MCEC can act as a TCP/IP **client**, a TCP/IP **server**, and/or a **serial server**; simultaneously if
 you like. All are configured from the **File ▸ Settings…** dialog, and each transport's status shows on the
 main window's status bar (green = connected, red = active but not connected, gray = inactive;
 double-click a status to toggle it).
@@ -70,10 +70,10 @@ it. MCEC sends nothing to the host by default.
 
 ![Client](settings_client.png "Client")
 
-* **Enable Client** — enables/disables the TCP/IP client. If enabled:
-* **Host** — the IP address or host name of the server MCEC connects to.
-* **Port** — the port MCEC connects to.
-* **Reconnect Wait Time (ms)** — how long (default 30000 ms / 30 s) MCEC waits before retrying a dropped
+* **Enable Client**: enables/disables the TCP/IP client. If enabled:
+* **Host**: the IP address or host name of the server MCEC connects to.
+* **Port**: the port MCEC connects to.
+* **Reconnect Wait Time (ms)**: how long (default 30000 ms / 30 s) MCEC waits before retrying a dropped
   connection.
 
 ### The Server tab
@@ -84,15 +84,15 @@ server supports any number of simultaneous connections and speaks the Telnet pro
 
 ![Server](settings_server.png "Server")
 
-* **Enable Server** — enables/disables the TCP/IP server. If enabled:
-* **Port** — the port MCEC listens on (default 5150).
-* **Enable Wakeup** — if enabled, MCEC connects to the specified host/port on startup, sends the "Wakeup
+* **Enable Server**: enables/disables the TCP/IP server. If enabled:
+* **Port**: the port MCEC listens on (default 5150).
+* **Enable Wakeup**: if enabled, MCEC connects to the specified host/port on startup, sends the "Wakeup
   command," and disconnects; on shutdown it sends the "Closing command." Useful when a remote client needs
   to know MCEC is ready (e.g. after the control system reboots).
 
 #### Restricting the Server to this machine (bind address)
 
-The command server has **no socket authentication** — anything that can reach the port can send commands
+The command server has **no socket authentication**; anything that can reach the port can send commands
 that press keys, move the mouse, and start processes. By default the server binds to **all network
 interfaces** (`0.0.0.0`), so it is reachable from every host on your LAN/VPN (and from anywhere the port is
 forwarded). This preserves the long-standing behavior for setups driven from another machine on a trusted
@@ -110,7 +110,7 @@ Accepted values (case-insensitive):
 
 | Value | Binds to |
 | --- | --- |
-| `0.0.0.0`, `any`, `*`, or empty/blank | All interfaces (default — LAN/VPN reachable) |
+| `0.0.0.0`, `any`, `*`, or empty/blank | All interfaces (default; LAN/VPN reachable) |
 | `::` | All interfaces, IPv6 only (binds IPv6 `Any`) |
 | `127.0.0.1`, `localhost`, `loopback` | This machine only (recommended for single-machine setups) |
 | `::1` | IPv6 loopback (this machine only) |
@@ -127,23 +127,23 @@ When the Serial Server is enabled, MCEC opens the specified COM port (e.g. COM1)
 
 ![Serial](settings_serialserver.png "Serial")
 
-* **Enable Serial Server** — enables/disables the serial server (disabled by default). If enabled:
-* **Port** — the serial port MCEC listens on (e.g. COM1).
-* **Baud Rate** — the serial port speed.
-* **Data Bits**, **Parity**, **Stop Bits**, **Handshake** — the serial port configuration.
+* **Enable Serial Server**: enables/disables the serial server (disabled by default). If enabled:
+* **Port**: the serial port MCEC listens on (e.g. COM1).
+* **Baud Rate**: the serial port speed.
+* **Data Bits**, **Parity**, **Stop Bits**, **Handshake**; the serial port configuration.
 
 ## User Activity Monitor
 
 MCEC's **User Activity Monitor** sends a command (`activity` by default) to your home-automation system
-when a user is using the PC. It knows the PC is in use by watching keyboard and mouse activity — if the
+when a user is using the PC. It knows the PC is in use by watching keyboard and mouse activity; if the
 mouse is moving or keys are being pressed, the PC is in use. This is useful for adding context to a room
 occupancy sensor.
 
 ![Activity Monitor](settings_activity.png "Activity Monitor")
 
-* **Enable User Activity Monitor** — enables/disables the monitor (disabled by default). If enabled:
-* **Command to send** — the string sent when activity is detected (`activity` by default).
-* **Debounce time (seconds)** — the activity message is sent no more frequently than this.
+* **Enable User Activity Monitor**: enables/disables the monitor (disabled by default). If enabled:
+* **Command to send**: the string sent when activity is detected (`activity` by default).
+* **Debounce time (seconds)**: the activity message is sent no more frequently than this.
 
 See the [Control4 User Activity Driver](https://github.com/tig/User_Activity) for an example Control4
 driver that uses this feature.
@@ -162,7 +162,7 @@ automatically whenever MCEC exits.
 
 MCEC's built-in TCP/IP client can send commands to another instance of MCEC on the same or a different PC.
 If both the Client and Server in a single instance are pointed at `localhost` on the same port, they can
-connect to each other — an easy way to test commands.
+connect to each other, an easy way to test commands.
 
 To configure "test mode":
 
@@ -177,7 +177,7 @@ To configure "test mode":
 The **Commands Window** lists every command MCEC is configured to listen for, so you can see the full set
 and test them:
 
-* Double-click any command to send it from the Client to the Server. (Be careful — double-clicking
+* Double-click any command to send it from the Client to the Server. (Be careful; double-clicking
   `shutdown` will literally shut down your PC.)
 * Type into the **Send "chars:" command** box and press **Send** to send a `chars:` command.
 * Type a command (or one command per line) into the **Send any command** box and press **Send**.
@@ -202,12 +202,12 @@ client) that works well for testing MCEC.
 listen port (e.g. 5150), set **Connection Type** to **Raw**, and click **Open**. Type commands and watch
 how MCEC reacts.
 
-**Serial:** PuTTY can also connect over serial — set the COM-port settings and choose the **Serial**
+**Serial:** PuTTY can also connect over serial; set the COM-port settings and choose the **Serial**
 connection type.
 
 ## The Command Language
 
-MCEC works with ***Commands*** — text strings like `greenbutton`, `hibernate`, and `winkey` that MCEC
+MCEC works with ***Commands***: text strings like `greenbutton`, `hibernate`, and `winkey` that MCEC
 listens for and acts on. Each command has a **Type**. When MCEC receives a command it performs an action on
 the PC it is running on; the action depends on the command's type and parameters.
 
@@ -228,7 +228,7 @@ the PC it is running on; the action depends on the command's type and parameters
 | **`Pause`** | Pauses before the next command runs (in milliseconds). |
 | **Built-in** | Single characters, `VK_` codes, `chars:`, `shiftdown:`, `shiftup:`, `pause:`, and `mcec:`. |
 
-MCEC command names (`Cmd` values) are **not** case-sensitive — `VK_UP` equals `vk_up`, and `shutdown`
+MCEC command names (`Cmd` values) are **not** case-sensitive; `VK_UP` equals `vk_up`, and `shutdown`
 equals `ShutDown`.
 
 ### Simulating Keyboard Input
@@ -249,15 +249,15 @@ A full list of virtual key codes is on
 
 Sending `chars:` plus text simulates typing that text. `chars:3` types `3`; `chars:Hello` types the
 letters H-e-l-l-o (including the shift for the capital). The text after `chars:` can include *character
-escapes* for unprintable/Unicode characters — `chars:\\` sends `\`, `chars:☺` sends `☺`, and
+escapes* for unprintable/Unicode characters: `chars:\\` sends `\`, `chars:☺` sends `☺`, and
 `chars:€` sends `€`. (The supported escapes are
 [documented here](https://docs.microsoft.com/en-us/dotnet/standard/base-types/character-escapes-in-regular-expressions).)
 
 How `chars:` interacts with modifier keys (shift/ctrl/alt/win) is app-dependent; for fine-grained control
 use `SendInput` commands instead.
 
-Sending a single character without `chars:` (e.g. just `c`) is equivalent to a `SendInput` command — a
-single key press. There is no difference between sending `a` and `A`; use `shiftdown:`/`shiftup:` to hold
+Sending a single character without `chars:` (e.g. just `c`) is equivalent to a `SendInput` command (a
+single key press). There is no difference between sending `a` and `A`; use `shiftdown:`/`shiftup:` to hold
 modifier keys. (The `chars:` command must be enabled for single-character commands to work.)
 
 ### Simulating Shift, Control, Alt, and Windows keys
@@ -279,7 +279,7 @@ For example, to type `Test!`:
     1
     shiftup:shift
 
-This is the same as sending `chars:Test!`. The scheme also sends ctrl-, alt-, and win- chords — e.g.
+This is the same as sending `chars:Test!`. The scheme also sends ctrl-, alt-, and win- chords; e.g.
 ctrl-s:
 
     shiftdown:ctrl
@@ -301,21 +301,21 @@ The general format is:
 | `mm,x,y` | Move the mouse *x*, *y* pixels relative (`mouse:mm,7,-3` → right 7, up 3) |
 | `mt,x,y` | Move to an absolute position on the primary display in 0–65535 units (`mouse:mt,0,65535` → bottom-left corner) |
 | `mtv,x,y` | Move to an absolute position on the **virtual desktop** in 0–65535 units (`mouse:mtv,65535,0` → top-right corner) |
-| `mtp,x,y` | Move to an absolute **screen pixel** — the same coordinate space the agent `query`/`find`/`displays` tools use. Takes real pixels and normalizes across the virtual desktop, so negative or secondary-monitor coordinates land correctly (`mouse:mtp,812,562`). |
+| `mtp,x,y` | Move to an absolute **screen pixel**; the same coordinate space the agent `query`/`find`/`displays` tools use. Takes real pixels and normalizes across the virtual desktop, so negative or secondary-monitor coordinates land correctly (`mouse:mtp,812,562`). |
 | `hs,n` | Horizontal scroll *n* clicks (positive = right) |
 | `vs,n` | Vertical scroll *n* clicks (positive = forward/away) |
-| `drag,x1,y1,x2,y2[,x3,y3,…]` | Press at the first point, move through every subsequent point with the button held, and release at the last — a full press → move-path → release gesture dispatched **atomically** (nothing else interleaves). Coordinates are absolute screen pixels (normalized across the virtual desktop internally). Use it to resize a window by its border, move one by its title bar, drag a slider, marquee-select, or reorder (`mouse:drag,400,300,700,500`). Agents get a higher-level [`drag`](agent-server.md) tool that also accepts UI Automation elements as endpoints. |
+| `drag,x1,y1,x2,y2[,x3,y3,…]` | Press at the first point, move through every subsequent point with the button held, and release at the last; a full press → move-path → release gesture dispatched **atomically** (nothing else interleaves). Coordinates are absolute screen pixels (normalized across the virtual desktop internally). Use it to resize a window by its border, move one by its title bar, drag a slider, marquee-select, or reorder (`mouse:drag,400,300,700,500`). Agents get a higher-level [`drag`](agent-server.md) tool that also accepts UI Automation elements as endpoints. |
 
-When sending mouse movements it helps to hide the MCEC window — the live log display consumes resources and
+When sending mouse movements it helps to hide the MCEC window; the live log display consumes resources and
 can make motion jerky.
 
 ### mcec: Commands
 
 The following commands control MCEC itself. Values are returned as `command=value`:
 
-* **`mcec:ver`** — the version number.
-* **`mcec:exit`** — causes MCEC to exit.
-* **`mcec:cmds`** — lists all commands.
+* **`mcec:ver`**: the version number.
+* **`mcec:exit`**: causes MCEC to exit.
+* **`mcec:cmds`**: lists all commands.
 
 ## Defining Your Own Commands
 
@@ -323,7 +323,7 @@ MCEC ships with nearly 300 built-in commands. The first time it runs, it creates
 containing all built-in commands with `Enabled="false"` on every one. You can then edit `mcec.commands` to
 enable, override, or add commands. (Use **Commands ▸ Open commands folder…** to find the file.)
 
-Deleting a built-in command from the file does not remove it permanently — MCEC re-adds built-ins whenever
+Deleting a built-in command from the file does not remove it permanently; MCEC re-adds built-ins whenever
 it saves, but with `Enabled="false"`, which is functionally equivalent to deleting them.
 
 ### File Format
@@ -339,17 +339,17 @@ The file is XML and must include the headers. Commands are defined within the `<
 </mcecontroller>
 ```
 
-Whenever `mcec.commands` changes it is reloaded — no restart needed. The general form of a command is:
+Whenever `mcec.commands` changes it is reloaded; no restart needed. The general form of a command is:
 
 ```xml
 <type Cmd="text to trigger on" Args="optional args" ... />
 ```
 
 **Case sensitivity:** XML element and attribute names are case-insensitive (`ctrl` = `Ctrl`), and the
-`Cmd` value is case-insensitive (`MonitorOff` = `monitoroff`). Some attribute values are case-sensitive —
+`Cmd` value is case-insensitive (`MonitorOff` = `monitoroff`). Some attribute values are case-sensitive;
 `true`/`false` must be lowercase, and in `SendInput`, `Ctrl="true"` works but `Ctrl="False"` does not.
 
-Do not define a command whose name is a single character — it interferes with single-character key
+Do not define a command whose name is a single character; it interferes with single-character key
 presses.
 
 ### Nesting
@@ -387,7 +387,7 @@ Each of these does the same thing (a space), illustrating the equivalent key enc
 
 ### SendMessage Commands
 
-`SendMessage` commands send a Windows message (via the `SendMessage()` API) to the foreground window — or
+`SendMessage` commands send a Windows message (via the `SendMessage()` API) to the foreground window; or
 to a specific window if its class name is specified. `Msg`, `wParam`, and `lParam` must be in **decimal**
 (not hex).
 
@@ -469,7 +469,7 @@ back-compat.) This is a machine-wide setting affecting all instances of MCEC.
   `nextCommand` element from the `mcestart` command in `mcec.commands`.
 * For MCEC to control Media Center, Media Center must be the foreground window. Use `mceactivate` to bring
   it forward if it's already running, or just use `mcestart`.
-* `greenbutton` is often better than `mcestart` — it's the equivalent of the green button on a Windows
+* `greenbutton` is often better than `mcestart`; it's the equivalent of the green button on a Windows
   remote and always goes to the Media Center Start screen (but does not maximize the window).
 
 ## More Examples

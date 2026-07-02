@@ -15,7 +15,7 @@ namespace MCEControl;
 /// metadata separately), so the raw events are collapsed with a trailing-edge debounce: every raw
 /// event re-arms a one-shot timer, and <see cref="ChangedEvent"/> fires only after
 /// <see cref="DefaultDebounceMilliseconds"/> of quiet. This replaced the vendored menelabs
-/// <c>FileSystemSafeWatcher</c>/<c>DelayedEvent</c> (#214) — ~470 lines of self-described untested
+/// <c>FileSystemSafeWatcher</c>/<c>DelayedEvent</c> (#214); ~470 lines of self-described untested
 /// <c>ArrayList</c> queueing whose only consumer was this class watching one file for Changed.
 /// </summary>
 public class CommandFileWatcher : IDisposable {
@@ -78,7 +78,7 @@ public class CommandFileWatcher : IDisposable {
     }
 
     /// <summary>
-    /// The watcher's internal buffer overflowed or it otherwise failed; log it — the next successful
+    /// The watcher's internal buffer overflowed or it otherwise failed; log it; the next successful
     /// notification still re-arms the debounce, so a lost intermediate event is harmless (the reload
     /// re-reads the whole file anyway).
     /// </summary>

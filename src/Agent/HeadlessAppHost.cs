@@ -10,7 +10,7 @@ namespace MCEControl;
 /// <summary>
 /// The <see cref="IAppHost"/> for headless <c>--mcp</c> mode (#209), registered by
 /// <c>Program.RunHeadlessMcp</c> next to the rest of the <see cref="AgentRuntime"/> bootstrap.
-/// There is no window, no legacy transports, and no operator at a screen — so <see cref="SendLine"/>
+/// There is no window, no legacy transports, and no operator at a screen; so <see cref="SendLine"/>
 /// is a logged no-op, <see cref="RequestShutdown"/> performs the same clean teardown the stdio-EOF
 /// path does and exits the process, and <see cref="MessageWindowHandle"/> throws (the only consumer,
 /// the activity monitor's power-broadcast detection, is started exclusively by the GUI host).
@@ -37,7 +37,7 @@ internal sealed class HeadlessAppHost : IAppHost {
 
     public void RequestShutdown() {
         Logger.Instance.Log4.Info(
-            $"{nameof(HeadlessAppHost)}: shutdown requested — exiting after in-flight replies flush ({ShutdownGraceMs}ms grace).");
+            $"{nameof(HeadlessAppHost)}: shutdown requested; exiting after in-flight replies flush ({ShutdownGraceMs}ms grace).");
         // Deferred so the caller (typically mcec:exit on the dispatcher thread) can finish its
         // Execute, the dispatcher can signal send_command's completion marker, and the stdio writer
         // (AutoFlush) can emit the JSON-RPC response. Then the same teardown Program's stdio-EOF path

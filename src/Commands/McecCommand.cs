@@ -34,7 +34,7 @@ public class McecCommand : Command {
     }
 
     /// <summary>
-    /// mcec: commands report state or exit the app — they never synthesize input, so the dispatcher
+    /// mcec: commands report state or exit the app; they never synthesize input, so the dispatcher
     /// (#195) need not hold <see cref="AgentRuntime.InputGate"/> while they run.
     /// </summary>
     internal override bool SynthesizesInput => false;
@@ -68,9 +68,9 @@ public class McecCommand : Command {
             case "exit":
                 Reply.WriteLine("exiting");
                 // #209: shutdown goes through the UI-agnostic host seam. GUI: MainWindow.ShutDown()
-                // (self-marshals, so calling from this dispatcher thread is safe — #195). Headless
+                // (self-marshals, so calling from this dispatcher thread is safe; #195). Headless
                 // (--mcp): HeadlessAppHost schedules a clean deferred process exit so the in-flight
-                // send_command reply reaches the client first — mcec:exit now actually exits
+                // send_command reply reaches the client first; mcec:exit now actually exits
                 // headless instead of the old #195 decline.
                 AgentRuntime.RequestShutdown();
                 return true;
@@ -80,7 +80,7 @@ public class McecCommand : Command {
                 Command cmd = this;
                 Match? match = null;
                 // #195: read the command table via the UI-agnostic AgentRuntime seam (populated by
-                // both the GUI and headless hosts) instead of MainWindow.Instance — this runs on the
+                // both the GUI and headless hosts) instead of MainWindow.Instance; this runs on the
                 // dispatcher thread and must not touch (or lazily construct) the Form.
                 if (AgentRuntime.Invoker is not CommandInvoker invoker) {
                     Logger.Instance.Log4.Error($"{this.GetType().Name}: ({Cmd}:{Args}) command table is not available");

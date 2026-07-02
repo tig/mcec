@@ -12,7 +12,7 @@ using MCEControl;
 namespace MCEControl.xUnit.Commands;
 
 /// <summary>
-/// <para><b>THE COMMAND HYGIENE SUITE — index.</b> Four test classes together turn four kinds of
+/// <para><b>THE COMMAND HYGIENE SUITE; index.</b> Four test classes together turn four kinds of
 /// silent drift into red builds whenever a command type is added or changed:</para>
 /// <list type="bullet">
 /// <item><b><c>CommandRegistryTests</c></b> (this file, #204): every concrete <see cref="Command"/>
@@ -34,7 +34,7 @@ namespace MCEControl.xUnit.Commands;
 /// </list>
 /// <para>To add a command type: derive from <see cref="Command"/> (or the gated agent bases), give
 /// it a <c>public static List&lt;Command&gt; BuiltInCommands</c>, and add ONE line to
-/// <see cref="CommandRegistry.Entries"/> — this suite verifies everything else.</para>
+/// <see cref="CommandRegistry.Entries"/>; this suite verifies everything else.</para>
 /// </summary>
 public class CommandRegistryTests {
     private static List<Type> ConcreteCommandTypes => [.. typeof(Command).Assembly.GetTypes()
@@ -70,7 +70,7 @@ public class CommandRegistryTests {
 
         Assert.True(missing.Count == 0,
             $"Concrete Command subclass(es) missing from CommandRegistry.Entries: {string.Join(", ", missing)}. " +
-            "Add ONE registry line per command type (#204) — without it the command cannot be serialized " +
+            "Add ONE registry line per command type (#204); without it the command cannot be serialized " +
             "and registers no built-ins.");
         Assert.True(duplicated.Count == 0,
             $"Command type(s) registered more than once in CommandRegistry.Entries: {string.Join(", ", duplicated)}.");
@@ -92,7 +92,7 @@ public class CommandRegistryTests {
             .Select(g => g.Key)];
 
         Assert.True(notLowercase.Count == 0,
-            $"Registry XmlName(s) not all-lowercase (or blank): {string.Join(", ", notLowercase)} — " +
+            $"Registry XmlName(s) not all-lowercase (or blank): {string.Join(", ", notLowercase)}; " +
             "the .commands lower-casing XSLT means such an element is written but silently never read back (#200).");
         Assert.True(duplicated.Count == 0,
             $"Registry XmlName(s) used by more than one entry: {string.Join(", ", duplicated)}.");
@@ -103,13 +103,13 @@ public class CommandRegistryTests {
         foreach (CommandRegistryEntry entry in CommandRegistry.Entries) {
             List<Command> builtIns = [.. entry.BuiltIns()];
             Assert.True(builtIns.Count > 0,
-                $"Registry entry '{entry.XmlName}' produced no built-in prototypes — point BuiltIns at the type's BuiltInCommands.");
+                $"Registry entry '{entry.XmlName}' produced no built-in prototypes; point BuiltIns at the type's BuiltInCommands.");
             foreach (Command builtIn in builtIns) {
                 Assert.False(string.IsNullOrWhiteSpace(builtIn.Cmd),
-                    $"A built-in from registry entry '{entry.XmlName}' has a blank Cmd — the invoker would reject it.");
+                    $"A built-in from registry entry '{entry.XmlName}' has a blank Cmd; the invoker would reject it.");
                 // SECURITY: built-ins ship disabled; the operator opts in per command.
                 Assert.False(builtIn.Enabled,
-                    $"Built-in '{builtIn.Cmd}' (registry entry '{entry.XmlName}') is Enabled by default — built-ins must ship disabled.");
+                    $"Built-in '{builtIn.Cmd}' (registry entry '{entry.XmlName}') is Enabled by default; built-ins must ship disabled.");
             }
         }
     }
@@ -184,7 +184,7 @@ public class CommandRegistryTests {
     /// <summary>
     /// The established v3.0 wire names, FROZEN. Installed .commands files contain these element
     /// names; whatever refactoring happens to how the serializer is built, these must keep loading
-    /// as these types forever. New commands ADD names (add them to the registry, not here — this
+    /// as these types forever. New commands ADD names (add them to the registry, not here; this
     /// list deliberately does not chase the registry); renaming or unregistering any of these
     /// breaks users and fails here.
     /// </summary>

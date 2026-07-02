@@ -39,7 +39,7 @@ internal sealed class DelegateTestCommand : Command {
     }
 
     // No Clone override needed: the MemberwiseClone-based Command.Clone (#207) copies OnExecute and
-    // SynthesizesInputForTest — clones share the delegate reference, exactly as before.
+    // SynthesizesInputForTest; clones share the delegate reference, exactly as before.
 
     public override bool Execute() {
         // Don't call base.Execute() to avoid the TelemetryService dependency.

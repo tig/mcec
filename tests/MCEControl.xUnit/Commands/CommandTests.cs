@@ -97,7 +97,7 @@ public class CommandTests
     {
         // #183: the old base Clone assigned clone.Enabled (the parent) inside the embedded-clone
         // loop where it meant the child's. Pin that each embedded clone carries its OWN source
-        // child's Enabled — with children on BOTH sides of the parent's value — and that the
+        // child's Enabled; with children on BOTH sides of the parent's value; and that the
         // parent's Enabled survives the loop.
         var original = new TestCommand
         {
@@ -152,6 +152,6 @@ public class CommandTests
     }
 
     // NOTE (#204): GetDerivedClassesCollection_ReturnsAllCommandTypes used to live here. The
-    // reflection sweep it tested is gone — command types are declared in CommandRegistry.Entries,
+    // reflection sweep it tested is gone; command types are declared in CommandRegistry.Entries,
     // and CommandRegistryTests asserts the registry covers every concrete Command subclass.
 }

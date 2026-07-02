@@ -8,7 +8,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The Settings dialog's "Activity Monitor" tab (#213): user-activity detection options.
-/// Mechanical decomposition of the old SettingsDialog monolith — controls, pixel positions,
+/// Mechanical decomposition of the old SettingsDialog monolith; controls, pixel positions,
 /// tooltips, tab order, and handler behavior are preserved as-is. Now that tab selection is a
 /// <see cref="SettingsTab"/> enum, this tab can also be a default tab (the old stringly
 /// contract never handled "Activity Monitor").

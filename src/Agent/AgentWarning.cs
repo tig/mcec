@@ -9,7 +9,7 @@ namespace MCEControl;
 /// A non-fatal condition surfaced alongside an <see cref="AgentToolResult"/>: the call still succeeded
 /// (or failed for a different reason), but the agent should know something was adjusted, degraded, or
 /// assumed (e.g. <c>minimized-window</c>, <c>tree-truncated</c>, <c>region-clamped</c>). Same stability
-/// rules as error codes — kebab-case, branchable, tolerate unknowns. See
+/// rules as error codes; kebab-case, branchable, tolerate unknowns. See
 /// <c>docs/design/agent-tool-result-contract.md</c> (#101).
 /// </summary>
 public sealed class AgentWarning {

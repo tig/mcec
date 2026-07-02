@@ -5,7 +5,7 @@ around the Win32 `SendInput` API for simulating keyboard and mouse input.
 
 - Original home (no longer valid): http://inputsimulator.codeplex.com/ (CodePlex shut down in 2017)
 - Current upstream mirror: https://github.com/michaelnoonan/inputsimulator
-- License: Microsoft Public License (Ms-PL) — see [license.txt](license.txt)
+- License: Microsoft Public License (Ms-PL); see [license.txt](license.txt)
 
 The snapshot MCEC vendored is CodePlex-era (pre-2013, no exact version/commit was recorded at the
 time). It has since been modified in place; there is no plan to track upstream.
@@ -15,7 +15,7 @@ time). It has since been modified in place; there is no plan to track upstream.
 Every actuation path goes through this code: the `chars:`/`key:`/shift-key commands
 (`SendInputCommand`), `mouse:` (`MouseCommand`, including the agent drag primitive #123 and the
 `click` tool #122), and the emergency stop's held-input release (#135,
-`EmergencyStop.ReleaseHeldInput`). It is security-relevant surface — treat changes accordingly.
+`EmergencyStop.ReleaseHeldInput`). It is security-relevant surface; treat changes accordingly.
 
 ## Known local divergences from upstream
 
@@ -25,7 +25,7 @@ Every actuation path goes through this code: the `chars:`/`key:`/shift-key comma
 - **Virtual-desktop absolute moves**: `MoveMouseToPositionOnVirtualDesktop` /
   `InputBuilder.AddAbsoluteMouseMovementOnVirtualDesktop` (`MOUSEEVENTF_VIRTUALDESK`) are present in
   this copy and load-bearing for multi-display agent actuation (drag #123, click #122). Upstream's
-  GitHub mirror has an equivalent API — verify semantics before assuming parity.
+  GitHub mirror has an equivalent API; verify semantics before assuming parity.
 - **.NET port and house style**: ported off .NET Framework, nullable-annotated, and reformatted to
   repo conventions (one type per file, collection expressions, strict analyzers).
 - **P/Invoke fixes (#203/#210)**: `GetClassName` returns `int` (was wrongly `IntPtr`) and is
@@ -37,11 +37,11 @@ Every actuation path goes through this code: the `chars:`/`key:`/shift-key comma
 
 - `InputBuilder.AddCharacter` (~line 141): the "extended key" test
   `if ((scanCode & 0xFF00) == 0xE000)` is vestigial. With `KEYEVENTF_UNICODE` the `Scan` field
-  carries the *character* (not a hardware scan code), so the 0xE0-prefix check is meaningless — it
+  carries the *character* (not a hardware scan code), so the 0xE0-prefix check is meaningless; it
   never fires for real extended keys and would only (spuriously) fire for U+E0xx private-use-area
   characters. Harmless for normal text; left as-is to stay diffable against upstream.
 
-## Possible replacement: H.InputSimulator (decision deferred — see #27)
+## Possible replacement: H.InputSimulator (decision deferred; see #27)
 
 [`H.InputSimulator`](https://github.com/HavenDV/H.InputSimulator) is the maintained NuGet descendant
 of this library (same API lineage, modern TFMs).

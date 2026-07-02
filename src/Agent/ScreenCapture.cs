@@ -30,15 +30,15 @@ public static class ScreenCapture {
     // (capture/record), so without a ceiling a single request (e.g. 40000x40000 = ~6.4 GB of ARGB,
     // then PNG + base64) can OOM the process. Window captures are naturally bounded by window size;
     // these caps bound the region path. They are fixed (not operator settings) on purpose: they are
-    // an anti-DoS bound sized to plausible desktop geometry, not a quality knob — a raisable setting
+    // an anti-DoS bound sized to plausible desktop geometry, not a quality knob; a raisable setting
     // would reintroduce the failure mode. Oversized requests FAIL FAST with a clear error (code
     // `region-too-large`) rather than being silently clamped, so agents get a diagnosable result.
 
-    /// <summary>Max region width or height in pixels — comfortably above any single monitor and
+    /// <summary>Max region width or height in pixels; comfortably above any single monitor and
     /// typical multi-monitor spans (e.g. four 4K displays side by side are 15360 px wide).</summary>
     public const int MaxRegionDimension = 16384;
 
-    /// <summary>Max region area in pixels (64 MP ≈ 256 MB of ARGB — roughly eight 4K frames, twice
+    /// <summary>Max region area in pixels (64 MP ≈ 256 MB of ARGB; roughly eight 4K frames, twice
     /// an 8K frame), bounding the bitmap, the PNG encode, and the base64 reply.</summary>
     public const int MaxRegionPixels = 64_000_000;
 
@@ -152,7 +152,7 @@ public static class ScreenCapture {
     /// <param name="height">Region height in pixels.</param>
     /// <returns>A new ARGB bitmap of the region; the caller owns and must dispose it.</returns>
     /// <exception cref="ArgumentException">Thrown when the region has no area or exceeds
-    /// <see cref="MaxRegionDimension"/>/<see cref="MaxRegionPixels"/> (#158) — thrown BEFORE any
+    /// <see cref="MaxRegionDimension"/>/<see cref="MaxRegionPixels"/> (#158); thrown BEFORE any
     /// bitmap is allocated, so an oversized agent request costs nothing.</exception>
     public static Bitmap CaptureRegionBitmap(int x, int y, int width, int height) {
         string? sizeError = ValidateRegionSize(width, height);

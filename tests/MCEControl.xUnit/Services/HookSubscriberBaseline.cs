@@ -22,10 +22,10 @@ public sealed record HookSubscriberBaseline(
     int MouseDown,
     int MouseUp,
     int MouseDoubleClick) {
-    /// <summary>Total keyboard-event subscribers — when zero, the keyboard hook must be uninstalled.</summary>
+    /// <summary>Total keyboard-event subscribers; when zero, the keyboard hook must be uninstalled.</summary>
     public int KeyboardTotal => KeyDown + KeyUp + KeyDownExt + KeyUpExt;
 
-    /// <summary>Total mouse-event subscribers — when zero, the mouse hook must be uninstalled.</summary>
+    /// <summary>Total mouse-event subscribers; when zero, the mouse hook must be uninstalled.</summary>
     public int MouseTotal => MouseMove + MouseClick + MouseDown + MouseUp + MouseDoubleClick;
 
     public static HookSubscriberBaseline Capture() => new(

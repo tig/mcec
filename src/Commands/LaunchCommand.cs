@@ -30,7 +30,7 @@ public class LaunchCommand : AgentCommand {
 
     public LaunchCommand() { }
 
-    // Audits after path validation (below), with the effective timeout — not via AuditDetails.
+    // Audits after path validation (below), with the effective timeout; not via AuditDetails.
     protected override CommandResult ExecuteCore() {
         if (string.IsNullOrWhiteSpace(Path)) {
             return CommandResult.Fail(Cmd,

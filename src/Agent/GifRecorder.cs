@@ -14,7 +14,7 @@ namespace MCEControl;
 /// <summary>
 /// Drives a GIF recording for the MCEC 3.0 agent <c>record</c> feature: a background thread grabs
 /// frames from a target (window or screen region) at a fixed fps, each frame is immediately encoded
-/// to a standalone GIF (keeping memory bounded — we never hold hundreds of raw bitmaps), and
+/// to a standalone GIF (keeping memory bounded; we never hold hundreds of raw bitmaps), and
 /// <see cref="Stop"/> stitches them into one animation via <see cref="GifEncoder"/>.
 ///
 /// SECURITY/SAFETY: at most one recording runs at a time (a static singleton). The capture loop is
@@ -24,8 +24,8 @@ namespace MCEControl;
 ///
 /// LIFECYCLE (#157): <c>idle → (Start) → recording → (Stop) → idle</c>, or
 /// <c>recording → (loop self-terminates on max frames/duration/grab failure) → completed</c>. In the
-/// completed state <see cref="IsRecording"/> is false, so a new <see cref="Start"/> is allowed — it
-/// discards the unfetched GIF (and reports that it did) — while <see cref="Stop"/> still returns the
+/// completed state <see cref="IsRecording"/> is false, so a new <see cref="Start"/> is allowed; it
+/// discards the unfetched GIF (and reports that it did); while <see cref="Stop"/> still returns the
 /// buffered GIF exactly once; fetching releases the frames so they are not pinned for the process
 /// lifetime.
 /// </summary>
@@ -97,7 +97,7 @@ public sealed class GifRecorder {
                 throw new InvalidOperationException("A recording is already in progress.");
             }
             bool discardedUnfetched = _completed is not null;
-            _completed = null; // an auto-stopped recording nobody fetched — replaced by the new one
+            _completed = null; // an auto-stopped recording nobody fetched; replaced by the new one
             GifRecorder recorder = new(grab, Math.Max(1, fps), Math.Max(1, maxFrames), Math.Max(1, maxWidth), Math.Max(1, maxDurationMs), target);
             recorder._thread = new Thread(recorder.CaptureLoop) {
                 IsBackground = true,
@@ -113,7 +113,7 @@ public sealed class GifRecorder {
     /// <summary>
     /// Stops the in-progress recording (or claims a completed one whose loop already self-terminated),
     /// waits for the capture thread to drain, assembles the GIF, and returns the result. Fetching a
-    /// completed recording releases it — a second call returns null, so the buffered frames are never
+    /// completed recording releases it; a second call returns null, so the buffered frames are never
     /// pinned past the fetch. Returns null when there is nothing to stop or fetch.
     /// </summary>
     public static RecordingResult? Stop(bool loop = true) {
@@ -184,7 +184,7 @@ public sealed class GifRecorder {
     /// Moves this recorder from active to completed when its loop exited on its own (a limit was hit
     /// or the grab failed). Under <see cref="Gate"/> so it cannot race <see cref="Start"/>/<see cref="Stop"/>:
     /// when <see cref="Stop"/> already claimed this recorder (it clears <see cref="_active"/> before
-    /// requesting the stop), there is nothing to do — Stop owns the frames and will assemble them.
+    /// requesting the stop), there is nothing to do; Stop owns the frames and will assemble them.
     /// </summary>
     private void TransitionToCompleted() {
         lock (Gate) {

@@ -7,7 +7,7 @@ using System.Drawing;
 namespace MCEControl;
 
 /// <summary>
-/// Geometry for the on-screen command overlay (#119): where on the screen it sits — the left or right
+/// Geometry for the on-screen command overlay (#119): where on the screen it sits; the left or right
 /// <c>fraction</c> of the working area (≈30%), inset by a small margin. Pure so it is unit-testable
 /// without a screen.
 /// </summary>

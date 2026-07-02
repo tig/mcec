@@ -45,7 +45,7 @@ public class UpdateService {
 
     /// <summary>
     /// Starts the periodic (~24h) update recheck. Call from the UI thread once the message loop is
-    /// up (MainWindow startup) — never from the headless host. Idempotent.
+    /// up (MainWindow startup); never from the headless host. Idempotent.
     /// </summary>
     public void StartPeriodicChecks() {
         if (_periodicCheckTimer != null) {
@@ -86,7 +86,7 @@ public class UpdateService {
     /// <summary>
     /// Checks GitHub for the latest stable release, raising <see cref="GotLatestVersion"/> when
     /// done. Returns the in-flight check so callers can await it; fire-and-forget callers get
-    /// failures logged by the attached continuation instead of silently discarded (#214 — the old
+    /// failures logged by the attached continuation instead of silently discarded (#214; the old
     /// shape was Task.Run with a no-op ConfigureAwait).
     /// </summary>
     public Task CheckVersion() {
@@ -115,7 +115,7 @@ public class UpdateService {
                 !r.Name.Contains("Testing Update", StringComparison.OrdinalIgnoreCase))];
 
             // Pick the stable release with the highest valid version tag. Malformed tags are
-            // ignored (#214) — the old new Version(...) inside an OrderBy meant one bad tag on the
+            // ignored (#214); the old new Version(...) inside an OrderBy meant one bad tag on the
             // releases list aborted the entire check.
             Release[] stableReleases = [.. allReleases.Where(r => !r.Prerelease)];
             string? latestTag = PickLatestVersionTag(stableReleases.Select(r => r.TagName));
@@ -124,7 +124,7 @@ public class UpdateService {
                 LatestStableVersion = TryParseVersionTag(latestTag)!;
                 ReleasePageUri = new Uri(latest.HtmlUrl);
 
-                // SECURITY (#146): pick the pinned installer asset by name — never a blind Assets[0],
+                // SECURITY (#146): pick the pinned installer asset by name; never a blind Assets[0],
                 // which could be an attacker-added asset that sorts first (and throws on an empty list).
                 string? assetUrl = SelectInstallerAssetUrl(
                     latest.Assets.Select(a => (a.Name, a.BrowserDownloadUrl)), InstallerFileName);
@@ -172,7 +172,7 @@ public class UpdateService {
 
     /// <summary>
     /// Picks the tag carrying the highest valid version from a sequence of release tag strings,
-    /// ignoring malformed tags; null when none parse. Pure — unit tested directly.
+    /// ignoring malformed tags; null when none parse. Pure; unit-tested directly.
     /// </summary>
     internal static string? PickLatestVersionTag(IEnumerable<string?> tagNames) {
         string? bestTag = null;
@@ -232,12 +232,12 @@ public class UpdateService {
 
     /// <summary>
     /// Downloads, verifies, and launches the installer. Returns the in-flight upgrade so callers
-    /// can await it (#214 — this was <c>async void</c>, so a fault crashed the process instead of
+    /// can await it (#214; this was <c>async void</c>, so a fault crashed the process instead of
     /// being observable). Every failure path logs and cleans up; the returned task does not fault.
     /// </summary>
     internal async Task StartUpgrade() {
         if (DownloadUri is null) {
-            Logger.Instance.Log4.Error($"{GetType().Name}: no installer download URL available — aborting upgrade.");
+            Logger.Instance.Log4.Error($"{GetType().Name}: no installer download URL available; aborting upgrade.");
             return;
         }
         // SECURITY (#146): only ever download over https from a GitHub host.
@@ -285,7 +285,7 @@ public class UpdateService {
             }
 
             // #209: shutdown via the UI-agnostic host seam (GUI: MainWindow.ShutDown(), which
-            // already self-marshals to the UI thread — the old explicit BeginInvoke was redundant).
+            // already self-marshals to the UI thread; the old explicit BeginInvoke was redundant).
             AgentRuntime.RequestShutdown();
         }
         catch (Exception ex) {

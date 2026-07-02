@@ -10,7 +10,7 @@ namespace MCEControl.xUnit.Dialogs;
 /// <summary>
 /// Headless tests for the #213 Settings tab UserControls: constructing a WinForms UserControl,
 /// calling <see cref="ISettingsTab.Bind"/>, and mutating control text needs no message pump, so
-/// these verify the wiring end-to-end — Bind populates from the clone, change handlers mutate
+/// these verify the wiring end-to-end; Bind populates from the clone, change handlers mutate
 /// ONLY the bound clone (keeping the last good value on unparsable input), and
 /// <see cref="ISettingsTab.IsValid"/>/<see cref="ISettingsTab.ValidityChanged"/> track every
 /// change.
@@ -149,7 +149,7 @@ public class SettingsTabControlTests {
 
         FindControl<TextBox>(tab, "_editClientHost").Text = "changed";
 
-        // Only the bound clone changes — Cancel semantics depend on this.
+        // Only the bound clone changes; Cancel semantics depend on this.
         Assert.Equal("changed", clone.ClientHost);
         Assert.Equal("orig", original.ClientHost);
     }

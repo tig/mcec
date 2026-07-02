@@ -23,7 +23,7 @@ public sealed class CommandResult {
     public string? Command { get; set; }
     public string? Error { get; set; }
 
-    /// <summary>Stable, fine-grained error code (kebab-case) — narrows <see cref="ErrorCategory"/>.</summary>
+    /// <summary>Stable, fine-grained error code (kebab-case); narrows <see cref="ErrorCategory"/>.</summary>
     public string? ErrorCode { get; set; }
 
     /// <summary>Coarse failure class from the closed taxonomy in the agent result contract
@@ -44,7 +44,7 @@ public sealed class CommandResult {
 
     /// <summary>
     /// Builds a failure result carrying the structured taxonomy (<paramref name="code"/>/
-    /// <paramref name="category"/>) and, optionally, partial <paramref name="data"/> — e.g. a blank
+    /// <paramref name="category"/>) and, optionally, partial <paramref name="data"/>; e.g. a blank
     /// capture still returns the (suspect) image so it is not lost. <paramref name="data"/> doubles as
     /// the contract's <c>lastObservation</c>: the last good state carried forward on failure.
     /// </summary>

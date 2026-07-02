@@ -28,7 +28,7 @@ public class SocketServerLifecycleTests : IDisposable {
 
     public SocketServerLifecycleTests() {
         // Reaching ServiceStatus.Connected starts ServiceBase's connected-time stopwatch, and
-        // SetStatus(Stopped) then dereferences TelemetryService.Instance.TelemetryClient! —
+        // SetStatus(Stopped) then dereferences TelemetryService.Instance.TelemetryClient!;
         // null until telemetry is initialized (see AgentTestSupport).
         AgentTestSupport.EnsureTelemetry();
     }
@@ -98,8 +98,8 @@ public class SocketServerLifecycleTests : IDisposable {
         _server.Stop();
         Assert.Equal(ServiceStatus.Stopped, _server.CurrentStatus);
 
-        // Closing the listener completes the pending BeginAccept on a ThreadPool thread —
-        // the buggy path fired its spurious Error there, asynchronously — so give the
+        // Closing the listener completes the pending BeginAccept on a ThreadPool thread;
+        // the buggy path fired its spurious Error there, asynchronously; so give the
         // callback time to run before asserting silence.
         Thread.Sleep(500);
         lock (errors) {
@@ -133,7 +133,7 @@ public class SocketServerLifecycleTests : IDisposable {
     [Fact]
     public void SendToClient_DeadPeer_DoesNotThrow_AndRemovesClientFromTracking() {
         // A never-connected socket makes Socket.Send throw a SocketException
-        // deterministically — the same shape as a peer that vanished between the
+        // deterministically; the same shape as a peer that vanished between the
         // broadcast loop's TryGetValue and the Send.
         using Socket dead = NewSocket();
         var context = _server.RegisterClient(dead);
@@ -161,7 +161,7 @@ public class SocketServerLifecycleTests : IDisposable {
     [Fact]
     public void SendToClient_SocketClosedUnderneath_DoesNotThrow_AndRemovesClientFromTracking() {
         // The receive path (#150) can close a client's socket between the broadcast loop's
-        // tracking lookup and the send — Socket.Send then throws ObjectDisposedException.
+        // tracking lookup and the send; Socket.Send then throws ObjectDisposedException.
         Socket dead = NewSocket();
         var context = _server.RegisterClient(dead);
         dead.Close();

@@ -13,7 +13,7 @@ namespace MCEControl.Hooks;
 /// pressed on real hardware.
 ///
 /// <para>The emergency-stop (#135) needs this distinction: MCEC's own agent actuation injects keystrokes,
-/// so an e-stop that reacted to injected keys could be tripped — or defeated — by the very agent it is
+/// so an e-stop that reacted to injected keys could be tripped (or defeated) by the very agent it is
 /// meant to override. Reacting to <see cref="Injected"/> == <c>false</c> only makes the hotkey a true
 /// human override.</para>
 /// </summary>

@@ -31,7 +31,7 @@ public class SessionProvisionerTests : IDisposable {
         Directory.CreateDirectory(_fakeBinaries);
 
         // A minimal fake "installed" layout: an exe + a dll (copied), and the installed instance's mutable
-        // config + a log (must NOT be copied — the session gets its own fresh config).
+        // config + a log (must NOT be copied; the session gets its own fresh config).
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.exe"), "stub");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.dll"), "stub");
         File.WriteAllText(Path.Combine(_fakeBinaries, SettingsStore.SettingsFileName), "<AppSettings><AgentCommandsEnabled>false</AgentCommandsEnabled></AppSettings>");
@@ -148,7 +148,7 @@ public class SessionProvisionerTests : IDisposable {
         Assert.True(Directory.Exists(sentinel), "teardown must not delete anything outside the sessions root");
     }
 
-    // --- #215: the session token is a real credential — written into the co-located config as the
+    // --- #215: the session token is a real credential; written into the co-located config as the
     // instance's McpAuthToken and validated by end-session as the teardown credential.
 
     [Fact]
@@ -196,7 +196,7 @@ public class SessionProvisionerTests : IDisposable {
 
     [Fact]
     public void ValidateTeardownToken_SessionWithoutConfig_FailsClosed_AndWritesNothing() {
-        // A directory that exists but has no readable co-located config cannot be verified — the
+        // A directory that exists but has no readable co-located config cannot be verified; the
         // check must fail closed AND must not write a default settings file into the directory as a
         // side effect (the reaper collects it later).
         string dir = Path.Combine(SessionProvisioner.SessionsRoot, "0123456789ab");

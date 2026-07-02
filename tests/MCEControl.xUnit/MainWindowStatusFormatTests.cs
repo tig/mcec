@@ -10,7 +10,7 @@ namespace MCEControl.xUnit;
 
 /// <summary>
 /// The pure status-formatting logic extracted from MainWindow's old triplicated painters and
-/// switch handlers (#211). Static internals — no Form is constructed (InternalsVisibleTo).
+/// switch handlers (#211). Static internals; no Form is constructed (InternalsVisibleTo).
 /// </summary>
 public class MainWindowStatusFormatTests {
     // ---- Traffic light mapping ----
@@ -19,7 +19,7 @@ public class MainWindowStatusFormatTests {
     [InlineData(ServiceStatus.Connected, StatusLight.Green)]
     [InlineData(ServiceStatus.Stopped, StatusLight.Gray)]
     // The shipped icon set has only red/green/gray (no yellow), so Started and Waiting both
-    // map to red — same as all three pre-#211 painters.
+    // map to red; same as all three pre-#211 painters.
     [InlineData(ServiceStatus.Started, StatusLight.Red)]
     [InlineData(ServiceStatus.Waiting, StatusLight.Red)]
     // Sleeping (the client's between-reconnects state) leaves the current light unchanged,

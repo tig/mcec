@@ -94,7 +94,7 @@ public class SerializedCommandsTests
     public void SaveLoad_RoundTrip_QueryCommand_TopLevel()
     {
         // Regression (#200): className/maxDepth/maxNodes were serialized camelCase, so the
-        // lower-casing XSLT in LoadCommands silently dropped them on reload — a saved query lost its
+        // lower-casing XSLT in LoadCommands silently dropped them on reload; a saved query lost its
         // targeting and limits.
         string tempFile = Path.GetTempFileName();
         File.Delete(tempFile);
@@ -269,7 +269,7 @@ public class SerializedCommandsTests
     [Fact]
     public void SaveLoad_RoundTrip_ClickCommand_TopLevel()
     {
-        // ClickCommand is a built-in, so a real command table contains one and Save() must serialize it —
+        // ClickCommand is a built-in, so a real command table contains one and Save() must serialize it;
         // which only works if the type is in the XmlArrayItem/XmlElement known-type lists (#122).
         string tempFile = Path.GetTempFileName();
         File.Delete(tempFile);

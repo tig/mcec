@@ -9,7 +9,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The Settings dialog's "Serial Server" tab (#213): COM port, baud rate, framing, and handshake.
-/// Mechanical decomposition of the old SettingsDialog monolith — controls, pixel positions,
+/// Mechanical decomposition of the old SettingsDialog monolith; controls, pixel positions,
 /// tooltips, tab order, and handler behavior are preserved as-is.
 /// </summary>
 public partial class SerialSettingsTab : UserControl, ISettingsTab {
@@ -46,7 +46,7 @@ public partial class SerialSettingsTab : UserControl, ISettingsTab {
 
     /// <inheritdoc/>
     public bool ValidateSection() {
-        // The Serial Server tab has no invalid states — every setting is chosen from a
+        // The Serial Server tab has no invalid states; every setting is chosen from a
         // pre-filled drop-down list.
         return true;
     }
@@ -73,7 +73,7 @@ public partial class SerialSettingsTab : UserControl, ISettingsTab {
         }
 
         // #203: this used to check _comboBoxBaudRate.SelectedItem and then dereference
-        // _comboBoxSerialPort.SelectedItem — guard the control actually being read.
+        // _comboBoxSerialPort.SelectedItem; guard the control actually being read.
         if (_comboBoxSerialPort.SelectedItem != null) {
             _settings.SerialServerPortName = _comboBoxSerialPort.SelectedItem.ToString()!;
             SettingsChanged();

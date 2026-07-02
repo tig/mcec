@@ -12,7 +12,7 @@ namespace MCEControl;
 /// <c>--mcp</c> host is <see cref="HeadlessAppHost"/> (registered by <c>Program</c>'s bootstrap).
 /// Engine code calls the <see cref="AgentRuntime"/> wrappers (<see cref="AgentRuntime.SendLine"/>,
 /// <see cref="AgentRuntime.RequestShutdown"/>, <see cref="AgentRuntime.MessageWindowHandle"/>)
-/// rather than holding an <see cref="IAppHost"/> — nothing below the UI layer may touch
+/// rather than holding an <see cref="IAppHost"/>; nothing below the UI layer may touch
 /// <c>MainWindow</c> directly (touching it used to lazily construct the Form headless).
 /// </summary>
 public interface IAppHost {
@@ -25,7 +25,7 @@ public interface IAppHost {
     /// <summary>
     /// Requests an orderly application shutdown (<c>mcec:exit</c>, the updater's install-and-restart).
     /// GUI: <c>MainWindow.ShutDown()</c> (self-marshals to the UI thread). Headless: schedules a clean
-    /// process exit after in-flight protocol replies flush — the same net effect as the MCP client
+    /// process exit after in-flight protocol replies flush; the same net effect as the MCP client
     /// closing stdin.
     /// </summary>
     void RequestShutdown();
@@ -34,7 +34,7 @@ public interface IAppHost {
     /// A window handle engine code may register OS notifications against
     /// (<c>RegisterPowerSettingNotification</c> for <c>UserActivityMonitorService</c>'s
     /// power-broadcast detection, which needs the host's WndProc to receive
-    /// <c>WM_POWERBROADCAST</c>). GUI: the <c>MainWindow</c> handle. Headless: throws — the activity
+    /// <c>WM_POWERBROADCAST</c>). GUI: the <c>MainWindow</c> handle. Headless: throws; the activity
     /// monitor is only ever started by the GUI host, so no headless message window exists.
     /// </summary>
     IntPtr MessageWindowHandle { get; }

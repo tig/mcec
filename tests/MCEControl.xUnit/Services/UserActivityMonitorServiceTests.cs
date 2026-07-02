@@ -18,7 +18,7 @@ namespace MCEControl.xUnit.Services;
 /// Activity N times per input event after N restarts).
 ///
 /// Uses <see cref="HookManager.SuppressRealHooksForTesting" /> so the subscribe/unsubscribe
-/// bookkeeping runs without installing real global hooks — hosted CI has no interactive desktop.
+/// bookkeeping runs without installing real global hooks; hosted CI has no interactive desktop.
 /// All assertions are deltas from a captured baseline so the tests stay robust if anything else in
 /// the process ever subscribes to HookManager.
 /// </summary>
@@ -80,12 +80,12 @@ public class UserActivityMonitorServiceTests {
 
     /// <summary>
     /// Issue #198: the hook-path handler must do only the cheap debounce check and dispatch the heavy
-    /// work (log I/O, telemetry, SendLine's synchronous socket/serial writes) — never run it inline in
+    /// work (log I/O, telemetry, SendLine's synchronous socket/serial writes); never run it inline in
     /// the hook callback. Windows silently evicts an LL hook whose callback exceeds
     /// LowLevelHooksTimeout, and the #135 emergency-stop hotkey rides the same WH_KEYBOARD_LL hook.
     /// The dispatch seam captures the work without running it; the dispatch count proves the handler
-    /// hands the work off exactly once (post-#209 the work itself is harmless in-proc — SendLine goes
-    /// through AgentRuntime, a logged no-op with no host registered — but it must still never run
+    /// hands the work off exactly once (post-#209 the work itself is harmless in-proc; SendLine goes
+    /// through AgentRuntime, a logged no-op with no host registered; but it must still never run
     /// inline on the hook path).
     /// </summary>
     [Fact]
@@ -100,7 +100,7 @@ public class UserActivityMonitorServiceTests {
         int dispatched = 0;
         monitor.DispatchForTesting = work => {
             Assert.NotNull(work);
-            dispatched++; // capture, do NOT run — asserts the handler doesn't need the work executed
+            dispatched++; // capture, do NOT run; asserts the handler doesn't need the work executed
         };
 
         monitor.Start();
@@ -124,7 +124,7 @@ public class UserActivityMonitorServiceTests {
 
     /// <summary>
     /// The debounce lives in the handler (not in the dispatched work) so the dispatch mechanism is not
-    /// flooded on every mouse move — after the window elapses, the next activity dispatches again.
+    /// flooded on every mouse move; after the window elapses, the next activity dispatches again.
     /// </summary>
     [Fact]
     public void Activity_DispatchesAgain_AfterDebounceWindowElapses() {

@@ -11,7 +11,7 @@ namespace MCEControl.xUnit.Services;
 
 /// <summary>
 /// Tests for the #215 session-token wiring: <c>provision-session</c>'s token is the teardown
-/// credential for real — <c>end-session</c> refuses a correct sessionId with a missing or wrong
+/// credential for real; <c>end-session</c> refuses a correct sessionId with a missing or wrong
 /// token (with a structured error) and tears down only for the token holder. Before this,
 /// <c>ProvisionedSession.Token</c> was generated and documented but checked nowhere.
 /// </summary>

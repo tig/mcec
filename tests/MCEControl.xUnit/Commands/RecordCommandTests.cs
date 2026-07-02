@@ -118,7 +118,7 @@ public class RecordCommandTests {
         try {
             GifRecorder.Stop(); // clear any prior recording
             // A record region flows into the same CaptureRegionBitmap as capture (#158): an
-            // oversized region must be rejected up front — no recording may start.
+            // oversized region must be rejected up front; no recording may start.
             CapturingReply reply = new();
             RecordCommand cmd = new() {
                 Cmd = "record", Enabled = true, Reply = reply, Action = "start",
@@ -132,7 +132,7 @@ public class RecordCommandTests {
             JsonObject json = JsonNode.Parse(reply.Captured.Trim())!.AsObject();
             Assert.False(json["success"]!.GetValue<bool>());
             Assert.Equal("region-too-large", json["errorCode"]!.GetValue<string>());
-            // #191: an oversized region is a malformed request — invalid-argument, not no-target.
+            // #191: an oversized region is a malformed request; invalid-argument, not no-target.
             Assert.Equal("invalid-argument", json["errorCategory"]!.GetValue<string>());
             Assert.Contains(ScreenCapture.MaxRegionDimension.ToString(), json["error"]!.GetValue<string>());
         }
@@ -223,7 +223,7 @@ public class RecordCommandTests {
             Assert.False(GifRecorder.IsRecording);
             Assert.True(GifRecorder.HasCompletedRecording);
 
-            // A oneshot issued now discards that unfetched GIF — its reply must say so (M1, #157):
+            // A oneshot issued now discards that unfetched GIF; its reply must say so (M1, #157):
             // the discard warning may not be silently dropped just because the reply comes from stop.
             CapturingReply reply = new();
             SyntheticGrabRecordCommand cmd = new() {

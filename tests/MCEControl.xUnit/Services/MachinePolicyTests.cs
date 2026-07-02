@@ -5,13 +5,13 @@ using Xunit;
 namespace MCEControl.xUnit;
 
 // #216: registry policy reads moved from AppSettings to MachinePolicy. These tests exercise the
-// injectable seam only — the real registry is never touched.
+// injectable seam only; the real registry is never touched.
 public class MachinePolicyTests
 {
     /// <summary>
     /// Issue #155 (third bug): Convert.ToBoolean on a junk DisableInternalCommands registry value
     /// (e.g. REG_SZ "banana") threw FormatException and crashed startup. The conversion seam must
-    /// tolerate junk and fall back to the default — no real registry involved here.
+    /// tolerate junk and fall back to the default; no real registry involved here.
     /// </summary>
     [Theory]
     [InlineData(null, false, false)] // absent value -> default
@@ -38,7 +38,7 @@ public class MachinePolicyTests
     /// <summary>
     /// Issue #155 review follow-up (M1): Registry.GetValue itself can throw SecurityException
     /// (deny-read ACE) or IOException (key marked for deletion). GetRegistryValue must swallow
-    /// these and return the supplied default — a registry problem must never crash startup
+    /// these and return the supplied default; a registry problem must never crash startup
     /// (this also covers the TelemetryService opt-in read). Exercised through the injectable
     /// seam; the real registry is never touched.
     /// </summary>

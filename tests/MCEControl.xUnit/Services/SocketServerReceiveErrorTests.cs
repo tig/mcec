@@ -21,11 +21,11 @@ namespace MCEControl.xUnit.Services;
 ///      can throw mid-parse) merely logged.
 ///   2. The receive-callback precondition returned when the socket was not Connected, without
 ///      closing.
-/// Both must CloseSocket exactly once — removed from TrackedClients, ConnectedClientCount
-/// decremented once, socket handle closed — and must preserve #147's idempotent close (no
+/// Both must CloseSocket exactly once; removed from TrackedClients, ConnectedClientCount
+/// decremented once, socket handle closed; and must preserve #147's idempotent close (no
 /// double-decrement when close runs twice).
 ///
-/// No live listener is used — tests drive the internal receive seams directly.
+/// No live listener is used; tests drive the internal receive seams directly.
 /// </summary>
 public class SocketServerReceiveErrorTests : IDisposable {
     private readonly SocketServer _server = new();

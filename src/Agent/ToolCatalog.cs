@@ -8,14 +8,14 @@ using System.Text.Json.Nodes;
 namespace MCEControl;
 
 /// <summary>
-/// The single registry of the gated agent tools (#205): one <see cref="ToolDescriptor"/> per tool —
-/// capture, query, displays, find, wait-for, invoke, drag, click, record, launch — carrying its
+/// The single registry of the gated agent tools (#205): one <see cref="ToolDescriptor"/> per tool;
+/// capture, query, displays, find, wait-for, invoke, drag, click, record, launch; carrying its
 /// <c>tools/list</c> schema, its argument→<see cref="Command"/> mapping, its overlay tersifier, and its
 /// policy flags. Every consumer (the <see cref="AgentServer"/> gate/dispatch/schema sites,
 /// <see cref="AgentSession"/>, <see cref="CommandTersifier"/>, <see cref="SessionProvisioner"/>) looks
 /// tools up here, so adding a tool is one descriptor + its command class, not shotgun surgery.
 ///
-/// <para>The META-TOOLS — <c>send_command</c>, <c>provision-session</c>, <c>end-session</c> — are
+/// <para>The META-TOOLS; <c>send_command</c>, <c>provision-session</c>, <c>end-session</c>; are
 /// deliberately NOT in the catalog: they do not map 1:1 onto a <see cref="Command"/> in the loaded
 /// table (raw pass-through / session lifecycle), have their own transport-sensitive gating (#153,
 /// #138), and are special-cased in <see cref="AgentServer"/> right next to the catalog dispatch.</para>
@@ -194,7 +194,7 @@ public static class ToolCatalog {
     ];
 
     // -------------------------------------------------------------------------------------------
-    // tools/list schemas (relocated verbatim from AgentServer.BuildToolsList, #205 — content unchanged)
+    // tools/list schemas (relocated verbatim from AgentServer.BuildToolsList, #205; content unchanged)
     // -------------------------------------------------------------------------------------------
 
     private static JsonObject BuildCaptureSchema() {
@@ -219,7 +219,7 @@ public static class ToolCatalog {
     }
 
     private static JsonObject BuildDisplaysSchema() => Tool("displays",
-        "Report display geometry: every monitor's pixel bounds, working area, primary flag, and DPI/scale, plus the union virtualBounds. Use it to interpret the absolute-pixel bounds query/find return and to place pixel clicks/drags — no arguments.",
+        "Report display geometry: every monitor's pixel bounds, working area, primary flag, and DPI/scale, plus the union virtualBounds. Use it to interpret the absolute-pixel bounds query/find return and to place pixel clicks/drags; no arguments.",
         [], []);
 
     private static JsonObject BuildFindSchema() {
@@ -249,7 +249,7 @@ public static class ToolCatalog {
         invokeProps["action"] = PropSchema("string", "invoke | toggle | setvalue | setfocus | expand | collapse | select (default invoke). Use expand to open a menu before invoking its items; use select for TabItem, ListItem, RadioButton etc.");
         invokeProps["text"] = PropSchema("string", "Text for the setvalue action");
         return Tool("invoke",
-            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus/Expand/Collapse/Select) — more reliable than coordinate clicks. Use 'select' for tabs, list items, radios (SelectionItem pattern).",
+            "Drive a UI Automation element (Invoke/Toggle/Value/SetFocus/Expand/Collapse/Select); more reliable than coordinate clicks. Use 'select' for tabs, list items, radios (SelectionItem pattern).",
             invokeProps, ["value"]);
     }
 
@@ -279,7 +279,7 @@ public static class ToolCatalog {
         clickProps["button"] = PropSchema("string", "Button: left | right | middle (default left)");
         clickProps["count"] = PropSchema("integer", "Click count: 1 = single, 2 = double (default 1)");
         return Tool("click",
-            "Click at a point — an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
+            "Click at a point; an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
             clickProps, ["at"]);
     }
 
@@ -352,7 +352,7 @@ public static class ToolCatalog {
     };
 
     // -------------------------------------------------------------------------------------------
-    // Argument mapping helpers (relocated from AgentServer, #205 — behavior unchanged)
+    // Argument mapping helpers (relocated from AgentServer, #205; behavior unchanged)
     // -------------------------------------------------------------------------------------------
 
     /// <summary>Maps find/wait-for arguments onto a <see cref="FindCommand"/> (shared by both tool names).</summary>

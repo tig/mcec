@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 namespace MCEControl;
 
 /// <summary>
-/// Builds the condensed one-line label the command overlay (#119) shows for a command — the "MainWindow
+/// Builds the condensed one-line label the command overlay (#119) shows for a command; the "MainWindow
 /// log view, tersified" the issue asks for. Pure formatting so it is fully unit-testable; the overlay
 /// renders the <see cref="CommandOutcome"/> separately (colour/emphasis).
 /// </summary>
@@ -15,7 +15,7 @@ public static class CommandTersifier {
     /// <summary>
     /// Terse label for an agent tool call, e.g. <c>capture window="About"</c>, <c>invoke expand "Help"</c>,
     /// <c>wait-for "OK" → timeout</c>. The per-tool body comes from the tool's
-    /// <see cref="ToolDescriptor.Tersify"/> formatter in <see cref="ToolCatalog"/> (#205 — one registry,
+    /// <see cref="ToolDescriptor.Tersify"/> formatter in <see cref="ToolCatalog"/> (#205; one registry,
     /// so a new tool cannot silently render as its bare name); an unknown name falls back to the name.
     /// <paramref name="detail"/> (e.g. an error category) is appended only on a
     /// <see cref="CommandOutcome.Failed"/> outcome.

@@ -34,7 +34,7 @@ public sealed class UserActivityMonitorService : IDisposable {
 
     // True while our activity handlers are attached to HookManager's static events. HookManager
     // installs the global WH_MOUSE_LL/WH_KEYBOARD_LL hooks on first subscribe and uninstalls them
-    // when the last handler is removed, so attach/detach must stay symmetric (issue #197 — the old
+    // when the last handler is removed, so attach/detach must stay symmetric (issue #197; the old
     // GlobalEventProvider wrapper never detached, leaking the hooks and stacking duplicate handlers
     // on every Stop/Start cycle).
     private bool _inputEventsSubscribed;
@@ -46,10 +46,10 @@ public sealed class UserActivityMonitorService : IDisposable {
     private Timer _presencePresumedTimer = null!;
 
     // Captured on Start()'s thread (the WinForms UI thread in the GUI host). The heavy per-activity
-    // work — log4net file I/O, a telemetry metric, and SendLine's synchronous socket/serial writes —
+    // work; log4net file I/O, a telemetry metric, and SendLine's synchronous socket/serial writes;
     // is Post()ed here so the low-level hook callback returns immediately (#198). Windows silently
     // evicts a WH_KEYBOARD_LL/WH_MOUSE_LL hook whose callback exceeds LowLevelHooksTimeout, and the
-    // emergency-stop hotkey (#135) rides the same keyboard hook — a blocked serial write inside the
+    // emergency-stop hotkey (#135) rides the same keyboard hook; a blocked serial write inside the
     // hook proc could kill the panic hotkey with no error surfaced.
     private SynchronizationContext? _activitySyncContext;
 
@@ -298,7 +298,7 @@ public sealed class UserActivityMonitorService : IDisposable {
     /// <summary>
     ///     Attaches the activity handlers directly to <see cref="HookManager" />'s static events (which
     ///     installs the global low-level hooks on first subscribe). Must stay symmetric with
-    ///     <see cref="UnsubscribeFromInputEvents" /> — a handler attached here and not removed there keeps
+    ///     <see cref="UnsubscribeFromInputEvents" />; a handler attached here and not removed there keeps
     ///     the system-wide hook installed forever (issue #197).
     /// </summary>
     private void SubscribeToInputEvents() {
@@ -307,9 +307,9 @@ public sealed class UserActivityMonitorService : IDisposable {
         }
 
         // Note: HookManager has no KeyPress event. KeyDown suffices for activity detection, and the
-        // vendored hook code's KeyPress/ToAscii path — the well-known Gma bug where ToAscii consumes
+        // vendored hook code's KeyPress/ToAscii path; the well-known Gma bug where ToAscii consumes
         // the keyboard's dead-key state and breaks accented-character composition system-wide while
-        // the hook is installed (#198) — was deleted outright when the code became first-party (#214).
+        // the hook is installed (#198); was deleted outright when the code became first-party (#214).
         HookManager.MouseMove += HookManager_MouseMove;
         HookManager.MouseClick += HookManager_MouseClick;
         HookManager.KeyDown += HookManager_KeyDown;
@@ -345,7 +345,7 @@ public sealed class UserActivityMonitorService : IDisposable {
     }
 
     /// <summary>
-    ///     Called anytime user activity is detected — including from INSIDE the WH_KEYBOARD_LL /
+    ///     Called anytime user activity is detected; including from INSIDE the WH_KEYBOARD_LL /
     ///     WH_MOUSE_LL hook callbacks (the HookManager_* handlers below run in the hook proc, before
     ///     CallNextHookEx). It must stay cheap: Windows silently evicts a low-level hook whose callback
     ///     exceeds LowLevelHooksTimeout, and the emergency-stop hotkey (#135) rides the same keyboard
@@ -367,7 +367,7 @@ public sealed class UserActivityMonitorService : IDisposable {
         }
 
         // Debounce HERE, on the hook callback path, so the dispatch below happens at most once per
-        // DebounceTime — not on every mouse move.
+        // DebounceTime; not on every mouse move.
         if (_lastTime.AddSeconds(DebounceTime) > DateTime.Now) {
             return;
         }
@@ -384,7 +384,7 @@ public sealed class UserActivityMonitorService : IDisposable {
     internal Action<Action>? DispatchForTesting { get; set; }
 
     /// <summary>
-    ///     Test seam (InternalsVisibleTo MCEControl.xUnit): the debounce clock — the time of the last
+    ///     Test seam (InternalsVisibleTo MCEControl.xUnit): the debounce clock; the time of the last
     ///     dispatched activity. Settable so tests can step past the debounce window deterministically.
     /// </summary>
     internal DateTime LastActivityTimeForTesting {
@@ -395,7 +395,7 @@ public sealed class UserActivityMonitorService : IDisposable {
     /// <summary>
     ///     Dispatches the heavy per-activity work so the hook callback returns immediately. Posts to
     ///     the SynchronizationContext captured at <see cref="Start" /> (the WinForms UI context in the
-    ///     GUI host — the work runs as a normal posted message AFTER the hook proc has returned) and
+    ///     GUI host; the work runs as a normal posted message AFTER the hook proc has returned) and
     ///     falls back to the thread pool when there is none.
     /// </summary>
     private void DispatchActivityWork(string source, string moreInfo) {
@@ -417,7 +417,7 @@ public sealed class UserActivityMonitorService : IDisposable {
     }
 
     /// <summary>
-    ///     The heavy part of activity handling — log file I/O, a telemetry metric, and SendLine's
+    ///     The heavy part of activity handling; log file I/O, a telemetry metric, and SendLine's
     ///     synchronous socket/serial writes. Runs OFF the hook callback path (see
     ///     <see cref="Activity" /> / <see cref="DispatchActivityWork" />).
     /// </summary>
@@ -431,7 +431,7 @@ public sealed class UserActivityMonitorService : IDisposable {
         TelemetryService.Instance.TrackMetric("activity Sent", 1);
 
         // #209: outbound line goes through the AgentRuntime host seam (GUI: MainWindow.SendLine to
-        // the connected transports; no host registered: logged drop — never an exception on this
+        // the connected transports; no host registered: logged drop; never an exception on this
         // background dispatch path).
         AgentRuntime.SendLine(ActivityMsg);
     }

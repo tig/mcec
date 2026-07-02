@@ -8,10 +8,10 @@ namespace MCEControl;
 
 /// <summary>
 /// Everything the agent surface knows about one gated agent tool, in one record (#205). Before this,
-/// per-tool knowledge was scattered across ~8 hand-synced sites — the <c>tools/list</c> schema builder,
+/// per-tool knowledge was scattered across ~8 hand-synced sites; the <c>tools/list</c> schema builder,
 /// the tools/call gate whitelist, the arg-mapping switch, <c>SerializesOnInputLock</c>,
 /// <c>AgentSession.IsObservationTool</c>, <c>CommandTersifier.ForAgentTool</c>, and
-/// <c>SessionProvisioner</c>'s default/enabled command lists — so adding a tool was shotgun surgery
+/// <c>SessionProvisioner</c>'s default/enabled command lists; so adding a tool was shotgun surgery
 /// and drift was routine (the tersifier had already lost <c>record</c>/<c>launch</c>). Those sites are
 /// now lookups into <see cref="ToolCatalog"/>, which holds one of these per tool.
 /// </summary>
@@ -28,7 +28,7 @@ public sealed record ToolDescriptor {
 
     /// <summary>
     /// Maps the MCP <c>tools/call</c> arguments onto a populated <see cref="Command"/> instance
-    /// (the #201 exhaustive mapping — unknown names never reach a descriptor).
+    /// (the #201 exhaustive mapping; unknown names never reach a descriptor).
     /// </summary>
     public required Func<JsonObject, Command> BuildCommand { get; init; }
 
@@ -48,7 +48,7 @@ public sealed record ToolDescriptor {
     public required Func<JsonObject, string> Tersify { get; init; }
 
     /// <summary>
-    /// Whether the tool serializes on the shared input gate (<see cref="AgentRuntime.InputGate"/> — the
+    /// Whether the tool serializes on the shared input gate (<see cref="AgentRuntime.InputGate"/>; the
     /// #113 contract) because it synthesizes global physical mouse/keyboard input directly on its MCP
     /// worker. Note <c>send_command</c> is a meta-tool outside the catalog: it serializes INDIRECTLY
     /// via the <see cref="CommandInvoker"/> dispatcher thread (#195) and is special-cased in
@@ -63,7 +63,7 @@ public sealed record ToolDescriptor {
     public bool IsObservation { get; init; }
 
     /// <summary>
-    /// Whether a provisioned session (#138) enables this command by default — and at all: a tool
+    /// Whether a provisioned session (#138) enables this command by default; and at all: a tool
     /// without this flag (today only <c>launch</c>) is not provisionable even by explicit request,
     /// matching <see cref="SessionProvisioner"/>'s historical command set.
     /// </summary>

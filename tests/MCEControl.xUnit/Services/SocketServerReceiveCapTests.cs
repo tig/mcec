@@ -18,10 +18,10 @@ namespace MCEControl.xUnit.Services;
 /// (which surfaces on a ThreadPool callback and kills the process). Since #212 the server
 /// delegates delimiter/cap handling to <see cref="CommandAccumulator"/>, so overflow follows
 /// its single policy: the oversized partial command is dropped, an error is notified once, and
-/// input is discarded until the next delimiter — the connection stays open and memory stays
+/// input is discarded until the next delimiter; the connection stays open and memory stays
 /// bounded. (Pre-#212 the server had a divergent second copy of the policy that closed the
 /// connection instead.)
-/// No live listener is used — tests drive the internal receive seams directly.
+/// No live listener is used; tests drive the internal receive seams directly.
 /// </summary>
 public class SocketServerReceiveCapTests : IDisposable {
     private readonly SocketServer _server = new();
@@ -75,7 +75,7 @@ public class SocketServerReceiveCapTests : IDisposable {
         var data = new byte[CommandAccumulator.MaxCommandLength + 1];
         Array.Fill(data, (byte)'a');
         data[^2] = 255; // IAC
-        data[^1] = 255; // IAC — escaped literal 0xFF
+        data[^1] = 255; // IAC; escaped literal 0xFF
 
         SocketServer.ParseReceivedData(data, data.Length, accumulator, _ => { }, _ => { });
 
@@ -93,7 +93,7 @@ public class SocketServerReceiveCapTests : IDisposable {
         _server.CommandReceived += (reply, command) => commands.Add(command);
         Array.Fill(context.DataBuffer, (byte)'a');
 
-        // 8 KB of delimiter-less data. #212: ONE overflow policy — the accumulator's
+        // 8 KB of delimiter-less data. #212: ONE overflow policy; the accumulator's
         // discard-until-delimiter recovery. The connection is NOT closed (pre-#212 the
         // server had a divergent copy of the cap logic that closed it).
         for (int i = 0; i < 8; i++) {

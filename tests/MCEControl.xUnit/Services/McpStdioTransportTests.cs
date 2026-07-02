@@ -23,7 +23,7 @@ public class McpStdioTransportTests {
         // These tests deliberately PARK a full cap's worth (16) of dispatches on blocking waits.
         // On a 2-core hosted CI runner the thread pool starts near the core count and injects
         // roughly one thread per second, so reaching 16 simultaneously-blocked workers takes
-        // ~14s — losing the race against the tests' 15s timeouts (the post-merge CI flake on
+        // ~14s; losing the race against the tests' 15s timeouts (the post-merge CI flake on
         // #243). Guarantee the pool can field the whole cap (plus the overflow request and the
         // loop's own work) without waiting on thread injection.
         ThreadPool.GetMinThreads(out int workers, out int iocp);
@@ -72,10 +72,10 @@ public class McpStdioTransportTests {
 
             // The loop is now blocked in ReadLine; the completed tasks must have been pruned when the
             // parked request was accepted. Tasks signal `responded` before they finish their write, so
-            // up to a cap's worth may still be completing — the invariant prune+cap guarantee is
+            // up to a cap's worth may still be completing; the invariant prune+cap guarantee is
             // pending <= cap + 1 (the old unpruned list would hold all `completed` + 1 here).
             Assert.True(transport.PendingCountForTests <= McpStdioTransport.MaxConcurrentStdioRequests + 1,
-                $"pending list holds {transport.PendingCountForTests} tasks after {completed} completed requests — not pruned");
+                $"pending list holds {transport.PendingCountForTests} tasks after {completed} completed requests; not pruned");
         }
         finally {
             release.Set();
@@ -87,7 +87,7 @@ public class McpStdioTransportTests {
     [Fact]
     public async Task Run_CapsInFlightDispatches_ByBackpressure() {
         // Park every dispatch, then feed one request more than the cap. Exactly MaxConcurrent
-        // dispatches may start; the overflow request must NOT dispatch until a slot frees — the
+        // dispatches may start; the overflow request must NOT dispatch until a slot frees; the
         // reader is parked on the semaphore, which is the lossless stdio equivalent of HTTP's 503.
         int cap = McpStdioTransport.MaxConcurrentStdioRequests;
         using CountdownEvent capReached = new(cap);

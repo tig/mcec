@@ -8,7 +8,7 @@ using MCEControl;
 namespace MCEControl.xUnit.Agent;
 
 /// <summary>
-/// Unit tests for the emergency-stop (#135) chord detector — most importantly that it fires only on the
+/// Unit tests for the emergency-stop (#135) chord detector; most importantly that it fires only on the
 /// full chord and NEVER on injected (agent-synthesized) input.
 /// </summary>
 public class EmergencyStopDetectorTests {
@@ -91,7 +91,7 @@ public class EmergencyStopDetectorTests {
 
     [Fact]
     public void ExtraModifierHeld_StillFires() {
-        // Win also held alongside the required Ctrl+Alt+Shift — the required subset is present, so it fires.
+        // Win also held alongside the required Ctrl+Alt+Shift; the required subset is present, so it fires.
         EmergencyStopDetector d = Default();
         HoldChordModifiers(d);
         d.OnKeyDown(Keys.LWin, injected: false);

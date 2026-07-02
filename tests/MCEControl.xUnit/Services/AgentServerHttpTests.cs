@@ -18,7 +18,7 @@ namespace MCEControl.xUnit.Services;
 /// rejected with 413 instead of being buffered into memory twice), the cap holds even for a chunked
 /// body that carries no Content-Length header, and the per-request worker fan-out is bounded (a
 /// saturated server answers 503 instead of spawning unbounded tasks). These drive a REAL
-/// HttpListener on a free loopback port — the same code path production uses.
+/// HttpListener on a free loopback port; the same code path production uses.
 /// </summary>
 [Collection("AgentSerial")]
 public class AgentServerHttpTests {
@@ -75,7 +75,7 @@ public class AgentServerHttpTests {
     [Fact]
     public async Task Http_SendCommand_AgentSurfaceNotOptedIn_IsRefused_AndNotExecuted() {
         // #153: over the network-facing HTTP floor, send_command must NOT be reachable when the operator
-        // enabled McpServerEnabled but left AgentCommandsEnabled=false — otherwise it is a CSRF/DNS-
+        // enabled McpServerEnabled but left AgentCommandsEnabled=false; otherwise it is a CSRF/DNS-
         // rebinding-reachable (#143) raw command-injection surface. A NON-empty command with a live invoker
         // present proves the refusal happens at the gate, BEFORE execution: without the gate this would run
         // the pass-through and return ok=true; with it we get ok=false / agent-commands-disabled.
@@ -101,9 +101,9 @@ public class AgentServerHttpTests {
 
     [Fact]
     public async Task Http_SendCommand_WhenAgentSurfaceOptedIn_IsAllowed() {
-        // #153: with the agent surface opted in (AgentCommandsEnabled=true) send_command over HTTP works —
+        // #153: with the agent surface opted in (AgentCommandsEnabled=true) send_command over HTTP works;
         // it gets past the gate and reaches the pass-through. The invoker table is empty, so the engine
-        // reports unknown-command (#195 made send_command honest about a command that will never run) —
+        // reports unknown-command (#195 made send_command honest about a command that will never run);
         // which is exactly the proof the call was NOT refused at the AgentCommandsEnabled gate.
         AgentTestSupport.EnsureTelemetry();
         string url = StartServer();
@@ -148,7 +148,7 @@ public class AgentServerHttpTests {
     public async Task Http_ContentLengthOverCap_Returns413_NotParsedOrDispatched() {
         // A body one byte over the cap, declared honestly via Content-Length. The handler must refuse
         // it from the header alone (413) WITHOUT buffering it. Under the old unbounded code this body
-        // would be read whole and fed to JsonNode.Parse, coming back 200 with a -32700 parse error —
+        // would be read whole and fed to JsonNode.Parse, coming back 200 with a -32700 parse error;
         // so a 413 here proves the reject path ran instead of the read-everything path.
         string url = StartServer();
         try {
@@ -192,10 +192,10 @@ public class AgentServerHttpTests {
     [Fact]
     public async Task Http_MoreConcurrentRequestsThanWorkerSlots_OverflowGets503_OthersComplete() {
         // #151 fan-out bound: saturate every worker slot with a request parked inside dispatch, then
-        // send one more — it must be refused with 503 rather than spawn an unbounded worker. Releasing
+        // send one more; it must be refused with 503 rather than spawn an unbounded worker. Releasing
         // the parked dispatches lets all the saturating requests finish normally (200). Deterministic:
         // the overflow request is only sent after the CountdownEvent proves all slots are occupied.
-        // (#215: the dispatch delegate is injected into a test-owned transport instance — the old
+        // (#215: the dispatch delegate is injected into a test-owned transport instance; the old
         // HttpDispatchOverride static seam is gone.)
         int port = FindFreeLoopbackPort();
         AgentRuntime.Settings = new AppSettings { McpBindAddress = "127.0.0.1", McpHttpPort = port };
@@ -237,7 +237,7 @@ public class AgentServerHttpTests {
     [Fact]
     public async Task Http_ChunkedBodyOverCap_NoContentLength_Returns413FromBoundedReader() {
         // Chunked transfer carries no Content-Length header (ContentLength64 == -1), so the header
-        // check alone can't refuse it — this proves the READER is bounded: it must stop and reject as
+        // check alone can't refuse it; this proves the READER is bounded: it must stop and reject as
         // soon as the cap is crossed, not buffer the whole stream. Old code returned 200 (-32700).
         string url = StartServer();
         try {

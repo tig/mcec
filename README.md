@@ -1,24 +1,35 @@
 By Tig Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) - Copyright © [Kindel](http://www.kindel.com), LLC.
 
-![mcec](docs/hero.gif "MCEC — one agent driving another: launch, File ▸ Settings (every tab), mouse-resize, drag the title bar in circles, Help ▸ About, recorded with MCEC's own agent tools")
+![mcec](docs/hero.gif "MCEC: one agent driving another; launch, File ▸ Settings (every tab), mouse-resize, drag the title bar in circles, Help ▸ About; recorded with MCEC's own agent tools")
 
-**MCEC** — the **Model Context Environment Controller** — is eyes, hands, and a safe front door for AI agents on Windows.
+**MCEC**: the **Model Context Environment Controller**; is eyes, hands, and a safe front door for AI agents on Windows.
 
-It is a small, self-contained native Windows daemon that a computer-use model can **mount, see through, and drive**. An agent runs the loop *observe → target → act → observe*, and MCEC gives it all four: capture a window as a PNG, read its UI Automation tree, find and wait for controls, launch apps, and actuate keyboard/mouse/window input — exposed to agents and scripts over the **Model Context Protocol (MCP)** (stdio via `mcec.exe --mcp`, or a localhost HTTP floor).
+It is a small, self-contained native Windows daemon that a computer-use model can **mount, see through, and drive**. An agent runs the loop *observe → target → act → observe*, and MCEC gives it all four: capture a window as a PNG, read its UI Automation tree, find and wait for controls, launch apps, and actuate keyboard/mouse/window input; exposed to agents and scripts over the **Model Context Protocol (MCP)** (stdio via `mcec.exe --mcp`, or a localhost HTTP floor).
 
 ```
 mcec.exe --mcp        # run headless as an MCP stdio server an agent can mount
 ```
 
-Every agent capability is **opt-in, disabled by default, localhost-bound, and loudly audit-logged**, with a global emergency-stop hotkey and disposable isolated sessions so the operator stays in control.
+# Security: if anything useful is enabled, all bets are off
 
-MCEC is also the same **battle-tested remote control for home-automation systems** it has always been. In its long-standing role it runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that can send text over TCP/IP or RS-232 — [Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/), [Crestron](http://www.crestron.com/), and others — can use MCEC to drive a Windows PC. The agent surface in 3.0 is **purely additive**: every existing home-automation feature is unchanged.
+MCEC drives the desktop with real user input. There is no sandbox, no permission model inside the session, and no way to give an agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent can do**: read whatever is on screen, type into any app, click anything, launch programs, open a browser logged in as you, delete files, send email. The gates decide *whether* an agent gets that power; they do not and cannot meter *how much*.
 
-* [Documentation](https://tig.github.io/mcec/documentation.html) — start here
-* [Agent Server user guide](docs/agent-server.md) — the full agent/MCP tool reference and security model
-* [Agent safety](docs/safety-emergency-stop-and-provisioning.md) — emergency stop + isolated session provisioning
-* [Home Automation & Remote Control](docs/home-automation.md) — the classic TCP/serial command surface
-* [AGENTS.md](AGENTS.md) — connect-time agent guidance + the dogfood recipe (MCEC driving MCEC)
+So the operator stays in control by construction:
+
+* **Off by default.** Every agent capability is opt-in behind three independent gates (`AgentCommandsEnabled`, per-command `Enabled`, `McpServerEnabled`), and the network door binds to localhost only (a non-loopback bind requires a bearer token, or MCEC refuses to start it).
+* **Visible when on.** An on-by-default on-screen overlay narrates each command as it executes, and every action is logged with a loud `AGENT-AUDIT:` line.
+* **Stoppable.** A global emergency-stop hotkey (default `Ctrl+Alt+Shift+S`) halts a session instantly from any window; it reacts to physical input only, so an agent can never trip or defeat it.
+* **Disposable.** Rather than enabling your installed instance, an authorized agent gets a throwaway provisioned session; teardown is deleting a directory, and a crash leaves the real install untouched.
+
+Enable the agent surface only on a machine and session where you accept an agent acting as you. Details: [Agent Server user guide](docs/agent-server.md) and [Agent safety](docs/safety-emergency-stop-and-provisioning.md).
+
+MCEC is also the same **battle-tested remote control for home-automation systems** it has always been. In its long-standing role it runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that can send text over TCP/IP or RS-232 ([Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/), [Crestron](http://www.crestron.com/), and others) can use MCEC to drive a Windows PC. The agent surface in 3.0 is **purely additive**: every existing home-automation feature is unchanged.
+
+* [Documentation](https://tig.github.io/mcec/documentation.html): start here
+* [Agent Server user guide](docs/agent-server.md): the full agent/MCP tool reference and security model
+* [Agent safety](docs/safety-emergency-stop-and-provisioning.md): emergency stop + isolated session provisioning
+* [Home Automation & Remote Control](docs/home-automation.md): the classic TCP/serial command surface
+* [AGENTS.md](AGENTS.md): connect-time agent guidance + the dogfood recipe (MCEC driving MCEC)
 
 Links:
 

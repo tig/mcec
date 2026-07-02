@@ -19,7 +19,7 @@ internal delegate int HookProc(int nCode, int wParam, IntPtr lParam);
 /// <summary>
 /// The user32 P/Invoke surface for <see cref="HookManager"/>'s global low-level keyboard/mouse hooks,
 /// plus the winuser.h constants its hook callbacks interpret. First-party since #214 (this code
-/// descends from the vendored Gma.UserActivityMonitor fork — see <see cref="HookManager"/>).
+/// descends from the vendored Gma.UserActivityMonitor fork; see <see cref="HookManager"/>).
 /// </summary>
 /// <remarks>
 /// The <c>hMod</c> argument to <see cref="SetWindowsHookEx"/> is deliberately passed as

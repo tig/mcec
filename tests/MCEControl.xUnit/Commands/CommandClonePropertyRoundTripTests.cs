@@ -14,7 +14,7 @@ namespace MCEControl.xUnit.Commands;
 /// Clone-drift hygiene (#207): for EVERY concrete <see cref="Command"/> subclass, Clone(reply) must
 /// round-trip EVERY public settable property. Under the old hand-copied field lists, one forgotten
 /// line meant a property that worked from mcec.commands prototypes but arrived 0/null at execution,
-/// silently. The base Clone is now MemberwiseClone-based so this can't happen — this test pins that
+/// silently. The base Clone is now MemberwiseClone-based so this can't happen; this test pins that
 /// guarantee against any future re-introduction of per-property copying (a new command, a new
 /// property, or a subclass override that forgets base state all fail here immediately).
 /// </summary>
@@ -88,8 +88,8 @@ public class CommandClonePropertyRoundTripTests {
 
     /// <summary>
     /// A deterministic, guaranteed non-default probe for the property. Fails loudly on a property
-    /// type it does not know so a future reference-typed/mutable property must be added here — and
-    /// its deep-copy semantics considered in Command.Clone — consciously.
+    /// type it does not know so a future reference-typed/mutable property must be added here; and
+    /// its deep-copy semantics considered in Command.Clone; consciously.
     /// </summary>
     private static object MakeProbeValue(PropertyInfo p, Command instance, int salt) {
         object? current = p.GetValue(instance);

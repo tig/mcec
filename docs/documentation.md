@@ -5,10 +5,10 @@
 
 # MCEC Documentation
 
-**MCEC** — the **Model Context Environment Controller** — gives an AI agent eyes, hands, and a safe front
+**MCEC**: the **Model Context Environment Controller**; gives an AI agent eyes, hands, and a safe front
 door on a Windows PC. It is a small, self-contained native Windows daemon that a computer-use model can
 **mount, see through, and drive**: capture a window, read its UI Automation tree, find and wait for
-controls, launch apps, and actuate keyboard/mouse/window input — exposed to agents and scripts over the
+controls, launch apps, and actuate keyboard/mouse/window input; exposed to agents and scripts over the
 **Model Context Protocol (MCP)**.
 
 MCEC also remains the same battle-tested **remote control for home-automation systems** it has always been:
@@ -25,35 +25,38 @@ mcec.exe --mcp        # run headless as an MCP stdio server an agent can mount
 
 **Where to go next**
 
-* **[Agent Server user guide](agent-server.md)** — the full agent/MCP reference: the tools, the result
+* **[Agent Server user guide](agent-server.md)**: the full agent/MCP reference: the tools, the result
   envelope, observation hardening, running as an MCP server, and the security gates. Start here for AI/agent
   use.
-* **[Agent safety](safety-emergency-stop-and-provisioning.md)** — the emergency-stop hotkey and isolated
+* **[Agent safety](safety-emergency-stop-and-provisioning.md)**: the emergency-stop hotkey and isolated
   session provisioning.
-* **[Home Automation & Remote Control](home-automation.md)** — the classic TCP/serial command surface: the
+* **[Home Automation & Remote Control](home-automation.md)**: the classic TCP/serial command surface: the
   command language, the Client/Server/Serial transports, the User Activity Monitor, testing, and examples.
-* **[AGENTS.md](https://github.com/tig/mcec/blob/main/AGENTS.md)** — the connect-time guidance an agent
+* **[AGENTS.md](https://github.com/tig/mcec/blob/main/AGENTS.md)**: the connect-time guidance an agent
   gets, plus the "dogfood" recipe (MCEC driving MCEC).
 
 ## What MCEC does
 
 An AI agent runs a loop: **observe → target → act → observe**. MCEC gives it all four:
 
-* **Observe** — `capture` a window as a PNG (renders composited WinUI/WPF surfaces via `PrintWindow`, with
+* **Observe**: `capture` a window as a PNG (renders composited WinUI/WPF surfaces via `PrintWindow`, with
   blank-frame detection); `query` the UI Automation tree (control type, name, automation id, bounds, state,
   value); `displays` for per-monitor geometry and DPI; `record` a window/region to an animated GIF over
   time.
-* **Target** — resolve a window by title substring, process name, class name, handle, or "the foreground
+* **Target**: resolve a window by title substring, process name, class name, handle, or "the foreground
   window"; `find` / `wait-for` a specific UI element by name / automation id / class.
-* **Act** — `invoke` a UI Automation pattern (invoke/toggle/setvalue/setfocus/expand/collapse/select),
+* **Act**: `invoke` a UI Automation pattern (invoke/toggle/setvalue/setfocus/expand/collapse/select),
   `launch` an app directly, `click` a point or element, `drag` (atomic press → move-path → release), or
   `send_command` to run any raw MCEC command.
 
-All of this is gated, localhost-bound, and loudly audit-logged. See the
-**[Agent Server user guide](agent-server.md)** for the complete tool reference.
+Understand the trade before enabling any of it: MCEC drives the desktop with real user input, so
+**everything a user can do, an agent can do**; the gates decide *whether* an agent gets that power,
+not *how much*. Every capability is off by default, localhost-bound, narrated by an on-by-default
+on-screen overlay, and loudly audit-logged. See the **[Agent Server user guide](agent-server.md)**
+for the complete tool reference and the security model.
 
-For the classic remote-control role — driving a Windows PC from a home-automation controller over TCP/IP or
-serial — see **[Home Automation & Remote Control](home-automation.md)**.
+For the classic remote-control role (driving a Windows PC from a home-automation controller over TCP/IP or
+serial), see **[Home Automation & Remote Control](home-automation.md)**.
 
 ## Installation
 
@@ -76,7 +79,7 @@ MCEC runs as a normal windowed app that can minimize to a taskbar (tray) icon. C
 minimizes it to the tray; double-click the tray icon to show it again, or right-click for a menu. To start
 hidden, check **Hide Window at Startup** in **Settings**.
 
-To run headless as an **MCP server** (no UI, no tray icon), launch it with `--mcp` — an MCP client can spawn
+To run headless as an **MCP server** (no UI, no tray icon), launch it with `--mcp`; an MCP client can spawn
 it on demand and talk JSON-RPC over stdio:
 
 ```
@@ -87,7 +90,7 @@ To have MCEC start automatically, create a shortcut to `mcec.exe` (installed to 
 Files\Kindel\MCEC` by default; pre-3.0 installs used `Kindel Systems\MCEC`) and put it in the Windows
 Startup folder (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`).
 
-Run multiple instances by copying the installation directory elsewhere — each copy gets its own independent
+Run multiple instances by copying the installation directory elsewhere; each copy gets its own independent
 `.settings`, `.commands`, and `.log` files. (This directory-per-instance isolation is exactly what the
 agent [session-provisioning](safety-emergency-stop-and-provisioning.md) feature automates.)
 
@@ -104,10 +107,10 @@ are edited from the **File ▸ Settings…** dialog; the agent settings below ar
 
 The **General** tab:
 
-* **Hide Window at Startup** — start minimized to the tray icon.
-* **Log Threshold** — how much is shown in the main window (`INFO`, `DEBUG`, or `ALL`). Log *files* always
+* **Hide Window at Startup**: start minimized to the tray icon.
+* **Log Threshold**: how much is shown in the main window (`INFO`, `DEBUG`, or `ALL`). Log *files* always
   contain `ALL` events.
-* **Default command pacing (ms)** — delay MCEC applies before executing each received command (default 0).
+* **Default command pacing (ms)**: delay MCEC applies before executing each received command (default 0).
 
 The **Client**, **Server**, **Serial Server**, and **Activity Monitor** tabs configure the classic
 remote-control transports and are documented in
@@ -115,7 +118,7 @@ remote-control transports and are documented in
 
 ### Agent settings (in `mcec.settings`)
 
-The agent surface is configured by these keys. All are off/safe by default — see the
+The agent surface is configured by these keys. All are off/safe by default; see the
 **[Agent Server user guide](agent-server.md)** for the full security model.
 
 | Setting | Default | Meaning |
@@ -135,7 +138,7 @@ Restart MCEC (or relaunch `--mcp`) after editing `mcec.settings`.
 
 ## Enabling or Disabling Commands
 
-For security, **every** command is disabled by default — this reduces the surface area MCEC exposes. This
+For security, **every** command is disabled by default; this reduces the surface area MCEC exposes. This
 applies to both the classic commands and the agent commands: an agent command runs only when
 `AgentCommandsEnabled=true` **and** that individual command is enabled.
 
@@ -145,14 +148,15 @@ them. Details, including the `mcec.commands` XML format, are in
 
 ## Agent safety
 
-When MCEC is driving the desktop the *target app* has focus, not MCEC — so two operator-safety features keep
-you in control (full design in **[Agent safety](safety-emergency-stop-and-provisioning.md)**):
+An enabled agent has your hands: everything you can do at the keyboard, it can do, and no gate can
+meter that down. So beyond the off-by-default gates, two operator-safety features keep you in control
+(details in **[Agent safety](safety-emergency-stop-and-provisioning.md)**):
 
-* **Emergency stop** — a global "dead-man's-switch" hotkey (default `Ctrl+Alt+Shift+S`) you can hit from
+* **Emergency stop**: a global "dead-man's-switch" hotkey (default `Ctrl+Alt+Shift+S`) you can hit from
   *any* window to instantly halt a session. It latches the actuation gate (every tool call is refused with
   `emergency-stopped` until you re-arm), aborts in-flight actuation, and releases held input. It reacts to
-  **physical input only** — an agent's injected keystrokes can never trip or defeat it.
-* **Isolated session provisioning** — instead of enabling agent commands in your installed MCEC (a crash
+  **physical input only**: an agent's injected keystrokes can never trip or defeat it.
+* **Isolated session provisioning**: instead of enabling agent commands in your installed MCEC (a crash
   could leave those gates enabled), an authorized agent calls `provision-session` to get a disposable,
   isolated copy with its own agent-ready config. Teardown is just deleting the directory; the installed
   config is never touched.

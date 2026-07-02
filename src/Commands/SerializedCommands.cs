@@ -37,7 +37,7 @@ public class SerializedCommands {
 
     // SERIALIZATION (#204): the [XmlArray("commands", Order = 1)] wrapper and the polymorphic
     // [XmlArrayItem("name", typeof(T))] map (one per command type, formerly hardcoded here) now
-    // come from CommandRegistry.CreateXmlOverrides(), applied via the cached Serializer below —
+    // come from CommandRegistry.CreateXmlOverrides(), applied via the cached Serializer below;
     // register a new command type there, not here.
     //
     // XmlSerialization does not work with List<>. Must use an array.
@@ -49,9 +49,9 @@ public class SerializedCommands {
     /// <summary>
     /// THE XmlSerializer for .commands files, wired to the one explicit command registry (#204) via
     /// XmlAttributeOverrides. CRITICAL: serializers constructed WITH overrides are NOT cached by the
-    /// runtime — every construction emits a fresh dynamic assembly that is never unloaded (a leak).
+    /// runtime; every construction emits a fresh dynamic assembly that is never unloaded (a leak).
     /// This static is the process-wide cache; XmlSerializer instance methods are thread-safe. Always
-    /// use it — never write `new XmlSerializer(typeof(SerializedCommands), ...)` at a call site.
+    /// use it; never write `new XmlSerializer(typeof(SerializedCommands), ...)` at a call site.
     /// </summary>
     private static readonly XmlSerializer Serializer = new(typeof(SerializedCommands), CommandRegistry.CreateXmlOverrides());
 
@@ -153,7 +153,7 @@ public class SerializedCommands {
             string msg = $"Could not create commands file ({userCommandsFile}) - {e.Message}.\n\n" +
                          $"See log file for details: {Logger.Instance.LogFile}\n\n" +
                          $"For help, open an issue at github.com/tig/mcec";
-            // #209: same headless gate as LoadCommands above — in --mcp mode there is no operator
+            // #209: same headless gate as LoadCommands above; in --mcp mode there is no operator
             // and stdout is the protocol stream, so a failed save must log, never block on a dialog
             // no one can dismiss (SessionProvisioner saves .commands headless).
             if (!AgentRuntime.Headless) {
