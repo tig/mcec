@@ -451,6 +451,12 @@ HTTP request is validated **before** its body is read or any tool runs:
 Every rejected request is logged with an `AGENT-AUDIT:` line (decision, method, path, host,
 origin, remote endpoint) so drive-by and rebinding attempts are visible to the operator.
 
+> **Binding off-box requires a token.** The `Host` check is a browser/rebinding defense, not a
+> network control — a remote client can send `Host: 127.0.0.1`. So if `McpBindAddress` is set to a
+> non-loopback address (e.g. `0.0.0.0`) **and** `McpAuthToken` is empty, MCEC **refuses to start** the
+> HTTP listener and logs an error. To expose the door off-box, set a bearer token (and prefer a
+> network-level control too).
+
 ---
 
 ## Summary

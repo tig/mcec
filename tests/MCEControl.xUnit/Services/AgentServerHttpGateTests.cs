@@ -122,6 +122,29 @@ public class AgentServerHttpGateTests {
         Assert.Equal(HttpGateDecision.Allow, Gate(auth: null, token: ""));
     }
 
+    // ---- Non-loopback bind requires a token (#143 hardening) ----
+
+    [Theory]
+    [InlineData("0.0.0.0")]
+    [InlineData("::")]
+    [InlineData("192.168.1.10")]
+    [InlineData("10.0.0.5")]
+    public void NonLoopbackBind_RequiresToken(string bind) {
+        Assert.True(AgentServer.BindRequiresAuthToken(bind));
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1")]
+    [InlineData("127.0.0.5")]
+    [InlineData("::1")]
+    [InlineData("localhost")]
+    [InlineData("")]
+    [InlineData(null)]
+    [InlineData("not-an-address")]
+    public void LoopbackOrUnparseableBind_DoesNotRequireToken(string? bind) {
+        Assert.False(AgentServer.BindRequiresAuthToken(bind));
+    }
+
     [Fact]
     public void MethodCheckedBeforeEverythingElse() {
         // A GET from a malicious origin is rejected as a bad method (order shouldn't leak that host/origin

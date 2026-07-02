@@ -805,6 +805,18 @@ public static class AgentServer {
             if (_listener is not null) {
                 return;
             }
+            // SECURITY (#143): the Host/Origin gate defeats browser CSRF and DNS rebinding, but the Host
+            // header is attacker-controlled and is NOT a network control. If the operator binds off-box
+            // (a non-loopback McpBindAddress) with no bearer token, a remote client can just send
+            // `Host: 127.0.0.1` and reach the tools unauthenticated. Refuse that configuration: an exposed
+            // bind must set McpAuthToken. The safe localhost default is unaffected.
+            if (BindRequiresAuthToken(settings.McpBindAddress) && string.IsNullOrEmpty(settings.McpAuthToken)) {
+                Logger.Instance.Log4.Error(
+                    $"AgentServer: refusing to start HTTP listener — McpBindAddress '{settings.McpBindAddress}' is not " +
+                    "loopback and no McpAuthToken is set. Set McpAuthToken to expose the MCP HTTP door off-box, " +
+                    "or bind to 127.0.0.1.");
+                return;
+            }
             string prefix = $"http://{settings.McpBindAddress}:{settings.McpHttpPort}/";
             HttpListener listener = new();
             listener.Prefixes.Add(prefix);
@@ -980,6 +992,26 @@ public static class AgentServer {
         string.Equals(hostName, "localhost", StringComparison.OrdinalIgnoreCase)
         || (IPAddress.TryParse(hostName, out IPAddress? ip) && IPAddress.IsLoopback(ip));
 
+    /// <summary>
+    /// True when binding the HTTP listener to <paramref name="bindAddress"/> would expose it off-box
+    /// (anything that is not a loopback address), so a bearer token must be required (#143). An empty or
+    /// unparseable bind address is treated as loopback (the default is 127.0.0.1 and the listener would
+    /// fail to start on garbage anyway).
+    /// </summary>
+    internal static bool BindRequiresAuthToken(string? bindAddress) {
+        if (string.IsNullOrWhiteSpace(bindAddress)) {
+            return false;
+        }
+        string trimmed = bindAddress.Trim();
+        if (string.Equals(trimmed, "localhost", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        if (!IPAddress.TryParse(trimmed, out IPAddress? ip)) {
+            return false;
+        }
+        return !IPAddress.IsLoopback(ip);
+    }
+
     /// <summary>Constant-time check of an <c>Authorization: Bearer &lt;token&gt;</c> header against the expected token.</summary>
     private static bool BearerTokenMatches(string? authorizationHeader, string expectedToken) {
         if (string.IsNullOrEmpty(authorizationHeader)) {
@@ -998,7 +1030,7 @@ public static class AgentServer {
     private static void RejectHttp(HttpListenerContext context, HttpGateDecision decision, HttpListenerRequest request) {
         (int status, string message) = decision switch {
             HttpGateDecision.RejectMethod => (405, "Only POST /mcp is supported"),
-            HttpGateDecision.RejectPath => (404, "Only POST /mcp is supported"),
+            HttpGateDecision.RejectPath => (404, "Not found: only POST /mcp is supported"),
             HttpGateDecision.RejectHost => (403, "Forbidden: Host must be a loopback authority"),
             HttpGateDecision.RejectOrigin => (403, "Forbidden: cross-origin requests are not allowed"),
             HttpGateDecision.RejectAuth => (401, "Unauthorized: a valid bearer token is required"),
