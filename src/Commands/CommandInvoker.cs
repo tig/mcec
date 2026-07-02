@@ -334,9 +334,9 @@ public class CommandInvoker : Hashtable {
     internal bool SuppressDispatcherForTests { get; set; }
 
     /// <summary>
-    /// Starts the dispatcher thread on first use. Lazy (first enqueue) so the many transiently
-    /// constructed invokers (settings dialogs, tests) don't each spin a thread; a background thread
-    /// so it can never keep the process alive after the host exits.
+    /// Starts the dispatcher thread on first use. Lazy (first enqueue) so an invoker that never
+    /// executes anything (many test-constructed instances) doesn't spin a thread; a background
+    /// thread so it can never keep the process alive after the host exits.
     /// </summary>
     private void EnsureDispatcherStarted() {
         if (SuppressDispatcherForTests || dispatcherThread is not null) {
