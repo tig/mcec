@@ -1,0 +1,26 @@
+# Docs-site menu. One entry per button, rendered by _layouts/default.html.
+# class: download | github | document (drives the existing Dinky button styling)
+- title: Install
+  url: https://github.com/tig/mcec/releases
+  class: download
+- title: View On GitHub
+  url: https://github.com/tig/mcec
+  class: github
+- title: Overview
+  url: index.html
+  class: document
+- title: Documentation
+  url: documentation.html
+  class: document
+- title: Agent Server
+  url: agent-server.html
+  class: document
+- title: Agent Safety
+  url: safety-emergency-stop-and-provisioning.html
+  class: document
+- title: Home Automation
+  url: home-automation.html
+  class: document
+- title: Examples
+  url: example_commands.html
+  class: document

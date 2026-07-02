@@ -1,4 +1,4 @@
-By Tig Kindel ([@ckindel on Twitter](http://www.twitter.com/ckindel)) - Copyright © [Kindel](http://www.kindel.com), LLC.
+By Tig Kindel ([@tigkindel on Twitter](https://twitter.com/tigkindel)) - Copyright © [Kindel](http://www.kindel.com), LLC.
 
 ![mcec](docs/hero.gif "MCEC: one agent driving another; launch, File ▸ Settings (every tab), mouse-resize, drag the title bar in circles, Help ▸ About; recorded with MCEC's own agent tools")
 
