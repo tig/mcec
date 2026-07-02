@@ -342,21 +342,23 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
          ?
          ?
 2. MainWindow.ReceivedData(Reply, String)
-   - Ensures execution on UI thread
+   - Producer-only: enqueues on the transport's thread (no UI marshaling)
          ?
          ?
 3. CommandInvoker.Enqueue(Reply, String)
    - Parses command string
    - Looks up Command in hashtable
    - Clones Command with Reply context
-   - Enqueues to ConcurrentQueue
+   - Enqueues to the dispatcher's queue
    - Recursively enqueues embedded commands
          ?
          ?
-4. CommandInvoker.ExecuteNext()
-   - Dequeues ICommand instances
-   - Calls Command.Execute()
-   - Applies command pacing (Thread.Sleep)
+4. CommandInvoker dispatcher thread (#195)
+   - The ONLY consumer of the queue (one long-running background thread per invoker)
+   - Calls Command.Execute() under AgentRuntime.InputGate (no interleaving with agent drag)
+   - Per-command try/catch (a throwing command can't strand the queue)
+   - Drops the queue when the emergency stop (#135) is engaged
+   - Applies command pacing (Thread.Sleep on the dispatcher thread)
          ?
          ?
 5. Command.Execute() Implementation
@@ -421,11 +423,10 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
 
 - **UI Thread**: MainWindow, all WinForms controls
 - **Worker Threads**: Each SocketServer client connection, SocketClient connection
-- **Command Execution**: Currently on UI thread (via BeginInvoke)
+- **Command Execution (#195)**: on the CommandInvoker's own long-running dispatcher thread — the ONLY consumer of the execute queue. All producers (TCP/serial/client via `MainWindow.ReceivedData`, the agent's `send_command`, activity monitoring) enqueue only; nothing else dequeues. The dispatcher wraps each `Execute()` in try/catch, honors the emergency-stop latch between commands, sleeps `CommandPacing` on its own thread (a paced macro no longer freezes the UI), and starts lazily on the first enqueue / stops via `Shutdown()` (settings reload, app exit). Commands that must touch UI marshal internally (e.g. `MainWindow.ShutDown()` BeginInvokes itself); SendInput/PostMessage/Process.Start are thread-agnostic.
+- **Input serialization (#113/#195)**: `AgentRuntime.InputGate` is the single gate over the one physical input stream. The dispatcher holds it around each queued command's `Execute`; the agent's `drag` tool holds it while actuating a gesture on an MCP worker — so queue-driven synthetic input and drag gestures never interleave. It is a leaf lock: never acquire another lock or wait on the queue while holding it.
 - **Activity Hooks**: WH_KEYBOARD_LL/WH_MOUSE_LL hooks (HookManager) install on the UI thread — there is no dedicated pump thread. Hook callbacks are enqueue-and-return (#198): only debounce/latch logic runs in the hook proc; heavy work (logging, telemetry, socket/serial sends) is posted off the callback path so the proc can never exceed `LowLevelHooksTimeout` (which would get the hook silently evicted)
-- **Synchronization**: Thread-safe ConcurrentQueue for command execution
-
-**Known Limitation**: Commands execute on UI thread which could block UI during long-running commands. Future enhancement would move CommandInvoker to dedicated thread.
+- **Synchronization**: single-consumer BlockingCollection for command execution; `send_command` awaits a per-enqueue completion marker the dispatcher signals after execution
 
 ## Build System
 
@@ -470,7 +471,6 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
 
 1. **Async/Await**: Current model is largely synchronous; could benefit from async I/O
 2. **Dependency Injection**: Hard-coded singletons could use DI container
-3. **Command Thread**: Move command execution off UI thread
-4. **Authentication**: Add optional security layer for network communication
-5. **Plugin System**: Dynamic command loading from external assemblies
-6. **Cross-Platform**: .NET 10 supports cross-platform, but WindowsInput and WinForms limit to Windows
+3. **Authentication**: Add optional security layer for network communication
+4. **Plugin System**: Dynamic command loading from external assemblies
+5. **Cross-Platform**: .NET 10 supports cross-platform, but WindowsInput and WinForms limit to Windows

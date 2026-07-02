@@ -62,19 +62,16 @@ public static class AgentServer {
     private static HttpListener? _listener;
     private static Thread? _httpThread;
 
-    // Concurrency contract (#113): the ONE physical desktop input stream is a shared resource, so
-    // global-input actuation (drag, send_command) serializes on this lock. Observation
-    // (query/capture/find/wait-for/record) runs UNLOCKED — a long/blocking read never stalls another
-    // tool call. See SerializesOnInputLock and docs/agent-server.md#concurrency.
-    private static readonly object InputLock = new();
-
     /// <summary>
-    /// Whether <paramref name="tool"/> serializes on <see cref="InputLock"/> (the #113 contract).
-    /// Global-input actuation (<c>drag</c>, <c>send_command</c>) does — it synthesizes physical
-    /// mouse/keyboard, one shared stream that concurrent requests must not interleave. Observation
-    /// (<c>query</c>/<c>capture</c>/<c>find</c>/<c>wait-for</c>/<c>record</c>) does not (it runs
-    /// concurrently); <c>invoke</c> is UIA-pattern actuation dispatched on a worker with the modal grace,
-    /// not under this lock (#105).
+    /// Whether <paramref name="tool"/> serializes on the shared input gate
+    /// (<see cref="AgentRuntime.InputGate"/> — the #113 contract). Global-input actuation
+    /// (<c>drag</c>, <c>send_command</c>) does — it synthesizes physical mouse/keyboard, one shared
+    /// stream that concurrent requests must not interleave. <c>drag</c> actuates directly under the
+    /// gate on its MCP worker; <c>send_command</c> serializes INDIRECTLY (#195): it enqueues into the
+    /// <see cref="CommandInvoker"/>, whose single dispatcher thread holds the gate around each queued
+    /// command's Execute. Observation (<c>query</c>/<c>capture</c>/<c>find</c>/<c>wait-for</c>/
+    /// <c>record</c>) does not (it runs concurrently); <c>invoke</c> is UIA-pattern actuation
+    /// dispatched on a worker with the modal grace, not under this lock (#105).
     /// </summary>
     public static bool SerializesOnInputLock(string tool) => tool is "drag" or "send_command";
 
@@ -471,11 +468,13 @@ public static class AgentServer {
         // synchronously, so the call would block for the dialog's whole lifetime and — if it held a lock
         // — deadlock every later tool call (the agent couldn't even query or dismiss the dialog it just
         // opened, #105). So run `invoke` on a worker and, if it hasn't returned within a short grace,
-        // report "modal pending" and return; the worker finishes when the dialog closes. `drag` and
-        // `send_command` synthesize physical input and serialize on InputLock. Observation
-        // (query/capture/find/wait-for) and `record` (its own bounded background thread) run UNLOCKED, so
-        // a long/blocking read never stalls another tool call. The legacy TCP/serial pipeline
-        // (MainWindow.ReceivedData -> CommandInvoker.ExecuteNext on the UI thread) is untouched.
+        // report "modal pending" and return; the worker finishes when the dialog closes. `drag`
+        // synthesizes physical input and serializes on AgentRuntime.InputGate — the SAME gate the
+        // CommandInvoker's dispatcher thread holds around every queued command's Execute (#195), so a
+        // drag gesture can never interleave with queue-driven input from the legacy TCP/serial
+        // pipeline or send_command (both are producers into that one dispatcher-drained queue).
+        // Observation (query/capture/find/wait-for) and `record` (its own bounded background thread)
+        // run UNLOCKED, so a long/blocking read never stalls another tool call.
         if (name == "invoke") {
             if (!TryRunInvokeWithModalGrace(cmd)) {
                 AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
@@ -484,7 +483,7 @@ public static class AgentServer {
             }
         }
         else if (SerializesOnInputLock(name)) {
-            lock (InputLock) {
+            lock (AgentRuntime.InputGate) {
                 cmd.Execute();
             }
         }
@@ -545,9 +544,9 @@ public static class AgentServer {
     /// Runs an <c>invoke</c> on a background worker and waits up to <see cref="InvokeModalGraceMs"/> ms.
     /// Returns true if it finished (its result is in the command's reply); false if it is still running,
     /// which means the invoked control opened a modal dialog. We deliberately do NOT hold
-    /// <see cref="InputLock"/> for an invoke: a modal opener must not block the later query/capture/invoke
-    /// calls the agent needs to read or dismiss the very dialog it opened. The worker ends on its own
-    /// when the dialog closes.
+    /// <see cref="AgentRuntime.InputGate"/> for an invoke: a modal opener must not block the later
+    /// query/capture/invoke calls the agent needs to read or dismiss the very dialog it opened. The
+    /// worker ends on its own when the dialog closes.
     /// </summary>
     private static bool TryRunInvokeWithModalGrace(Command cmd) {
         Thread worker = new(() => {
@@ -565,6 +564,15 @@ public static class AgentServer {
         return worker.Join(InvokeModalGraceMs);
     }
 
+    /// <summary>
+    /// Upper bound a <c>send_command</c> call waits for its enqueued command tree to finish executing
+    /// (#195). Bounded so one hung command (or a deep paced backlog ahead of it) can never wedge the
+    /// MCP dispatch worker forever. 30s covers any sane paced macro (a full 50-command tree at the
+    /// default 0ms–250ms pacing); a tree that legitimately runs longer keeps executing on the
+    /// dispatcher — only the WAIT gives up, surfacing a timeout error to the agent.
+    /// </summary>
+    public const int SendCommandCompletionTimeoutMs = 30_000;
+
     private static JsonObject RunSendCommand(JsonObject args) {
         string command = args["command"]?.GetValue<string>() ?? "";
         if (string.IsNullOrWhiteSpace(command)) {
@@ -577,18 +585,48 @@ public static class AgentServer {
         }
 
         AgentRuntime.Audit("send_command", command);
+
+        // #195: enqueue-and-await. send_command is a PRODUCER into the invoker's single
+        // dispatcher-drained queue (the same queue the legacy TCP/serial pipeline feeds); the
+        // dispatcher thread executes the command under AgentRuntime.InputGate (the #113
+        // no-interleaving invariant) and the completion task fires only after it ran — so reading
+        // reply.Captured below no longer races the execution. A command that never entered the queue
+        // (unknown name, or dropped whole by the #154 bounds) is a failure, not the old always-"ok"
+        // (the richer taxonomy stays #206; these two codes are the minimum honest signal).
         CapturingReply reply = new();
-        // send_command drives physical input through the shared invoker — serialize on InputLock (#113).
-        lock (InputLock) {
-            invoker.Enqueue(reply, command);
-            invoker.ExecuteNext();
-        }
+        CommandEnqueueResult enqueued = invoker.TryEnqueueWithCompletion(reply, command, out Task<bool>? completion);
 
         AgentSession session = AgentRuntime.Session;
         session.RecordAction("send_command");
 
+        if (enqueued == CommandEnqueueResult.UnknownCommand) {
+            return ToolError(
+                $"Unknown command: '{command}' is not in the loaded command table. Nothing was executed.",
+                "unknown-command");
+        }
+        if (enqueued != CommandEnqueueResult.Enqueued || completion is null) {
+            return ToolError(
+                $"The command '{command}' was dropped whole and never executed: it exceeds the queue bounds " +
+                "(over the embedded-expansion limit, or the execute queue is full) or the command engine is shutting down. " +
+                "Send less at once and let the queue drain before retrying.",
+                "command-dropped");
+        }
+
+        if (!completion.Wait(SendCommandCompletionTimeoutMs)) {
+            return ToolError(
+                $"send_command timed out after {SendCommandCompletionTimeoutMs / 1000}s waiting for '{command}' to execute. " +
+                "The command queue is still draining it (a long macro, pause, or a hung command); it was not cancelled.",
+                "send-command-timeout");
+        }
+        if (!completion.Result) {
+            return ToolError(
+                "The queue was dropped before this command finished (emergency stop engaged or the command engine shut down). " +
+                "It may have PARTIALLY executed — verify the desktop state with query/capture before assuming nothing ran.",
+                "emergency-stopped");
+        }
+
         // The legacy command path returns opaque text, not a CommandResult; carry it forward as the
-        // success payload. (Native success/failure detection for send_command is out of Phase 1 scope.)
+        // success payload. (A richer send_command success/failure taxonomy is #206.)
         string captured = reply.Captured.Trim();
         JsonObject result = new() { ["output"] = string.IsNullOrEmpty(captured) ? "ok" : captured };
         CommandEventHub.Publish(new CommandEvent("send_command", CommandTersifier.ForRawCommand(command), CommandOutcome.Ok, session.SessionId));

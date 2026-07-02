@@ -248,9 +248,9 @@ public partial class MainWindow : Form {
     }
 
     private void LoadCommands() {
-        if (Invoker != null) {
-            // Invoker.Dispose();
-        }
+        // #195: the invoker owns a dispatcher thread; stop the old one (dropping its queue — the
+        // commands file changed, so what's queued is stale) before replacing it.
+        Invoker?.Shutdown();
 
         Invoker = CommandInvoker.Create($@"{Program.ConfigPath}mcec.commands", Application.ProductVersion, Settings.DisableInternalCommands);
         AgentRuntime.Invoker = Invoker;
@@ -277,6 +277,13 @@ public partial class MainWindow : Form {
         }
         else {
             Logger.Instance.Log4.Info("Closing Main Window...");
+
+            // #195: stop the command dispatcher thread (drops anything still queued; a drop that
+            // severs a command tree releases held input). The bounded join lets an in-flight
+            // command usually finish cleanly; the thread is background so it can never keep the
+            // process alive past that.
+            Invoker?.Shutdown(joinTimeoutMs: 2000);
+
             // Save Commands
             // Stop file system watcher
             watcher!.Dispose();
@@ -516,26 +523,18 @@ public partial class MainWindow : Form {
 
     /// <summary>
     /// Anytime a client or server receives data that looks like a command, this function is called.
+    /// Producer-only (#195): decode + enqueue on whatever thread the transport delivered the data;
+    /// the Invoker's own dispatcher thread executes. No UI-thread marshaling — commands no longer
+    /// run on (or block) the UI thread.
     /// </summary>
-    /// <param name="reply">THe reply context any replies should be sent to</param>
+    /// <param name="reply">The reply context any replies should be sent to</param>
     /// <param name="cmd">the command string</param>
     private void ReceivedData(Reply reply, String cmd) {
-        // To ensure we are single-threaded for Invoker, check if we're on UI thread
-        // if not, use Invoke to get onto UI thread.
-        //
-        // TOOD: This is probably not the right model. What we should do is have 
-        // the Invoker run on it's won thread. 
-        if (this.InvokeRequired) {
-            this.BeginInvoke((MethodInvoker)delegate () { ReceivedData(reply, cmd); });
+        try {
+            Invoker.Enqueue(reply, cmd);
         }
-        else {
-            try {
-                Invoker.Enqueue(reply, cmd);
-                Invoker.ExecuteNext();
-            }
-            catch (Exception e) {
-                Logger.Instance.Log4.Error($"Command: ({cmd}) error: {e}");
-            }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"Command: ({cmd}) error: {e}");
         }
     }
 

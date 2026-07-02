@@ -11,7 +11,7 @@ namespace MCEControl.xUnit.Commands;
 /// per-command <see cref="Command.Enabled"/> gate. A disabled parent must suppress its children;
 /// flattening enabled children into the queue as independent siblings would let an unauthenticated
 /// remote client fire them from a single command string against the secure default install.
-/// Uses the serial collection because <see cref="CommandInvoker.ExecuteNext"/> reads the global
+/// Uses the serial collection because the invoker's drain (pumped synchronously here, #195) reads the global
 /// emergency-stop latch.
 /// </summary>
 [Collection("AgentSerial")]
@@ -27,9 +27,9 @@ public class EmbeddedCommandGateTests {
             EmbeddedCommands = [childA, childB]
         };
 
-        CommandInvoker invoker = [];
+        CommandInvoker invoker = new() { SuppressDispatcherForTests = true };
         invoker.EnqueueCommand(parent);
-        invoker.ExecuteNext();
+        invoker.PumpQueueForTests();
 
         Assert.False(parent.ExecuteCalled, "the disabled parent must not run");
         Assert.False(childA.ExecuteCalled, "an enabled child of a disabled parent must NOT run (#145)");
@@ -45,9 +45,9 @@ public class EmbeddedCommandGateTests {
             EmbeddedCommands = [child]
         };
 
-        CommandInvoker invoker = [];
+        CommandInvoker invoker = new() { SuppressDispatcherForTests = true };
         invoker.EnqueueCommand(parent);
-        invoker.ExecuteNext();
+        invoker.PumpQueueForTests();
 
         Assert.True(parent.ExecuteCalled);
         Assert.True(child.ExecuteCalled, "an enabled child of an enabled parent should run");
@@ -69,9 +69,9 @@ public class EmbeddedCommandGateTests {
             EmbeddedCommands = [disabledChild]
         };
 
-        CommandInvoker invoker = [];
+        CommandInvoker invoker = new() { SuppressDispatcherForTests = true };
         invoker.EnqueueCommand(parent);
-        invoker.ExecuteNext();
+        invoker.PumpQueueForTests();
 
         Assert.True(parent.ExecuteCalled);
         Assert.False(disabledChild.ExecuteCalled, "the disabled child must not run");

@@ -16,8 +16,10 @@ namespace MCEControl.xUnit.Commands;
 
 /// <summary>
 /// Verifies the command execution queue cap and embedded-expansion bound (#154).
-/// The queue is drained synchronously on the UI thread with a paced sleep between items, so an
-/// unbounded queue lets a remote client cause memory growth and a UI freeze.
+/// The queue is drained by the invoker's single dispatcher thread (#195) with a paced sleep between
+/// items, so an unbounded queue lets a remote client cause memory growth and a minutes-deep
+/// actuation backlog. These tests suppress the dispatcher and pump synchronously so queue-depth
+/// assertions are deterministic.
 ///
 /// Enqueue is ALL-OR-NOTHING per command tree: a command whose whole tree (itself plus all
 /// recursively embedded commands) exceeds <see cref="CommandInvoker.MaxEmbeddedExpansion"/>, or
@@ -47,6 +49,13 @@ public class CommandInvokerQueueCapTests {
         hierarchy.Root.RemoveAppender(appender);
     }
 
+    /// <summary>
+    /// An invoker with its dispatcher thread suppressed (#195) so queue depth is observable —
+    /// tests drain deterministically with <see cref="CommandInvoker.PumpQueueForTests"/>.
+    /// </summary>
+    private static CommandInvoker NewSuppressedInvoker() =>
+        new() { SuppressDispatcherForTests = true };
+
     private static bool IsInvokerDropWarning(LoggingEvent e) =>
         e.Level >= Level.Warn &&
         e.RenderedMessage!.Contains("CommandInvoker", StringComparison.Ordinal) &&
@@ -56,7 +65,7 @@ public class CommandInvokerQueueCapTests {
     public void EnqueueCommand_QueueDepthNeverExceedsCap_ExcessDroppedAndLogged() {
         MemoryAppender capture = AttachLogCapture();
         try {
-            CommandInvoker invoker = [];
+            CommandInvoker invoker = NewSuppressedInvoker();
             const int overflow = 25;
 
             for (int i = 0; i < CommandInvoker.MaxQueueDepth + overflow; i++) {
@@ -77,7 +86,7 @@ public class CommandInvokerQueueCapTests {
     public void EnqueueCommand_TreeBeyondExpansionBound_NothingEnqueuedAndLogged() {
         MemoryAppender capture = AttachLogCapture();
         try {
-            CommandInvoker invoker = [];
+            CommandInvoker invoker = NewSuppressedInvoker();
             TestCommand parent = new() { Cmd = "parent", EmbeddedCommands = [] };
             for (int i = 0; i < CommandInvoker.MaxEmbeddedExpansion + 10; i++) {
                 parent.EmbeddedCommands.Add(new TestCommand() { Cmd = $"child{i}" });
@@ -97,7 +106,7 @@ public class CommandInvokerQueueCapTests {
 
     [Fact]
     public void EnqueueCommand_NestedTreeBeyondBound_NothingEnqueued() {
-        CommandInvoker invoker = [];
+        CommandInvoker invoker = NewSuppressedInvoker();
 
         // A chain nested deeper than the bound: parent -> child -> grandchild -> ...
         // The bound applies to the whole recursive tree, not just direct children.
@@ -118,7 +127,7 @@ public class CommandInvokerQueueCapTests {
     public void EnqueueCommand_TreeExceedingRemainingCapacity_DroppedWhole_ExistingItemsIntact() {
         MemoryAppender capture = AttachLogCapture();
         try {
-            CommandInvoker invoker = [];
+            CommandInvoker invoker = NewSuppressedInvoker();
             int preload = CommandInvoker.MaxQueueDepth - 5;
             for (int i = 0; i < preload; i++) {
                 invoker.EnqueueCommand(new TestCommand() { Cmd = $"cmd{i}" });
@@ -152,7 +161,7 @@ public class CommandInvokerQueueCapTests {
 
     [Fact]
     public void EnqueueCommand_WithinBounds_AllCommandsEnqueuedAndExecuted() {
-        CommandInvoker invoker = [];
+        CommandInvoker invoker = NewSuppressedInvoker();
         TestCommand parent = new() { Cmd = "parent", EmbeddedCommands = [] };
         List<TestCommand> children = [];
         for (int i = 0; i < 5; i++) {
@@ -165,7 +174,7 @@ public class CommandInvokerQueueCapTests {
         Assert.Equal(6, invoker.QueuedCommandCount);
 
         AgentRuntime.SetEmergencyStopped(false);
-        invoker.ExecuteNext();
+        invoker.PumpQueueForTests();
 
         Assert.Equal(0, invoker.QueuedCommandCount);
         Assert.True(parent.ExecuteCalled, "parent should have executed");
@@ -174,21 +183,21 @@ public class CommandInvokerQueueCapTests {
 
     [Fact]
     public void EnqueueCommand_QueueDrained_AcceptsNewCommandsAgain() {
-        CommandInvoker invoker = [];
+        CommandInvoker invoker = NewSuppressedInvoker();
         for (int i = 0; i < CommandInvoker.MaxQueueDepth; i++) {
             invoker.EnqueueCommand(new TestCommand() { Cmd = $"cmd{i}" });
         }
         Assert.Equal(CommandInvoker.MaxQueueDepth, invoker.QueuedCommandCount);
 
         AgentRuntime.SetEmergencyStopped(false);
-        invoker.ExecuteNext();
+        invoker.PumpQueueForTests();
         Assert.Equal(0, invoker.QueuedCommandCount);
 
         TestCommand after = new() { Cmd = "after" };
         invoker.EnqueueCommand(after);
         Assert.Equal(1, invoker.QueuedCommandCount);
 
-        invoker.ExecuteNext();
+        invoker.PumpQueueForTests();
         Assert.True(after.ExecuteCalled, "commands enqueued after a drain must execute normally");
     }
 
@@ -199,6 +208,7 @@ public class CommandInvokerQueueCapTests {
             string tempFile = Path.GetTempFileName();
             File.Delete(tempFile);
             CommandInvoker invoker = CommandInvoker.Create(tempFile, "0.0.0.0", false);
+            invoker.SuppressDispatcherForTests = true; // #195: keep the queue depth observable
             ((Command)invoker["chars:"]!).Enabled = true; // enable the single-char fast path
 
             for (int i = 0; i < CommandInvoker.MaxQueueDepth; i++) {

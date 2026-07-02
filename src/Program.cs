@@ -123,6 +123,13 @@ internal static class Program {
         using Stream stdin = Console.OpenStandardInput();
         using Stream stdout = Console.OpenStandardOutput();
         AgentServer.RunStdio(stdin, stdout);
+
+        // #195: stop the command dispatcher thread before exiting. It starts lazily on the first
+        // enqueue (e.g. a send_command) and is a background thread, so it could never keep the
+        // process alive — this is a deliberate, clean stop that drops anything still queued (a
+        // drop that severs a command tree releases held input) and briefly joins so an in-flight
+        // command usually finishes before the process ends.
+        AgentRuntime.Invoker?.Shutdown(joinTimeoutMs: 2000);
     }
 
     private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
