@@ -24,35 +24,34 @@ public partial class MainWindow : Form, IAppHost {
     // Program.Main's GUI path before Application.Run. It used to be a Lazy<MainWindow>, so ANY touch
     //; including from engine code on a worker thread in headless --mcp mode; silently constructed
     // the Form. Now a touch before assignment (or ever, headless) throws a pointed exception instead.
-    private static MainWindow? _instance;
     public static MainWindow Instance {
-        get => _instance ?? throw new InvalidOperationException(
+        get => field ?? throw new InvalidOperationException(
             "MainWindow.Instance touched in headless mode or before Program assigned it; code below " +
             "the UI layer must use the AgentRuntime seam instead (AgentRuntime.Invoker / SendLine / " +
             "RequestShutdown / MessageWindowHandle).");
-        internal set => _instance = value;
+        internal set;
     }
 
     // The live transport instances now live on the ServiceController descriptors (#211);
     // these properties remain for the code that addresses a transport directly (SendLine,
     // the Send Awake menu item, the server wakeup quirk).
-    public SocketServer? Server => serverController.Instance as SocketServer;
-    public SocketClient? Client => clientController.Instance as SocketClient;
-    public SerialServer? SerialServer => serialController.Instance as SerialServer;
+    private SocketServer? Server => _serverController.Instance as SocketServer;
+    private SocketClient? Client => _clientController.Instance as SocketClient;
+    private SerialServer? SerialServer => _serialController.Instance as SerialServer;
 
     // Per-transport descriptors (#211): built by the Create*Controller factories in the
     // constructor (readonly; no construction window exists); ONE generic
-    // start/stop/toggle/paint/log path iterates serviceControllers instead of the old three
+    // start/stop/toggle/paint/log path iterates _serviceControllers instead of the old three
     // copy-pasted method families.
-    private readonly ServiceController serverController;
-    private readonly ServiceController clientController;
-    private readonly ServiceController serialController;
-    private readonly List<ServiceController> serviceControllers;
+    private readonly ServiceController _serverController;
+    private readonly ServiceController _clientController;
+    private readonly ServiceController _serialController;
+    private readonly List<ServiceController> _serviceControllers;
 
     // Read-only status entry for the MCP/HTTP agent front door (#211). AgentServer is static
     // with no lifecycle events (making it a real service is #215), so this is repainted from
     // Start()/Stop(); the only places the door is started/stopped.
-    private readonly ToolStripStatusLabel statusStripMcp;
+    private readonly ToolStripStatusLabel _statusStripMcp;
 
     // The command dispatcher (#195): created by LoadCommands during mainWindow_Load and replaced
     // whenever the commands file changes. The nullable FIELD models the real pre-load window; the
@@ -64,33 +63,32 @@ public partial class MainWindow : Form, IAppHost {
         private set => _invoker = value;
     }
 
-    private CommandWindow? cmdWindow;
-    private CommandFileWatcher? watcher;
+    private CommandWindow? _cmdWindow;
+    private CommandFileWatcher? _watcher;
 
     // The on-screen command overlay (#119), when enabled. Null in headless mode or when disabled.
-    private CommandOverlayWindow? commandOverlay;
+    private CommandOverlayWindow? _commandOverlay;
 
     // Emergency stop (#135): the "Re-arm" affordance, shown on the menu only while a stop is engaged.
-    private ToolStripMenuItem? rearmMenuItem;
-    private bool emergencyStopArmed;
+    private ToolStripMenuItem? _rearmMenuItem;
+    private bool _emergencyStopArmed;
 
     // Indicates whether user hit the close box (minimize)
     // or the app is exiting
-    private bool shuttingDown;
+    private bool _shuttingDown;
 
     // #213: both exit paths (menu exit and OS logoff) converge on PerformShutdown(); this gate
     // makes that teardown run exactly once.
-    private readonly OnceGate shutdownGate = new();
+    private readonly OnceGate _shutdownGate = new();
 
     // Settings: applied by ApplySettings (the single apply path; load and dialog-OK). The nullable
-    // FIELD models the real pre-load window (the controller lambdas read Settings lazily and only
-    // run post-load); the non-nullable property turns a too-early touch into a pointed error
-    // instead of a silent NRE.
-    private AppSettings? _settings;
+    // backing field models the real pre-load window (the controller lambdas read Settings lazily
+    // and only run post-load); the non-nullable property turns a too-early touch into a pointed
+    // error instead of a silent NRE.
     public AppSettings Settings {
-        get => _settings ?? throw new InvalidOperationException(
+        get => field ?? throw new InvalidOperationException(
             "MainWindow.Settings touched before mainWindow_Load applied settings (ApplySettings).");
-        private set => _settings = value;
+        private set;
     }
 
     public MainWindow() {
@@ -98,19 +96,19 @@ public partial class MainWindow : Form, IAppHost {
         Logger.Instance.LogTextBox = logTextBox;
         // menuStrip (the designer field), not Form.MainMenuStrip: same object, but the designer
         // field is non-nullable after InitializeComponent while MainMenuStrip is Control?-typed.
-        logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, menuStrip.Font.SizeInPoints - 1,
-            System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+        logTextBox.Font = new Font(logTextBox.Font.FontFamily, menuStrip.Font.SizeInPoints - 1,
+            FontStyle.Regular, GraphicsUnit.Point);
 
         notifyIcon.Icon = Icon;
         ShowInTaskbar = true;
 
-        serverController = CreateServerController();
-        clientController = CreateClientController();
-        serialController = CreateSerialController();
-        serviceControllers = [serverController, serialController, clientController];
+        _serverController = CreateServerController();
+        _clientController = CreateClientController();
+        _serialController = CreateSerialController();
+        _serviceControllers = [_serverController, _serialController, _clientController];
 
-        statusStripMcp = CreateMcpStatusLabel();
-        statusStrip.Items.Add(statusStripMcp);
+        _statusStripMcp = CreateMcpStatusLabel();
+        statusStrip.Items.Add(_statusStripMcp);
 
         SetStatus("");
         sendAwakeMenuItem.Enabled = false;
@@ -140,7 +138,7 @@ public partial class MainWindow : Form, IAppHost {
             // null-forgiving Server!: the quirk only fires while the instance is wired, but a
             // vanished instance now degrades to a no-op instead of an NRE.
             StatusQuirk = status => {
-                if (!Settings.WakeupEnabled || Server is not SocketServer server) {
+                if (!Settings.WakeupEnabled || Server is not { } server) {
                     return;
                 }
                 if (status == ServiceStatus.Started) {
@@ -171,8 +169,8 @@ public partial class MainWindow : Form, IAppHost {
             // also hides the command window, so the operator is not left typing commands into a
             // connection that no longer exists.
             AfterStop = () => {
-                if (cmdWindow != null) {
-                    cmdWindow.Visible = false;
+                if (_cmdWindow != null) {
+                    _cmdWindow.Visible = false;
                 }
             },
             IsConfigured = () => Settings.ActAsClient,
@@ -199,7 +197,7 @@ public partial class MainWindow : Form, IAppHost {
     private static ToolStripStatusLabel CreateMcpStatusLabel() =>
         new() {
             BackColor = SystemColors.Control,
-            Image = global::MCEControl.Properties.Resources.Trafficlight_gray_icon,
+            Image = Properties.Resources.Trafficlight_gray_icon,
             ImageAlign = ContentAlignment.MiddleRight,
             Margin = new Padding(10, 3, 0, 2),
             Name = "statusStripMcp",
@@ -227,7 +225,7 @@ public partial class MainWindow : Form, IAppHost {
 
             // #211: one loop unwires and disposes every transport (the old code repeated
             // this per service, and again in the per-service Stop methods).
-            foreach (ServiceController controller in serviceControllers) {
+            foreach (ServiceController controller in _serviceControllers) {
                 if (controller.Instance != null) {
                     UnwireService(controller);
                     (controller.Instance as IDisposable)?.Dispose();
@@ -238,9 +236,9 @@ public partial class MainWindow : Form, IAppHost {
             UpdateService.Instance.GotLatestVersion -= UpdateService_GotLatestVersion;
 
             EmergencyStop.StateChanged -= OnEmergencyStopStateChanged;
-            if (emergencyStopArmed) {
+            if (_emergencyStopArmed) {
                 EmergencyStop.Stop();
-                emergencyStopArmed = false;
+                _emergencyStopArmed = false;
             }
         }
         base.Dispose(disposing);
@@ -251,11 +249,11 @@ public partial class MainWindow : Form, IAppHost {
         if (m.Msg == 0x11) { // WM_QUERYENDSESSION
             // Allow shut down (m.Result may already be non-zero, but I set it
             // just in case)
-            m.Result = (IntPtr)1;
+            m.Result = 1;
 
             // Indicate to MainWindow_Closing() that we are shutting down;
             // otherwise it will just minimize to the tray
-            shuttingDown = true;
+            _shuttingDown = true;
         }
 
         if (m.Msg == WM_POWERBROADCAST) {
@@ -265,12 +263,12 @@ public partial class MainWindow : Form, IAppHost {
     }
 
     private void mainWindow_Load(object? sender, EventArgs e) {
-        Logger.Instance.Log4.Info($"MCEC v{System.Windows.Forms.Application.ProductVersion}" +
-            $" - OS: {Environment.OSVersion.ToString()} on {(Environment.Is64BitProcess ? "x64" : "x86")}" +
-            $" - .NET: {Environment.Version.ToString()}");
+        Logger.Instance.Log4.Info($"MCEC v{Application.ProductVersion}" +
+            $" - OS: {Environment.OSVersion} on {(Environment.Is64BitProcess ? "x64" : "x86")}" +
+            $" - .NET: {Environment.Version}");
 
-        IntPtr hWnd = WindowsInput.Native.NativeMethods.FindWindow(null, this.Text);
 #if _DEBUG
+        IntPtr hWnd = WindowsInput.Native.NativeMethods.FindWindow(null, this.Text);
         var sb = new StringBuilder(256);
         WindowsInput.Native.NativeMethods.GetClassName(hWnd, sb, 256);
         Logger.Instance.Log4.Info($"Window Class - {sb}");
@@ -295,21 +293,19 @@ public partial class MainWindow : Form, IAppHost {
         Logger.Instance.Log4.Info($"Telemetry: {(TelemetryService.Instance.TelemetryEnabled ? "Enabled" : "Disabled")}");
 
         // Commands
-        if (cmdWindow == null) {
-            cmdWindow = new CommandWindow();
-        }
+        _cmdWindow ??= new CommandWindow();
 
         LoadCommands();
         // watch .command file for changes
-        watcher = new CommandFileWatcher($@"{Program.ConfigPath}mcec.commands");
-        watcher.ChangedEvent += CmdTable_CommandsChangedEvent;
+        _watcher = new CommandFileWatcher($@"{Program.ConfigPath}mcec.commands");
+        _watcher.ChangedEvent += CmdTable_CommandsChangedEvent;
 
         if (Settings.HideOnStartup) {
             Opacity = 0;
             Win32NativeMethods.PostMessage(Handle, Win32NativeMethods.WM_SYSCOMMAND, Win32NativeMethods.SC_CLOSE, 0);
         }
 
-        SystemEvents.UserPreferenceChanged += new UserPreferenceChangedEventHandler(SystemEvents_UserPreferenceChanged);
+        SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
 
         // Location can not be changed in constructor, has to be done here
         // Use Window's default for location initially. Size needs highDPI conversion. 
@@ -339,26 +335,26 @@ public partial class MainWindow : Form, IAppHost {
     /// cleared automatically. Built in code (not the designer) so the safety UI travels with the feature.
     /// </summary>
     private void SetUpEmergencyStopUi() {
-        rearmMenuItem = new ToolStripMenuItem("⛔ &Re-arm (Emergency Stop)") {
+        _rearmMenuItem = new ToolStripMenuItem("⛔ &Re-arm (Emergency Stop)") {
             Visible = false,
-            ForeColor = System.Drawing.Color.Firebrick,
+            ForeColor = Color.Firebrick,
         };
-        rearmMenuItem.Click += (_, _) => EmergencyStop.Rearm();
-        menuStrip.Items.Add(rearmMenuItem);
+        _rearmMenuItem.Click += (_, _) => EmergencyStop.Rearm();
+        menuStrip.Items.Add(_rearmMenuItem);
 
         EmergencyStop.StateChanged += OnEmergencyStopStateChanged;
     }
 
     private void OnEmergencyStopStateChanged(bool stopped) {
         // StateChanged fires on the global-hook thread; marshal to the UI thread to touch the menu.
-        if (rearmMenuItem is null) {
+        if (_rearmMenuItem is null) {
             return;
         }
         if (menuStrip.InvokeRequired) {
             menuStrip.BeginInvoke((Action)(() => OnEmergencyStopStateChanged(stopped)));
             return;
         }
-        rearmMenuItem.Visible = stopped;
+        _rearmMenuItem.Visible = stopped;
         SetStatus(stopped
             ? $"⛔ STOPPED by operator; Re-arm to resume ({EmergencyStop.StoppedReason})"
             : $"Version: {Application.ProductVersion}");
@@ -375,7 +371,7 @@ public partial class MainWindow : Form, IAppHost {
             }
             else if (UpdateService.Instance.CompareVersions() < 0) {
                 installLatestVersionMenuItem.Enabled = true;
-                Logger.Instance.Log4.Info($"A newer version is available at");
+                Logger.Instance.Log4.Info("A newer version is available at");
                 Logger.Instance.Log4.Info($"   {UpdateService.Instance.ReleasePageUri}");
 
                 if (!Settings.DisableUpdatePopup)
@@ -394,7 +390,7 @@ public partial class MainWindow : Form, IAppHost {
     private void CmdTable_CommandsChangedEvent(object? sender, EventArgs e) {
         // The watcher only exists after mainWindow_Load created the command window, but a change
         // event racing teardown degrades to a no-op instead of an NRE.
-        if (cmdWindow is not CommandWindow window) {
+        if (_cmdWindow is not { } window) {
             return;
         }
         if (window.InvokeRequired) {
@@ -415,7 +411,7 @@ public partial class MainWindow : Form, IAppHost {
         // "no invoker → hide the tray icon" branch was dead and is gone.
         Invoker = CommandInvoker.Create($@"{Program.ConfigPath}mcec.commands", Application.ProductVersion, Settings.DisableInternalCommands);
         AgentRuntime.Invoker = Invoker;
-        cmdWindow?.RefreshList();
+        _cmdWindow?.RefreshList();
         Logger.Instance.Log4.Info($"CommandInvoker: {Invoker.Values.Cast<Command>().Count(cmd => (cmd.Enabled))} " +
             $"commands enabled ({Invoker.Values.Cast<Command>().Count(cmd => (!cmd.Enabled))} commands disabled).");
     }
@@ -423,7 +419,7 @@ public partial class MainWindow : Form, IAppHost {
     // FormClosing, not the obsolete Closing (WFDEV004); FormClosingEventArgs derives from
     // CancelEventArgs, so the minimize-to-tray Cancel contract is unchanged.
     private void mainWindow_Closing(object? sender, FormClosingEventArgs e) {
-        if (!shuttingDown) {
+        if (!_shuttingDown) {
             Logger.Instance.Log4.Info("Hiding Main Window...");
             // If we're NOT shutting down (the user hit the close button or pressed
             // CTRL-F4) minimize to tray.
@@ -436,7 +432,7 @@ public partial class MainWindow : Form, IAppHost {
         else {
             Logger.Instance.Log4.Info("Closing Main Window...");
 
-            // #213: two ways to get here with shuttingDown set; menu exit (ShutDown() already ran
+            // #213: two ways to get here with _shuttingDown set; menu exit (ShutDown() already ran
             // PerformShutdown() and then Close()d us; the gate makes this a no-op) and OS
             // logoff/shutdown (WM_QUERYENDSESSION set the flag and Windows closes the window; this
             // is the ONLY teardown that will run). The logoff path used to skip Stop() and the
@@ -454,7 +450,7 @@ public partial class MainWindow : Form, IAppHost {
     /// telemetry. Must run on the UI thread (both callers do).
     /// </summary>
     private void PerformShutdown() {
-        if (!shutdownGate.TryEnter()) {
+        if (!_shutdownGate.TryEnter()) {
             return;
         }
 
@@ -479,8 +475,8 @@ public partial class MainWindow : Form, IAppHost {
 
         // Save Commands
         // Stop file system watcher
-        watcher?.Dispose();
-        watcher = null;
+        _watcher?.Dispose();
+        _watcher = null;
 
         // BUGBUG: Why do we need to save when exiting the app? Could this be the cause of Issue #24?
         //Invoker.Save($@"{Program.ConfigPath}mcec.commands");
@@ -490,7 +486,7 @@ public partial class MainWindow : Form, IAppHost {
     private void Start() {
         // #211: one loop paints the initial light and starts every configured transport
         // (server, serial, client; the old per-service order).
-        foreach (ServiceController controller in serviceControllers) {
+        foreach (ServiceController controller in _serviceControllers) {
             PaintServiceStatus(controller, ServiceStatus.Stopped);
             if (controller.IsConfigured()) {
                 StartService(controller);
@@ -509,16 +505,16 @@ public partial class MainWindow : Form, IAppHost {
         // so the agent can never trip or defeat it.
         if (!AgentRuntime.Headless && Settings.EmergencyStopEnabled && (Settings.McpServerEnabled || Settings.AgentCommandsEnabled)) {
             EmergencyStop.Start(EmergencyStopHotkey.ParseOrDefault(Settings.EmergencyStopHotkey));
-            emergencyStopArmed = true;
+            _emergencyStopArmed = true;
         }
 
         // MCEC 3.0: on-screen command overlay (#119); narrates each command as it executes so anyone
         // watching sees that MCEC is driving. On by default; headless --mcp hosts its copy on
         // HeadlessOperatorUi's pump thread, never here. Independent (not owned) so it keeps narrating
         // even when the MCEC window is minimized to the tray.
-        if (Settings.CommandOverlayEnabled && !AgentRuntime.Headless && commandOverlay is null) {
-            commandOverlay = new CommandOverlayWindow();
-            commandOverlay.Show();
+        if (Settings.CommandOverlayEnabled && !AgentRuntime.Headless && _commandOverlay is null) {
+            _commandOverlay = new CommandOverlayWindow();
+            _commandOverlay.Show();
         }
 
         if (Settings.ActivityMonitorEnabled) {
@@ -534,33 +530,33 @@ public partial class MainWindow : Form, IAppHost {
 
     private void Stop() {
         if (this.InvokeRequired) {
-            this.BeginInvoke((MethodInvoker)delegate () { Stop(); });
+            this.BeginInvoke((MethodInvoker)Stop);
         }
         else {
             UserActivityMonitorService.Instance.Stop();
             AgentServer.StopHttp();
             PaintMcpStatus();
-            if (emergencyStopArmed) {
+            if (_emergencyStopArmed) {
                 EmergencyStop.Stop();
-                emergencyStopArmed = false;
+                _emergencyStopArmed = false;
             }
-            commandOverlay?.Dispose();
-            commandOverlay = null;
+            _commandOverlay?.Dispose();
+            _commandOverlay = null;
             // #211: one loop stops every running transport.
-            foreach (ServiceController controller in serviceControllers) {
+            foreach (ServiceController controller in _serviceControllers) {
                 StopService(controller);
             }
         }
     }
 
-    public void ShutDown() {
+    private void ShutDown() {
         if (this.InvokeRequired) {
-            this.BeginInvoke((MethodInvoker)delegate () { ShutDown(); });
+            this.BeginInvoke((MethodInvoker)ShutDown);
             return;
         }
 
         Logger.Instance.Log4.Info("Exiting app...");
-        shuttingDown = true;
+        _shuttingDown = true;
 
         // #213: the one idempotent teardown, shared with the OS-logoff path (mainWindow_Closing).
         PerformShutdown();
@@ -576,6 +572,7 @@ public partial class MainWindow : Form, IAppHost {
 
     /// <summary>Creates the transport, wires the typed <see cref="ServiceBase"/> events to the
     /// generic handlers (handlers first, then start; so no event is missed), and starts it.</summary>
+    /// <param name="controller">The per-transport descriptor to start.</param>
     /// <param name="delay">The client's "sleep before first connect" restart flag; other
     /// transports ignore it.</param>
     private void StartService(ServiceController controller, bool delay = false) {
@@ -643,15 +640,15 @@ public partial class MainWindow : Form, IAppHost {
     }
 
     private void RestartClient() {
-        if (cmdWindow != null) {
+        if (_cmdWindow != null) {
             if (this.InvokeRequired) {
-                this.BeginInvoke((MethodInvoker)delegate () { RestartClient(); });
+                this.BeginInvoke((MethodInvoker)RestartClient);
             }
             else {
-                StopService(clientController);
-                if (!shuttingDown && Settings.ActAsClient && Settings.ClientDelayTime > 0) {
+                StopService(_clientController);
+                if (!_shuttingDown && Settings is { ActAsClient: true, ClientDelayTime: > 0 }) {
                     Logger.Instance.Log4.Info("Client: Reconnecting...");
-                    StartService(clientController, delay: true);
+                    StartService(_clientController, delay: true);
                 }
             }
         }
@@ -660,23 +657,10 @@ public partial class MainWindow : Form, IAppHost {
     private void ShowCommandWindow() {
         if (this.InvokeRequired) {
             TelemetryService.Instance.TrackEvent("ShowCommandWindow");
-            this.BeginInvoke((MethodInvoker)delegate () { ShowCommandWindow(); });
+            this.BeginInvoke((MethodInvoker)ShowCommandWindow);
         }
-        else if (cmdWindow is not null) {
-            cmdWindow.Visible = Settings.ShowCommandWindow = true;
-        }
-    }
-
-    private void HideCommandWindow() {
-        if (this.InvokeRequired) {
-            TelemetryService.Instance.TrackEvent("HideCommandWindow");
-            this.BeginInvoke((MethodInvoker)delegate () { HideCommandWindow(); });
-        }
-        else {
-            Settings.ShowCommandWindow = false;
-            if (cmdWindow is not null) {
-                cmdWindow.Visible = false;
-            }
+        else if (_cmdWindow is not null) {
+            _cmdWindow.Visible = Settings.ShowCommandWindow = true;
         }
     }
 
@@ -783,10 +767,10 @@ public partial class MainWindow : Form, IAppHost {
             statusStrip.BeginInvoke((Action)PaintMcpStatus);
             return;
         }
-        statusStripMcp.Text = $"MCP on port {Settings.McpHttpPort}";
-        statusStripMcp.Image = AgentServer.IsHttpListening
-            ? global::MCEControl.Properties.Resources.Trafficlight_green_icon
-            : global::MCEControl.Properties.Resources.Trafficlight_gray_icon;
+        _statusStripMcp.Text = $"MCP on port {Settings.McpHttpPort}";
+        _statusStripMcp.Image = AgentServer.IsHttpListening
+            ? Properties.Resources.Trafficlight_green_icon
+            : Properties.Resources.Trafficlight_gray_icon;
     }
 
     // ----------------------------------------
@@ -804,9 +788,9 @@ public partial class MainWindow : Form, IAppHost {
     };
 
     private static Image? StatusLightImage(ServiceStatus status) => StatusLightFor(status) switch {
-        StatusLight.Green => global::MCEControl.Properties.Resources.Trafficlight_green_icon,
-        StatusLight.Gray => global::MCEControl.Properties.Resources.Trafficlight_gray_icon,
-        StatusLight.Red => global::MCEControl.Properties.Resources.Trafficlight_red_icon,
+        StatusLight.Green => Properties.Resources.Trafficlight_green_icon,
+        StatusLight.Gray => Properties.Resources.Trafficlight_gray_icon,
+        StatusLight.Red => Properties.Resources.Trafficlight_red_icon,
         _ => null,
     };
 
@@ -880,7 +864,7 @@ public partial class MainWindow : Form, IAppHost {
 
         // LevelMap's indexer returns null for a name it does not know (e.g. a hand-edited
         // settings file); keep the current threshold instead of dereferencing the miss.
-        log4net.Core.Level? threshold = LogManager.GetLogger("MCEControl").Logger?.Repository?.LevelMap[settings.TextBoxLogThreshold];
+        log4net.Core.Level? threshold = LogManager.GetLogger("MCEControl").Logger.Repository?.LevelMap[settings.TextBoxLogThreshold];
         if (threshold is null) {
             Logger.Instance.Log4.Warn($"Unknown TextBoxLogThreshold '{settings.TextBoxLogThreshold}'; keeping the current threshold.");
         }
@@ -906,7 +890,7 @@ public partial class MainWindow : Form, IAppHost {
     /// inside <c>AppSettings.Serialize</c>, gated the same way (never when headless). Used by
     /// <see cref="ShutDown"/> and the Settings dialog OK path.
     /// </summary>
-    internal static void SaveSettings(AppSettings settings) {
+    private static void SaveSettings(AppSettings settings) {
         string settingsFile = $@"{Program.ConfigPath}{SettingsStore.SettingsFileName}";
         if (!SettingsStore.TrySave(settingsFile, settings, out Exception? error) && !AgentRuntime.Headless) {
             MessageBox.Show($"Settings file could not be written. {settingsFile} {error?.Message}");
@@ -934,8 +918,6 @@ public partial class MainWindow : Form, IAppHost {
             case SettingsLoadOutcome.CreatedDefault when result.Error is not null:
                 // First run, but the default settings file could not be written.
                 MessageBox.Show($"Settings file could not be written. {settingsFile} {result.ErrorDetail}");
-                break;
-            default:
                 break;
         }
     }
@@ -998,20 +980,14 @@ public partial class MainWindow : Form, IAppHost {
         Program.LaunchExternal("https://tig.github.io/mcec/");
     }
 
-    private void MenuItemEditCommands_Click(object? sender, EventArgs e) {
-        TelemetryService.Instance.TrackEvent("MenuItemEditCommands");
-
-        Program.LaunchExternal(Program.ConfigPath);
-    }
-
     private void updatesMenuItem_Click(object? sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("updatesMenuItem");
         UpdateDialog.Instance.ShowDialog(this);
     }
 
     private void statusStripClient_Click(object? sender, EventArgs e) {
-        if (clientController.IsConfigured()) {
-            ToggleService(clientController);
+        if (_clientController.IsConfigured()) {
+            ToggleService(_clientController);
         }
         else {
             ShowSettings(SettingsTab.Client);
@@ -1019,8 +995,8 @@ public partial class MainWindow : Form, IAppHost {
     }
 
     private void statusStripServer_Click(object? sender, EventArgs e) {
-        if (serverController.IsConfigured()) {
-            ToggleService(serverController);
+        if (_serverController.IsConfigured()) {
+            ToggleService(_serverController);
         }
         else {
             ShowSettings(SettingsTab.Server);
@@ -1040,12 +1016,12 @@ public partial class MainWindow : Form, IAppHost {
     private void MainWindow_Layout(object? sender, LayoutEventArgs e) {
         // Adjust vertical location & height of TextBox to deal with font scaling changes.
         // Note we add a little margin on the left
-        logTextBox.Location = new System.Drawing.Point(4, menuStrip.Height);
-        logTextBox.Size = new System.Drawing.Size(this.ClientSize.Width - logTextBox.Location.X, this.ClientSize.Height - menuStrip.Height - statusStrip.Height);
+        logTextBox.Location = new Point(4, menuStrip.Height);
+        logTextBox.Size = new Size(this.ClientSize.Width - logTextBox.Location.X, this.ClientSize.Height - menuStrip.Height - statusStrip.Height);
     }
 
     private void SystemEvents_UserPreferenceChanged(object? sender, EventArgs e) {
-        logTextBox.Font = new System.Drawing.Font(logTextBox.Font.FontFamily, menuStrip.Font.SizeInPoints - 1, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+        logTextBox.Font = new Font(logTextBox.Font.FontFamily, menuStrip.Font.SizeInPoints - 1, FontStyle.Regular, GraphicsUnit.Point);
     }
 
     private void MainWindow_VisibleChanged(object? sender, EventArgs e) {
