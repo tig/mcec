@@ -64,8 +64,25 @@ public class SocketServerReceiveCapTests : IDisposable {
     }
 
     [Fact]
+    public void ParseReceivedData_EscapedIacAppendSite_NeverExceedsCap() {
+        // The escaped-IAC path (IAC IAC -> literal 0xFF) is an append site too and must
+        // honor the same cap: fill to one char under the cap, then send IAC IAC. A
+        // multi-char append there (e.g. the decimal string "255") would blow past the cap.
+        var builder = new StringBuilder();
+        var data = new byte[CommandAccumulator.MaxCommandLength + 1];
+        Array.Fill(data, (byte)'a');
+        data[^2] = 255; // IAC
+        data[^1] = 255; // IAC — escaped literal 0xFF
+
+        _ = SocketServer.ParseReceivedData(data, data.Length, builder, _ => { }, _ => { });
+
+        Assert.True(builder.Length <= CommandAccumulator.MaxCommandLength,
+            $"CmdBuilder grew to {builder.Length} chars via the escaped-IAC append site");
+    }
+
+    [Fact]
     public void ProcessReceivedData_DelimiterlessFlood_ClosesOffendingClient_AndLogsError() {
-        Socket socket = NewSocket();
+        using Socket socket = NewSocket();
         var context = _server.RegisterClient(socket);
         var errors = new List<string>();
         _server.Notifications += (notify, status, reply, msg) => {

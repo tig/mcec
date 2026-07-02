@@ -68,7 +68,6 @@ public sealed class SocketClient : ServiceBase, IDisposable {
     }
 
     public void Start(bool delay = false) {
-        StringBuilder currentCmd = new StringBuilder();
         _tcpClient = new TcpClient();
         _bw = new BackgroundWorker {
             WorkerReportsProgress = false,
@@ -171,6 +170,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
                     // command is dropped, an error is logged, and input is discarded until
                     // the next delimiter.
                     CommandAccumulator accumulator = new();
+                    Action onOverflow = () => Error($"SocketClient: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); discarding input until next delimiter");
                     while (_bw != null &&
                         !_bw.CancellationPending &&
                         CurrentStatus == ServiceStatus.Connected &&
@@ -183,8 +183,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
                             return;
                         }
 
-                        string? cmd = accumulator.ProcessChar((char)input,
-                            () => Error($"SocketClient: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); discarding input until next delimiter"));
+                        string? cmd = accumulator.ProcessChar((char)input, onOverflow);
                         if (cmd != null) {
                             SendNotification(ServiceNotification.ReceivedData, ServiceStatus.Connected, new ClientReplyContext(_tcpClient), cmd);
                             System.Threading.Thread.Sleep(100);

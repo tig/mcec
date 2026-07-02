@@ -160,6 +160,7 @@ public sealed class SerialServer : ServiceBase, IDisposable {
         // delimiter cannot grow the buffer until OOM. On overflow the partial command is
         // dropped, an error is logged, and input is discarded until the next delimiter.
         CommandAccumulator accumulator = new();
+        Action onOverflow = () => Error($"SerialServer: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); discarding input until next delimiter");
         while (!cancellationToken.IsCancellationRequested) {
             try {
                 if (_serialPort == null) {
@@ -167,8 +168,7 @@ public sealed class SerialServer : ServiceBase, IDisposable {
                     break;
                 }
                 char c = (char)_serialPort.ReadChar();
-                string? cmd = accumulator.ProcessChar(c,
-                    () => Error($"SerialServer: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); discarding input until next delimiter"));
+                string? cmd = accumulator.ProcessChar(c, onOverflow);
                 if (cmd != null) {
                     SendNotification(ServiceNotification.ReceivedData,
                                     CurrentStatus,

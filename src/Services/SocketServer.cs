@@ -312,12 +312,14 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                     byte verb = buffer[i];
                     switch (verb) {
                         case (int)TelnetVerbs.IAC:
-                            //literal IAC = 255 escaped, so append char 255 to string
+                            //literal IAC = 255 escaped, so append char 255 to string.
+                            // The (char) cast matters: Append(byte) would format the NUMBER
+                            // as the 3-char string "255" (#148 review follow-up).
                             if (cmdBuilder.Length >= CommandAccumulator.MaxCommandLength) {
                                 cmdBuilder.Clear(); // #148: drop the oversized partial command
                                 return false;
                             }
-                            cmdBuilder.Append(verb);
+                            cmdBuilder.Append((char)verb);
                             break;
                         case (int)TelnetVerbs.DO:
                         case (int)TelnetVerbs.DONT:
