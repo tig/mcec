@@ -110,6 +110,19 @@ public class SocketServerTelnetParseTests {
     }
 
     [Fact]
+    public void LiteralIacEscape_AppendsSingleChar255ToCommand() {
+        // IAC IAC is the telnet escape for a literal 0xFF data byte: exactly one (char)255
+        // must land in the accumulated command — not the decimal string "255"
+        // (StringBuilder.Append(byte) formats the number; #148 review follow-up).
+        var buffer = new byte[] { (byte)'a', IAC, IAC, (byte)'b', (byte)'\n' };
+
+        Parse(buffer, buffer.Length, out var commands);
+
+        Assert.Single(commands);
+        Assert.Equal("aÿb", commands[0]);
+    }
+
+    [Fact]
     public void PlainText_TerminatedByNewline_YieldsOneCommand() {
         var buffer = Encoding.ASCII.GetBytes("hello\r");
 

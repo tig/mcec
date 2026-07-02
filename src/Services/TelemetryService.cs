@@ -29,7 +29,8 @@ public partial class TelemetryService {
     public bool TelemetryEnabled { get; set; }
     public Stopwatch? RunTime { get; set; }
 
-    public TelemetryClient? TelemetryClient { get; private set; }
+    // internal setter so tests can substitute a client backed by a stub channel (#156).
+    public TelemetryClient? TelemetryClient { get; internal set; }
 
     public void Start(string appName, IDictionary<string, string>? startProperties = null) {
         RunTime = Stopwatch.StartNew();
@@ -99,10 +100,6 @@ public partial class TelemetryService {
         Task.Delay(1000).Wait();
     }
 
-    public void SetUser(string user) {
-        TelemetryClient!.Context.User.AuthenticatedUserId = user;
-    }
-
     public void TrackEvent(string key, IDictionary<string, string>? properties = null,
         IDictionary<string, double>? metrics = null) {
         if (TelemetryEnabled && TelemetryClient != null) {
@@ -116,7 +113,13 @@ public partial class TelemetryService {
         }
 
         if (TelemetryClient != null && ex != null && TelemetryEnabled) {
-            ExceptionTelemetry telex = new ExceptionTelemetry(ex);
+            // TELEMETRY:
+            // what: exception type, scrubbed message, and scrubbed stack
+            // why: to diagnose crashes and failures in the field
+            // how is PII protected: user-profile paths and username path segments in the
+            // message/stack are redacted (#156) so the cleartext Windows username never leaves
+            // the machine; User.Id stays pseudonymized.
+            ExceptionTelemetry telex = TelemetryScrubber.CreateScrubbedExceptionTelemetry(ex);
             TelemetryClient.TrackException(telex);
             Flush();
         }

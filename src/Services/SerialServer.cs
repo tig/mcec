@@ -156,7 +156,11 @@ public sealed class SerialServer : ServiceBase, IDisposable {
     // Update Read method to accept a CancellationToken
     private void Read(CancellationToken cancellationToken) {
         Log4.Debug($"Serial Read thread starting: {GetSettingsDisplayString()}");
-        StringBuilder sb = new StringBuilder();
+        // #148: cap accumulated command length so a peer streaming bytes without a
+        // delimiter cannot grow the buffer until OOM. On overflow the partial command is
+        // dropped, an error is logged, and input is discarded until the next delimiter.
+        CommandAccumulator accumulator = new();
+        Action onOverflow = () => Error($"SerialServer: command exceeded maximum length ({CommandAccumulator.MaxCommandLength} chars); discarding input until next delimiter");
         while (!cancellationToken.IsCancellationRequested) {
             try {
                 if (_serialPort == null) {
@@ -164,18 +168,12 @@ public sealed class SerialServer : ServiceBase, IDisposable {
                     break;
                 }
                 char c = (char)_serialPort.ReadChar();
-                if (c == '\r' || c == '\n' || c == '\0') {
-                    string cmd = sb.ToString();
-                    sb.Length = 0;
-                    if (cmd.Length > 0) {
-                        SendNotification(ServiceNotification.ReceivedData,
-                                        CurrentStatus,
-                                        new SerialReplyContext(_serialPort),
-                                        cmd);
-                    }
-                }
-                else {
-                    sb.Append(c);
+                string? cmd = accumulator.ProcessChar(c, onOverflow);
+                if (cmd != null) {
+                    SendNotification(ServiceNotification.ReceivedData,
+                                    CurrentStatus,
+                                    new SerialReplyContext(_serialPort),
+                                    cmd);
                 }
             }
             catch (TimeoutException) {
