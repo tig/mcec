@@ -24,11 +24,21 @@ internal static class ConsoleNativeMethods {
     [DllImport("kernel32.dll", SetLastError = true)]
     internal static extern bool AttachConsole(int dwProcessId);
 
-    private const int StdOutputHandle = -11;
     private const uint EnableVirtualTerminalProcessing = 0x0004;
+    private const uint GenericRead = 0x80000000;
+    private const uint GenericWrite = 0x40000000;
+    private const uint FileShareRead = 0x00000001;
+    private const uint FileShareWrite = 0x00000002;
+    private const uint OpenExisting = 3;
+    private static readonly IntPtr InvalidHandleValue = new(-1);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern IntPtr CreateFile(
+        string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes,
+        uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr GetStdHandle(int nStdHandle);
+    private static extern bool CloseHandle(IntPtr hObject);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
@@ -37,18 +47,34 @@ internal static class ConsoleNativeMethods {
     private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
 
     /// <summary>
-    ///     Enables ANSI/VT escape-sequence interpretation on this process's console output. A
+    ///     Enables ANSI/VT escape-sequence interpretation on this process's console. A
     ///     console-subsystem app inherits a session whose output mode the shell/terminal already set
     ///     up, but a GUI-subsystem (WinExe) process that ATTACHES to a console does not get
     ///     ENABLE_VIRTUAL_TERMINAL_PROCESSING, so Terminal.Gui.Cli's rendered help/viewer ANSI would
     ///     print as literal <c>[39m</c>-style garbage (and the mangled lines wrap, wrecking the
-    ///     layout). Call after <see cref="AttachConsole" />. Best effort: with no console or a piped
-    ///     stdout, GetConsoleMode fails and this is a harmless no-op.
+    ///     layout). Call after <see cref="AttachConsole" />.
+    ///     <para>
+    ///     NOT via GetStdHandle: a GUI process's std-handle table is launcher-dependent and
+    ///     AttachConsole does not reliably reinitialize it (GetStdHandle can return NULL right after
+    ///     a successful attach). The attached console's active screen buffer is always reachable as
+    ///     <c>CONOUT$</c>, and the output mode is a property of that BUFFER, not of any particular
+    ///     handle, so setting VT there covers every writer. Best effort: with no console attached,
+    ///     the <c>CONOUT$</c> open fails and this is a harmless no-op.
+    ///     </para>
     /// </summary>
     internal static void TryEnableVtProcessing() {
-        IntPtr stdout = GetStdHandle(StdOutputHandle);
-        if (GetConsoleMode(stdout, out uint mode)) {
-            _ = SetConsoleMode(stdout, mode | EnableVirtualTerminalProcessing);
+        IntPtr conout = CreateFile("CONOUT$", GenericRead | GenericWrite, FileShareRead | FileShareWrite,
+            IntPtr.Zero, OpenExisting, 0, IntPtr.Zero);
+        if (conout == IntPtr.Zero || conout == InvalidHandleValue) {
+            return;
+        }
+        try {
+            if (GetConsoleMode(conout, out uint mode)) {
+                _ = SetConsoleMode(conout, mode | EnableVirtualTerminalProcessing);
+            }
+        }
+        finally {
+            _ = CloseHandle(conout);
         }
     }
 }
