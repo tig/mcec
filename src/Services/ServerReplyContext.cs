@@ -1,11 +1,12 @@
 using System;
 using System.Net.Sockets;
-using System.Text;
 
 namespace MCEControl;
 
 public class ServerReplyContext : Reply {
-    internal StringBuilder CmdBuilder { get; set; }
+    // Per-connection command accumulation (CR/LF/NUL delimiters + the #148 max-length
+    // cap) — the one shared implementation, same as SocketClient and SerialServer (#212).
+    internal CommandAccumulator Accumulator { get; } = new();
     internal Socket Socket { get; set; }
     internal int ClientNumber { get; set; }
 
@@ -16,15 +17,9 @@ public class ServerReplyContext : Reply {
 
     // Constructor which takes a Socket and a client number
     public ServerReplyContext(SocketServer server, Socket socket, int clientNumber) {
-        CmdBuilder = new StringBuilder();
         _server = server;
         Socket = socket;
         ClientNumber = clientNumber;
-    }
-
-    protected string Command {
-        get { return CmdBuilder.ToString(); }
-        set { }
     }
 
     public override void Write(String text) {

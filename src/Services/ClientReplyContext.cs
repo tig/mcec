@@ -19,7 +19,9 @@ internal class ClientReplyContext : Reply {
             return;
         }
 
-        byte[] buf = System.Text.Encoding.ASCII.GetBytes(TelnetProtocol.EscapeIac(text));
+        // #212: UTF-8, matching the server's outbound encoding (was ASCII, which
+        // flattened any non-ASCII char to '?').
+        byte[] buf = TelnetProtocol.EncodeOutbound(text);
         _tcpClient.GetStream().Write(buf, 0, buf.Length);
     }
 }
