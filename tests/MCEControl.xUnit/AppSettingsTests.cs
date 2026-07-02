@@ -152,6 +152,48 @@ public class AppSettingsTests
         Assert.True(AppSettings.RegistryValueToBoolean(new byte[] { 1, 2, 3 }, true));
     }
 
+    /// <summary>
+    /// Issue #155 review follow-up (M1): Registry.GetValue itself can throw SecurityException
+    /// (deny-read ACE) or IOException (key marked for deletion). GetRegistryValue must swallow
+    /// these and return the supplied default — a registry problem must never crash startup
+    /// (this also covers the TelemetryService opt-in read). Exercised through the injectable
+    /// seam; the real registry is never touched.
+    /// </summary>
+    [Fact]
+    public void GetRegistryValue_SecurityException_ReturnsDefault()
+    {
+        object? result = AppSettings.GetRegistryValue("Whatever", "fallback",
+            (key, name, def) => throw new System.Security.SecurityException("deny-read ACE"));
+        Assert.Equal("fallback", result);
+    }
+
+    [Fact]
+    public void GetRegistryValue_IOException_ReturnsDefault()
+    {
+        object? result = AppSettings.GetRegistryValue("Whatever", 42,
+            (key, name, def) => throw new IOException("key has been marked for deletion"));
+        Assert.Equal(42, result);
+    }
+
+    [Fact]
+    public void GetRegistryValue_UnauthorizedAccessException_ReturnsDefault()
+    {
+        object? result = AppSettings.GetRegistryValue("Whatever", null,
+            (key, name, def) => throw new UnauthorizedAccessException("no read access"));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetRegistryValue_LegacyKeyThrows_ReturnsDefault()
+    {
+        // Current key reads fine (absent -> null); the legacy fallback key is the one that throws.
+        object? result = AppSettings.GetRegistryValue("Whatever", false,
+            (key, name, def) => key == AppSettings.RegistryKeyPath
+                ? null
+                : throw new System.Security.SecurityException("deny-read ACE on legacy key"));
+        Assert.Equal(false, result);
+    }
+
     [Fact]
     public void DeserializeNotExists_Test()
     {

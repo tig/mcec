@@ -27,13 +27,31 @@ public class AppSettings : ICloneable {
 
     /// <summary>
     /// Read a registry value preferring the current (Kindel) key, falling back to legacy (Kindel Systems) key.
+    /// SECURITY (issue #155): a registry problem (deny-read ACE, key marked for deletion) must never
+    /// crash startup — such failures return <paramref name="defaultValue"/> and are logged.
     /// </summary>
     public static object? GetRegistryValue(string valueName, object? defaultValue) {
-        object? val = Registry.GetValue(RegistryKeyPath, valueName, null);
-        if (val == null) {
-            val = Registry.GetValue(LegacyRegistryKeyPath, valueName, defaultValue);
+        return GetRegistryValue(valueName, defaultValue, Registry.GetValue);
+    }
+
+    /// <summary>
+    /// Seam for <see cref="GetRegistryValue(string, object?)"/>: <paramref name="getValue"/> stands in
+    /// for <see cref="Registry.GetValue(string, string?, object?)"/> so the failure path is testable
+    /// without touching the real registry.
+    /// </summary>
+    internal static object? GetRegistryValue(string valueName, object? defaultValue, Func<string, string?, object?, object?> getValue) {
+        try {
+            object? val = getValue(RegistryKeyPath, valueName, null);
+            if (val == null) {
+                val = getValue(LegacyRegistryKeyPath, valueName, defaultValue);
+            }
+            return val;
         }
-        return val;
+        catch (Exception e) when (e is System.Security.SecurityException || e is IOException || e is UnauthorizedAccessException) {
+            Logger.Instance.Log4.Error(
+                $"Settings: Could not read registry value '{valueName}'; using default ({defaultValue ?? "null"}). {e.Message}");
+            return defaultValue;
+        }
     }
 
     /// <summary>
@@ -43,7 +61,7 @@ public class AppSettings : ICloneable {
     /// must not crash startup. Falls back to <paramref name="defaultValue"/> and logs the bad value
     /// so an admin can fix it.
     /// </summary>
-    public static bool RegistryValueToBoolean(object? value, bool defaultValue) {
+    internal static bool RegistryValueToBoolean(object? value, bool defaultValue) {
         if (value is null) {
             return defaultValue;
         }
