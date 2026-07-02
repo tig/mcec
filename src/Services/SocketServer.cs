@@ -37,10 +37,30 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     // Test seams (InternalsVisibleTo MCEControl.xUnit)
     internal int ConnectedClientCount => _clientCount;
     internal IReadOnlyDictionary<int, Socket> TrackedClients => _clientList;
+    // The port the listener actually bound (tests Start on port 0 so the OS assigns an
+    // ephemeral port that a loopback client can then connect to); 0 when not listening.
+    internal int ListeningPort => (_mainSocket?.LocalEndPoint as IPEndPoint)?.Port ?? 0;
+
+    // True once Dispose() has run. Dispose is terminal: unlike Stop() (which leaves the
+    // object restartable), a disposed SocketServer can never be Start()ed again (#202).
+    private bool _disposed;
 
     #region IDisposable Members
+    /// <summary>
+    /// Terminal teardown. Guarded and idempotent: the first call closes the listener and every
+    /// tracked client; later calls no-op. After Dispose, <see cref="Start"/> throws
+    /// <see cref="ObjectDisposedException"/>. Contrast with <see cref="Stop"/>, which closes the
+    /// same sockets but leaves the object restartable. Before issue #202 Stop() <i>was</i>
+    /// Dispose(true) and the "disposed" object was routinely resurrected by Start(), so
+    /// "stopped" and "disposed" were the same state and nothing guarded either.
+    /// </summary>
     public void Dispose() {
-        Dispose(true);
+        if (_disposed) {
+            return;
+        }
+        _disposed = true;
+        Log4.Debug("SocketServer disposing...");
+        CloseListenerAndClients();
         GC.SuppressFinalize(this);
     }
     #endregion
@@ -48,12 +68,13 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     // Disposable members
     private Socket? _mainSocket;
 
-    private void Dispose(bool disposing) {
-        Log4.Debug("SocketServer disposing...");
-        if (!disposing) {
-            return;
-        }
-
+    /// <summary>
+    /// Closes the listening socket and force-closes every tracked client, draining the
+    /// connected tally so a later <see cref="Start"/> does not report a stale count. This is
+    /// the shared teardown used by both the resettable <see cref="Stop"/> and the terminal
+    /// <see cref="Dispose"/> — it mutates live state but does NOT mark the object disposed (#202).
+    /// </summary>
+    private void CloseListenerAndClients() {
         foreach (int i in _clientList.Keys) {
             _clientList.TryRemove(i, out Socket? socket);
             if (socket != null) {
@@ -135,6 +156,8 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     }
 
     public void Start(int port, string? bindAddress = null) {
+        // Stop() is resettable; Dispose() is terminal (#202). Never resurrect a disposed server.
+        ObjectDisposedException.ThrowIf(_disposed, this);
         try {
             // Create the listening socket on the address family of the resolved bind address (#149),
             // so an IPv6 bind (e.g. "::1") gets an IPv6 socket rather than throwing on an IPv4 one.
@@ -161,9 +184,15 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         }
     }
 
+    /// <summary>
+    /// Stops the server: closes the listener and force-closes every tracked client. Unlike
+    /// <see cref="Dispose"/> this is resettable — a stopped server may be <see cref="Start"/>ed
+    /// again (the operator toggles the service on/off in Settings). Before issue #202 this
+    /// called Dispose(true), conflating "stopped" with "disposed".
+    /// </summary>
     public void Stop() {
         Log4.Debug("SocketServer Stop");
-        Dispose(true);
+        CloseListenerAndClients();
         SetStatus(ServiceStatus.Stopped);
     }
 
@@ -173,7 +202,11 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     private void OnClientConnect(IAsyncResult async) {
         Log4.Debug("SocketServer OnClientConnect");
 
-        if (_mainSocket == null) {
+        // Capture the listener locally: Stop()/Dispose() null the field from another thread,
+        // and dereferencing the field again below would race a NullReferenceException into
+        // the generic catch (a spurious Error notification on every stop — #202).
+        Socket? listener = _mainSocket;
+        if (listener == null) {
             return;
         }
 
@@ -182,7 +215,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             // Here we complete/end the BeginAccept() asynchronous call
             // by calling EndAccept() - which returns the reference to
             // a new Socket object
-            Socket workerSocket = _mainSocket.EndAccept(async);
+            Socket workerSocket = listener.EndAccept(async);
 
             serverReplyContext = RegisterClient(workerSocket);
 
@@ -200,23 +233,47 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             // just connected client
             BeginReceive(serverReplyContext);
         }
+        catch (ObjectDisposedException) {
+            // Expected on Stop()/Dispose(): closing the listener completes the pending
+            // BeginAccept, and EndAccept then throws ObjectDisposedException. This is
+            // normal shutdown — not an error. Before issue #202 the generic catch below
+            // turned every stop into a spurious Error notification (and a CloseSocket
+            // call on a null context). Do not re-arm the accept; the listener is gone.
+            Log4.Debug("SocketServer OnClientConnect: listener closed during shutdown");
+            return;
+        }
+        catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted) {
+            // The accept was aborted because the listener is shutting down — same benign
+            // shutdown shape as the ObjectDisposedException above (#202).
+            Log4.Debug("SocketServer OnClientConnect: accept aborted during shutdown");
+            return;
+        }
         catch (SocketException se) {
             SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
             // See http://msdn.microsoft.com/en-us/library/windows/desktop/ms740668(v=vs.85).aspx
             //if (se.SocketErrorCode == SocketError.ConnectionReset) // WSAECONNRESET (10054)
-            {
+            if (serverReplyContext != null) {
                 // Forcibly closed
-                CloseSocket(serverReplyContext!);
+                CloseSocket(serverReplyContext);
             }
         }
         catch (Exception e) {
             SendNotification(ServiceNotification.Error, CurrentStatus, serverReplyContext, $"OnClientConnect: {e.Message}");
-            CloseSocket(serverReplyContext!);
+            if (serverReplyContext != null) {
+                CloseSocket(serverReplyContext);
+            }
         }
 
         // Since the main Socket is now free, it can go back and wait for
         // other clients who are attempting to connect
-        _mainSocket?.BeginAccept(OnClientConnect, null);
+        try {
+            _mainSocket?.BeginAccept(OnClientConnect, null);
+        }
+        catch (ObjectDisposedException) {
+            // Raced with Stop()/Dispose() between the accept completing and the re-arm —
+            // benign shutdown, nothing to re-arm (#202).
+            Log4.Debug("SocketServer OnClientConnect: listener closed before accept re-arm");
+        }
     }
 
     // Tracks a newly connected client. Internal so tests can exercise the
@@ -553,12 +610,41 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             }
         }
         else {
-            if (((ServerReplyContext)replyContext).Socket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
+            SendToClient(text, (ServerReplyContext)replyContext);
+        }
+    }
+
+    /// <summary>
+    /// Sends <paramref name="text"/> to a single tracked client, guarding the raw
+    /// <see cref="Socket.Send(byte[])"/>. A peer can vanish between the broadcast loop's
+    /// tracking lookup and the send; before issue #202 the resulting exception escaped
+    /// <see cref="Send"/> into whatever command handler triggered the write. A failed send is
+    /// terminal for that client: it is closed and removed from tracking (complementing the
+    /// receive-path fix from #150) and a <see cref="ServiceNotification.WriteFailed"/> is
+    /// emitted — never an unhandled throw. Internal so tests can drive it without a live
+    /// listener (InternalsVisibleTo).
+    /// </summary>
+    internal void SendToClient(string text, ServerReplyContext replyContext) {
+        try {
+            if (replyContext.Socket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
                 SendNotification(ServiceNotification.Write, CurrentStatus, replyContext, text.Trim());
             }
             else {
                 SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext, text);
             }
+        }
+        catch (SocketException se) {
+            SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext,
+                $"Send: {se.Message}, {se.HResult:X} ({se.SocketErrorCode})");
+            CloseSocket(replyContext);
+        }
+        catch (ObjectDisposedException) {
+            // The client's socket was closed out from under us (e.g. the receive path
+            // closed it between the tracking lookup and this send) — treat as a failed
+            // write and make sure the client is fully untracked.
+            SendNotification(ServiceNotification.WriteFailed, CurrentStatus, replyContext,
+                "Send: client socket was already closed");
+            CloseSocket(replyContext);
         }
     }
 
