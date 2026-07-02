@@ -148,6 +148,66 @@ public class SessionProvisionerTests : IDisposable {
         Assert.True(Directory.Exists(sentinel), "teardown must not delete anything outside the sessions root");
     }
 
+    // --- #215: the session token is a real credential — written into the co-located config as the
+    // instance's McpAuthToken and validated by end-session as the teardown credential.
+
+    [Fact]
+    public void Provision_WritesTheTokenAsTheSessionsMcpAuthToken() {
+        ProvisionedSession session = SessionProvisioner.Provision(mcpServerEnabled: true);
+
+        string settings = File.ReadAllText(Path.Combine(session.Directory, SettingsStore.SettingsFileName));
+        Assert.False(string.IsNullOrWhiteSpace(session.Token));
+        Assert.Contains($"<McpAuthToken>{session.Token}</McpAuthToken>", settings);
+    }
+
+    [Fact]
+    public void ValidateTeardownToken_CorrectToken_IsValid() {
+        ProvisionedSession session = SessionProvisioner.Provision(mcpServerEnabled: false);
+
+        Assert.Equal(SessionTokenValidation.Valid,
+            SessionProvisioner.ValidateTeardownToken(session.SessionId, session.Token));
+    }
+
+    [Theory]
+    [InlineData("wrong-token")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void ValidateTeardownToken_WrongOrMissingToken_IsMismatch(string? token) {
+        ProvisionedSession session = SessionProvisioner.Provision(mcpServerEnabled: false);
+
+        Assert.Equal(SessionTokenValidation.TokenMismatch,
+            SessionProvisioner.ValidateTeardownToken(session.SessionId, token));
+    }
+
+    [Fact]
+    public void ValidateTeardownToken_GoneSession_ReportsSessionGone() {
+        Assert.Equal(SessionTokenValidation.SessionGone,
+            SessionProvisioner.ValidateTeardownToken("abc123def456", "whatever"));
+    }
+
+    [Theory]
+    [InlineData("..")]
+    [InlineData("a/b")]
+    [InlineData("ABC123DEF456")]
+    public void ValidateTeardownToken_MalformedId_ReportsInvalidId(string id) {
+        Assert.Equal(SessionTokenValidation.InvalidId,
+            SessionProvisioner.ValidateTeardownToken(id, "whatever"));
+    }
+
+    [Fact]
+    public void ValidateTeardownToken_SessionWithoutConfig_FailsClosed_AndWritesNothing() {
+        // A directory that exists but has no readable co-located config cannot be verified — the
+        // check must fail closed AND must not write a default settings file into the directory as a
+        // side effect (the reaper collects it later).
+        string dir = Path.Combine(SessionProvisioner.SessionsRoot, "0123456789ab");
+        Directory.CreateDirectory(dir);
+
+        Assert.Equal(SessionTokenValidation.TokenMismatch,
+            SessionProvisioner.ValidateTeardownToken("0123456789ab", "whatever"));
+        Assert.False(File.Exists(Path.Combine(dir, SettingsStore.SettingsFileName)),
+            "token validation must not create files in the session directory");
+    }
+
     [Fact]
     public void ReapOrphans_RemovesOldDirs_KeepsFreshOnes() {
         ProvisionedSession stale = SessionProvisioner.Provision(mcpServerEnabled: false);

@@ -118,12 +118,17 @@ PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands
 when done — an abnormal exit leaks those security gates enabled. Instead, when the operator has authorized it,
 call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
 `mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
-launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), and a `sessionId`. Run from
-that directory, do your work there, then call `end-session` with the `sessionId` (after stopping its
-mcec.exe) to delete it — teardown is just removing the directory, so a crash leaves the real install
-untouched. If `provision-session` returns `error.code:provisioning-not-authorized` (these feature-specific
-refusals ride in `error.code`, while `error.category` stays `internal`), the operator has not opted in
-(AllowSessionProvisioning) — tell them, don't retry.
+launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), a `sessionId`, and a
+`token`. The `token` is the session credential — keep it: every HTTP request to the session's
+`mcpEndpoint` must send the header `Authorization: Bearer <token>` (stdio needs no header), and
+`end-session` requires it. Run from that directory, do your work there, then call `end-session` with the
+`sessionId` AND `token` (after stopping its mcec.exe) to delete it — teardown is just removing the
+directory, so a crash leaves the real install untouched. An `end-session` with a wrong/missing token
+fails with `error.code:session-token-invalid` — a session you did not provision is not yours to tear
+down; orphaned sessions are reaped automatically. If `provision-session` returns
+`error.code:provisioning-not-authorized` (these feature-specific refusals ride in `error.code`, while
+`error.category` stays `internal`), the operator has not opted in (AllowSessionProvisioning) — tell them,
+don't retry.
 
 EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
 session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category —

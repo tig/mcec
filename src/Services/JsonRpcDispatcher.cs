@@ -117,13 +117,16 @@ public sealed class JsonRpcDispatcher {
             },
         };
         tools.Add(ToolCatalog.Tool("provision-session",
-            "Get a fresh, disposable, isolated MCEC instance to run from instead of enabling the installed one. Returns a directory containing mcec.exe + an agent-ready co-located config (agent commands enabled ONLY inside the copy), plus how to launch/connect and the sessionId to tear it down. Requires the operator to have enabled AllowSessionProvisioning; the installed config is never touched. Call end-session (or delete the directory) when finished.",
+            "Get a fresh, disposable, isolated MCEC instance to run from instead of enabling the installed one. Returns a directory containing mcec.exe + an agent-ready co-located config (agent commands enabled ONLY inside the copy), plus how to launch/connect and the sessionId + token to tear it down. The token is the session credential: HTTP requests to the session's mcpEndpoint must send 'Authorization: Bearer <token>', and end-session requires it. Requires the operator to have enabled AllowSessionProvisioning; the installed config is never touched. Call end-session (or delete the directory) when finished.",
             provisionProps, []));
 
         tools.Add(ToolCatalog.Tool("end-session",
-            "Tear down a provisioned session (from provision-session) by deleting its directory. Stop the session's mcec.exe first, or its files stay locked. MCEC also reaps stale session dirs on launch.",
-            new JsonObject { ["sessionId"] = ToolCatalog.PropSchema("string", "The sessionId returned by provision-session") },
-            ["sessionId"]));
+            "Tear down a provisioned session (from provision-session) by deleting its directory. Requires the session's token — the teardown credential provision-session returned. Stop the session's mcec.exe first, or its files stay locked. MCEC also reaps stale session dirs on launch.",
+            new JsonObject {
+                ["sessionId"] = ToolCatalog.PropSchema("string", "The sessionId returned by provision-session"),
+                ["token"] = ToolCatalog.PropSchema("string", "The token returned by provision-session (the teardown credential)"),
+            },
+            ["sessionId", "token"]));
 
         return tools;
     }

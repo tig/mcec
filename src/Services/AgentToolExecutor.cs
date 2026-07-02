@@ -386,11 +386,37 @@ public sealed class AgentToolExecutor {
         }
     }
 
-    /// <summary>Tears down a provisioned session directory by id (#138).</summary>
+    /// <summary>
+    /// Tears down a provisioned session directory by id (#138). Since #215 the caller must also
+    /// present the session's <c>token</c> — the credential <c>provision-session</c> issued and wrote
+    /// into the session's co-located config. end-session is reachable WITHOUT the provisioning
+    /// authorization gate (teardown must always be possible), so before the token this tool let any
+    /// MCP caller delete any session it could name; now only the token holder can.
+    /// </summary>
     private JsonObject RunEndSession(JsonObject args) {
         string? sessionId = Str(args, "sessionId");
         if (string.IsNullOrWhiteSpace(sessionId)) {
             return ToolError("end-session requires a non-empty 'sessionId' argument.", "bad-arguments", AgentErrorCategory.InvalidArgument);
+        }
+        string? token = Str(args, "token");
+        if (string.IsNullOrWhiteSpace(token)) {
+            return ToolError(
+                "end-session requires the session 'token' returned by provision-session (the teardown credential).",
+                "bad-arguments", AgentErrorCategory.InvalidArgument);
+        }
+        switch (SessionProvisioner.ValidateTeardownToken(sessionId, token)) {
+            case SessionTokenValidation.TokenMismatch:
+                AgentRuntime.Audit("end-session", $"REJECTED — token does not match session '{sessionId.Trim()}'");
+                return ToolError(
+                    "The token does not match this session (or the session's config could not be verified). " +
+                    "Use the exact token provision-session returned; a session you did not provision is not yours to tear down. " +
+                    "Orphaned sessions are reaped automatically.",
+                    "session-token-invalid");
+            case SessionTokenValidation.InvalidId:
+            case SessionTokenValidation.SessionGone:
+            case SessionTokenValidation.Valid:
+            default:
+                break; // Teardown itself re-validates the id shape and handles a gone directory idempotently.
         }
         bool removed = SessionProvisioner.Teardown(sessionId);
         JsonObject result = new() {
