@@ -22,7 +22,10 @@ namespace MCEControl;
 ///
 /// SECURITY: the observation tools (capture/query/find/invoke) only run when
 /// <see cref="AgentRuntime.AgentCommandsEnabled"/> is true; otherwise a tool call is reported as an
-/// error. The HTTP listener binds to <see cref="AppSettings.McpBindAddress"/> (127.0.0.1 by default).
+/// error. The HTTP listener binds to <see cref="AppSettings.McpBindAddress"/> (127.0.0.1 by default),
+/// and loopback-only is ENFORCED (#152): <see cref="StartHttp"/> refuses to start — with a loud error —
+/// unless the address is <c>localhost</c> or a literal loopback IP (see
+/// <see cref="IsLoopbackBindAddress"/>); wildcards and non-loopback values never reach HttpListener.
 /// Every tool call is loudly audit-logged.
 /// </summary>
 public static class AgentServer {
@@ -821,6 +824,31 @@ public static class AgentServer {
     // HTTP transport (localhost floor)
     // -------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Whether <paramref name="address"/> is a bind address <see cref="StartHttp"/> will accept (#152):
+    /// the literal hostname <c>localhost</c>, or a literal IP address that
+    /// <see cref="IPAddress.IsLoopback"/> confirms is loopback (any 127.0.0.0/8 address, or <c>::1</c>,
+    /// optionally bracketed as <c>[::1]</c>). Everything else is rejected: the HttpListener wildcards
+    /// <c>+</c> and <c>*</c>, the all-interfaces addresses <c>0.0.0.0</c> and <c>::</c>, any
+    /// non-loopback IP, and any hostname other than <c>localhost</c>. Hostnames are deliberately NOT
+    /// resolved via DNS — a name could resolve to a non-loopback interface, so only the one literal
+    /// name is trusted.
+    /// </summary>
+    internal static bool IsLoopbackBindAddress(string? address) {
+        if (string.IsNullOrWhiteSpace(address)) {
+            return false;
+        }
+        string candidate = address.Trim();
+        if (string.Equals(candidate, "localhost", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+        // An IPv6 literal may be written bracketed ([::1]), as it appears inside a URL/prefix.
+        if (candidate.Length >= 2 && candidate[0] == '[' && candidate[^1] == ']') {
+            candidate = candidate[1..^1];
+        }
+        return IPAddress.TryParse(candidate, out IPAddress? ip) && IPAddress.IsLoopback(ip);
+    }
+
     public static void StartHttp() {
         AppSettings? settings = AgentRuntime.Settings;
         if (settings is null) {
@@ -830,7 +858,27 @@ public static class AgentServer {
             if (_listener is not null) {
                 return;
             }
-            string prefix = $"http://{settings.McpBindAddress}:{settings.McpHttpPort}/";
+            // SECURITY (#152): enforce the documented "localhost only" contract BEFORE the address ever
+            // reaches HttpListener. The MCP endpoint has no authentication (#143), so binding all
+            // interfaces (a config typo like "+", "*", or "0.0.0.0") would hand unauthenticated UI
+            // automation + screen capture to the whole network. Refuse to start rather than bind.
+            if (!IsLoopbackBindAddress(settings.McpBindAddress)) {
+                Logger.Instance.Log4.Error(
+                    $"AgentServer: REFUSING to start the MCP HTTP transport: McpBindAddress '{settings.McpBindAddress}' " +
+                    "is not a loopback address. The agent endpoint has no authentication, so a non-loopback bind would " +
+                    "expose UI automation and screen capture to the network. Set <McpBindAddress> in mcec.settings to " +
+                    "\"localhost\", \"127.0.0.1\", \"::1\", or another literal loopback IP (127.x.y.z). " +
+                    "Wildcards (\"+\", \"*\"), all-interfaces addresses (\"0.0.0.0\", \"::\"), other IPs, and other " +
+                    "hostnames are rejected. Remote exposure, if ever supported, requires the auth work tracked in #143.");
+                return;
+            }
+            // Normalize the validated address for the prefix: trim stray whitespace and bracket a bare
+            // IPv6 literal ("::1" must appear as "[::1]" in an HttpListener prefix).
+            string host = settings.McpBindAddress.Trim();
+            if (host.Contains(':') && !host.StartsWith('[')) {
+                host = $"[{host}]";
+            }
+            string prefix = $"http://{host}:{settings.McpHttpPort}/";
             HttpListener listener = new();
             listener.Prefixes.Add(prefix);
             try {

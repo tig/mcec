@@ -40,10 +40,15 @@ does **not** turn the others on.
 
 2. **The MCP / HTTP façade is DISABLED by default.**
    The network-facing server (`McpServerEnabled`) is off unless you opt in. Even when
-   enabled, the HTTP floor **binds to localhost only** (`McpBindAddress = 127.0.0.1`),
-   so it is not reachable from other machines. There is no remote binding default and
-   no authentication bypass — if you need off-box access, front it with your own
-   reverse proxy and auth.
+   enabled, the HTTP floor **binds to localhost only** — and this is **enforced**, not
+   just a default ([#152]): `McpBindAddress` must be `localhost` or a literal loopback
+   IP (any `127.x.y.z`, or `::1` / `[::1]`). Anything else — the `HttpListener`
+   wildcards `+` and `*`, the all-interfaces addresses `0.0.0.0` and `::`, non-loopback
+   IPs, or any other hostname (names are never DNS-resolved) — makes MCEC **refuse to
+   start the HTTP listener at all**, logging a loud error instead. So the endpoint is
+   never reachable from other machines. If you need off-box access, front it with your
+   own reverse proxy and auth (native remote exposure, if ever added, is gated on the
+   authentication work in [#143]).
 
 3. **Every agent action is loudly audited.**
    Each agent command logs an `AGENT-AUDIT:` line (action + target) before it runs.
@@ -427,7 +432,10 @@ Content-Type: application/json
 
 The address and port come from `McpBindAddress` (default `127.0.0.1`) and `McpHttpPort`
 (default `5151`). This is a deliberately minimal floor for local scripts and agents; it
-is not a general-purpose web API and is not exposed off-box by default.
+is not a general-purpose web API and is never exposed off-box: the bind address is
+validated at startup ([#152]) and only `localhost` or a literal loopback IP (`127.x.y.z`,
+`::1`, `[::1]`) is accepted — with any other value the listener refuses to start and MCEC
+logs a loud error explaining what to change.
 
 The floor is hardened against resource exhaustion ([#151]): a request body larger than
 **1 MB** is refused with `413` (the cap is enforced by a bounded read, so chunked bodies
@@ -435,6 +443,8 @@ without a `Content-Length` can't bypass it), and at most **16** requests are ser
 concurrently — past that the server answers `503` rather than queueing.
 
 [#151]: https://github.com/tig/mcec/issues/151
+[#152]: https://github.com/tig/mcec/issues/152
+[#143]: https://github.com/tig/mcec/issues/143
 
 ---
 
