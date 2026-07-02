@@ -30,8 +30,9 @@ window's contents frame-by-frame; it is part of the shot) and if it looks good, 
 
 It is the executable form of these decisions; replicate them if reproducing by hand:
 
-1. **GUI controller that renders the overlay, driven over HTTP.** Unlike a headless `--mcp` controller, a
-   **GUI** MCEC has a message loop and so paints the overlay. The controller's co-located `mcec.settings`
+1. **GUI controller that renders the overlay, driven over HTTP.** A **GUI** MCEC serves the localhost
+   HTTP endpoint the driver POSTs to (a headless `--mcp` controller speaks stdio only) and paints the
+   overlay. The controller's co-located `mcec.settings`
    sets `McpServerEnabled=true` (the localhost HTTP floor), `AgentCommandsEnabled=true`,
    `CommandOverlayEnabled=true`, and `CommandOverlayPosition=Left`; the driver POSTs JSON-RPC tool calls
    to `http://127.0.0.1:5151/mcp`.

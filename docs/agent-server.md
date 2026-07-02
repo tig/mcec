@@ -426,9 +426,10 @@ rest of the tree is returned.
 
 ## Using MCEC as an MCP server
 
-MCEC can run **headless** as an MCP **stdio** server (no UI, no tray icon) so an MCP
-client (such as a desktop AI assistant) can spawn it on demand and talk to it over
-standard input/output:
+MCEC can run **headless** as an MCP **stdio** server (no main window, no tray icon; the
+on-screen command overlay and the emergency-stop hotkey still work) so an MCP client
+(such as a desktop AI assistant) can spawn it on demand and talk to it over standard
+input/output:
 
 ```
 mcec.exe --mcp
@@ -595,7 +596,8 @@ Two operator-safety features build on the gates above; see
 - **Emergency stop:** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
   `EmergencyStopHotkey`) that instantly halts a session from any window; latching the actuation gate
   (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
-  reacts to physical input only, so the agent can never trip or defeat it.
+  reacts to physical input only, so the agent can never trip or defeat it. The operator re-arms via the
+  **⛔ Re-arm** menu item (GUI) or the modal prompt that opens when the stop engages (headless `--mcp`).
 - **Isolated session provisioning:** `provision-session` (gated by `AllowSessionProvisioning`) hands
   an agent a disposable, isolated MCEC directory instead of it mutating the installed config, plus a
   session `token` that is both the instance's `McpAuthToken` (HTTP requests to the session's endpoint

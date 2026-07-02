@@ -478,18 +478,14 @@ public partial class MainWindow : Form, IAppHost {
         // message loop) whenever the agent front door could be driving. It reacts to physical input only,
         // so the agent can never trip or defeat it.
         if (!AgentRuntime.Headless && Settings.EmergencyStopEnabled && (Settings.McpServerEnabled || Settings.AgentCommandsEnabled)) {
-            EmergencyStopHotkey? parsed = EmergencyStopHotkey.Parse(Settings.EmergencyStopHotkey);
-            if (parsed is null) {
-                Logger.Instance.Log4.Warn($"EmergencyStop: could not parse hotkey '{Settings.EmergencyStopHotkey}'; using default {EmergencyStopHotkey.DefaultSpec}.");
-                parsed = EmergencyStopHotkey.Default;
-            }
-            EmergencyStop.Start(parsed);
+            EmergencyStop.Start(EmergencyStopHotkey.ParseOrDefault(Settings.EmergencyStopHotkey));
             emergencyStopArmed = true;
         }
 
         // MCEC 3.0: on-screen command overlay (#119); narrates each command as it executes so anyone
-        // watching sees that MCEC is driving. On by default; never shown headless. Independent (not
-        // owned) so it keeps narrating even when the MCEC window is minimized to the tray.
+        // watching sees that MCEC is driving. On by default; headless --mcp hosts its copy on
+        // HeadlessOperatorUi's pump thread, never here. Independent (not owned) so it keeps narrating
+        // even when the MCEC window is minimized to the tray.
         if (Settings.CommandOverlayEnabled && !AgentRuntime.Headless && commandOverlay is null) {
             commandOverlay = new CommandOverlayWindow();
             commandOverlay.Show();

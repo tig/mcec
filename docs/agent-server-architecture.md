@@ -205,13 +205,18 @@ in the result-contract envelope and returned to the caller.
 
 ## `--mcp` headless bootstrap
 
-The `--mcp` command-line switch starts MCEC without the WinForms UI: it initializes
-`AgentRuntime` (settings + invoker + the `HeadlessAppHost`), then runs `AgentServer` as
+The `--mcp` command-line switch starts MCEC without the MainWindow host: it initializes
+`AgentRuntime` (settings + invoker + the `HeadlessAppHost`), starts `HeadlessOperatorUi`
+(a dedicated STA pump thread hosting the operator safety surface: the emergency-stop
+hotkey, the command overlay, and the modal re-arm prompt; both features are
+message-loop-bound and the protocol thread never pumps), then runs `AgentServer` as
 an MCP stdio server and pumps stdin/stdout until the client disconnects. This path
 shares the exact same commands and gating as the interactive host; the only difference
-is the absence of UI and the stdio transport. The process exits when the client closes
-stdin (EOF) or when a `mcec:exit` command runs (`HeadlessAppHost.RequestShutdown`
-performs the same teardown as the EOF path after letting the in-flight reply flush).
+is the absence of MainWindow (no transports, no settings UI, no tray icon) and the
+stdio transport. The process exits when the client closes stdin (EOF) or when a
+`mcec:exit` command runs (`HeadlessAppHost.RequestShutdown` performs the same teardown
+as the EOF path after letting the in-flight reply flush); both stop the operator
+surface, the dispatcher, and the UIA worker.
 
 ## Gating model recap
 

@@ -84,7 +84,8 @@ internal static class Program {
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
         // MCEC 3.0: headless MCP server mode. An MCP client launches `mcec.exe --mcp` and speaks
-        // JSON-RPC over stdio. No WinForms message loop runs; stdout is reserved for the protocol.
+        // JSON-RPC over stdio. This thread never pumps messages (stdout is reserved for the protocol);
+        // the operator safety surface (e-stop hotkey + overlay) pumps on HeadlessOperatorUi's thread.
         if (Array.Exists(args, a => string.Equals(a, "--mcp", StringComparison.OrdinalIgnoreCase))) {
             RunHeadlessMcp();
             return;
@@ -106,15 +107,23 @@ internal static class Program {
 
     /// <summary>
     /// Headless bootstrap for <c>--mcp</c>: loads settings and the command core through the
-    /// UI-agnostic <see cref="AgentRuntime"/> seam (no <c>MainWindow</c>), then serves MCP over stdio.
+    /// UI-agnostic <see cref="AgentRuntime"/> seam (no <c>MainWindow</c>), starts the operator safety
+    /// surface (<see cref="HeadlessOperatorUi"/>: e-stop hotkey + overlay on their own STA pump
+    /// thread), then serves MCP over stdio.
     /// </summary>
     private static void RunHeadlessMcp() {
-        // Headless: never show a modal dialog (no operator; stdout is the JSON-RPC stream).
+        // Headless: the engine's load/save paths never show a dialog (nothing may block protocol
+        // startup; stdout is the JSON-RPC stream). The one deliberate UI exception is the operator
+        // safety surface below, which lives on its own pump thread and blocks nothing.
         AgentRuntime.Headless = true;
 
         // Match the GUI's DPI awareness so PrintWindow/GetWindowRect capture geometry is consistent
-        // whether MCEC runs headless (--mcp) or interactively.
+        // whether MCEC runs headless (--mcp) or interactively; visual styles and the text-rendering
+        // default because this process CAN now create windows (overlay, re-arm prompt) and the latter
+        // must be set before any handle exists.
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
 
         TelemetryService.Instance.Start("MCE Controller");
 
@@ -137,11 +146,21 @@ internal static class Program {
         // and MessageWindowHandle throws (the activity monitor never runs headless).
         AgentRuntime.Host = new HeadlessAppHost();
 
+        // #135 follow-up: the operator safety surface. Arms the emergency-stop hotkey and shows the
+        // command overlay on a dedicated STA pump thread (both are message-loop-bound), so a headless
+        // agent session gets the same panic hotkey and narration the GUI host provides. Waits
+        // (bounded) for arming, so by the time the protocol serves, the hotkey is live.
+        HeadlessOperatorUi.Start(settings);
+
         Logger.Instance.Log4.Info($"MCEC: headless MCP mode (AgentCommandsEnabled={settings.AgentCommandsEnabled}).");
 
         using Stream stdin = Console.OpenStandardInput();
         using Stream stdout = Console.OpenStandardOutput();
         AgentServer.RunStdio(stdin, stdout);
+
+        // Stop the safety surface first: disarm the hotkey and dismiss any open re-arm prompt before
+        // the invoker drops its queue (the prompt can no longer re-arm a dispatcher that is exiting).
+        HeadlessOperatorUi.Stop();
 
         // #195: stop the command dispatcher thread before exiting. It starts lazily on the first
         // enqueue (e.g. a send_command) and is a background thread, so it could never keep the

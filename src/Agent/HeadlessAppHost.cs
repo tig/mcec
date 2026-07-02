@@ -10,10 +10,12 @@ namespace MCEControl;
 /// <summary>
 /// The <see cref="IAppHost"/> for headless <c>--mcp</c> mode (#209), registered by
 /// <c>Program.RunHeadlessMcp</c> next to the rest of the <see cref="AgentRuntime"/> bootstrap.
-/// There is no window, no legacy transports, and no operator at a screen; so <see cref="SendLine"/>
-/// is a logged no-op, <see cref="RequestShutdown"/> performs the same clean teardown the stdio-EOF
-/// path does and exits the process, and <see cref="MessageWindowHandle"/> throws (the only consumer,
-/// the activity monitor's power-broadcast detection, is started exclusively by the GUI host).
+/// There is no MainWindow and no legacy transports (the operator surface is
+/// <see cref="HeadlessOperatorUi"/>'s pump thread: e-stop hotkey, overlay, re-arm prompt); so
+/// <see cref="SendLine"/> is a logged no-op, <see cref="RequestShutdown"/> performs the same clean
+/// teardown the stdio-EOF path does and exits the process, and <see cref="MessageWindowHandle"/>
+/// throws (the only consumer, the activity monitor's power-broadcast detection, is started
+/// exclusively by the GUI host).
 /// </summary>
 internal sealed class HeadlessAppHost : IAppHost {
     /// <summary>
@@ -41,9 +43,11 @@ internal sealed class HeadlessAppHost : IAppHost {
         // Deferred so the caller (typically mcec:exit on the dispatcher thread) can finish its
         // Execute, the dispatcher can signal send_command's completion marker, and the stdio writer
         // (AutoFlush) can emit the JSON-RPC response. Then the same teardown Program's stdio-EOF path
-        // performs: stop the dispatcher (dropping the queue releases any held input), and exit.
+        // performs: stop the operator safety surface (disarm the hotkey, drop the overlay), stop the
+        // dispatcher (dropping the queue releases any held input), and exit.
         _ = Task.Run(() => {
             Thread.Sleep(ShutdownGraceMs);
+            HeadlessOperatorUi.Stop();
             AgentRuntime.Invoker?.Shutdown(joinTimeoutMs: 2000);
             ExitProcess(0);
         });
