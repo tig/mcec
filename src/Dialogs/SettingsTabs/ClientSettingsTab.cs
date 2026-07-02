@@ -9,7 +9,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The Settings dialog's "Client" tab (#213): the TCP/IP client connection settings. Mechanical
-/// decomposition of the old SettingsDialog monolith — controls, pixel positions, tooltips, tab
+/// decomposition of the old SettingsDialog monolith; controls, pixel positions, tooltips, tab
 /// order, and handler behavior are preserved as-is.
 /// </summary>
 public partial class ClientSettingsTab : UserControl, ISettingsTab {
@@ -103,7 +103,7 @@ public partial class ClientSettingsTab : UserControl, ISettingsTab {
             return;
         }
 
-        // #203: Convert.ToInt32 fired on every keystroke and threw on non-digits — use
+        // #203: Convert.ToInt32 fired on every keystroke and threw on non-digits; use
         // TryParse like the sibling handlers.
         if (int.TryParse(_editClientDelayTime.Text, out int delay)) {
             _settings.ClientDelayTime = delay;

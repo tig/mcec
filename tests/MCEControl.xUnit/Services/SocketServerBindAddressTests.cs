@@ -10,8 +10,8 @@ using Xunit;
 namespace MCEControl.xUnit.Services;
 
 /// <summary>
-/// Tests for issue #149: the TCP/IP command server — which turns received strings into
-/// keyboard/mouse/process actions with NO socket authentication (by design, trusted-network model) —
+/// Tests for issue #149: the TCP/IP command server; which turns received strings into
+/// keyboard/mouse/process actions with NO socket authentication (by design, trusted-network model);
 /// must let the operator choose which interface it binds to instead of being hard-wired to
 /// <see cref="IPAddress.Any"/> (reachable from every host on the LAN/VPN/port-forward).
 ///
@@ -73,7 +73,7 @@ public class SocketServerBindAddressTests {
     [InlineData("::gg")]
     public void ResolveBindAddress_Junk_FailsClosedToLoopback(string value) {
         // A misconfigured (unparseable) bind address must not silently expose the command server on
-        // all interfaces. Fail closed to loopback — the safe, single-machine interface.
+        // all interfaces. Fail closed to loopback; the safe, single-machine interface.
         Assert.Equal(IPAddress.Loopback, SocketServer.ResolveBindAddress(value));
     }
 

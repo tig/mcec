@@ -1,13 +1,13 @@
 #requires -version 7
 <#
 .SYNOPSIS
-  Regenerates the MCEC hero GIF (docs/hero.gif): one MCEC drives a SECOND MCEC through a guided tour —
+  Regenerates the MCEC hero GIF (docs/hero.gif): one MCEC drives a SECOND MCEC through a guided tour;
   launch -> File > Settings (visit every tab) -> mouse-resize the window ~25% smaller -> drag the title
-  bar in small circles -> Help > About -> pause — while the on-screen command overlay (#119) narrates
+  bar in small circles -> Help > About -> pause; while the on-screen command overlay (#119) narrates
   every command, and records it all with the agent `record` tool (#80).
 
 .DESCRIPTION
-  Dogfoods the agent stack end to end and exercises the atomic `mouse:drag` input path (#123 — one
+  Dogfoods the agent stack end to end and exercises the atomic `mouse:drag` input path (#123; one
   command does press, the whole move path, and release) for both a sizing-border resize and a title-bar
   move. The controller is a
   GUI MCEC (not headless `--mcp`, so it renders the overlay) with the localhost MCP HTTP floor on
@@ -22,7 +22,7 @@
   subject by HANDLE (the controller now also has an "MCEC" window, so a title match is ambiguous): it
   `query`s the UIA tree to locate menu items/tabs, clicks/drags with real mouse input, and `capture`s
   the dialogs. As each tool runs, the controller's overlay paints a terse, burnt-orange, alpha-blended
-  line over the LEFT of the (wide, left-docked) subject window — so the recorded region is just the
+  line over the LEFT of the (wide, left-docked) subject window; so the recorded region is just the
   window (compact, no wallpaper) yet still contains the narration. The two oranges match: the overlay
   item background IS the About box's brand orange.
 
@@ -137,7 +137,7 @@ function ClickAbs([int]$cx, [int]$cy) { MoveAbs $cx $cy; Cmd 'mouse:lbc' }
 # Drag with the left button held down through a path of absolute screen points, as ONE atomic MCEC
 # command (issue #123). `mouse:drag` takes pixels and normalizes across the virtual desktop itself and
 # smooths the motion between waypoints, so a single `send_command` replaces the old button-down /
-# stream-of-moves / button-up choreography — and, being atomic, it can't interleave with anything else.
+# stream-of-moves / button-up choreography; and, being atomic, it can't interleave with anything else.
 # Used for both the sizing-border resize and the title-bar move.
 function Drag($points) {
   $coords = ($points | ForEach-Object { '{0},{1}' -f [int]$_[0], [int]$_[1] }) -join ','

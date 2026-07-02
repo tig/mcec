@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   Creates (or reuses, if already present) everything release.yml needs to sign Windows
-  builds with Azure Trusted Signing using GitHub OIDC — NO client secret:
+  builds with Azure Trusted Signing using GitHub OIDC; NO client secret:
 
     1. Entra ID app registration  (Azure.Config.ps1 -> AppDisplayName)
     2. Its service principal
@@ -15,7 +15,7 @@
   Re-running is safe: each step is find-or-create. Run it again any time the config
   changes (e.g. you add a branch) and it will converge.
 
-  PREREQUISITES THAT THIS SCRIPT DOES NOT CREATE (manual, one-time — see docs/code-signing.md):
+  PREREQUISITES THAT THIS SCRIPT DOES NOT CREATE (manual, one-time; see docs/code-signing.md):
     * The Trusted Signing *account* and a *PublicTrust certificate profile*. Public-trust
       profiles require a Microsoft identity-validation request that is completed in the
       Azure Portal and cannot be fully scripted. Create those first; this script then
@@ -27,7 +27,7 @@
 
 .NOTES
   Requires: pwsh 7+, Azure CLI (az) logged in (`az login`) with rights to create app
-  registrations and role assignments, and — for -SetGitHubSecrets — GitHub CLI (gh) auth'd.
+  registrations and role assignments, and; for -SetGitHubSecrets; GitHub CLI (gh) auth'd.
 #>
 #requires -Version 7
 [CmdletBinding()]
@@ -57,7 +57,7 @@ az account set --subscription $cfg.SubscriptionId
 $TenantId = az account show --query tenantId -o tsv
 
 # ---------------------------------------------------------------------------
-# 0. (optional) resource group — the signing account/profile must be made by hand.
+# 0. (optional) resource group; the signing account/profile must be made by hand.
 # ---------------------------------------------------------------------------
 if ($CreateResourceGroup) {
     Write-Host "==> Ensuring resource group $($cfg.ResourceGroup)" -ForegroundColor Cyan
@@ -104,7 +104,7 @@ if (-not $SpObjectId) {
 #
 #    Branches use exact-match `subject` credentials. Tags use a *flexible* FIC
 #    (`claimsMatchingExpression`) instead, because Entra federated-credential
-#    `subject` is an EXACT string match — a wildcard subject like
+#    `subject` is an EXACT string match; a wildcard subject like
 #    "repo:o/r:ref:refs/tags/*" never matches a real tag token and OIDC login
 #    fails with AADSTS700213. The flexible form (beta Graph endpoint) supports
 #    the `matches` operator and covers every `v*` tag with one credential.
@@ -140,7 +140,7 @@ $tagName = 'gh-tags'
 $tagExpr = "claims['sub'] matches 'repo:$($cfg.GhOwner)/$($cfg.GhRepo):ref:refs/tags/*'"
 $tagCred = $existing | Where-Object { $_.name -eq $tagName }
 if ($tagCred -and $tagCred.subject) {
-    # Legacy broken form (wildcard subject) from before the flexible-FIC fix — replace it.
+    # Legacy broken form (wildcard subject) from before the flexible-FIC fix; replace it.
     az ad app federated-credential delete --id $AppId --federated-credential-id $tagCred.id --only-show-errors | Out-Null
     Write-Host "    removed legacy subject-based $tagName"
     $tagCred = $null

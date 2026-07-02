@@ -3,140 +3,140 @@ MCEC (Model Context Environment Controller) lets you see and drive native Window
 Work the loop: observe -> target -> act -> observe.
 
 1. TARGET a window by `window` (title substring), `process` (name without .exe), `className`, or
-`foreground:true` — you MUST give at least one; a call with no target fails. Reuse the `handle` a `query`
+`foreground:true`: you MUST give at least one; a call with no target fails. Reuse the `handle` a `query`
 returns for follow-up calls: it is stable, and a dialog you open shares the process name, so re-resolving
 by process/title can match the wrong window. Open menus and other untitled popups are not enumerated by
-title/process — target them by handle or `foreground:true`.
+title/process; target them by handle or `foreground:true`.
 
 2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, state, value)
 so you can pick a control instead of guessing pixels; `capture` returns a PNG of the window (works on
 composited WinUI/WPF surfaces). Use `capture` for a single state check; use `record` ONLY to show CHANGE
-over time — a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
+over time; a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
 whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture` and `record` are size-capped: max
-16384 px per side and 64000000 px total — an oversized region fails fast with `errorCode:region-too-large`
+16384 px per side and 64000000 px total; an oversized region fails fast with `errorCode:region-too-large`
 (category `invalid-argument`; the detail states the limit); request a smaller region or a window target
 (windows are bounded by their own size). An open `start` auto-stops at the operator's limits (default 60 s / 600 frames); `stop`
-still returns that buffered GIF — exactly once — and after an auto-stop a new recording (`start` or a
+still returns that buffered GIF (exactly once), and after an auto-stop a new recording (`start` or a
 one-shot) is allowed: it discards the unfetched GIF, carrying an `unfetched-recording-discarded` warning
 on its result, so `stop` promptly to collect your output. Check results for trouble: a `capture` with errorCategory `capture-blank` is a black/empty
-frame (minimized, cloaked, occluded, or a locked session) — restore/foreground the window and retry
+frame (minimized, cloaked, occluded, or a locked session); restore/foreground the window and retry
 instead of trusting the image (the suspect PNG is still available in `error.partialResult` if you want to
 inspect what was grabbed); a `capture-fallback` warning means PrintWindow was refused and the picture
-may be wrong. If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap
-— raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are
+may be wrong. If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap;
+raise `maxNodes` or target a deeper window so you don't reason over a partial tree. warnings are
 non-fatal; errorCategory tells you how to recover. The bounds `query`/`find` report are ABSOLUTE screen
 pixels; the `displays` tool reports every monitor's pixel bounds and DPI/scale (and the union
 virtualBounds) so you can interpret those bounds across multiple/scaled monitors and place pixel clicks or
 drags without measuring the screen yourself.
 
 3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|expand|
-collapse|select) over coordinate clicks — it is far more reliable. To click a menu item, first `invoke` its
+collapse|select) over coordinate clicks; it is far more reliable. To click a menu item, first `invoke` its
 parent menu with action `expand` (a closed menu's sub-items are not in the tree until opened), then
 `invoke` the item. Use `select` for TabItem/ListItem/RadioButton (SelectionItem pattern). Invoking a control that opens a MODAL dialog (About, Settings, message/file dialogs)
-returns promptly with `modalPending:true` — the action completes when the dialog closes — so just
+returns promptly with `modalPending:true` (the action completes when the dialog closes), so just
 `query`/`capture` the new window to read it, and `invoke` its buttons to dismiss it. `invoke` does NOT
-wait for a control — it fast-fails if the element isn't present yet — so `wait-for` (or `find` with a
+wait for a control (it fast-fails if the element isn't present yet), so `wait-for` (or `find` with a
 timeout) the control before acting; an `invoke` that returns `error.category:no-target` means the control
 hasn't appeared yet, so `wait-for` it rather than blindly retrying. An `invoke` failing with
 `error.code:pattern-unsupported` (category `invalid-argument`) means the element EXISTS but cannot perform
-that action — re-finding it will never help; pick a different action or `click` its centre instead.
-`action-unknown` means the `action` string itself is wrong — fix it (invoke|toggle|setvalue|setfocus|
-expand|collapse|select). To DRAG — resize a window by its
-sizing border, move one by its title bar, drag a slider/handle, marquee-select, or reorder (there is no
-`invoke` for these) — use the `drag` tool: give a `from` and a `to`, each either an element `{ by, value }`
+that action; re-finding it will never help; pick a different action or `click` its centre instead.
+`action-unknown` means the `action` string itself is wrong; fix it (invoke|toggle|setvalue|setfocus|
+expand|collapse|select). To DRAG (resize a window by its
+sizing border, move one by its title bar, drag a slider/handle, marquee-select, or reorder; there is no
+`invoke` for these), use the `drag` tool: give a `from` and a `to`, each either an element `{ by, value }`
 in the target window (dragged from/to its centre) or an absolute screen pixel `{ x, y }`, plus optional
 `path` waypoints for a curved or multi-stop drag. The whole press→move→release is dispatched ATOMICALLY, so
 prefer it over hand-rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands).
-Coords are absolute screen pixels — the same space `query`/`find` bounds report — so you can drag straight
+Coords are absolute screen pixels (the same space `query`/`find` bounds report), so you can drag straight
 from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls are at new
-bounds. To CLICK a point `invoke` can't reach — a custom-drawn cell, a canvas/map coordinate, or a bare
-pixel — use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
+bounds. To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a bare
+pixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
 absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and `count`
-(2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items
-— it doesn't depend on the control being on-screen and unobscured. `send_command` sends any other raw MCEC
+(2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items;
+it doesn't depend on the control being on-screen and unobscured. `send_command` sends any other raw MCEC
 command (keystrokes, single mouse actions, launch); the raw `mouse:drag,x1,y1,x2,y2[,...]` is the same
 atomic drag in pixels and `mouse:mtp,x,y` moves the pointer to an absolute screen pixel.
 
-4. VERIFY with another `query` or `capture` — always confirm the act had the intended effect.
+4. VERIFY with another `query` or `capture`; always confirm the act had the intended effect.
 
-RESULTS: every tool returns one envelope — `{ ok, result?, warnings?, error? }`. Branch on `ok` first: on
+RESULTS: every tool returns one envelope: `{ ok, result?, warnings?, error? }`. Branch on `ok` first: on
 success read `result`; on failure read `error.category` (a closed set: timeout, ambiguous-selector,
 stale-element, no-target, invalid-argument, capture-blank, focus, elevation, foreground, internal) to
-choose recovery — e.g. `no-target` means broaden the selector, `query` to discover targets, or `wait-for`
+choose recovery; e.g. `no-target` means broaden the selector, `query` to discover targets, or `wait-for`
 the element; `invalid-argument` means the REQUEST itself is wrong (unknown action, oversized region,
-ill-formed endpoint, an action the element can't perform) — fix the arguments, do NOT retry the same call
+ill-formed endpoint, an action the element can't perform); fix the arguments, do NOT retry the same call
 or broaden a selector; `ambiguous-selector` means add `processName`/`className`/`automationId`;
-`stale-element` means re-`query`/`find` for a fresh handle; `internal` is not recoverable by you — report
+`stale-element` means re-`query`/`find` for a fresh handle; `internal` is not recoverable by you; report
 it. Branch on codes and categories, never on the wording of `error.detail` (it is human-readable and may
 change). `error.lastObservation`, when present, is the last good state before the failure, and
 `error.partialResult` is the failing call's OWN partial payload (e.g. a blank capture's suspect PNG).
-When the last good observation was a `capture`, `lastObservation` is a compact summary — the window
-descriptor, dimensions, blankCheck verdict, and byte count, with `kind:"capture-summary"` — plus an
+When the last good observation was a `capture`, `lastObservation` is a compact summary; the window
+descriptor, dimensions, blankCheck verdict, and byte count, with `kind:"capture-summary"`; plus an
 `artifact` path where the PNG was saved on the host; it never carries the image bytes inline, so
 re-`capture` if you need to SEE the prior state rather than reason about its metadata.
 
-COMPOSE: many tasks have no single dedicated tool — build them by combining primitives creatively. Launch
+COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. Launch
 an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region. Wait for a window by polling `query` until
 it appears. Reach for a raw `send_command` before giving up.
 
 CONCURRENCY: observation (`query`/`capture`/`find`/`wait-for`/`record`) runs concurrently and never blocks
-another call — a long `wait-for` won't stall a `capture`, and `invoke` returns promptly even if it opens a
-modal — so a slow observation is safe to start. Physical-input actuation (`drag`, `send_command`) is
+another call; a long `wait-for` won't stall a `capture`, and `invoke` returns promptly even if it opens a
+modal; so a slow observation is safe to start. Physical-input actuation (`drag`, `send_command`) is
 serialized: it runs one-at-a-time (the desktop has a single input stream), so don't expect two input
 actions to overlap.
 
-PACING: raw commands (`send_command`) are queued and executed paced — a per-command delay set by the
-operator's CommandPacing — and a `send_command` call returns only AFTER its command has actually executed
+PACING: raw commands (`send_command`) are queued and executed paced (a per-command delay set by the
+operator's CommandPacing), and a `send_command` call returns only AFTER its command has actually executed
 (its `result.output` is the command's real output). It fails fast when nothing will run:
-`error.code:unknown-command` means the name isn't in the loaded command table (fix the name — nothing
-executed), and `command-dropped` means the queue refused it whole (bounds/shutdown — nothing executed).
+`error.code:unknown-command` means the name isn't in the loaded command table (fix the name; nothing
+executed), and `command-dropped` means the queue refused it whole (bounds/shutdown; nothing executed).
 The execution wait is bounded at 30s: a command still running past it (a long macro, `pause`, or a deep
 queue backlog ahead of it) returns `error.code:send-command-timeout` while continuing to execute on the
-host — wait and verify with `query`/`capture` rather than resending. The queue is BOUNDED: at most 200
+host; wait and verify with `query`/`capture` rather than resending. The queue is BOUNDED: at most 200
 commands may be pending, and one command's whole tree (the command itself plus all recursively embedded
 commands) may be at most 50. A command that breaks either bound is dropped ALL-OR-NOTHING: the entire
-tree is discarded — never partially run, so paired input (e.g. shiftdown:/shiftup:) can't be split. Don't
-flood the queue with long raw input streams — prefer one higher-level call (`drag`, `click`, or a single
+tree is discarded; never partially run, so paired input (e.g. shiftdown:/shiftup:) can't be split. Don't
+flood the queue with long raw input streams; prefer one higher-level call (`drag`, `click`, or a single
 `mouse:drag,...`) over a long hand-rolled `mouse:mt` path, and if a long sequence is unavoidable, send it
 in small chunks and verify between chunks so the queue drains. Avoid sending a raw `invoke`-style command
-through `send_command` if it may open a modal dialog — the queue path has no modal grace and the command
+through `send_command` if it may open a modal dialog; the queue path has no modal grace and the command
 queue stalls until the dialog is dismissed; use the `invoke` tool, which handles modals.
 
-LIFECYCLE: `send_command mcec:exit` (when that command is enabled) shuts MCEC itself down — on the stdio
-transport it ends this MCP server (your call's reply flushes first, then the process exits) — so send it
+LIFECYCLE: `send_command mcec:exit` (when that command is enabled) shuts MCEC itself down; on the stdio
+transport it ends this MCP server (your call's reply flushes first, then the process exits); so send it
 only to deliberately end the session, e.g. stopping a provisioned instance before `end-session`.
 
 OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run so the
-operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/UIA targeting
-— you will never see or target it, and it is never a candidate window — but it DOES appear in
+operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/UIA targeting;
+you will never see or target it, and it is never a candidate window; but it DOES appear in
 full-screen/region `capture`s and `record`ings (not in window-targeted captures).
 
 PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it and disabling them
-when done — an abnormal exit leaks those security gates enabled. Instead, when the operator has authorized it,
+when done; an abnormal exit leaks those security gates enabled. Instead, when the operator has authorized it,
 call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
 `mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
 launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), a `sessionId`, and a
-`token`. The `token` is the session credential — keep it: every HTTP request to the session's
+`token`. The `token` is the session credential; keep it: every HTTP request to the session's
 `mcpEndpoint` must send the header `Authorization: Bearer <token>` (stdio needs no header), and
 `end-session` requires it. Run from that directory, do your work there, then call `end-session` with the
-`sessionId` AND `token` (after stopping its mcec.exe) to delete it — teardown is just removing the
+`sessionId` AND `token` (after stopping its mcec.exe) to delete it; teardown is just removing the
 directory, so a crash leaves the real install untouched. An `end-session` with a wrong/missing token
-fails with `error.code:session-token-invalid` — a session you did not provision is not yours to tear
+fails with `error.code:session-token-invalid`; a session you did not provision is not yours to tear
 down; orphaned sessions are reaped automatically. If `provision-session` returns
 `error.code:provisioning-not-authorized` (these feature-specific refusals ride in `error.code`, while
-`error.category` stays `internal`), the operator has not opted in (AllowSessionProvisioning) — tell them,
+`error.category` stays `internal`), the operator has not opted in (AllowSessionProvisioning); tell them,
 don't retry.
 
 EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
-session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category —
-`error.category` stays `internal`), the operator has engaged it and deliberately halted you — STOP
+session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category;
+`error.category` stays `internal`), the operator has engaged it and deliberately halted you; STOP
 immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
 SECURITY: the agent tools (capture/query/displays/find/wait-for/invoke/record/launch/drag/click) only work when the operator has set
-AgentCommandsEnabled=true; otherwise they return an error — surface that to the user rather than retrying.
+AgentCommandsEnabled=true; otherwise they return an error; surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is
 refused with `error.code:agent-commands-disabled` if the agent surface is not opted in); over the local
 stdio transport (`mcec.exe --mcp`) `send_command` remains available without that opt-in. Either way the raw

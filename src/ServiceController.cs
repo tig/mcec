@@ -13,7 +13,7 @@ namespace MCEControl;
 /// which status-strip item shows its light, how to format its status log lines, and any
 /// transport-specific quirks (the server's wakeup command, the client's restart-on-error).
 /// MainWindow holds these in a list and iterates it from ONE generic start/stop/toggle/paint
-/// path — before #211 every one of those paths existed as three near-identical copies.
+/// path; before #211 every one of those paths existed as three near-identical copies.
 /// UI glue only: the typed events live on <see cref="ServiceBase"/>.
 /// </summary>
 internal sealed class ServiceController {
@@ -21,7 +21,7 @@ internal sealed class ServiceController {
     /// (e.g. "SocketServer", "Client", "SerialServer").</summary>
     public required string Name { get; init; }
 
-    /// <summary>Constructs the service instance (does NOT start it — handlers are wired between
+    /// <summary>Constructs the service instance (does NOT start it; handlers are wired between
     /// construction and start so no notification is missed).</summary>
     public required Func<ServiceBase> Create { get; init; }
 
@@ -56,7 +56,7 @@ internal sealed class ServiceController {
     public Action? AfterStart { get; init; }
 
     /// <summary>Runs right after a stop (e.g. disable the "Send Awake" menu item; hide the
-    /// command window — the client's long-standing side effect, kept explicit here).</summary>
+    /// command window; the client's long-standing side effect, kept explicit here).</summary>
     public Action? AfterStop { get; init; }
 
     /// <summary>Whether the operator has this transport enabled in Settings (drives both
@@ -70,7 +70,7 @@ internal sealed class ServiceController {
     // The exact delegate instances subscribed to Instance's events, kept so the generic stop
     // path can unsubscribe them (the old wiring unsubscribed BEFORE Stop(), which is what keeps
     // an operator-initiated stop from triggering status-change side effects like the server's
-    // closing wakeup command — preserved).
+    // closing wakeup command; preserved).
     public Action<ServiceStatus, string>? StatusHandler { get; set; }
     public Action<Reply, string>? CommandHandler { get; set; }
     public Action<ServiceError>? ErrorHandler { get; set; }

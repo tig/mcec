@@ -24,7 +24,7 @@ namespace MCEControl.xUnit.Commands;
 /// </summary>
 [Collection("AgentSerial")]
 public class CommandInvokerDispatcherTests {
-    /// <summary>Generous bound for awaiting the dispatcher — a healthy drain takes milliseconds.</summary>
+    /// <summary>Generous bound for awaiting the dispatcher; a healthy drain takes milliseconds.</summary>
     private static readonly TimeSpan Wait = TimeSpan.FromSeconds(15);
 
     [Fact]
@@ -87,7 +87,7 @@ public class CommandInvokerDispatcherTests {
     public async Task SendCommand_ReturnsOnlyAfterExecution_WithRealCapturedOutput() {
         // The pre-#195 race: send_command read reply.Captured while another thread was still (or not
         // yet) executing the command, reporting "ok" for a command that never ran. Now the tool
-        // enqueues and awaits a completion the dispatcher signals AFTER Execute — so the response
+        // enqueues and awaits a completion the dispatcher signals AFTER Execute; so the response
         // must carry the output the command actually wrote to its Reply.
         AgentTestSupport.EnsureTelemetry();
         const string expectedOutput = "echoed-by-dispatcher";
@@ -102,7 +102,7 @@ public class CommandInvokerDispatcherTests {
         AgentRuntime.Invoker = invoker;
         try {
             // AgentServer.Dispatch is synchronous and blocks on the completion internally (bounded
-            // by SendCommandCompletionTimeoutMs) — run it off the xUnit worker like an MCP host would.
+            // by SendCommandCompletionTimeoutMs); run it off the xUnit worker like an MCP host would.
             JsonObject resp = await Task.Run(() => AgentServer.Dispatch(new JsonObject {
                 ["jsonrpc"] = "2.0",
                 ["id"] = 1,
@@ -119,7 +119,7 @@ public class CommandInvokerDispatcherTests {
             Assert.True(env["ok"]!.GetValue<bool>());
             Assert.Equal(expectedOutput, env["result"]!.AsObject()["output"]!.GetValue<string>());
 
-            // The table prototype is never executed — Enqueue clones it (with the capturing reply).
+            // The table prototype is never executed; Enqueue clones it (with the capturing reply).
             Assert.Equal(0, echoPrototype.ExecuteCount);
         }
         finally {
@@ -150,7 +150,7 @@ public class CommandInvokerDispatcherTests {
 
             // Engage the stop while the first command is mid-Execute; when it finishes, the
             // dispatcher must drop everything still queued (the second command AND the pending
-            // completion marker — the awaiter fails instead of timing out).
+            // completion marker; the awaiter fails instead of timing out).
             Assert.True(firstStarted.Wait(Wait), "dispatcher never started the first command");
             AgentRuntime.SetEmergencyStopped(true);
             releaseFirst.Set();
@@ -171,7 +171,7 @@ public class CommandInvokerDispatcherTests {
         CommandInvoker invoker = [];
         try {
             const int producers = 4;
-            const int perProducer = 25; // 100 total — under the 200 queue cap even with no draining
+            const int perProducer = 25; // 100 total; under the 200 queue cap even with no draining
             List<DelegateTestCommand> commands = [];
             for (int i = 0; i < producers * perProducer; i++) {
                 commands.Add(new DelegateTestCommand { Cmd = $"cmd{i}" });
@@ -255,7 +255,7 @@ public class CommandInvokerDispatcherTests {
             Assert.True(firstStarted.Wait(Wait), "dispatcher never started the first command");
             invoker.Shutdown(); // no join: must not block on the still-running command
 
-            // #195 review: the pending completion is failed IMMEDIATELY from Shutdown — it must not
+            // #195 review: the pending completion is failed IMMEDIATELY from Shutdown; it must not
             // wait behind the in-flight command (which is still blocked right now).
             Assert.False(await pending.WaitAsync(Wait));
 
@@ -280,7 +280,7 @@ public class CommandInvokerDispatcherTests {
         using ManualResetEventSlim releaseCommand = new(false);
         try {
             // A non-input command (SynthesizesInput=false, like pause) blocks mid-Execute: the gate
-            // must be FREE — a pause:60000 in a macro must not starve a concurrent agent drag.
+            // must be FREE; a pause:60000 in a macro must not starve a concurrent agent drag.
             DelegateTestCommand pauseLike = new() {
                 Cmd = "pause-like",
                 SynthesizesInputForTest = false,
@@ -296,7 +296,7 @@ public class CommandInvokerDispatcherTests {
             Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
 
             // An input-synthesizing command (the conservative default) blocking mid-Execute: the
-            // gate must be HELD — that is the #113 no-interleaving invariant.
+            // gate must be HELD; that is the #113 no-interleaving invariant.
             commandStarted.Reset();
             releaseCommand.Reset();
             DelegateTestCommand inputLike = new() {
@@ -330,7 +330,7 @@ public class CommandInvokerDispatcherTests {
     [Fact]
     public void SynthesizesInput_Classification_IsConservative() {
         // pause and mcec: provably emit no input and may run outside the gate; everything else
-        // stays true by default (the conservative posture — a wrong false re-opens #113).
+        // stays true by default (the conservative posture; a wrong false re-opens #113).
         Assert.False(new PauseCommand().SynthesizesInput);
         Assert.False(new McecCommand().SynthesizesInput);
         Assert.True(new SendInputCommand().SynthesizesInput);

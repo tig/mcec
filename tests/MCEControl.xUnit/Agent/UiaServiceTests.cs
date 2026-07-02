@@ -46,8 +46,8 @@ public class UiaServiceTests {
     [InlineData("set-value")]
     [InlineData("")]
     public void Invoke_UnknownAction_ReturnsActionUnknown_WithoutTouchingUia(string action) {
-        // An unsupported action is rejected before any UIA attach — even a bogus handle never gets
-        // that far — and reports ActionUnknown (fix the argument), not a not-found/pattern failure.
+        // An unsupported action is rejected before any UIA attach; even a bogus handle never gets
+        // that far; and reports ActionUnknown (fix the argument), not a not-found/pattern failure.
         UiaInvokeResult result = UiaService.Invoke(new IntPtr(0x1), "name", "OK", action, null);
 
         Assert.Equal(UiaInvokeResult.ActionUnknown, result);

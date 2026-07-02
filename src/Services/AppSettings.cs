@@ -12,14 +12,14 @@ using System.Xml.Serialization;
 namespace MCEControl;
 
 /// <summary>
-/// The serialized application settings — a (mostly) pure POCO (#216): serialized properties,
+/// The serialized application settings; a (mostly) pure POCO (#216): serialized properties,
 /// defaults, and <see cref="Clone"/>. Persistence lives in <see cref="SettingsStore"/>
 /// (load/save/path resolution) and registry policy in <see cref="MachinePolicy"/>; the host owns
 /// dialogs and telemetry emission. The XML file format is unchanged.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1051:Do not declare visible instance fields", Justification = "This is just settings info.")]
 public class AppSettings : ICloneable {
-    // Machine policy (HKLM registry override; see MachinePolicy). Not serialized — populated by
+    // Machine policy (HKLM registry override; see MachinePolicy). Not serialized; populated by
     // SettingsStore.Load on every load, regardless of how (or whether) the file loaded.
     [XmlIgnore] public bool DisableInternalCommands;
 
@@ -56,7 +56,7 @@ public class AppSettings : ICloneable {
     // (case-insensitive): "0.0.0.0"/"any"/"*" (all interfaces), "127.0.0.1"/"localhost"/"loopback"
     // (single machine only), "::1", or a specific local IP. Junk is rejected loudly and falls back to
     // loopback (see SocketServer.ResolveBindAddress).
-    // DEFAULT is "0.0.0.0" (all interfaces) to preserve the long-standing behavior on upgrade — many
+    // DEFAULT is "0.0.0.0" (all interfaces) to preserve the long-standing behavior on upgrade; many
     // existing installs are driven from another host on a trusted LAN. Single-machine operators should
     // set this to "127.0.0.1" to keep the unauthenticated command port off the network.
     // TELEMETRY: A bind address is PII-adjacent, so it is not collected (mirrors McpBindAddress).
@@ -137,7 +137,7 @@ public class AppSettings : ICloneable {
     // --- Isolated session provisioning (issue #138) ---
     // SECURITY: an agent asks MCEC to hand it a fresh, disposable instance dir (agent commands enabled only
     // inside the copy) instead of mutating the installed config. Provisioning is the ONE thing that cannot
-    // be self-served — it must be an explicit operator opt-in or the isolation is theater. Off by default.
+    // be self-served; it must be an explicit operator opt-in or the isolation is theater. Off by default.
     [SafeForTelemetryAttribute]
     public bool AllowSessionProvisioning { get; set; } = false;
 
@@ -147,8 +147,8 @@ public class AppSettings : ICloneable {
     public int McpHttpPort { get; set; } = 5151;
 
     // SECURITY (#143): defense-in-depth bearer token for the HTTP front door. The HTTP handler ALWAYS
-    // validates the Host header (must be a loopback authority — defeats DNS rebinding) and the Origin
-    // header (must be absent or loopback — defeats drive-by browser CSRF). Those two need no
+    // validates the Host header (must be a loopback authority; defeats DNS rebinding) and the Origin
+    // header (must be absent or loopback; defeats drive-by browser CSRF). Those two need no
     // configuration. Setting a non-empty token additionally requires every HTTP request to carry
     // `Authorization: Bearer <token>`, which also protects against a same-machine hostile process.
     // Empty (default) = rely on Host/Origin only. A token is NOT PII, but keep it out of telemetry so

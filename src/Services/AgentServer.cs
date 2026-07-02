@@ -9,7 +9,7 @@ namespace MCEControl;
 
 /// <summary>
 /// MCEC 3.0's agent front door: a self-contained Model Context Protocol (MCP) server, hand-rolled as
-/// JSON-RPC 2.0 over two transports — stdio (for an MCP client that launches <c>mcec.exe --mcp</c>)
+/// JSON-RPC 2.0 over two transports; stdio (for an MCP client that launches <c>mcec.exe --mcp</c>)
 /// and a localhost HTTP/JSON floor (POST a JSON-RPC request to <c>/mcp</c>). No external SDK or
 /// Python/Node runtime: the same self-contained native binary, with MCP/HTTP as just one more
 /// transport over the existing command core.
@@ -17,14 +17,14 @@ namespace MCEControl;
 /// Since #215 this is a THIN STATIC FACADE that wires the production instances of the split layers
 /// and re-exposes the few members the hosts compile against:
 /// <list type="bullet">
-/// <item><see cref="McpHttpTransport"/> — the HTTP listener lifecycle, the pure #143 Host/Origin/
+/// <item><see cref="McpHttpTransport"/>; the HTTP listener lifecycle, the pure #143 Host/Origin/
 /// bearer gate, and the #152 loopback-bind canonicalization.</item>
-/// <item><see cref="McpStdioTransport"/> — the stdio read/dispatch/write loop (pruned + capped).</item>
-/// <item><see cref="JsonRpcDispatcher"/> — the JSON-RPC 2.0 protocol layer shared by both.</item>
-/// <item><see cref="AgentToolExecutor"/> — gate → catalog → build → dispatch → #101 envelope.</item>
+/// <item><see cref="McpStdioTransport"/>; the stdio read/dispatch/write loop (pruned + capped).</item>
+/// <item><see cref="JsonRpcDispatcher"/>; the JSON-RPC 2.0 protocol layer shared by both.</item>
+/// <item><see cref="AgentToolExecutor"/>; gate → catalog → build → dispatch → #101 envelope.</item>
 /// </list>
 ///
-/// SECURITY: the gated agent tools (the <see cref="ToolCatalog"/> set — capture, query, displays,
+/// SECURITY: the gated agent tools (the <see cref="ToolCatalog"/> set; capture, query, displays,
 /// find, wait-for, invoke, drag, click, record, launch) only run when
 /// <see cref="AgentRuntime.AgentCommandsEnabled"/> is true; otherwise a tool call is reported as an
 /// error (enforced in <see cref="AgentToolExecutor"/>). Every tool call is loudly audit-logged.
@@ -70,8 +70,8 @@ public static class AgentServer {
 
     /// <summary>
     /// Runs the newline-delimited JSON-RPC loop over the given streams (stdin/stdout for <c>--mcp</c>).
-    /// Returns when the input stream reaches EOF. The loop itself — worker fan-out, pending-task
-    /// pruning, and the concurrency cap — lives in <see cref="McpStdioTransport"/> (#215).
+    /// Returns when the input stream reaches EOF. The loop itself; worker fan-out, pending-task
+    /// pruning, and the concurrency cap; lives in <see cref="McpStdioTransport"/> (#215).
     /// </summary>
     public static void RunStdio(Stream input, Stream output) =>
         new McpStdioTransport(req => Dispatch(req, AgentTransport.Stdio)).Run(input, output);
@@ -79,7 +79,7 @@ public static class AgentServer {
     /// <summary>
     /// Dispatches a single JSON-RPC request object through the production
     /// <see cref="JsonRpcDispatcher"/>; null for a notification. <paramref name="transport"/> defaults
-    /// to <see cref="AgentTransport.Stdio"/> — the local, opt-in-preserving path; the HTTP floor passes
+    /// to <see cref="AgentTransport.Stdio"/>; the local, opt-in-preserving path; the HTTP floor passes
     /// <see cref="AgentTransport.Http"/> so <c>send_command</c> honors the network gate (#153).
     /// </summary>
     public static JsonObject? Dispatch(JsonObject request, AgentTransport transport = AgentTransport.Stdio) =>
@@ -96,7 +96,7 @@ public static class AgentServer {
 
     /// <summary>
     /// Built-in guidance handed to an agent at connect time (the MCP client shows this to the model). It
-    /// is authored in <c>src/Agent/AgentInstructions.md</c> — the single source of truth — and embedded
+    /// is authored in <c>src/Agent/AgentInstructions.md</c> (the single source of truth) and embedded
     /// into the exe at build time; this loads it once, collapsing each blank-line-separated paragraph to
     /// a single line (the historical connect-time format).
     /// </summary>
@@ -108,7 +108,7 @@ public static class AgentServer {
         using Stream? stream = typeof(AgentServer).Assembly.GetManifestResourceStream("MCEControl.AgentInstructions.md");
         if (stream is null) {
             throw new InvalidOperationException(
-                "Embedded resource 'MCEControl.AgentInstructions.md' not found — check the <EmbeddedResource> item in MCEControl.csproj.");
+                "Embedded resource 'MCEControl.AgentInstructions.md' not found; check the <EmbeddedResource> item in MCEControl.csproj.");
         }
         using StreamReader reader = new(stream);
         string raw = reader.ReadToEnd().Replace("\r\n", "\n");

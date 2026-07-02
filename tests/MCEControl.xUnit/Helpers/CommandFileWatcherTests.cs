@@ -64,7 +64,7 @@ public class CommandFileWatcherTests : IDisposable
                     fired.Set();
                 };
 
-                // Several writes in quick succession — well inside one debounce window each.
+                // Several writes in quick succession; well inside one debounce window each.
                 for (int i = 0; i < 5; i++) {
                     File.WriteAllText(file, $"write {i}");
                     Thread.Sleep(20);

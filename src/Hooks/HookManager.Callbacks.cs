@@ -31,7 +31,7 @@ public static partial class HookManager {
 
     /// <summary>
     /// The WH_MOUSE_LL callback: decodes the low-level mouse event and raises the corresponding
-    /// managed events. Runs on the hook-installing thread before other applications see the event —
+    /// managed events. Runs on the hook-installing thread before other applications see the event;
     /// subscribers must stay cheap (see the class remarks).
     /// </summary>
     private static int MouseHookProc(int nCode, int wParam, IntPtr lParam) {
@@ -39,7 +39,7 @@ public static partial class HookManager {
             MouseLLHookStruct mouseHookStruct = Marshal.PtrToStructure<MouseLLHookStruct>(lParam);
 
             // Detect which button (if any) and whether it went down/up. Only the events MCEC
-            // consumes are decoded — X-button and wheel messages fall through untouched (#214).
+            // consumes are decoded; X-button and wheel messages fall through untouched (#214).
             MouseButtons button = MouseButtons.None;
             int clickCount = 0;
             bool mouseDown = false;
@@ -125,7 +125,7 @@ public static partial class HookManager {
 
             // See the field comment: keep the delegate alive for the lifetime of the hook.
             _mouseDelegate = MouseHookProc;
-            // hMod is deliberately NULL — see the remarks on HookNativeMethods (#210).
+            // hMod is deliberately NULL; see the remarks on HookNativeMethods (#210).
             _mouseHookHandle = SetWindowsHookEx(
                 WH_MOUSE_LL,
                 _mouseDelegate,
@@ -152,7 +152,7 @@ public static partial class HookManager {
     private static void ForceUnsubscribeFromGlobalMouseEvents() {
         if (_mouseHookHandle != IntPtr.Zero) {
             // Test seam: a fake hook (see EnsureSubscribedToGlobalMouseEvents) is "uninstalled" by
-            // resetting the bookkeeping — there is no real hook to unhook.
+            // resetting the bookkeeping; there is no real hook to unhook.
             if (_mouseHookHandle == FakeHookHandle) {
                 _mouseHookHandle = IntPtr.Zero;
                 _mouseDelegate = null;
@@ -188,10 +188,10 @@ public static partial class HookManager {
     /// <summary>
     /// The WH_KEYBOARD_LL callback: decodes the low-level keyboard event and raises the
     /// corresponding managed events. Runs on the hook-installing thread before other applications
-    /// see the event — subscribers must stay cheap (see the class remarks).
+    /// see the event; subscribers must stay cheap (see the class remarks).
     /// </summary>
     private static int KeyboardHookProc(int nCode, int wParam, IntPtr lParam) {
-        // Set when any subscriber sets e.Handled — the event is then swallowed (not chained).
+        // Set when any subscriber sets e.Handled; the event is then swallowed (not chained).
         bool handled = false;
 
         if (nCode >= 0) {
@@ -199,7 +199,7 @@ public static partial class HookManager {
 
             // LLKHF_INJECTED: the event was synthesized by SendInput rather than pressed on real
             // hardware. Surfaced on the *Ext events so the emergency-stop (#135) can react to physical
-            // input only — MCEC's own agent actuation injects keys, and the panic hotkey must be immune
+            // input only; MCEC's own agent actuation injects keys, and the panic hotkey must be immune
             // to both accidental self-trip and deliberate self-defeat.
             bool injected = (keyboardHookStruct.Flags & LLKHF_INJECTED) != 0;
             bool isKeyDown = wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN;
@@ -251,7 +251,7 @@ public static partial class HookManager {
 
             // See the field comment: keep the delegate alive for the lifetime of the hook.
             _keyboardDelegate = KeyboardHookProc;
-            // hMod is deliberately NULL — see the remarks on HookNativeMethods (#210).
+            // hMod is deliberately NULL; see the remarks on HookNativeMethods (#210).
             _keyboardHookHandle = SetWindowsHookEx(
                 WH_KEYBOARD_LL,
                 _keyboardDelegate,
@@ -277,7 +277,7 @@ public static partial class HookManager {
     private static void ForceUnsubscribeFromGlobalKeyboardEvents() {
         if (_keyboardHookHandle != IntPtr.Zero) {
             // Test seam: a fake hook (see EnsureSubscribedToGlobalKeyboardEvents) is "uninstalled" by
-            // resetting the bookkeeping — there is no real hook to unhook.
+            // resetting the bookkeeping; there is no real hook to unhook.
             if (_keyboardHookHandle == FakeHookHandle) {
                 _keyboardHookHandle = IntPtr.Zero;
                 _keyboardDelegate = null;

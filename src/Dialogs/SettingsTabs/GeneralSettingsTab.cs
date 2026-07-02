@@ -9,7 +9,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The Settings dialog's "General" tab (#213): log threshold, default command pacing, and the
-/// startup checkboxes. Mechanical decomposition of the old SettingsDialog monolith — controls,
+/// startup checkboxes. Mechanical decomposition of the old SettingsDialog monolith; controls,
 /// pixel positions, tooltips, tab order, and handler behavior are preserved as-is.
 /// </summary>
 public partial class GeneralSettingsTab : UserControl, ISettingsTab {
@@ -57,7 +57,7 @@ public partial class GeneralSettingsTab : UserControl, ISettingsTab {
 
     /// <inheritdoc/>
     public bool ValidateSection() {
-        // The General tab has no invalid states — every control is a checkbox, a pre-filled
+        // The General tab has no invalid states; every control is a checkbox, a pre-filled
         // combo, or a numeric text box whose handler simply ignores unparsable input.
         return true;
     }
@@ -90,7 +90,7 @@ public partial class GeneralSettingsTab : UserControl, ISettingsTab {
             return;
         }
 
-        // #203: do NOT mutate the global Logger.Instance.TextBoxThreshold here — Cancel
+        // #203: do NOT mutate the global Logger.Instance.TextBoxThreshold here; Cancel
         // could never restore it. The tab only updates its (cloned) Settings;
         // MainWindow.ApplySettings applies the threshold on the OK path.
         _settings.TextBoxLogThreshold = _comboBoxLogThresholds.SelectedItem!.ToString()!;

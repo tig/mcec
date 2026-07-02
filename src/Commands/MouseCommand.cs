@@ -200,8 +200,8 @@ public class MouseCommand : Command {
             // "mouse:mtv,812,562" - Move mouse to (812,562) on the virtual desktop screen
             case "mtv": sim.Mouse.MoveMouseToPositionOnVirtualDesktop(GetIntOrZero(param, 1), GetIntOrZero(param, 2)); break;
 
-            // "mouse:mtp,812,562" - Move mouse to the ABSOLUTE SCREEN PIXEL (812,562) — the same space
-            // query/find bounds report — normalized across the virtual desktop internally (unlike mt/mtv's
+            // "mouse:mtp,812,562" - Move mouse to the ABSOLUTE SCREEN PIXEL (812,562); the same space
+            // query/find bounds report; normalized across the virtual desktop internally (unlike mt/mtv's
             // raw 0-65535 units), so negative/secondary-monitor coordinates land correctly (#122).
             case "mtp":
                 (int nx, int ny) = PixelToVirtualDesktopNormalized(GetIntOrZero(param, 1), GetIntOrZero(param, 2), SystemInformation.VirtualScreen);
@@ -213,7 +213,7 @@ public class MouseCommand : Command {
         }
     }
 
-    /// <summary>Handles <c>mouse:drag,x1,y1,x2,y2[,...]</c> — parse the pixel points, then drag through them.</summary>
+    /// <summary>Handles <c>mouse:drag,x1,y1,x2,y2[,...]</c>; parse the pixel points, then drag through them.</summary>
     private void ExecuteDrag(string[] param) {
         List<(int X, int Y)>? points = ParseCoordinatePairs(param, 1);
         if (points is null) {
@@ -227,7 +227,7 @@ public class MouseCommand : Command {
     /// <summary>
     /// Parses a flat run of <c>x,y</c> integer pairs from <paramref name="param"/> starting at
     /// <paramref name="startIndex"/>. Returns the points, or <c>null</c> if there are fewer than two
-    /// complete pairs, an odd number of values, or a non-integer value. Pure — unit-testable.
+    /// complete pairs, an odd number of values, or a non-integer value. Pure; unit-testable.
     /// </summary>
     public static List<(int X, int Y)>? ParseCoordinatePairs(string[] param, int startIndex) {
         int count = param.Length - startIndex;
@@ -248,7 +248,7 @@ public class MouseCommand : Command {
     /// Densifies <paramref name="waypoints"/> into a move path whose successive points are at most
     /// <see cref="DragStepPx"/> apart (so a drop target tracks the held button), capped at
     /// <see cref="DragMaxPoints"/> points total. Endpoints are preserved exactly; consecutive
-    /// duplicate points are dropped. Pure — unit-testable, no input is generated here.
+    /// duplicate points are dropped. Pure; unit-testable, no input is generated here.
     /// </summary>
     public static List<(int X, int Y)> InterpolatePath(IReadOnlyList<(int X, int Y)> waypoints, int stepPx = DragStepPx, int maxPoints = DragMaxPoints) {
         List<(int X, int Y)> path = [];
@@ -293,7 +293,7 @@ public class MouseCommand : Command {
         }
 
         // Guarantee the gesture ends exactly at the caller's final waypoint, even when the cap cut the
-        // path short — the button must release at the intended destination, not wherever we stopped.
+        // path short; the button must release at the intended destination, not wherever we stopped.
         (int X, int Y) dest = waypoints[^1];
         if (path[^1] != dest) {
             path.Add(dest);
@@ -311,7 +311,7 @@ public class MouseCommand : Command {
     /// Maps an absolute screen pixel to the 0-65535 coordinate space
     /// <see cref="IMouseSimulator.MoveMouseToPositionOnVirtualDesktop"/> expects, relative to
     /// <paramref name="virtualScreen"/> (<see cref="SystemInformation.VirtualScreen"/> at runtime).
-    /// Clamped to the valid range. Pure — unit-testable with a synthetic screen rectangle.
+    /// Clamped to the valid range. Pure; unit-testable with a synthetic screen rectangle.
     /// </summary>
     public static (int X, int Y) PixelToVirtualDesktopNormalized(int px, int py, Rectangle virtualScreen) {
         int w = Math.Max(1, virtualScreen.Width - 1);
@@ -325,7 +325,7 @@ public class MouseCommand : Command {
 
     /// <summary>
     /// Performs a left-button drag through <paramref name="pixelWaypoints"/> (absolute screen pixels):
-    /// move to the first point, button-down, move through the interpolated path, button-up — all on
+    /// move to the first point, button-down, move through the interpolated path, button-up; all on
     /// this thread so the gesture is atomic. Shared by <c>mouse:drag</c> and the agent
     /// <see cref="DragCommand"/> so both dispatch an identical, un-interleavable gesture.
     /// </summary>
@@ -362,7 +362,7 @@ public class MouseCommand : Command {
 
     /// <summary>
     /// Moves to <paramref name="pixel"/> (absolute screen pixels) and clicks <paramref name="button"/>
-    /// (left|right|middle) — a double-click when <paramref name="count"/> is 2 or more — all on this
+    /// (left|right|middle); a double-click when <paramref name="count"/> is 2 or more; all on this
     /// thread so the move-then-click is atomic and cannot interleave with another command's mouse input.
     /// Shared by the agent <see cref="ClickCommand"/> so raw and agent clicks dispatch the same gesture.
     /// </summary>

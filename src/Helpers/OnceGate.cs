@@ -15,6 +15,6 @@ namespace MCEControl;
 internal sealed class OnceGate {
     private int _entered;
 
-    /// <summary>Returns true exactly once — the first call; false forever after.</summary>
+    /// <summary>Returns true exactly once (the first call); false forever after.</summary>
     public bool TryEnter() => Interlocked.Exchange(ref _entered, 1) == 0;
 }

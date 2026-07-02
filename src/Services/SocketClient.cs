@@ -25,7 +25,7 @@ namespace MCEControl;
 /// <see cref="RunAsync"/>, which optionally sleeps the configured delay, connects, and
 /// reads buffered chunks into a <see cref="CommandAccumulator"/>. When the connection
 /// drops it reconnects after <see cref="AppSettings.ClientDelayTime"/> (no delay
-/// configured means no auto-reconnect — the same contract MainWindow.RestartClient
+/// configured means no auto-reconnect; the same contract MainWindow.RestartClient
 /// has always enforced). The pre-#212 shape this replaces had four defects:
 /// <list type="bullet">
 ///   <item>Stop() nulled fields (<c>_bw</c>/<c>_tcpClient</c>) that the read loop was
@@ -35,7 +35,7 @@ namespace MCEControl;
 ///   <item>A finalizer called Dispose() and touched managed state; the class holds no
 ///   unmanaged resources, so it was pure hazard. Deleted.</item>
 ///   <item>The receive loop ran synchronously inside the BeginConnect callback, one
-///   ReadByte() per syscall with Thread.Sleep(100) per command — a pinned thread and a
+///   ReadByte() per syscall with Thread.Sleep(100) per command; a pinned thread and a
 ///   10 commands/sec cap. Now: <c>await ReadAsync</c> into a 4 KB buffer.</item>
 ///   <item>Double-Start() orphaned the previous BackgroundWorker and TcpClient.
 ///   Start() now cancels (supersedes) any prior run, which closes its own
@@ -60,7 +60,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
     // The TcpClient of the CURRENT connection. Published by the run loop when a
     // connection is established and cleared (compare-exchange, so a superseded run can
     // never clobber its successor's connection) when that connection ends. Send()
-    // snapshots it — it is NEVER nulled out from under a dereference (#212).
+    // snapshots it; it is NEVER nulled out from under a dereference (#212).
     private TcpClient? _tcpClient;
 
     // Test seam (InternalsVisibleTo MCEControl.xUnit): the current run's task, so
@@ -110,8 +110,8 @@ public sealed class SocketClient : ServiceBase, IDisposable {
     }
 
     /// <summary>
-    /// Stops the client: cancels the current run — aborting any in-flight
-    /// delay/connect/read, after which the run closes its own TcpClient — and reports
+    /// Stops the client: cancels the current run; aborting any in-flight
+    /// delay/connect/read, after which the run closes its own TcpClient; and reports
     /// Stopped. Deliberately does NOT null any field the run loop dereferences; the
     /// pre-#212 Stop() did, and routine stop-while-receiving (toggling "Act as
     /// client") threw NullReferenceException on a ThreadPool thread.
@@ -159,10 +159,10 @@ public sealed class SocketClient : ServiceBase, IDisposable {
         }
         catch (ObjectDisposedException) {
             // The connection was torn down (stop/supersede/drop) between the snapshot
-            // and the write — equivalent to "not connected"; nothing to report.
+            // and the write; equivalent to "not connected"; nothing to report.
         }
         catch (InvalidOperationException) {
-            // GetStream() on a socket that just disconnected — same benign race.
+            // GetStream() on a socket that just disconnected; same benign race.
         }
 
         // TODO: Implement notifications
@@ -191,7 +191,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
                 await ConnectAndReceiveAsync(ct).ConfigureAwait(false);
 
                 if (_clientDelayTime <= 0) {
-                    // No reconnect delay configured means no auto-reconnect — the
+                    // No reconnect delay configured means no auto-reconnect; the
                     // same contract MainWindow.RestartClient has always enforced.
                     break;
                 }
@@ -202,7 +202,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
             }
         }
         catch (OperationCanceledException) {
-            // Normal Stop()/supersede — not an error.
+            // Normal Stop()/supersede; not an error.
             Log4.Debug("SocketClient: run cancelled");
         }
         catch (Exception e) {
@@ -223,7 +223,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
 
     /// <summary>
     /// One connection attempt: resolve, connect, then receive until the peer drops or
-    /// the run is cancelled. Owns its TcpClient — created and disposed here, so a
+    /// the run is cancelled. Owns its TcpClient; created and disposed here, so a
     /// superseded or stopped run always cleans up its own connection. Connection
     /// errors are reported (via Error(), which MainWindow reacts to) and swallowed so
     /// the run loop can retry; only cancellation propagates.
@@ -259,7 +259,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
             await ReceiveUntilClosedAsync(tcpClient, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) {
-            // Stop()/supersede — RunAsync treats this as normal shutdown.
+            // Stop()/supersede; RunAsync treats this as normal shutdown.
             throw;
         }
         catch (SocketException e) {
@@ -281,7 +281,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
             Error($"SocketClient: Generic Exception: {e.GetType().Name} {e.Message}");
         }
         finally {
-            // Retire this run's connection — but only if it is still the current one:
+            // Retire this run's connection; but only if it is still the current one:
             // a superseding Start() may already have published its own (#212).
             _ = Interlocked.CompareExchange(ref _tcpClient, null, tcpClient);
         }
@@ -289,7 +289,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
 
     /// <summary>
     /// The receive loop: buffered async reads (no more one-ReadByte-per-syscall, no
-    /// more Thread.Sleep(100) per command — #212) decoded as UTF-8 and fed to a
+    /// more Thread.Sleep(100) per command; #212) decoded as UTF-8 and fed to a
     /// <see cref="CommandAccumulator"/>, which owns the CR/LF/NUL delimiter and #148
     /// max-length logic. The server sends UTF-8; a stateful Decoder handles multi-byte
     /// characters split across reads (the old loop cast each byte to char, mangling

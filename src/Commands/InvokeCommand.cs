@@ -50,11 +50,11 @@ public class InvokeCommand : WindowTargetingAgentCommand {
     /// </summary>
     internal CommandResult FailureFor(UiaInvokeResult outcome) => outcome switch {
         UiaInvokeResult.ElementNotFound => CommandResult.Fail(Cmd,
-            $"Element not found ({By}='{Value}') in the target window. invoke does not wait — find/wait-for the element first.",
+            $"Element not found ({By}='{Value}') in the target window. invoke does not wait; find/wait-for the element first.",
             "element-not-found", "no-target"),
         UiaInvokeResult.PatternUnsupported => CommandResult.Fail(Cmd,
             $"The element ({By}='{Value}') exists but does not support the UIA pattern the '{Action}' action needs. " +
-            "Re-finding it will not help — use a different action (or click it) instead.",
+            "Re-finding it will not help; use a different action (or click it) instead.",
             "pattern-unsupported", "invalid-argument"),
         UiaInvokeResult.ActionUnknown => CommandResult.Fail(Cmd,
             $"Unknown action '{Action}'. Use invoke, toggle, setvalue, setfocus, expand, collapse, or select.",

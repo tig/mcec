@@ -11,7 +11,7 @@ namespace MCEControl.xUnit.Helpers;
 /// <summary>
 /// Tests for <see cref="OnceGate"/>, the idempotence latch behind
 /// <c>MainWindow.PerformShutdown()</c> (#213): menu exit runs the teardown and then Close()
-/// re-enters it via FormClosing, while OS logoff enters via FormClosing alone — the gate
+/// re-enters it via FormClosing, while OS logoff enters via FormClosing alone; the gate
 /// guarantees the teardown body runs exactly once whichever path (or both) fires.
 /// </summary>
 public class OnceGateTests {

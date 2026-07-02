@@ -83,7 +83,7 @@ public class CaptureCommandTests {
             JsonObject json = JsonNode.Parse(reply.Captured.Trim())!.AsObject();
             Assert.False(json["success"]!.GetValue<bool>());
             Assert.Equal("region-too-large", json["errorCode"]!.GetValue<string>());
-            // #191: an oversized region is a malformed request — the recovery is to shrink it,
+            // #191: an oversized region is a malformed request; the recovery is to shrink it,
             // so the category is invalid-argument, not no-target.
             Assert.Equal("invalid-argument", json["errorCategory"]!.GetValue<string>());
             // The detail must tell the agent what the limits are so the failure is recoverable.

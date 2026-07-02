@@ -82,8 +82,8 @@ public class AgentToolResultTests {
 
     [Fact]
     public void Failure_WithPartialResult_IncludesIt_DistinctFromLastObservation() {
-        // #206: a blank capture's own (suspect) payload rides in error.partialResult — the image the
-        // command paid to keep must not be discarded — while error.lastObservation stays the last
+        // #206: a blank capture's own (suspect) payload rides in error.partialResult; the image the
+        // command paid to keep must not be discarded; while error.lastObservation stays the last
         // GOOD state from a prior call.
         JsonObject prior = new() { ["window"] = "About" };
         JsonObject partial = new() { ["base64"] = "iVBORw0K", ["encoding"] = "png" };
@@ -145,7 +145,7 @@ public class AgentToolResultTests {
     }
 
     // #206: the prose-sniffing Categorize shim is GONE. The envelope is built from the CommandResult
-    // OBJECT the command returned; the tests below pin codes/categories — never error-message text.
+    // OBJECT the command returned; the tests below pin codes/categories; never error-message text.
 
     [Fact]
     public void FromCommandResult_Success_MapsDataToResult_SameInstance() {
@@ -176,7 +176,7 @@ public class AgentToolResultTests {
 
     [Fact]
     public void FromCommandResult_Failure_KeptData_RidesInPartialResult() {
-        // A blank capture deliberately keeps the (suspect) PNG in its failure Data — the envelope must
+        // A blank capture deliberately keeps the (suspect) PNG in its failure Data; the envelope must
         // carry it in error.partialResult rather than discarding the image the command paid to keep.
         JsonObject kept = new() { ["base64"] = "iVBORw0K", ["encoding"] = "png" };
         CommandResult command = CommandResult
@@ -192,7 +192,7 @@ public class AgentToolResultTests {
     [Fact]
     public void FromCommandResult_Failure_WithoutCode_FallsBackToUnhandledInternal() {
         // A bare-string Fail (which AgentCommand's template also normalizes) must still yield a
-        // categorical envelope — never a prose-derived one.
+        // categorical envelope; never a prose-derived one.
         CommandResult command = CommandResult.Fail("capture", "something nobody coded");
 
         JsonObject env = AgentToolResult.FromCommandResult(command, "capture").ToJsonObject();
@@ -205,7 +205,7 @@ public class AgentToolResultTests {
 
     [Fact]
     public void FromCommandResult_Failure_UnknownCategory_FallsBackToInternal_KeepsCode() {
-        // If a command ever emits a category outside the closed set, don't propagate it —
+        // If a command ever emits a category outside the closed set, don't propagate it;
         // error.category must always validate against the schema enum. The (open-set) code survives.
         CommandResult command = CommandResult.Fail("capture", "No matching window", "weird-code", "not-a-category");
 

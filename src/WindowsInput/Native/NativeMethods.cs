@@ -104,7 +104,7 @@ public static class NativeMethods {
     /// <param name="lpClassName">The class name string.</param>
     /// <param name="nMaxCount">The length of the lpClassName buffer, in characters. The buffer must be large enough to include the terminating null character; otherwise, the class name string is truncated to nMaxCount-1 characters.</param>
     /// <returns>If the function succeeds, the return value is the number of characters copied to the buffer, not including the terminating null character. If the function fails, the return value is zero. To get extended error information, call GetLastError function.</returns>
-    // #210: returns int (the copied character count), not IntPtr — the old IntPtr declaration was
+    // #210: returns int (the copied character count), not IntPtr; the old IntPtr declaration was
     // wrong. Explicit CharSet.Unicode matches AgentNativeMethods.GetClassName, the reference model.
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     internal static extern int GetClassName(IntPtr hWnd, StringBuilder buf, int nMaxCount);
@@ -145,7 +145,7 @@ public static class NativeMethods {
     ///     retrieve the window name for comparison. For a description of a potential problem that can arise, see the Remarks
     ///     for <see cref="M:GetWindowText" />.
     /// </remarks>
-    // #210: explicit CharSet.Unicode — the previous declaration defaulted to ANSI marshaling, so
+    // #210: explicit CharSet.Unicode; the previous declaration defaulted to ANSI marshaling, so
     // window-title matching went through the lossy A entry point.
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     internal static extern IntPtr FindWindow(string lpClassName, string lpWindowName);

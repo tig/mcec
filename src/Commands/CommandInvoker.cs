@@ -55,8 +55,8 @@ public class CommandInvoker : Hashtable {
     /// <summary>
     /// TEST SEAM (#195): what the shutdown drop runs to release possibly-held input. A Shutdown that
     /// drops the queued tail of a command tree can sever paired input (shiftdown: ran, shiftup:
-    /// dropped) and leave a modifier latched host-wide — the same hazard the emergency stop
-    /// compensates for — so the drop paths invoke the SAME release the stop uses. Tests swap in a
+    /// dropped) and leave a modifier latched host-wide; the same hazard the emergency stop
+    /// compensates for; so the drop paths invoke the SAME release the stop uses. Tests swap in a
     /// probe (the default injects real input).
     /// </summary>
     internal static Action ReleaseHeldInputOnDrop { get; set; } = EmergencyStop.ReleaseHeldInput;
@@ -71,7 +71,7 @@ public class CommandInvoker : Hashtable {
     internal const int MaxQueueDepth = 200;
 
     /// <summary>
-    /// SECURITY (#154): Maximum size of a single command's whole tree — the command itself plus all
+    /// SECURITY (#154): Maximum size of a single command's whole tree; the command itself plus all
     /// recursively embedded commands. A single received command string can otherwise amplify ~10x or
     /// more (see #145), letting one packet flood the queue. A tree over this bound is dropped WHOLE
     /// (all-or-nothing, see `EnqueueCommand`) and logged. 50 leaves generous headroom for authored
@@ -91,7 +91,7 @@ public class CommandInvoker : Hashtable {
     /// <returns></returns>
     private static CommandInvoker CreateBuiltIns(bool disableInternalCommands = false) {
         // Debug backstop (#204): a concrete Command subclass without a CommandRegistry entry would
-        // silently ship no built-ins and be unserializable — fail loudly at startup in DEBUG builds.
+        // silently ship no built-ins and be unserializable; fail loudly at startup in DEBUG builds.
         // The real gate is CommandRegistryTests, which reds the build for the same drift.
         CommandRegistry.DebugAssertComplete();
 
@@ -102,7 +102,7 @@ public class CommandInvoker : Hashtable {
             return commands;
 
         // One explicit registry (#204): each command type's built-in prototypes come from its
-        // registry entry — no assembly scan instantiating every type, no magic static discovered
+        // registry entry; no assembly scan instantiating every type, no magic static discovered
         // by reflection that silently registers nothing when misdeclared.
         foreach (CommandRegistryEntry entry in CommandRegistry.Entries) {
             foreach (Command builtinCmd in entry.BuiltIns()) {
@@ -198,9 +198,9 @@ public class CommandInvoker : Hashtable {
     /// <summary>
     /// Decodes a command string and enqueues the associated Command for execution. Returns what
     /// happened (#195): <see cref="CommandEnqueueResult.Enqueued"/>, an unknown command, or a
-    /// bounds/shutdown drop — so a caller with an error channel (the agent's <c>send_command</c>)
+    /// bounds/shutdown drop; so a caller with an error channel (the agent's <c>send_command</c>)
     /// can report failure instead of pretending success. The legacy TCP/serial path ignores the
-    /// result (its behavior — log and continue — is unchanged).
+    /// result (its behavior, log and continue, is unchanged).
     /// </summary>
     /// <param name="reply">Reply context</param>
     /// <param name="cmdString">The command string that was received</param>
@@ -228,7 +228,7 @@ public class CommandInvoker : Hashtable {
         // TODO: Implement ignoreInternalCommands?
 
         // #203: `this["chars:"]` is null when built-ins are disabled (DisableInternalCommands)
-        // or a user .commands file omits it — pattern-match instead of casting so a missing
+        // or a user .commands file omits it; pattern-match instead of casting so a missing
         // "chars:" falls through to normal unknown-command handling rather than throwing.
         if (cmdString.Length == 1 && this["chars:"] is Command charsCommand && charsCommand.Enabled) {
             // Sending a single character is equivalent to a single key press of a key on the keyboard. 
@@ -289,7 +289,7 @@ public class CommandInvoker : Hashtable {
             EnqueueCommandTree(cmd);
         }
         if (shutdown) {
-            // Lost the race with Shutdown — AddToQueue already dropped/logged whatever didn't make it.
+            // Lost the race with Shutdown; AddToQueue already dropped/logged whatever didn't make it.
             return false;
         }
         EnsureDispatcherStarted();
@@ -310,7 +310,7 @@ public class CommandInvoker : Hashtable {
     }
 
     // Recursively enqueues `cmd` and its EmbeddedCommands. Only called after EnqueueCommand has
-    // verified the whole tree fits both bounds (#154) — never call this directly.
+    // verified the whole tree fits both bounds (#154); never call this directly.
     private void EnqueueCommandTree(ICommand cmd) {
         AddToQueue(cmd);
         Command command = (Command)cmd;
@@ -321,7 +321,7 @@ public class CommandInvoker : Hashtable {
         // SECURITY (#145): a disabled parent must suppress its entire embedded subtree. Embedded
         // commands are flattened into the execute queue as independent siblings and each is gated
         // only on its OWN Enabled flag, so descending into a disabled parent would let its
-        // Enabled=true children run — bypassing the per-command gate that "disabled by default"
+        // Enabled=true children run; bypassing the per-command gate that "disabled by default"
         // depends on. Stop descending unless this command is itself enabled. (An enabled parent
         // with a disabled child still stops at that child, because the recursion re-checks here.)
         if (!command.Enabled) {
@@ -346,7 +346,7 @@ public class CommandInvoker : Hashtable {
                 return;
             }
             catch (InvalidOperationException) {
-                // Lost the race with Shutdown's CompleteAdding — fall through to the drop path.
+                // Lost the race with Shutdown's CompleteAdding; fall through to the drop path.
             }
         }
         (cmd as CommandDispatchCompletion)?.SignalDropped();
@@ -360,7 +360,7 @@ public class CommandInvoker : Hashtable {
     /// <summary>
     /// TEST SEAM: when set (BEFORE the first enqueue), no dispatcher thread is started and tests
     /// drain the queue deterministically with <see cref="PumpQueueForTests"/>. Production never sets
-    /// this — there must be exactly ONE drain path (the dispatcher); a second concurrent drain is
+    /// this; there must be exactly ONE drain path (the dispatcher); a second concurrent drain is
     /// the very bug #195 fixed.
     /// </summary>
     internal bool SuppressDispatcherForTests { get; set; }
@@ -388,7 +388,7 @@ public class CommandInvoker : Hashtable {
 
     /// <summary>
     /// Stops the dispatcher: no further commands are accepted, and anything still queued is dropped
-    /// (completion markers are signalled as dropped so no <c>send_command</c> awaiter hangs — they
+    /// (completion markers are signalled as dropped so no <c>send_command</c> awaiter hangs; they
     /// are failed IMMEDIATELY from here, not when the dispatcher gets around to them, so a pending
     /// awaiter never waits out a long-running in-flight command). Because a drop can sever a command
     /// tree mid-execution (shiftdown: ran, shiftup: still queued), the drop paths release held input
@@ -397,7 +397,7 @@ public class CommandInvoker : Hashtable {
     /// </summary>
     /// <param name="joinTimeoutMs">
     /// When &gt; 0, waits up to this long for the dispatcher thread to finish its in-flight command
-    /// and exit — exit sites pass ~2s so the current command usually completes cleanly. The thread
+    /// and exit; exit sites pass ~2s so the current command usually completes cleanly. The thread
     /// is background either way, so it can never keep the process alive.
     /// </param>
     internal void Shutdown(int joinTimeoutMs = 0) {
@@ -439,7 +439,7 @@ public class CommandInvoker : Hashtable {
             }
         }
         catch (Exception e) {
-            // Should be unreachable (DispatchOne catches per-command faults) — but a dead dispatcher
+            // Should be unreachable (DispatchOne catches per-command faults); but a dead dispatcher
             // silently stranding the queue would be worse than a loud log.
             Logger.Instance.Log4.Error($"{GetType().Name}: dispatcher thread terminated unexpectedly: {e}");
         }
@@ -455,7 +455,7 @@ public class CommandInvoker : Hashtable {
     private void DispatchOne(ICommand icmd) {
         // Shutdown drop: discard this item and drain the remainder in one pass. Dropping can sever a
         // command tree whose head already executed (shiftdown: ran, shiftup: dropped), so when any
-        // real command is discarded, release held input — the same compensation the emergency stop
+        // real command is discarded, release held input; the same compensation the emergency stop
         // performs (see ReleaseHeldInputOnDrop).
         if (shutdown) {
             int dropped = 0;
@@ -474,7 +474,7 @@ public class CommandInvoker : Hashtable {
                 }
             }
             if (dropped > 0) {
-                Logger.Instance.Log4.Warn($"{GetType().Name}: invoker shut down — dropped {dropped} queued command(s) without executing; releasing held input in case a command tree was severed.");
+                Logger.Instance.Log4.Warn($"{GetType().Name}: invoker shut down; dropped {dropped} queued command(s) without executing; releasing held input in case a command tree was severed.");
                 ReleaseHeldInputOnDrop();
             }
             return;
@@ -482,7 +482,7 @@ public class CommandInvoker : Hashtable {
 
         // Emergency stop (#135): if the operator engaged the panic hotkey, drop the rest of the queue
         // instead of actuating it. A paced/embedded command sequence (a macro, or commands after a
-        // `pause`) must not keep firing after the stop — checking the latch BETWEEN commands is what
+        // `pause`) must not keep firing after the stop; checking the latch BETWEEN commands is what
         // makes "the queue is dropped" true rather than only latching future tool calls. Pending
         // send_command completions are signalled as dropped so their awaiters fail fast instead of
         // timing out.
@@ -503,13 +503,13 @@ public class CommandInvoker : Hashtable {
                 }
             }
             if (dropped > 0) {
-                Logger.Instance.Log4.Warn($"{GetType().Name}: emergency stop engaged — dropped {dropped} queued command(s) without executing.");
+                Logger.Instance.Log4.Warn($"{GetType().Name}: emergency stop engaged; dropped {dropped} queued command(s) without executing.");
             }
             return;
         }
 
         if (icmd is CommandDispatchCompletion marker) {
-            // Everything enqueued ahead of the marker has executed; wake its awaiter. No pacing —
+            // Everything enqueued ahead of the marker has executed; wake its awaiter. No pacing;
             // it is bookkeeping, not actuation.
             marker.SignalExecuted();
             return;
@@ -518,8 +518,8 @@ public class CommandInvoker : Hashtable {
         // #113/#195: a queue-driven command that can synthesize physical input executes under the
         // input gate so it can never interleave with a drag gesture actuating on an MCP worker.
         // Commands that provably touch no input (Command.SynthesizesInput == false, e.g. pause)
-        // run outside the gate — a pause:60000 must not starve a concurrent drag for a minute.
-        // InputGate is a leaf lock — Execute must not wait on the dispatcher/queue.
+        // run outside the gate; a pause:60000 must not starve a concurrent drag for a minute.
+        // InputGate is a leaf lock; Execute must not wait on the dispatcher/queue.
         Command command = (Command)icmd;
         if (command.SynthesizesInput) {
             lock (AgentRuntime.InputGate) {
@@ -549,7 +549,7 @@ public class CommandInvoker : Hashtable {
     /// <summary>
     /// Enqueues a completion marker and returns its task: it completes <c>true</c> once the
     /// dispatcher has executed everything enqueued ahead of it, or <c>false</c> if the queue was
-    /// dropped first (emergency stop / shutdown). The marker bypasses the #154 bounds — it is
+    /// dropped first (emergency stop / shutdown). The marker bypasses the #154 bounds; it is
     /// bookkeeping (one per tracked enqueue, bounded by the caller's concurrency), and dropping it
     /// would hang its awaiter.
     /// </summary>
@@ -564,10 +564,10 @@ public class CommandInvoker : Hashtable {
     /// The agent <c>send_command</c> entry point (#195): decodes and enqueues <paramref name="cmdString"/>
     /// exactly like <see cref="Enqueue"/>. When the tree entered the queue, <paramref name="completion"/>
     /// is a task that completes only after the dispatcher has executed it (so the caller can read the
-    /// command's <see cref="Reply"/> output without racing the execution — the pre-#195 bug);
+    /// command's <see cref="Reply"/> output without racing the execution; the pre-#195 bug);
     /// <c>false</c> from that task means the queue was dropped before the command ran (emergency
     /// stop / shutdown). When nothing was enqueued (unknown command, bounds drop), the returned
-    /// result says why and <paramref name="completion"/> is null — the caller reports the failure
+    /// result says why and <paramref name="completion"/> is null; the caller reports the failure
     /// instead of pretending success.
     /// </summary>
     internal CommandEnqueueResult TryEnqueueWithCompletion(Reply reply, string cmdString, out Task<bool>? completion) {
@@ -579,12 +579,12 @@ public class CommandInvoker : Hashtable {
     /// <summary>
     /// TEST SEAM: synchronously drains whatever is queued, running the production
     /// <see cref="DispatchOne"/> logic on the calling thread. Only valid while no dispatcher thread
-    /// exists (use <see cref="SuppressDispatcherForTests"/> before the first enqueue) — beside a
+    /// exists (use <see cref="SuppressDispatcherForTests"/> before the first enqueue); beside a
     /// live dispatcher this would be a second concurrent drain, the exact #195 hazard, so it throws.
     /// </summary>
     internal void PumpQueueForTests() {
         if (dispatcherThread is not null) {
-            throw new InvalidOperationException("PumpQueueForTests requires that no dispatcher thread was started (set SuppressDispatcherForTests before the first enqueue) — a second drain beside the live dispatcher is the #195 bug.");
+            throw new InvalidOperationException("PumpQueueForTests requires that no dispatcher thread was started (set SuppressDispatcherForTests before the first enqueue); a second drain beside the live dispatcher is the #195 bug.");
         }
         while (executeQueue.TryTake(out ICommand? icmd)) {
             DispatchOne(icmd);
@@ -605,7 +605,7 @@ public class CommandInvoker : Hashtable {
             }
         }
         if (dropped > 0) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: {reason} — dropped {dropped} queued command(s) without executing; releasing held input in case a command tree was severed.");
+            Logger.Instance.Log4.Warn($"{GetType().Name}: {reason}; dropped {dropped} queued command(s) without executing; releasing held input in case a command tree was severed.");
             ReleaseHeldInputOnDrop();
         }
     }

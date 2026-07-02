@@ -9,7 +9,7 @@ namespace MCEControl;
 /// Contract each Settings dialog tab UserControl implements (#213). The dialog is a thin shell:
 /// it clones the app settings, hands the clone to every tab via <see cref="Bind"/>, and enables
 /// OK only while every tab's <see cref="IsValid"/> is true (preserving #203's all-sections
-/// validation semantics — a valid Server section must not mask an invalid Client section).
+/// validation semantics; a valid Server section must not mask an invalid Client section).
 /// </summary>
 public interface ISettingsTab {
     /// <summary>
@@ -29,7 +29,7 @@ public interface ISettingsTab {
 
     /// <summary>
     /// Populates the tab's controls from <paramref name="settings"/> and wires the change
-    /// handlers so they mutate ONLY this bound object (the dialog's clone — Cancel discards it;
+    /// handlers so they mutate ONLY this bound object (the dialog's clone; Cancel discards it;
     /// MainWindow adopts and persists it on OK).
     /// </summary>
     void Bind(AppSettings settings);

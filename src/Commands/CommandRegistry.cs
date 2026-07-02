@@ -16,12 +16,12 @@ namespace MCEControl;
 /// <item>an <c>[XmlElement("name", typeof(T))]</c> on <see cref="Command.EmbeddedCommands"/>,</item>
 /// <item>the same list repeated as <c>[XmlArrayItem]</c> on <see cref="SerializedCommands.commandArray"/>,</item>
 /// <item>a magic <c>public static new BuiltInCommands</c> property discovered by reflection
-/// (without <c>FlattenHierarchy</c> — misdeclare it and the command registered nothing).</item>
+/// (without <c>FlattenHierarchy</c>; misdeclare it and the command registered nothing).</item>
 /// </list>
 /// Now ONE entry in <see cref="Entries"/> drives all three: the serializer's polymorphic
 /// element-name maps (<see cref="CreateXmlOverrides"/>), the invoker's built-ins table
 /// (<c>CommandInvoker.CreateBuiltIns</c>), and the hygiene gate
-/// (<c>CommandRegistryTests</c> — an unregistered command type is a red build, plus the
+/// (<c>CommandRegistryTests</c>; an unregistered command type is a red build, plus the
 /// <see cref="DebugAssertComplete"/> debug backstop).
 ///
 /// <para><b>To add a command type</b>: derive from <see cref="Command"/> (agent tools: from the
@@ -31,7 +31,7 @@ namespace MCEControl;
 public static class CommandRegistry {
     /// <summary>
     /// One line per command type. Order matches the legacy attribute lists for wire-format parity.
-    /// WIRE FORMAT: XmlName is what .commands files contain — never rename an existing entry.
+    /// WIRE FORMAT: XmlName is what .commands files contain; never rename an existing entry.
     /// </summary>
     public static IReadOnlyList<CommandRegistryEntry> Entries { get; } = [
         new("chars", typeof(CharsCommand), () => CharsCommand.BuiltInCommands),
@@ -59,11 +59,11 @@ public static class CommandRegistry {
     /// <see cref="Command.EmbeddedCommands"/> (the <c>[XmlElement]</c> set) and
     /// <see cref="SerializedCommands.commandArray"/> (the <c>[XmlArrayItem]</c> set). An override
     /// REPLACES the member's reflected attributes wholesale, so the <c>commandArray</c> wrapper
-    /// (<c>[XmlArray("commands", Order = 1)]</c> — Order required because the sibling
+    /// (<c>[XmlArray("commands", Order = 1)]</c>; Order required because the sibling
     /// <c>XmlComment</c> member carries <c>Order = 0</c>) is restated here too.
     ///
     /// CRITICAL (caller contract): an <see cref="XmlSerializer"/> constructed WITH overrides is NOT
-    /// cached by the runtime — each construction emits a new dynamic assembly that is never
+    /// cached by the runtime; each construction emits a new dynamic assembly that is never
     /// unloaded. The ONLY consumer must be a cached static serializer
     /// (<c>SerializedCommands.Serializer</c>); never call this per-serialize.
     /// </summary>
@@ -88,7 +88,7 @@ public static class CommandRegistry {
 
     /// <summary>
     /// Debug-build backstop (#204): asserts every concrete <see cref="Command"/> subclass in the
-    /// product assembly has exactly one registry entry. Runs once per invoker creation — cheap, and
+    /// product assembly has exactly one registry entry. Runs once per invoker creation; cheap, and
     /// it catches a locally added-but-unregistered command the moment the app starts instead of at
     /// test time. The REAL gate is <c>CommandRegistryTests</c>, which fails the build for the same
     /// drift (both directions) on every CI run.
@@ -107,7 +107,7 @@ public static class CommandRegistry {
         Debug.Assert(missing.Count == 0 && duplicates.Count == 0,
             $"CommandRegistry (#204) is out of sync. Missing: [{string.Join(", ", missing)}]; " +
             $"duplicated: [{string.Join(", ", duplicates)}]. Every concrete Command subclass needs " +
-            "exactly ONE CommandRegistry.Entries line — it drives serialization, the invoker's " +
+            "exactly ONE CommandRegistry.Entries line; it drives serialization, the invoker's " +
             "built-ins, and the hygiene tests (CommandRegistryTests).");
     }
 }

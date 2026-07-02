@@ -19,7 +19,7 @@ namespace MCEControl.xUnit.Commands;
 /// </summary>
 public class AgentCommandStructuralGateTests {
     /// <summary>
-    /// Every tool name in AgentServer's tools/call gate — which since #205 is exactly the
+    /// Every tool name in AgentServer's tools/call gate; which since #205 is exactly the
     /// <see cref="ToolCatalog"/> membership. Kept as an INDEPENDENT test-side pin (not read from the
     /// catalog) so removing or renaming a catalog entry can't silently shrink this enforcement;
     /// <c>ToolCatalogTests</c> pins the same list against the catalog itself.
@@ -54,7 +54,7 @@ public class AgentCommandStructuralGateTests {
     public void AgentCommand_Execute_IsSealed_SoSubclassesCannotBypassTheGate() {
         MethodInfo execute = typeof(AgentCommand).GetMethod(nameof(Command.Execute))!;
 
-        // Declared on AgentCommand (the template) and final — a subclass cannot re-open it and skip
+        // Declared on AgentCommand (the template) and final; a subclass cannot re-open it and skip
         // the AgentCommandsEnabled check.
         Assert.Equal(typeof(AgentCommand), execute.DeclaringType);
         Assert.True(execute.IsFinal, "AgentCommand.Execute() must stay sealed: it is the structural AgentCommandsEnabled gate.");
@@ -76,7 +76,7 @@ public class AgentCommandStructuralGateTests {
         foreach (Type type in typeof(Command).Assembly.GetTypes()) {
             if (type.IsClass && !type.IsAbstract && typeof(AgentCommand).IsAssignableFrom(type)) {
                 Assert.True(mappedTypes.Contains(type),
-                    $"{type.Name} derives from AgentCommand but no gated tool name maps to it — " +
+                    $"{type.Name} derives from AgentCommand but no gated tool name maps to it; " +
                     "add its tool name to AgentServer's gate whitelist, BuildCommand, and GatedToolNames here.");
             }
         }

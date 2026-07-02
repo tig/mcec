@@ -9,7 +9,7 @@ using Xunit;
 namespace MCEControl.xUnit;
 
 // #216: persistence (load/save/path resolution) moved from AppSettings to SettingsStore.
-// SettingsStore never shows dialogs and never emits telemetry — it returns a result object and
+// SettingsStore never shows dialogs and never emits telemetry; it returns a result object and
 // the host decides. Nothing here touches AgentRuntime statics, the registry (beyond the
 // read-tolerant machine-policy read Load performs), or the installed MCEC config (temp dirs only).
 public class SettingsStoreTests
@@ -37,7 +37,7 @@ public class SettingsStoreTests
     }
 
     /// <summary>
-    /// #216: the old check was startupPath.Contains(ProgramFiles) — a raw substring test that
+    /// #216: the old check was startupPath.Contains(ProgramFiles); a raw substring test that
     /// false-positived on sibling directories like "C:\Program Files Custom". The replacement is a
     /// separator-aware, case-insensitive path-prefix comparison.
     /// </summary>
@@ -91,7 +91,7 @@ public class SettingsStoreTests
     /// <summary>
     /// Issue #155: a settings file corrupted by a mid-write crash, disk error, or hand-edit must not
     /// put the app into a fail-to-start state (GUI or headless --mcp). Load must return a
-    /// parse-error RESULT (no throw, no dialog — #216) with defaults, and must not silently
+    /// parse-error RESULT (no throw, no dialog; #216) with defaults, and must not silently
     /// overwrite the corrupt file (so the user can recover it).
     /// </summary>
     [Theory]
@@ -125,7 +125,7 @@ public class SettingsStoreTests
     /// <summary>
     /// SECURITY (#216, the real CA3075 fix): mcec.settings is user-writable and MCEC is
     /// network-facing, so a settings file smuggling a DTD (entity-expansion / external-entity
-    /// tricks) must be REJECTED — DtdProcessing.Prohibit, XmlResolver = null — and treated like
+    /// tricks) must be REJECTED; DtdProcessing.Prohibit, XmlResolver = null; and treated like
     /// any other corrupt file: parse-error result, defaults, file preserved.
     /// </summary>
     [Fact]
@@ -154,9 +154,9 @@ public class SettingsStoreTests
 
     /// <summary>
     /// Issue #155 (second bug): the UnauthorizedAccessException path left settings null and then
-    /// dereferenced it — the "handled" branch itself crashed with an NRE. Opening a directory as a
-    /// file throws UnauthorizedAccessException — the same exception type as an ACL-denied settings
-    /// file — without touching real ACLs.
+    /// dereferenced it; the "handled" branch itself crashed with an NRE. Opening a directory as a
+    /// file throws UnauthorizedAccessException; the same exception type as an ACL-denied settings
+    /// file; without touching real ACLs.
     /// </summary>
     [Fact]
     public void Load_UnauthorizedAccess_ReturnsAccessDenied_WithDefaults()

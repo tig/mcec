@@ -31,7 +31,7 @@ public sealed class CapturingReply : Reply {
 
     /// <summary>
     /// Everything written to this reply as text. When nothing was written but a typed
-    /// <see cref="Result"/> was set, serializes it on demand — same bytes the legacy TCP/serial
+    /// <see cref="Result"/> was set, serializes it on demand; same bytes the legacy TCP/serial
     /// transport would have carried.
     /// </summary>
     public string Captured => _buffer.Length > 0 ? _buffer.ToString() : Result?.ToJson() ?? "";

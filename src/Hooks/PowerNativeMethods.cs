@@ -9,7 +9,7 @@ namespace MCEControl.Hooks;
 /// <summary>
 /// The user32 power-setting-notification P/Invoke surface and the WM_POWERBROADCAST constants used
 /// by <see cref="UserActivityMonitorService"/>'s presence detection (and <see cref="MainWindow"/>'s
-/// WndProc dispatch). First-party since #214 — this descends from the vendored
+/// WndProc dispatch). First-party since #214; this descends from the vendored
 /// Gma.UserActivityMonitor fork's <c>NativeMethods</c>; only the members MCEC uses were kept.
 /// </summary>
 /// <remarks>

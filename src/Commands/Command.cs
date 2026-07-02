@@ -33,7 +33,7 @@ public abstract class Command : ICommand {
 
     // SERIALIZATION (#204): the polymorphic element-name map for embedded commands (one
     // [XmlElement("name", typeof(T))] per command type, formerly hardcoded here) now comes from
-    // CommandRegistry.CreateXmlOverrides(), applied by SerializedCommands' cached serializer —
+    // CommandRegistry.CreateXmlOverrides(), applied by SerializedCommands' cached serializer;
     // register a new command type there, not here.
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
     public List<Command> EmbeddedCommands { get; set; } = null!;
@@ -55,21 +55,21 @@ public abstract class Command : ICommand {
     /// <summary>
     /// Whether executing this command can synthesize physical desktop input (keys/mouse/window
     /// messages). The dispatcher (#195) holds <see cref="AgentRuntime.InputGate"/> around
-    /// <see cref="Execute"/> only when this is true — so a command that provably touches no input
+    /// <see cref="Execute"/> only when this is true; so a command that provably touches no input
     /// (e.g. <c>pause</c>) doesn't starve a concurrent agent <c>drag</c> for its whole duration.
-    /// DEFAULTS TO TRUE; overrides must be conservative — claim false only when Execute can never
+    /// DEFAULTS TO TRUE; overrides must be conservative; claim false only when Execute can never
     /// emit input, directly or transitively. Getting this wrong re-opens the #113 interleaving hazard.
     /// </summary>
     internal virtual bool SynthesizesInput => true;
 
     /// <summary>
     /// Clones this command (a table prototype) for execution with a fresh <paramref name="reply"/>
-    /// context. Built on <see cref="object.MemberwiseClone"/> so EVERY field — including all
-    /// serializable subclass state, which is value/string-typed throughout — is copied by
+    /// context. Built on <see cref="object.MemberwiseClone"/> so EVERY field; including all
+    /// serializable subclass state, which is value/string-typed throughout; is copied by
     /// construction; a subclass cannot forget a property (#207, the old hand-copied field lists).
     /// The only reference-typed mutable members are then handled explicitly: <see cref="Reply"/> is
     /// replaced with the fresh context, and <see cref="EmbeddedCommands"/> is deep-cloned (each
-    /// child cloned recursively, so children keep their own Enabled — the #183 bug is impossible
+    /// child cloned recursively, so children keep their own Enabled; the #183 bug is impossible
     /// here by construction). Virtual only for a subclass that gains genuinely non-mechanical clone
     /// semantics (e.g. deep-copying a future reference-typed member); field copying never needs an
     /// override.

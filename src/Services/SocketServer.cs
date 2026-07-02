@@ -30,7 +30,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     private int _clientCount;
 
     // Monotonically increasing id used as the _clientList key and ClientNumber.
-    // Never decremented — unlike _clientCount, which drops on disconnect — so
+    // Never decremented; unlike _clientCount, which drops on disconnect; so
     // keys stay unique for the lifetime of the server (#147).
     private int _nextClientId;
 
@@ -72,7 +72,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// Closes the listening socket and force-closes every tracked client, draining the
     /// connected tally so a later <see cref="Start"/> does not report a stale count. This is
     /// the shared teardown used by both the resettable <see cref="Stop"/> and the terminal
-    /// <see cref="Dispose"/> — it mutates live state but does NOT mark the object disposed (#202).
+    /// <see cref="Dispose"/>; it mutates live state but does NOT mark the object disposed (#202).
     /// </summary>
     private void CloseListenerAndClients() {
         foreach (int i in _clientList.Keys) {
@@ -99,12 +99,12 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// trusted-network model), so which interface it listens on is a security control:
     /// <list type="bullet">
     ///   <item><c>"any"</c>/<c>"0.0.0.0"</c>/<c>"*"</c>/empty → <see cref="IPAddress.Any"/> (all
-    ///   interfaces — the long-standing default, reachable from every host on the LAN/VPN; kept for
+    ///   interfaces; the long-standing default, reachable from every host on the LAN/VPN; kept for
     ///   backward compatibility on upgrade).</item>
     ///   <item><c>"localhost"</c>/<c>"loopback"</c> → <see cref="IPAddress.Loopback"/> (single-machine
-    ///   only — the recommended setting when nothing off-box needs to connect).</item>
+    ///   only; the recommended setting when nothing off-box needs to connect).</item>
     ///   <item>a parseable IP (<c>"127.0.0.1"</c>, <c>"::1"</c>, a specific LAN IP) → that address.</item>
-    ///   <item>anything else (junk) → <see cref="IPAddress.Loopback"/>, logged loudly — a misconfigured
+    ///   <item>anything else (junk) → <see cref="IPAddress.Loopback"/>, logged loudly; a misconfigured
     ///   bind must fail closed to the safe interface, never silently expose the port on all interfaces.</item>
     /// </list>
     /// Case-insensitive. Mirrors the agent HTTP floor's loopback handling
@@ -138,8 +138,8 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// (issue #149). The command server has NO socket authentication, so binding it to all interfaces
     /// (<c>0.0.0.0</c> / <c>::</c>) or any other non-loopback address exposes unauthenticated
     /// keyboard/mouse/process command injection to every host that can reach the port
-    /// (LAN/VPN/port-forward). Unlike the MCP HTTP door — which <b>refuses</b> an exposed bind without a
-    /// token (<see cref="AgentServer.BindRequiresAuthToken"/>) — the socket server keeps its long-standing
+    /// (LAN/VPN/port-forward). Unlike the MCP HTTP door; which <b>refuses</b> an exposed bind without a
+    /// token (<see cref="AgentServer.BindRequiresAuthToken"/>); the socket server keeps its long-standing
     /// all-interfaces default for backward compatibility, so the operator is loudly warned rather than
     /// blocked. <see cref="IPAddress.Any"/> and <see cref="IPAddress.IPv6Any"/> are non-loopback.
     /// Internal + static so it can be unit-tested against a resolved address without opening a listener.
@@ -150,7 +150,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         }
         Logger.Instance.Log4.Warn(
             $"SocketServer: the command server is bound to {bindTo} (a non-loopback address) and has NO " +
-            "authentication — it accepts keyboard/mouse/process commands from ANY host that can reach the " +
+            "authentication; it accepts keyboard/mouse/process commands from ANY host that can reach the " +
             "port (LAN/VPN/port-forward). For single-machine use set SocketServerBindAddress=127.0.0.1 to " +
             "restrict it to this machine.");
     }
@@ -186,7 +186,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
 
     /// <summary>
     /// Stops the server: closes the listener and force-closes every tracked client. Unlike
-    /// <see cref="Dispose"/> this is resettable — a stopped server may be <see cref="Start"/>ed
+    /// <see cref="Dispose"/> this is resettable; a stopped server may be <see cref="Start"/>ed
     /// again (the operator toggles the service on/off in Settings). Before issue #202 this
     /// called Dispose(true), conflating "stopped" with "disposed".
     /// </summary>
@@ -204,7 +204,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
 
         // Capture the listener locally: Stop()/Dispose() null the field from another thread,
         // and dereferencing the field again below would race a NullReferenceException into
-        // the generic catch (a spurious Error notification on every stop — #202).
+        // the generic catch (a spurious Error notification on every stop; #202).
         Socket? listener = _mainSocket;
         if (listener == null) {
             return;
@@ -238,14 +238,14 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         catch (ObjectDisposedException) {
             // Expected on Stop()/Dispose(): closing the listener completes the pending
             // BeginAccept, and EndAccept then throws ObjectDisposedException. This is
-            // normal shutdown — not an error. Before issue #202 the generic catch below
+            // normal shutdown; not an error. Before issue #202 the generic catch below
             // turned every stop into a spurious Error notification (and a CloseSocket
             // call on a null context). Do not re-arm the accept; the listener is gone.
             Log4.Debug("SocketServer OnClientConnect: listener closed during shutdown");
             return;
         }
         catch (SocketException se) when (se.SocketErrorCode == SocketError.OperationAborted) {
-            // The accept was aborted because the listener is shutting down — same benign
+            // The accept was aborted because the listener is shutting down; same benign
             // shutdown shape as the ObjectDisposedException above (#202).
             Log4.Debug("SocketServer OnClientConnect: accept aborted during shutdown");
             return;
@@ -272,7 +272,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             _mainSocket?.BeginAccept(OnClientConnect, null);
         }
         catch (ObjectDisposedException) {
-            // Raced with Stop()/Dispose() between the accept completing and the re-arm —
+            // Raced with Stop()/Dispose() between the accept completing and the re-arm;
             // benign shutdown, nothing to re-arm (#202).
             Log4.Debug("SocketServer OnClientConnect: listener closed before accept re-arm");
         }
@@ -363,7 +363,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             return;
         }
         if (!EnsureClientConnectedOrClose(clientContext)) {
-            // Socket is dead but still tracked — closed above; stop receiving (issue #150).
+            // Socket is dead but still tracked; closed above; stop receiving (issue #150).
             return;
         }
 
@@ -397,7 +397,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// so it must be closed rather than left dangling. Before issue #150 this path returned
     /// without <see cref="CloseSocket"/>, permanently leaking the socket handle, the
     /// <c>_clientList</c> entry, and a connected-count slot. Idempotent: <see cref="CloseSocket"/>
-    /// no-ops (and does not double-decrement — see #147) if the client was already removed.
+    /// no-ops (and does not double-decrement; see #147) if the client was already removed.
     /// Internal so tests can drive it without a live listener (InternalsVisibleTo).
     /// </summary>
     /// <returns>true if the client is still connected and receiving may proceed; false if the
@@ -418,7 +418,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// every other error code merely logged, leaving a dead-but-tracked connection that leaked
     /// its handle, <c>_clientList</c> entry, and connected-count slot (resource exhaustion under
     /// repeated non-reset errors on the unauthenticated command port). Idempotent via
-    /// <see cref="CloseSocket"/> (no double-decrement — see #147). Internal so tests can drive it
+    /// <see cref="CloseSocket"/> (no double-decrement; see #147). Internal so tests can drive it
     /// without a live listener (InternalsVisibleTo).
     /// </summary>
     internal void HandleReceiveError(ServerReplyContext clientContext, SocketException se) {
@@ -429,12 +429,12 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// <summary>
     /// Parses the chunk currently in <paramref name="clientContext"/>'s DataBuffer. Guards the
     /// parse loop so a malformed/crafted packet can never escape as an unhandled exception on a
-    /// ThreadPool callback and terminate the process (issue #144 — unauthenticated remote crash):
+    /// ThreadPool callback and terminate the process (issue #144; unauthenticated remote crash):
     /// any parse failure closes the offending client. A client that streams more than
-    /// <see cref="CommandAccumulator.MaxCommandLength"/> chars without a delimiter (issue #148 —
+    /// <see cref="CommandAccumulator.MaxCommandLength"/> chars without a delimiter (issue #148;
     /// memory-exhaustion DoS) gets the accumulator's single overflow policy (#212): the partial
     /// command is dropped, an Error is notified once, and input is discarded until the next
-    /// delimiter — the connection stays open and memory stays bounded. (Pre-#212 this path
+    /// delimiter; the connection stays open and memory stays bounded. (Pre-#212 this path
     /// closed the connection, a divergent second copy of the overflow policy.)
     /// Internal so tests can drive the receive path without a live listener (InternalsVisibleTo).
     /// </summary>
@@ -461,8 +461,8 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     }
 
     /// <summary>
-    /// Parses a received chunk of bytes: strips inline telnet negotiation (IAC …) — a thin
-    /// byte-level pre-filter — and feeds everything else to <paramref name="accumulator"/>,
+    /// Parses a received chunk of bytes: strips inline telnet negotiation (IAC …); a thin
+    /// byte-level pre-filter; and feeds everything else to <paramref name="accumulator"/>,
     /// which owns the CR/LF/NUL delimiter and #148 max-length logic (consolidated there by
     /// #212; this method previously re-implemented both with divergent overflow semantics).
     /// A command is emitted via <paramref name="onCommand"/> on each delimiter; on overflow
@@ -490,13 +490,13 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                     // interpret as a telnet command; need at least a verb byte
                     i++;
                     if (i >= count) {
-                        break; // truncated IAC — nothing to interpret
+                        break; // truncated IAC; nothing to interpret
                     }
                     byte verb = buffer[i];
                     switch (verb) {
                         case (int)TelnetVerbs.IAC:
                             // literal IAC = 255 escaped: exactly one (char)255 goes into the
-                            // command — the (char) cast matters: Append(byte) would format the
+                            // command; the (char) cast matters: Append(byte) would format the
                             // NUMBER as the 3-char string "255" (#148 review follow-up). The
                             // accumulator enforces the #148 cap at this append site too.
                             _ = accumulator.ProcessChar((char)verb, onOverflow);
@@ -508,7 +508,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
                             // need an option byte; read it ONLY after the bounds check (#144)
                             i++;
                             if (i >= count) {
-                                break; // truncated option — ignore, do not read past the buffer
+                                break; // truncated option; ignore, do not read past the buffer
                             }
                             byte inputoption = buffer[i];
                             // reply to all commands with "WONT", unless it is SGA (suppress go ahead)
@@ -632,13 +632,13 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// <see cref="Send"/> into whatever command handler triggered the write. A failed send is
     /// terminal for that client: it is closed and removed from tracking (complementing the
     /// receive-path fix from #150) and <see cref="ServiceBase.ErrorOccurred"/> is
-    /// raised — never an unhandled throw. Internal so tests can drive it without a live
+    /// raised; never an unhandled throw. Internal so tests can drive it without a live
     /// listener (InternalsVisibleTo).
     /// </summary>
     internal void SendToClient(string text, ServerReplyContext replyContext) {
         // A failed write surfaces as ErrorOccurred (#211): the old Write/WriteFailed
         // notifications only existed so MainWindow could log them, and a write failure is
-        // terminal for the client (it is closed and untracked below) — an error by any measure.
+        // terminal for the client (it is closed and untracked below); an error by any measure.
         try {
             if (replyContext.Socket.Send(Encoding.UTF8.GetBytes(text)) > 0) {
                 Log4.Info($"SocketServer: Wrote to Client #{replyContext.ClientNumber} at {DescribeEndPoint(replyContext.Socket)}: {text.Trim()}");
@@ -654,7 +654,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         }
         catch (ObjectDisposedException) {
             // The client's socket was closed out from under us (e.g. the receive path
-            // closed it between the tracking lookup and this send) — treat as a failed
+            // closed it between the tracking lookup and this send); treat as a failed
             // write and make sure the client is fully untracked.
             Error($"Write failed to Client #{replyContext.ClientNumber}: Send: client socket was already closed");
             CloseSocket(replyContext);

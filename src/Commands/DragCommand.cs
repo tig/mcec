@@ -53,7 +53,7 @@ public class DragCommand : WindowTargetingAgentCommand {
         IntPtr hwnd = target is null ? IntPtr.Zero : new IntPtr(target.Handle);
 
         // Endpoint misses are element lookups, so they carry the same element-not-found / no-target
-        // taxonomy as click/invoke (#206) — the recovery (wait-for/re-find the element) is identical.
+        // taxonomy as click/invoke (#206); the recovery (wait-for/re-find the element) is identical.
         if (!TryResolvePoint(hwnd, FromBy, FromValue, FromX, FromY, out (int X, int Y) from, out string? fromError)) {
             return CommandResult.Fail(Cmd, $"Drag start: {fromError}", "element-not-found", "no-target");
         }

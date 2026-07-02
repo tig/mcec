@@ -12,7 +12,7 @@ namespace MCEControl.xUnit.Integration;
 /// <summary>
 /// Opt-in, desktop-dependent test for real GIF recording: it captures a small live screen region for
 /// a bounded one-shot and proves a non-empty, valid animated GIF is written. It touches the real
-/// desktop (screen grab), so it is skipped unless <c>MCEC_DESKTOP_E2E=1</c> is set — a normal
+/// desktop (screen grab), so it is skipped unless <c>MCEC_DESKTOP_E2E=1</c> is set; a normal
 /// <c>dotnet test</c> / CI run never records the screen.
 /// Run it deliberately on an interactive session:
 ///   <c>$env:MCEC_DESKTOP_E2E=1; dotnet test --filter Category=DesktopE2E</c>

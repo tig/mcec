@@ -10,9 +10,9 @@ namespace MCEControl;
 /// floor (#153). Every other tool is gated identically on both transports.
 /// </summary>
 public enum AgentTransport {
-    /// <summary>Local stdio (<c>mcec.exe --mcp</c>) — the process was launched by its client; no CSRF surface.</summary>
+    /// <summary>Local stdio (<c>mcec.exe --mcp</c>); the process was launched by its client; no CSRF surface.</summary>
     Stdio,
 
-    /// <summary>The localhost HTTP floor (<c>POST /mcp</c>) — network-reachable, so CSRF/DNS-rebinding applies.</summary>
+    /// <summary>The localhost HTTP floor (<c>POST /mcp</c>); network-reachable, so CSRF/DNS-rebinding applies.</summary>
     Http,
 }

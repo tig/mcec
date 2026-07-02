@@ -35,7 +35,7 @@ public sealed class AgentError {
     public JsonObject? LastObservation { get; }
 
     /// <summary>
-    /// The failing call's OWN partial payload, when the command deliberately kept one — e.g. a blank
+    /// The failing call's OWN partial payload, when the command deliberately kept one; e.g. a blank
     /// <c>capture</c> still carries the (suspect) PNG it grabbed so the evidence is not lost (#206).
     /// Distinct from <see cref="LastObservation"/>, which is the last GOOD state from a prior call.
     /// </summary>

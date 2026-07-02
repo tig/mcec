@@ -5,7 +5,7 @@ namespace MCEControl;
 
 public class ServerReplyContext : Reply {
     // Per-connection command accumulation (CR/LF/NUL delimiters + the #148 max-length
-    // cap) — the one shared implementation, same as SocketClient and SerialServer (#212).
+    // cap); the one shared implementation, same as SocketClient and SerialServer (#212).
     internal CommandAccumulator Accumulator { get; } = new();
     internal Socket Socket { get; set; }
     internal int ClientNumber { get; set; }

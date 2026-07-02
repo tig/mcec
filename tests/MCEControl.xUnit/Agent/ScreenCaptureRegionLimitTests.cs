@@ -64,7 +64,7 @@ public class ScreenCaptureRegionLimitTests {
 
     [Fact]
     public void ValidateRegionSize_ProductJustOverMaxPixels_Rejected() {
-        // 8001 * 8000 = 64_008_000 — one row over the cap.
+        // 8001 * 8000 = 64_008_000; one row over the cap.
         Assert.NotNull(ScreenCapture.ValidateRegionSize(8001, 8000));
     }
 
@@ -93,7 +93,7 @@ public class ScreenCaptureRegionLimitTests {
     [Fact]
     public void CaptureRegionBitmap_OversizedRegion_ThrowsBeforeAllocating() {
         // The issue's attack: 40000x40000 asks GDI+ for ~6.4 GB. The guard must throw the
-        // validation message BEFORE any Bitmap is constructed — the exception message matching
+        // validation message BEFORE any Bitmap is constructed; the exception message matching
         // the validation seam's output proves the fast-fail path ran (no allocation, no screen IO).
         ArgumentException ex = Assert.Throws<ArgumentException>(
             () => ScreenCapture.CaptureRegionBitmap(0, 0, 40000, 40000));

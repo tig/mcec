@@ -12,7 +12,7 @@ namespace MCEControl;
 /// Settings dialog box (#213): a thin shell that hosts one <see cref="ISettingsTab"/> UserControl
 /// per tab. The dialog clones the app settings, hands the clone to every tab via
 /// <see cref="ISettingsTab.Bind"/>, and enables OK only while EVERY tab's section validates
-/// (preserving #203's all-sections semantics — a valid Server section must not mask an invalid
+/// (preserving #203's all-sections semantics; a valid Server section must not mask an invalid
 /// Client section). The dialog itself never persists anything: Cancel discards the clone;
 /// MainWindow adopts (ApplySettings) and persists (SaveSettings) it on OK.
 /// </summary>
@@ -24,7 +24,7 @@ public partial class SettingsDialog : Form {
     public AppSettings Settings { get; }
 
     /// <summary>
-    /// Which tab to select when the dialog opens. An enum (#213) — the old stringly contract
+    /// Which tab to select when the dialog opens. An enum (#213); the old stringly contract
     /// ("General"/"Client"/...) compiled typos fine and never handled "Activity Monitor".
     /// </summary>
     public SettingsTab DefaultTab { get; set; } = SettingsTab.General;
@@ -45,9 +45,9 @@ public partial class SettingsDialog : Form {
         // Clone the settings object
         Settings = (AppSettings)settings.Clone();
 
-        // SECURITY (#213): the MCEC 3.0 agent/safety gates — McpServerEnabled,
+        // SECURITY (#213): the MCEC 3.0 agent/safety gates; McpServerEnabled,
         // AgentCommandsEnabled, EmergencyStopEnabled/EmergencyStopHotkey, CommandOverlayEnabled,
-        // and AllowSessionProvisioning — deliberately have NO tab here. They are file-only
+        // and AllowSessionProvisioning; deliberately have NO tab here. They are file-only
         // (mcec.settings) by design: opening the agent front door is a considered, out-of-band
         // act by the operator, not a checkbox to be toggled (or social-engineered) mid-session,
         // and an agent driving this very dialog must never be able to widen its own permissions.
@@ -71,7 +71,7 @@ public partial class SettingsDialog : Form {
     private void SettingsChanged() {
         // #203: this used to `return` after validating the first enabled section, so a
         // valid Server+Wakeup masked an invalid Client (etc.). ALL sections must validate
-        // before OK is enabled — now structurally, by aggregating every tab (#213).
+        // before OK is enabled; now structurally, by aggregating every tab (#213).
         _buttonOk.Enabled = _tabs.All(t => t.IsValid);
     }
 

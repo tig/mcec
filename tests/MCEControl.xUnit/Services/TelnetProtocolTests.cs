@@ -6,7 +6,7 @@ namespace MCEControl.xUnit.Services;
 
 public class TelnetProtocolTests
 {
-    // NOTE: ÿ is used instead of \xFF throughout — C#'s \x escape greedily
+    // NOTE: ÿ is used instead of \xFF throughout; C#'s \x escape greedily
     // consumes up to four hex digits, so "\xFFb" would be the single char U+0FFB.
 
     [Fact]
@@ -36,7 +36,7 @@ public class TelnetProtocolTests
     [Fact]
     public void EscapeIac_DoesNotMatchTheOldBuggyLiteral()
     {
-        // The pre-#203 code replaced the four-char string NUL+'x'+'F'+'F' — make sure
+        // The pre-#203 code replaced the four-char string NUL+'x'+'F'+'F'; make sure
         // that sequence is now left alone and only the real IAC char is escaped.
         Assert.Equal("\0xFF", TelnetProtocol.EscapeIac("\0xFF"));
     }

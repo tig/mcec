@@ -16,8 +16,8 @@ internal static class TelnetProtocol {
     /// Escapes the telnet IAC byte (0xFF) in outbound text by doubling it, per RFC 854:
     /// a literal 0xFF in the data stream must be sent as 0xFF 0xFF so the peer does not
     /// interpret it as the start of a telnet command.
-    /// (#203: both call sites used <c>Replace("\0xFF", "\0xFF\0xFF")</c> — the four-char
-    /// string NUL+'x'+'F'+'F', not byte 0xFF — so the escaping was dead code.)
+    /// (#203: both call sites used <c>Replace("\0xFF", "\0xFF\0xFF")</c>; the four-char
+    /// string NUL+'x'+'F'+'F', not byte 0xFF; so the escaping was dead code.)
     /// </summary>
     /// <param name="text">The text to escape. Must not be null.</param>
     /// <returns>The text with every '\xFF' character doubled.</returns>
@@ -33,7 +33,7 @@ internal static class TelnetProtocol {
     /// Encodes outbound text for the socket-client send paths (<see cref="SocketClient.Send"/>
     /// and <see cref="ClientReplyContext.Write"/>): escapes IAC per <see cref="EscapeIac"/> and
     /// encodes as UTF-8. One helper so the outbound encoding cannot drift per call site
-    /// (#212 — the client paths sent ASCII while the server sends UTF-8, so any non-ASCII
+    /// (#212; the client paths sent ASCII while the server sends UTF-8, so any non-ASCII
     /// character was silently flattened to '?').
     /// </summary>
     /// <param name="text">The text to encode. Must not be null.</param>

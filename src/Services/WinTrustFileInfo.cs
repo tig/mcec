@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace MCEControl;
 
 /// <summary>
-/// Native <c>WINTRUST_FILE_INFO</c> — identifies the file whose Authenticode signature
+/// Native <c>WINTRUST_FILE_INFO</c>; identifies the file whose Authenticode signature
 /// <see cref="AuthenticodeVerifier"/> asks <c>WinVerifyTrust</c> to validate (issue #146).
 /// </summary>
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

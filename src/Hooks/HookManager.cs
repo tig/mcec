@@ -11,7 +11,7 @@ namespace MCEControl.Hooks;
 /// Monitors mouse and keyboard activity globally (system-wide, also outside of the application) via
 /// low-level Windows hooks (WH_MOUSE_LL / WH_KEYBOARD_LL) and surfaces it as .NET events. The hooks
 /// are installed lazily when the first handler subscribes and uninstalled when the last one detaches
-/// (issue #197 — attach/detach must stay symmetric).
+/// (issue #197; attach/detach must stay symmetric).
 ///
 /// <para><b>First-party since #214.</b> This code descends from the vendored
 /// <c>Gma.UserActivityMonitor</c> library (George Mamaladze's 2004 CodeProject sample,
@@ -19,10 +19,10 @@ namespace MCEControl.Hooks;
 /// which has no upstream to return to and had diverged materially: the <see cref="KeyDownExt"/>/
 /// <see cref="KeyUpExt"/> injected-flag surface is load-bearing for the emergency stop (#135), and
 /// the P/Invoke layer was rewritten for x64 correctness (#210). Only the fraction MCEC actually uses
-/// was kept — the unused Ext mouse events, the <c>KeyPress</c>/ToAscii path (which consumed dead-key
+/// was kept; the unused Ext mouse events, the <c>KeyPress</c>/ToAscii path (which consumed dead-key
 /// state system-wide, #198), the mouse-wheel event, and the non-LL hook constants were deleted.</para>
 ///
-/// <para>Handlers run INSIDE the hook callback, before CallNextHookEx — they must stay cheap.
+/// <para>Handlers run INSIDE the hook callback, before CallNextHookEx; they must stay cheap.
 /// Windows silently evicts a low-level hook whose callback exceeds LowLevelHooksTimeout, and the
 /// emergency-stop hotkey rides the keyboard hook (#198).</para>
 /// </summary>
@@ -133,7 +133,7 @@ public static partial class HookManager {
         }
     }
 
-    // Remembers which button was clicked first — a double-click must repeat the same button.
+    // Remembers which button was clicked first; a double-click must repeat the same button.
     private static MouseButtons _prevClickedButton;
     // The timer monitoring the interval between two clicks.
     private static Timer? _doubleClickTimer;

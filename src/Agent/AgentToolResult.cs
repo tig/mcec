@@ -16,10 +16,10 @@ namespace MCEControl;
 ///
 /// A result is <b>either</b> success (<c>ok:true</c>, <see cref="Result"/> present, no
 /// <see cref="Error"/>) <b>or</b> failure (<c>ok:false</c>, <see cref="Error"/> present, no
-/// <see cref="Result"/>) — never both. The factory methods enforce that invariant structurally.
+/// <see cref="Result"/>); never both. The factory methods enforce that invariant structurally.
 ///
 /// <para>Since #206 the envelope is built from the <see cref="CommandResult"/> OBJECT the command
-/// returned (see <see cref="FromCommandResult"/>) — no serialize → re-parse round-trip, and no
+/// returned (see <see cref="FromCommandResult"/>); no serialize → re-parse round-trip, and no
 /// free-text "categorization": every agent command emits the structured code/category itself
 /// (enforced by <see cref="AgentCommand"/>'s sealed template). <see cref="SessionId"/> stays null
 /// until the session store lands (Phase 2/3).</para>
@@ -36,7 +36,7 @@ public sealed class AgentToolResult {
     /// <summary>Owning session id, or null for a stateless one-shot call.</summary>
     public string? SessionId { get; }
 
-    /// <summary>True when the tool achieved its goal — the field an agent branches on first.</summary>
+    /// <summary>True when the tool achieved its goal; the field an agent branches on first.</summary>
     public bool Ok { get; }
 
     /// <summary>Tool-specific success payload (present when <see cref="Ok"/>); null on failure.</summary>
@@ -62,10 +62,10 @@ public sealed class AgentToolResult {
 
     /// <summary>
     /// Builds the #101 envelope from the <see cref="CommandResult"/> OBJECT an agent command returned
-    /// (#206) — the object flows through; nothing is serialized and re-parsed. Success carries
+    /// (#206): the object flows through; nothing is serialized and re-parsed. Success carries
     /// <see cref="CommandResult.Data"/> forward as <see cref="Result"/> (same instance). On failure the
     /// command's structured <see cref="CommandResult.ErrorCode"/>/<see cref="CommandResult.ErrorCategory"/>
-    /// become the error (they are mandatory — <see cref="AgentCommand"/> normalizes a missing pair to
+    /// become the error (they are mandatory; <see cref="AgentCommand"/> normalizes a missing pair to
     /// <c>unhandled</c>/<c>internal</c>; an unknown category string maps to <c>internal</c> so
     /// <c>error.category</c> always validates against the closed set), any failure <c>Data</c> the
     /// command kept (e.g. a blank capture's suspect PNG) rides in <c>error.partialResult</c>, and
@@ -74,7 +74,7 @@ public sealed class AgentToolResult {
     ///
     /// <para>One success is reclassified as a failure: <see cref="FindCommand"/> returns
     /// <c>Ok{found:false}</c> when a <c>wait-for</c> exhausts its timeout, but an agent branches on
-    /// <c>ok</c> — so a wait that never resolved must surface as a <c>timeout</c> failure, not
+    /// <c>ok</c>; so a wait that never resolved must surface as a <c>timeout</c> failure, not
     /// <c>ok:true</c>. A one-shot <c>find</c> miss stays a success ("a miss is not an error").</para>
     /// </summary>
     public static AgentToolResult FromCommandResult(CommandResult command, string toolName, string? sessionId = null, JsonObject? lastObservation = null) {
@@ -106,7 +106,7 @@ public sealed class AgentToolResult {
         return Failure(new AgentError(code, category, detail, lastObservation, command.Data), sessionId, warnings);
     }
 
-    /// <summary>True when a <c>wait-for</c> returned <c>found:false</c> — i.e. it timed out.</summary>
+    /// <summary>True when a <c>wait-for</c> returned <c>found:false</c>; i.e. it timed out.</summary>
     private static bool IsWaitForMiss(string toolName, JsonObject? data) =>
         string.Equals(toolName, "wait-for", StringComparison.OrdinalIgnoreCase)
         && data?["found"] is JsonValue fv && fv.TryGetValue(out bool found) && !found;

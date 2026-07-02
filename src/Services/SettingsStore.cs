@@ -12,7 +12,7 @@ namespace MCEControl;
 /// <summary>
 /// Owns <see cref="AppSettings"/> persistence: load/save of the XML settings file and the
 /// settings-file path resolution. Extracted from <see cref="AppSettings"/> (#216) so the settings
-/// POCO carries no I/O, no UI, and no telemetry — <see cref="Load"/> returns a
+/// POCO carries no I/O, no UI, and no telemetry; <see cref="Load"/> returns a
 /// <see cref="SettingsLoadResult"/> and the HOST (GUI <c>MainWindow</c> or headless
 /// <c>Program.RunHeadlessMcp</c>) decides what dialogs to show and what telemetry to emit.
 /// </summary>
@@ -34,7 +34,7 @@ public static class SettingsStore {
         }
         // If app was started from within ProgramFiles then use UserAppDataPath.
         // #216: this used to be a raw substring Contains() check, which false-positived on
-        // sibling directories like "C:\Program Files Custom\..." — use a separator-aware,
+        // sibling directories like "C:\Program Files Custom\..."; use a separator-aware,
         // case-insensitive path-prefix comparison instead.
         string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         if (!string.IsNullOrEmpty(programFiles) && IsPathUnder(startupPath, programFiles)) {
@@ -62,7 +62,7 @@ public static class SettingsStore {
     /// <summary>
     /// Serializes <paramref name="settings"/> to XML at <paramref name="settingsFile"/>.
     /// Returns true on success. On failure, logs, sets <paramref name="error"/>, and returns
-    /// false — the caller decides whether to surface it (the old <c>AppSettings.Serialize</c>
+    /// false; the caller decides whether to surface it (the old <c>AppSettings.Serialize</c>
     /// showed a MessageBox from the data layer; see #216).
     /// </summary>
     public static bool TrySave(string settingsFile, AppSettings settings, out Exception? error) {
@@ -70,7 +70,7 @@ public static class SettingsStore {
         error = null;
         try {
             XmlSerializer ser = new XmlSerializer(typeof(AppSettings));
-            // #216: the writer is now wrapped in `using` — the old code newed a StreamWriter and
+            // #216: the writer is now wrapped in `using`; the old code newed a StreamWriter and
             // only Close()d it on success, leaking the handle (and locking the file) on exception.
             using (StreamWriter sw = new StreamWriter(settingsFile)) {
                 ser.Serialize(sw, settings);
@@ -92,7 +92,7 @@ public static class SettingsStore {
     /// (GUI or headless --mcp). Missing file → defaults are created; corrupt/unreadable file →
     /// defaults are used for this run and the file is left untouched so the user can recover it.
     /// SECURITY (#216, real CA3075 fix): the file is user-writable and MCEC is network-facing, so
-    /// the XML reader prohibits DTDs and has no resolver — no entity expansion, no external reads.
+    /// the XML reader prohibits DTDs and has no resolver; no entity expansion, no external reads.
     /// Always returns usable settings (with the <see cref="MachinePolicy"/> DisableInternalCommands
     /// override applied); the outcome tells the host what happened. No dialogs, no telemetry here.
     /// </summary>

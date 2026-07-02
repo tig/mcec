@@ -25,12 +25,12 @@ namespace MCEControl;
 /// A loopback bind is canonicalized before it reaches <see cref="HttpListener"/> (#152, see
 /// <see cref="TryGetLoopbackPrefixHost"/>) so obfuscated loopback spellings can't slip a wildcard
 /// binding past validation; a non-loopback bind is a deliberate off-box exposure and is allowed only
-/// when <see cref="AppSettings.McpAuthToken"/> is set (#143) — otherwise <see cref="Start"/> refuses
+/// when <see cref="AppSettings.McpAuthToken"/> is set (#143); otherwise <see cref="Start"/> refuses
 /// to start with a loud error. Every inbound request is validated by the pure
 /// <see cref="GateHttpRequest"/> (Host/Origin/token/path) BEFORE its body is read or dispatched.
 ///
 /// LIFECYCLE: <see cref="Stop"/> closes the listener, JOINS the accept thread (bounded), and DRAINS
-/// the in-flight worker pool (bounded) — so a Settings-dialog Stop/Start can never overlap old
+/// the in-flight worker pool (bounded); so a Settings-dialog Stop/Start can never overlap old
 /// workers with a new listener (#215; the old <c>StopHttp</c> just closed and nulled).
 /// </summary>
 public sealed class McpHttpTransport {
@@ -97,8 +97,8 @@ public sealed class McpHttpTransport {
             // SECURITY (#152 + #143): two composed rules decide the bind.
             //
             // A LOOPBACK bind is the safe default and needs no auth, but the raw settings string is
-            // canonicalized first (#152) — built into the prefix as a normalized loopback literal rather
-            // than passed through verbatim — so obfuscated spellings (e.g. "0x7f.0.0.1", "2130706433",
+            // canonicalized first (#152); built into the prefix as a normalized loopback literal rather
+            // than passed through verbatim; so obfuscated spellings (e.g. "0x7f.0.0.1", "2130706433",
             // "::ffff:127.0.0.1") that http.sys would otherwise treat as wildcard hostname registrations
             // can't slip a non-loopback bind past validation.
             //
@@ -143,7 +143,7 @@ public sealed class McpHttpTransport {
 
     /// <summary>
     /// Stops the transport: closes the listener, joins the accept thread (bounded by
-    /// <see cref="StopDrainTimeoutMs"/>), and drains the in-flight worker pool (same bound) — so by
+    /// <see cref="StopDrainTimeoutMs"/>), and drains the in-flight worker pool (same bound); so by
     /// the time Stop returns no old worker is still running and a subsequent <see cref="Start"/>
     /// begins from a quiesced pool. The old close-and-null Stop let a Settings-dialog Stop/Start
     /// overlap stale workers (still executing tool calls) with the new listener (#215).
@@ -254,7 +254,7 @@ public sealed class McpHttpTransport {
                 RejectHttp(context, decision, request);
                 return;
             }
-            // #151: refuse an oversized body from the header alone — never buffer it. ContentLength64
+            // #151: refuse an oversized body from the header alone; never buffer it. ContentLength64
             // is -1 for chunked transfer, which passes here and is caught by the bounded read below.
             if (context.Request.ContentLength64 > MaxHttpBodyBytes) {
                 WriteHttp(context, 413, new JsonObject { ["error"] = $"Request body exceeds {MaxHttpBodyBytes} bytes" });
@@ -298,19 +298,19 @@ public sealed class McpHttpTransport {
     /// exact host string <see cref="Start"/> puts in the <see cref="HttpListener"/> prefix (#152).
     /// Returns true only for the literal hostname <c>localhost</c> or a literal IP that
     /// <see cref="IPAddress.IsLoopback"/> confirms is loopback; on success <paramref name="prefixHost"/>
-    /// is the CANONICAL form — <c>localhost</c>, a dotted IPv4 literal (<c>127.0.0.1</c>), or a bracketed
+    /// is the CANONICAL form; <c>localhost</c>, a dotted IPv4 literal (<c>127.0.0.1</c>), or a bracketed
     /// IPv6 literal (<c>[::1]</c>).
     /// <para>
     /// Canonicalizing is load-bearing, not cosmetic. <see cref="IPAddress.TryParse"/> also blesses
-    /// obfuscated loopback spellings — <c>0x7f.0.0.1</c>, <c>127.1</c>, <c>2130706433</c>,
-    /// <c>127.00.00.01</c>, <c>::ffff:127.0.0.1</c> — as loopback, but <c>http.sys</c> parses those RAW
+    /// obfuscated loopback spellings; <c>0x7f.0.0.1</c>, <c>127.1</c>, <c>2130706433</c>,
+    /// <c>127.00.00.01</c>, <c>::ffff:127.0.0.1</c>; as loopback, but <c>http.sys</c> parses those RAW
     /// strings differently: some register as hostname/wildcard bindings that, under an elevated MCEC,
     /// bind non-loopback, so a LAN attacker with a matching <c>Host</c> header would reach the
     /// unauthenticated (#143) endpoint. Building the prefix from <c>ip.ToString()</c> instead collapses
     /// every accepted form to a literal <c>http.sys</c> binds to loopback (an IPv4-mapped IPv6 loopback
     /// is folded to its IPv4 literal). Everything else is rejected: the HttpListener wildcards <c>+</c>
     /// and <c>*</c>, the all-interfaces addresses <c>0.0.0.0</c> and <c>::</c>, any non-loopback IP, and
-    /// any hostname other than <c>localhost</c>. Hostnames are deliberately NOT resolved via DNS — a
+    /// any hostname other than <c>localhost</c>. Hostnames are deliberately NOT resolved via DNS; a
     /// name could resolve to a non-loopback interface, so only the one literal name is trusted.
     /// </para>
     /// </summary>
@@ -350,7 +350,7 @@ public sealed class McpHttpTransport {
     /// <summary>
     /// Validates an inbound MCP/HTTP request against the localhost front-door policy (#143):
     /// POST only, path exactly <c>/mcp</c>, a loopback <c>Host</c> (defeats DNS rebinding), an
-    /// absent-or-loopback <c>Origin</c> (defeats browser CSRF), and — when a token is configured —
+    /// absent-or-loopback <c>Origin</c> (defeats browser CSRF), and; when a token is configured;
     /// a matching <c>Authorization: Bearer</c> header. Pure so it can be unit tested without a socket.
     /// </summary>
     internal static HttpGateDecision GateHttpRequest(
@@ -481,8 +481,8 @@ public sealed class McpHttpTransport {
 
     /// <summary>
     /// Reads <paramref name="input"/> to its end into <paramref name="body"/>, refusing to buffer more
-    /// than <see cref="MaxHttpBodyBytes"/> (#151). Returns false — with <paramref name="body"/> empty
-    /// and the stream abandoned — the moment the cap is crossed, so a chunked or lying client cannot
+    /// than <see cref="MaxHttpBodyBytes"/> (#151). Returns false; with <paramref name="body"/> empty
+    /// and the stream abandoned; the moment the cap is crossed, so a chunked or lying client cannot
     /// bypass the Content-Length check and exhaust memory.
     /// </summary>
     internal static bool TryReadBoundedBody(Stream input, Encoding encoding, out string body) {

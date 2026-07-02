@@ -11,19 +11,19 @@ namespace MCEControl;
 /// <summary>
 /// The emergency stop (#135): a global "dead man's switch" that lets the operator instantly halt an agent
 /// session from ANY focused window. It reuses MCEC's existing low-level keyboard hook
-/// (<see cref="HookManager"/>) — reacting to <b>physical</b> input only (injected keys are ignored) so the
-/// agent can neither trip nor defeat it — and drives an <see cref="EmergencyStopDetector"/> for the chord.
+/// (<see cref="HookManager"/>); reacting to <b>physical</b> input only (injected keys are ignored) so the
+/// agent can neither trip nor defeat it; and drives an <see cref="EmergencyStopDetector"/> for the chord.
 ///
 /// <para>When the hotkey fires it: (1) <b>latches</b> the actuation gate (<see cref="AgentRuntime.EmergencyStopped"/>)
-/// so no further tool call actuates until the operator explicitly re-arms; (2) aborts in-flight actuation —
+/// so no further tool call actuates until the operator explicitly re-arms; (2) aborts in-flight actuation;
 /// stops any recording and signals a cooperative drag cancel; (3) releases held input (all mouse buttons up,
 /// modifiers reset) so a mid-drag or chord can't leave input stuck; and (4) reports loudly to the overlay,
 /// the <c>AGENT-AUDIT:</c> log, and the session record. It stays stopped until <see cref="Rearm"/>.
-/// Only step (1) — the latch — runs inside the hook callback; steps (2)–(4) are dispatched to the thread
+/// Only step (1), the latch, runs inside the hook callback; steps (2)–(4) are dispatched to the thread
 /// pool so the WH_KEYBOARD_LL callback returns immediately and can never exceed LowLevelHooksTimeout,
 /// which would get the hook (and the hotkey with it) silently evicted (#198).</para>
 ///
-/// <para>Independent of the WinForms message loop's focus — the hook fires regardless of MCEC's window
+/// <para>Independent of the WinForms message loop's focus; the hook fires regardless of MCEC's window
 /// state (including minimized to tray). It does require a message loop on the installing thread, so it is
 /// armed in the GUI host, not the headless <c>--mcp</c> process.</para>
 /// </summary>
@@ -34,7 +34,7 @@ public static class EmergencyStop {
     private static bool _armed;
 
     /// <summary>
-    /// Raised when the stopped state changes — the overlay/UI subscribe to reflect it. Never raised on
+    /// Raised when the stopped state changes; the overlay/UI subscribe to reflect it. Never raised on
     /// the hook callback path: it fires from the dispatched completion of <see cref="Trigger"/> (a
     /// thread-pool thread) or from <see cref="Rearm"/>'s caller, so subscribers must marshal to the UI
     /// thread themselves (MainWindow does).
@@ -68,7 +68,7 @@ public static class EmergencyStop {
                 _armed = true;
             }
         }
-        Logger.Instance.Log4.Info($"EmergencyStop: armed — operator panic hotkey is {hotkey.Display} (physical input only).");
+        Logger.Instance.Log4.Info($"EmergencyStop: armed; operator panic hotkey is {hotkey.Display} (physical input only).");
     }
 
     /// <summary>Disarms the hotkey detector (on host shutdown / settings reload).</summary>
@@ -103,7 +103,7 @@ public static class EmergencyStop {
 
     /// <summary>
     /// Engages the stop: latches the gate, aborts in-flight actuation, releases held input, and reports it.
-    /// Idempotent — a held-key auto-repeat or a second trigger while already stopped is a no-op. Callable
+    /// Idempotent; a held-key auto-repeat or a second trigger while already stopped is a no-op. Callable
     /// directly (e.g. from a UI panic button) as well as from the hotkey.
     /// </summary>
     public static void Trigger(string source) {
@@ -116,11 +116,11 @@ public static class EmergencyStop {
             StoppedReason = source;
         }
 
-        // The latch above — a lock and a flag — is the ONLY work that runs on the WH_KEYBOARD_LL hook
+        // The latch above (a lock and a flag) is the ONLY work that runs on the WH_KEYBOARD_LL hook
         // callback path when the hotkey fires. Everything else (audit log file I/O, stopping a
         // recording, SendInput, event publishing) is dispatched to the thread pool so the hook proc
         // returns immediately: Windows silently evicts a low-level hook whose callback exceeds
-        // LowLevelHooksTimeout, and this hook IS the panic hotkey (#198). Nothing actuates in the gap —
+        // LowLevelHooksTimeout, and this hook IS the panic hotkey (#198). Nothing actuates in the gap;
         // the latch is already set, so every tool call is refused before the completion even runs.
         ThreadPool.QueueUserWorkItem(static state => CompleteTrigger((string)state!), source);
     }
@@ -130,7 +130,7 @@ public static class EmergencyStop {
     /// input, and reports loudly. Runs on the thread pool, OFF the hook callback path (#198).
     /// </summary>
     private static void CompleteTrigger(string source) {
-        AgentRuntime.Audit("emergency-stop", $"ENGAGED by operator ({source}) — halting actuation, dropping queue, releasing held input");
+        AgentRuntime.Audit("emergency-stop", $"ENGAGED by operator ({source}); halting actuation, dropping queue, releasing held input");
 
         // Abort in-flight actuation. Recording stops cleanly here; an in-flight drag observes the latch and
         // bails out of its move loop (see MouseCommand.PerformDrag). The invoke modal-grace worker runs a
@@ -162,7 +162,7 @@ public static class EmergencyStop {
 
     /// <summary>
     /// Re-arms after a stop: clears the latch so actuation is permitted again. This is the deliberate
-    /// operator action the latch waits for — it is never cleared automatically. No-op when not stopped.
+    /// operator action the latch waits for; it is never cleared automatically. No-op when not stopped.
     /// </summary>
     public static void Rearm() {
         lock (Gate) {
@@ -177,11 +177,11 @@ public static class EmergencyStop {
             _detector?.Reset();
         }
 
-        AgentRuntime.Audit("emergency-stop", "RE-ARMED by operator — actuation re-enabled");
+        AgentRuntime.Audit("emergency-stop", "RE-ARMED by operator; actuation re-enabled");
         try {
             AgentSession session = AgentRuntime.Session;
             session.ClearEmergencyStop();
-            CommandEventHub.Publish(new CommandEvent("emergency-stop", "✔ Re-armed — agent may resume", CommandOutcome.Info, session.SessionId));
+            CommandEventHub.Publish(new CommandEvent("emergency-stop", "✔ Re-armed; agent may resume", CommandOutcome.Info, session.SessionId));
         }
         catch (Exception ex) {
             Logger.Instance.Log4.Error($"EmergencyStop: publishing re-arm feedback failed: {ex.Message}");
@@ -193,7 +193,7 @@ public static class EmergencyStop {
     /// <summary>
     /// Releases any input that may have been left held: lifts every mouse button and resets the shift /
     /// ctrl / alt / win modifiers (the same reset <see cref="MainWindow"/> runs on exit). These are
-    /// injected events, so the hook flags them <c>LLKHF_INJECTED</c> and the detector ignores them — the
+    /// injected events, so the hook flags them <c>LLKHF_INJECTED</c> and the detector ignores them; the
     /// release can never re-trigger the stop. Internal because the <see cref="CommandInvoker"/>
     /// dispatcher shares it (#195): a Shutdown that drops the queued tail of a command tree can sever
     /// paired input (shiftdown:/shiftup:), so the shutdown drop performs this same release.

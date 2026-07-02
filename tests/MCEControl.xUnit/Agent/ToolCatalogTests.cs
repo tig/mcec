@@ -46,7 +46,7 @@ public class ToolCatalogTests {
             Assert.NotNull(d.CreateCommandInstance());
 
             // Tersifier: every tool has a REAL formatter. Only the argument-less `displays` may render
-            // as its bare name — a bare name for any other tool is exactly the record/launch drift
+            // as its bare name; a bare name for any other tool is exactly the record/launch drift
             // this registry fixed (#205).
             string label = d.Tersify([]);
             Assert.False(string.IsNullOrWhiteSpace(label));
@@ -80,7 +80,7 @@ public class ToolCatalogTests {
         foreach (string name in CatalogNames) {
             Assert.True(ToolCatalog.Contains(name), $"'{name}' must be in the catalog (tools/call gate).");
         }
-        // Meta-tools are dispatched by their own special cases BEFORE the catalog gate — they must not
+        // Meta-tools are dispatched by their own special cases BEFORE the catalog gate; they must not
         // also be catalog members, or they'd be double-dispatched as agent commands.
         foreach (string name in MetaToolNames) {
             Assert.False(ToolCatalog.Contains(name), $"meta-tool '{name}' must NOT be in the catalog.");
@@ -104,7 +104,7 @@ public class ToolCatalogTests {
             Assert.Equal(d.Name == "drag", d.SerializesOnInput);
         }
         // send_command is a meta-tool special case in AgentServer (it serializes indirectly via the
-        // dispatcher thread, #195) — the public predicate must still report it.
+        // dispatcher thread, #195); the public predicate must still report it.
         Assert.True(AgentServer.SerializesOnInputLock("send_command"));
     }
 

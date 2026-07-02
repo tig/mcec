@@ -13,13 +13,13 @@ namespace MCEControl;
 
 /// <summary>
 /// Provisions a fresh, disposable, isolated MCEC instance (#138). Instead of an agent mutating the
-/// operator's <b>installed</b> config — flipping <c>AgentCommandsEnabled</c> / per-command <c>Enabled</c>
-/// and hoping best-effort cleanup runs — MCEC hands the agent a throwaway directory containing
+/// operator's <b>installed</b> config; flipping <c>AgentCommandsEnabled</c> / per-command <c>Enabled</c>
+/// and hoping best-effort cleanup runs; MCEC hands the agent a throwaway directory containing
 /// <c>mcec.exe</c> + dependencies and a <b>co-located</b>, agent-ready config. All enabled state lives only
 /// inside that copy, so a crashed or abandoned session leaves the real install untouched and "cleanup" is
 /// just deleting the directory. Concurrent sessions get separate directories and never fight over one file.
 ///
-/// <para>SECURITY: provisioning itself is gated behind <see cref="AppSettings.AllowSessionProvisioning"/> —
+/// <para>SECURITY: provisioning itself is gated behind <see cref="AppSettings.AllowSessionProvisioning"/>;
 /// the one thing that cannot be self-served, or the isolation is theater. The co-located config disables
 /// <c>ActAsServer</c> (no firewall prompt) and <c>AllowSessionProvisioning</c> (a provisioned session can't
 /// re-provision), and binds the MCP server to localhost. The installed <c>mcec.settings</c> /
@@ -29,7 +29,7 @@ public static class SessionProvisioner {
     /// <summary>
     /// The agent observation/action commands enabled in a provisioned session's co-located command
     /// table: the <see cref="ToolDescriptor.ProvisionedByDefault"/> members of the
-    /// <see cref="ToolCatalog"/> (#205) — today every gated tool except <c>launch</c>.
+    /// <see cref="ToolCatalog"/> (#205); today every gated tool except <c>launch</c>.
     /// </summary>
     public static readonly string[] DefaultCommands =
         [.. ToolCatalog.All.Where(d => d.ProvisionedByDefault).Select(d => d.Name)];
@@ -51,7 +51,7 @@ public static class SessionProvisioner {
         set => _sessionsRoot = value;
     }
 
-    /// <summary>The directory the running mcec.exe (and its dependencies) live in — the copy source.</summary>
+    /// <summary>The directory the running mcec.exe (and its dependencies) live in; the copy source.</summary>
     public static string BinariesDir { get; set; } = AppContext.BaseDirectory;
 
     private static string DefaultSessionsRoot() {
@@ -118,11 +118,11 @@ public static class SessionProvisioner {
 
     /// <summary>
     /// Validates the teardown credential for <paramref name="sessionId"/> against the session's
-    /// co-located config — the token <see cref="Provision"/> wrote as the instance's
+    /// co-located config; the token <see cref="Provision"/> wrote as the instance's
     /// <c>McpAuthToken</c> (#215). Persisting the credential in the session directory (rather than in
     /// this process) means validation works across installed-instance restarts, and deleting the
     /// directory retires the credential with it. Fail-closed: an unreadable/defaulted config (or a
-    /// pre-#215 session that never had the token written) rejects — such a directory is still
+    /// pre-#215 session that never had the token written) rejects; such a directory is still
     /// collected by the age-based reaper.
     /// </summary>
     public static SessionTokenValidation ValidateTeardownToken(string? sessionId, string? token) {
@@ -135,7 +135,7 @@ public static class SessionProvisioner {
             // Idempotent-teardown case: nothing exists, so there is nothing the credential protects.
             return SessionTokenValidation.SessionGone;
         }
-        // Fail closed on a missing config WITHOUT calling SettingsStore.Load — Load would write a
+        // Fail closed on a missing config WITHOUT calling SettingsStore.Load; Load would write a
         // default settings file into the (possibly foreign) directory as a side effect.
         string settingsFile = Path.Combine(dir, SettingsStore.SettingsFileName);
         if (!File.Exists(settingsFile)) {
@@ -156,7 +156,7 @@ public static class SessionProvisioner {
     /// <summary>
     /// Tears down a provisioned session by deleting its directory. Returns true when the directory was
     /// removed (or was already gone). A directory whose files are still locked (the session is running)
-    /// returns false — stop the session first.
+    /// returns false; stop the session first.
     /// </summary>
     public static bool Teardown(string sessionId) {
         if (string.IsNullOrWhiteSpace(sessionId)) {
@@ -166,7 +166,7 @@ public static class SessionProvisioner {
         // caller can never point Teardown at a directory outside the sessions root (e.g. "..", "a/b", rooted paths).
         string id = sessionId.Trim();
         if (!SessionIdPattern.IsMatch(id)) {
-            AgentRuntime.Audit("end-session", $"REJECTED — '{id}' is not a valid session id (expected 12 hex chars)");
+            AgentRuntime.Audit("end-session", $"REJECTED; '{id}' is not a valid session id (expected 12 hex chars)");
             return false;
         }
         string dir = Path.Combine(SessionsRoot, id);
@@ -174,22 +174,22 @@ public static class SessionProvisioner {
         string fullRoot = Path.GetFullPath(SessionsRoot).TrimEnd(Path.DirectorySeparatorChar);
         string fullDir = Path.GetFullPath(dir);
         if (!fullDir.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) {
-            AgentRuntime.Audit("end-session", $"REJECTED — '{id}' resolves outside the sessions root");
+            AgentRuntime.Audit("end-session", $"REJECTED; '{id}' resolves outside the sessions root");
             return false;
         }
         if (!Directory.Exists(dir)) {
-            AgentRuntime.Audit("end-session", $"{id} — directory already gone");
+            AgentRuntime.Audit("end-session", $"{id}; directory already gone");
             return true;
         }
         bool ok = TryDeleteDirectory(dir);
-        AgentRuntime.Audit("end-session", ok ? $"{id} — torn down ({dir})" : $"{id} — could not delete (in use?) {dir}");
+        AgentRuntime.Audit("end-session", ok ? $"{id}; torn down ({dir})" : $"{id}; could not delete (in use?) {dir}");
         return ok;
     }
 
     /// <summary>
     /// Belt-and-suspenders cleanup: deletes session directories older than <paramref name="maxAge"/> so a
     /// leaked/abandoned session never lingers. A running session's files are locked and are skipped (they'll
-    /// be reaped on a later launch once the process exits). Best-effort — never throws. Returns the count
+    /// be reaped on a later launch once the process exits). Best-effort; never throws. Returns the count
     /// reaped.
     /// </summary>
     public static int ReapOrphans(TimeSpan maxAge) {
@@ -209,7 +209,7 @@ public static class SessionProvisioner {
                     continue;
                 }
                 if (created > cutoff) {
-                    continue; // too new — could be an active or just-provisioned session
+                    continue; // too new; could be an active or just-provisioned session
                 }
                 if (TryDeleteDirectory(dir)) {
                     reaped++;
@@ -228,7 +228,7 @@ public static class SessionProvisioner {
 
     /// <summary>Recursively copies the binaries, skipping any mutable config/log the installed instance left behind.</summary>
     private static void CopyBinaries(string source, string dest) {
-        // Never carry the installed instance's mutable state into the copy — the session gets a fresh,
+        // Never carry the installed instance's mutable state into the copy; the session gets a fresh,
         // agent-ready config written separately. Also never recurse into the sessions root if it happens
         // to live under the binaries dir.
         Directory.CreateDirectory(dest);
@@ -297,10 +297,10 @@ public static class SessionProvisioner {
 
     /// <summary>
     /// Builds the correctly-typed <see cref="Command"/> for a name, enabled, so it serializes under the
-    /// right element (query/capture/invoke/…) and loads back as the right derived type — via the tool's
+    /// right element (query/capture/invoke/…) and loads back as the right derived type; via the tool's
     /// <see cref="ToolDescriptor.CreateCommandInstance"/> in the <see cref="ToolCatalog"/> (#205).
     /// Returns null for an unknown name or one that is not provisionable
-    /// (<see cref="ToolDescriptor.ProvisionedByDefault"/> — today that excludes only <c>launch</c>,
+    /// (<see cref="ToolDescriptor.ProvisionedByDefault"/>; today that excludes only <c>launch</c>,
     /// preserving this provisioner's historical command set).
     /// </summary>
     private static Command? CreateEnabledCommand(string name) {
@@ -333,7 +333,7 @@ public static class SessionProvisioner {
             return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
-            // Files are locked (session still running) — leave it for a later reap.
+            // Files are locked (session still running); leave it for a later reap.
             Logger.Instance.Log4.Warn($"SessionProvisioner: could not delete '{dir}': {e.Message}");
             return false;
         }

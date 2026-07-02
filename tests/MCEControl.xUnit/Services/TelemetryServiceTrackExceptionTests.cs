@@ -18,7 +18,7 @@ namespace MCEControl.xUnit.Services;
 /// <summary>
 /// End-to-end tests for #156: <see cref="TelemetryService.TrackException"/> must route the
 /// exception through the scrubber so the payload handed to the telemetry channel contains no
-/// user-profile paths. Uses a stub channel — no telemetry leaves the process.
+/// user-profile paths. Uses a stub channel; no telemetry leaves the process.
 /// Joins the "AgentSerial" collection because tests in that collection initialize the
 /// TelemetryService singleton (AgentTestSupport.EnsureTelemetry); this test temporarily swaps
 /// the singleton's client and must not race with them.
@@ -106,8 +106,8 @@ public class TelemetryServiceTrackExceptionTests {
             Assert.Equal(typeof(IOException).FullName, sent.ExceptionDetailsInfoList[0].TypeName);
             Assert.Contains("%USERPROFILE%", sent.ExceptionDetailsInfoList[0].Message, StringComparison.Ordinal);
 
-            // Every detail of the outgoing item — message, wire stack string, and every
-            // parsedStack frame fileName — must be free of the profile path and username.
+            // Every detail of the outgoing item; message, wire stack string, and every
+            // parsedStack frame fileName; must be free of the profile path and username.
             bool sawStackData = false;
             foreach (ExceptionDetailsInfo details in sent.ExceptionDetailsInfoList) {
                 AssertScrubbed(details.Message, profile, userName);

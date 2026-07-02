@@ -42,7 +42,7 @@ public class McpHttpTransportStopTests {
     [Fact]
     public async Task Stop_WaitsForInFlightWorker_NoOverlapAfterReturn() {
         // A request is parked inside dispatch (the seam) when Stop is called. Stop must block until
-        // that worker finishes — and once Stop returns, the worker must be provably done. This is the
+        // that worker finishes; and once Stop returns, the worker must be provably done. This is the
         // "no overlap" contract: post-Stop there is no old worker left to interleave with a restart.
         int port = FindFreeLoopbackPort();
         AppSettings settings = new() { McpBindAddress = "127.0.0.1", McpHttpPort = port };
@@ -65,14 +65,14 @@ public class McpHttpTransportStopTests {
             Task stop = Task.Run(transport.Stop);
 
             // Stop closes the listener before draining; wait (bounded) for that so we know Stop is
-            // actually underway — under load Task.Run scheduling alone can take hundreds of ms.
+            // actually underway; under load Task.Run scheduling alone can take hundreds of ms.
             System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
             while (transport.IsListening && sw.ElapsedMilliseconds < 10000) {
                 await Task.Delay(10);
             }
             Assert.False(transport.IsListening, "Stop never closed the listener");
 
-            // While the worker is parked (holding its slot), Stop must NOT complete — it is
+            // While the worker is parked (holding its slot), Stop must NOT complete; it is
             // draining, not abandoning. Deterministic: the drain cannot finish until release fires.
             await Task.Delay(200);
             Assert.False(stop.IsCompleted, "Stop returned while a worker was still in flight");
@@ -89,7 +89,7 @@ public class McpHttpTransportStopTests {
                 (await parked.WaitAsync(TimeSpan.FromSeconds(10))).Dispose();
             }
             catch (HttpRequestException) {
-                // An aborted connection is acceptable — the listener was closed under the request.
+                // An aborted connection is acceptable; the listener was closed under the request.
             }
         }
         finally {

@@ -28,7 +28,7 @@ public class PauseCommand : Command {
     public PauseCommand() { }
 
     /// <summary>
-    /// A pause only sleeps — it can never synthesize input — so the dispatcher (#195) must not hold
+    /// A pause only sleeps; it can never synthesize input; so the dispatcher (#195) must not hold
     /// <see cref="AgentRuntime.InputGate"/> for its whole duration (a <c>pause:60000</c> would starve
     /// a concurrent agent <c>drag</c> for a minute).
     /// </summary>

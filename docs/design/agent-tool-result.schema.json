@@ -96,7 +96,7 @@
         },
         "partialResult": {
           "type": ["object", "null"],
-          "description": "The failing call's own partial payload, when the tool deliberately kept one — e.g. a capture-blank failure still carries the (suspect) PNG it grabbed. Distinct from lastObservation, which is the last good state from a prior call. Omitted when the failure produced nothing."
+          "description": "The failing call's own partial payload, when the tool deliberately kept one; e.g. a capture-blank failure still carries the (suspect) PNG it grabbed. Distinct from lastObservation, which is the last good state from a prior call. Omitted when the failure produced nothing."
         }
       }
     }

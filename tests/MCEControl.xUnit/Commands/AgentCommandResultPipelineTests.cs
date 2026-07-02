@@ -28,7 +28,7 @@ public class AgentCommandResultPipelineTests {
             bool ok = cmd.Execute();
 
             Assert.True(ok);
-            // Identity, not equality: the object the command built IS what the MCP server consumes —
+            // Identity, not equality: the object the command built IS what the MCP server consumes;
             // the seam that proves no intermediate serialize/parse copies exist on this path.
             Assert.Same(produced, reply.Result);
         }

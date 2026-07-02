@@ -21,7 +21,7 @@ namespace MCEControl.xUnit.Agent;
 [Collection("AgentSerial")]
 public class AppHostSeamTests {
     // -------------------------------------------------------------------------------------------
-    // MainWindow.Instance: explicit assignment, pointed failure — never a silent Form construction
+    // MainWindow.Instance: explicit assignment, pointed failure; never a silent Form construction
     // -------------------------------------------------------------------------------------------
 
     [Fact]
@@ -45,7 +45,7 @@ public class AppHostSeamTests {
         try {
             AgentRuntime.Host = null;
 
-            // Callers include the activity monitor's background dispatch — must never throw.
+            // Callers include the activity monitor's background dispatch; must never throw.
             Exception? ex = Record.Exception(() => AgentRuntime.SendLine("activity"));
 
             Assert.Null(ex);
@@ -188,7 +188,7 @@ public class AppHostSeamTests {
         try {
             AgentRuntime.Headless = true;
 
-            // A directory that does not exist makes FileStream creation throw — the failure branch
+            // A directory that does not exist makes FileStream creation throw; the failure branch
             // that used to show an unconditional MessageBox. Headless, a dialog would block this
             // test forever (nobody can dismiss it), so completing at all is the assertion.
             string unwritable = Path.Combine(Path.GetTempPath(), "mcec-tests", Guid.NewGuid().ToString("N"), "nope", "mcec.commands");

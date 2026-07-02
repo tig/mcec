@@ -12,18 +12,18 @@ using System.Xml.Serialization;
 namespace MCEControl;
 
 /// <summary>
-/// MCEC 3.0 agent <c>record</c> command: captures agent-driven desktop activity to an animated GIF —
+/// MCEC 3.0 agent <c>record</c> command: captures agent-driven desktop activity to an animated GIF;
 /// a whole short segment via explicit <c>start</c>/<c>stop</c>, or a bounded one-shot via
 /// <c>durationMs</c>. Reuses the same target model as <see cref="CaptureCommand"/> (window by
 /// handle/title/process/class/foreground, or an explicit region) and the same security gate.
 ///
 /// SECURITY: gated behind <see cref="AgentRuntime.AgentCommandsEnabled"/> (a separate opt-in from
-/// actuation — enforced structurally by <see cref="AgentCommand"/>) and the per-command <c>Enabled</c>
+/// actuation; enforced structurally by <see cref="AgentCommand"/>) and the per-command <c>Enabled</c>
 /// flag; every start/stop/write is audited via <see cref="AgentRuntime.Audit"/>. The capture loop is
 /// hard-bounded (fps/duration/frames/width) by the operator's <see cref="AppSettings"/> limits so an
 /// agent cannot create an unbounded file.
 ///
-/// PRIVACY: a recording captures whatever is on screen for its whole duration — louder than a single
+/// PRIVACY: a recording captures whatever is on screen for its whole duration; louder than a single
 /// still <c>capture</c>. See <c>docs/agent-server.md</c>.
 /// </summary>
 public class RecordCommand : WindowTargetingAgentCommand {
@@ -81,19 +81,19 @@ public class RecordCommand : WindowTargetingAgentCommand {
     /// <summary>Starts a recording; for a one-shot, also waits the duration and stops/encodes/writes.</summary>
     private CommandResult DoStart(bool oneshot) {
         if (GifRecorder.IsRecording) {
-            // invalid-argument: the request cannot apply in the current state — stop the active
+            // invalid-argument: the request cannot apply in the current state; stop the active
             // recording first; retrying the same start unchanged will keep failing.
             return FailWith("A recording is already in progress. Stop it first (action=stop).",
                 code: "recording-in-progress", category: "invalid-argument");
         }
 
         // SECURITY (#158): an explicit record region feeds the same CaptureRegionBitmap as
-        // `capture`, so its agent-controlled dimensions get the same fail-fast cap — reject
+        // `capture`, so its agent-controlled dimensions get the same fail-fast cap; reject
         // before any recording starts (window targets are naturally bounded by window size).
         if (IsRegionTarget) {
             string? sizeError = ScreenCapture.ValidateRegionSize(Width, Height);
             if (sizeError is not null) {
-                AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height} REJECTED — {sizeError}");
+                AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height} REJECTED; {sizeError}");
                 // invalid-argument (#191): the recovery is to shrink the request, not broaden a selector.
                 return FailWith(sizeError, code: "region-too-large", category: "invalid-argument");
             }
@@ -111,10 +111,10 @@ public class RecordCommand : WindowTargetingAgentCommand {
         bool discardedUnfetched = GifRecorder.Start(grab, limits.Fps, limits.MaxFrames, limits.MaxWidth, limits.LoopDurationMs, target);
         if (discardedUnfetched) {
             // A prior recording auto-stopped (max duration/frames) and its GIF was never fetched with
-            // action=stop. The new recording (start OR oneshot) replaces it — warn so the loss is
+            // action=stop. The new recording (start OR oneshot) replaces it; warn so the loss is
             // visible, not silent.
             Logger.Instance.Log4.Warn($"{GetType().Name}: a previous recording auto-stopped and was never fetched; its buffered GIF was discarded by this new recording.");
-            AgentRuntime.Audit(Cmd, $"{(oneshot ? "oneshot" : "start")} — discarded an unfetched auto-stopped recording");
+            AgentRuntime.Audit(Cmd, $"{(oneshot ? "oneshot" : "start")}; discarded an unfetched auto-stopped recording");
         }
 
         if (!oneshot) {
@@ -214,13 +214,13 @@ public class RecordCommand : WindowTargetingAgentCommand {
     private CommandResult DoStop(bool warnDiscardedUnfetched = false) {
         RecordingResult? result = GifRecorder.Stop();
         if (result is null) {
-            // invalid-argument: there is nothing to stop/fetch — start a recording first.
+            // invalid-argument: there is nothing to stop/fetch; start a recording first.
             return FailWith("No recording is in progress or awaiting fetch.", warnDiscardedUnfetched,
                 code: "no-recording", category: "invalid-argument");
         }
 
         if (result.Frames == 0 || result.Gif.Length == 0) {
-            AgentRuntime.Audit(Cmd, $"stop — no output ({result.Error})");
+            AgentRuntime.Audit(Cmd, $"stop; no output ({result.Error})");
             return FailWith(result.Error ?? "Recording produced no frames.", warnDiscardedUnfetched,
                 code: "record-no-frames", category: "internal");
         }
@@ -247,15 +247,15 @@ public class RecordCommand : WindowTargetingAgentCommand {
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
             // Unlike `capture`, `record` does not return the bytes inline, so a failed write means there
-            // is no usable output — report failure rather than success-with-fileError.
+            // is no usable output; report failure rather than success-with-fileError.
             Logger.Instance.Log4.Error($"{GetType().Name}: could not write GIF to '{path}': {e.Message}");
-            AgentRuntime.Audit(Cmd, $"stop — encode ok ({result.Frames} frames) but write failed: {e.Message}");
+            AgentRuntime.Audit(Cmd, $"stop; encode ok ({result.Frames} frames) but write failed: {e.Message}");
             return FailWith($"Recorded {result.Frames} frames but could not write GIF to '{path}': {e.Message}",
                 warnDiscardedUnfetched, code: "record-write-failed", category: "internal");
         }
 
         data["file"] = path;
-        AgentRuntime.Audit(Cmd, $"stop — wrote {result.Frames} frames, {result.Gif.Length} bytes, {result.Width}x{result.Height} to {path}");
+        AgentRuntime.Audit(Cmd, $"stop; wrote {result.Frames} frames, {result.Gif.Length} bytes, {result.Width}x{result.Height} to {path}");
         CommandResult ok = CommandResult.Ok(Cmd, data);
         if (warnDiscardedUnfetched) {
             ok.Warn(DiscardedWarningCode, DiscardedWarningDetail);
@@ -263,8 +263,8 @@ public class RecordCommand : WindowTargetingAgentCommand {
         return ok;
     }
 
-    /// <summary>Builds a failure result carrying the structured code/category taxonomy (#206 —
-    /// mandatory for every record failure); the discard warning still rides along when set —
+    /// <summary>Builds a failure result carrying the structured code/category taxonomy (#206;
+    /// mandatory for every record failure); the discard warning still rides along when set;
     /// warnings are valid on failure too, and the discard already happened regardless of this
     /// call's outcome.</summary>
     private CommandResult FailWith(string error, bool warnDiscardedUnfetched = false, string? code = null, string? category = null) {

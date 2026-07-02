@@ -17,7 +17,7 @@ internal static class Program {
 
             // If we're running from a (read-only) Program Files install location, redirect log/
             // settings/command files to %AppData%. Check both 64-bit ("Program Files") and 32-bit
-            // ("Program Files (x86)") roots — the installer puts the self-contained x64 build under
+            // ("Program Files (x86)") roots; the installer puts the self-contained x64 build under
             // 64-bit Program Files, while older installs used the x86 path.
             foreach (Environment.SpecialFolder folder in new[] {
                 Environment.SpecialFolder.ProgramFiles,
@@ -76,7 +76,7 @@ internal static class Program {
         // v3.0: carry an existing user's MCEControl.settings/.commands forward to the new mcec.* names.
         ConfigMigration.Run(ConfigPath);
 
-        // #138: belt-and-suspenders — reap any stale/abandoned provisioned session directories so a leaked
+        // #138: belt-and-suspenders; reap any stale/abandoned provisioned session directories so a leaked
         // session (crashed/killed before teardown) never lingers. Running sessions' files are locked and skipped.
         SessionProvisioner.ReapOrphans(TimeSpan.FromHours(AgentServer.SessionReapAgeHours));
 
@@ -95,8 +95,8 @@ internal static class Program {
         Application.SetCompatibleTextRenderingDefault(false);
 
         // #209: the ONLY place the MainWindow Form is constructed. MainWindow.Instance is explicitly
-        // assigned here (no more lazy construct-on-touch); anything that touches it earlier — or ever,
-        // in headless --mcp mode — gets a pointed exception instead of a silent Form on the wrong thread.
+        // assigned here (no more lazy construct-on-touch); anything that touches it earlier; or ever,
+        // in headless --mcp mode; gets a pointed exception instead of a silent Form on the wrong thread.
         MainWindow mainWindow = new();
         MainWindow.Instance = mainWindow;
         Application.Run(mainWindow);
@@ -119,7 +119,7 @@ internal static class Program {
         TelemetryService.Instance.Start("MCE Controller");
 
         // #216: SettingsStore.Load never shows UI; failures are already logged by the store
-        // (headless: log instead of dialogs — same observable behavior as before the split).
+        // (headless: log instead of dialogs; same observable behavior as before the split).
         SettingsLoadResult settingsLoad = SettingsStore.Load($@"{ConfigPath}{SettingsStore.SettingsFileName}");
         AppSettings settings = settingsLoad.Settings;
 
@@ -132,7 +132,7 @@ internal static class Program {
         AgentRuntime.Settings = settings;
         AgentRuntime.Invoker = CommandInvoker.Create(
             $@"{ConfigPath}mcec.commands", Application.ProductVersion, settings.DisableInternalCommands);
-        // #209: the headless host capabilities — SendLine is a logged no-op (no legacy transports),
+        // #209: the headless host capabilities; SendLine is a logged no-op (no legacy transports),
         // RequestShutdown is a clean deferred process exit (so mcec:exit over MCP works headless),
         // and MessageWindowHandle throws (the activity monitor never runs headless).
         AgentRuntime.Host = new HeadlessAppHost();
@@ -145,7 +145,7 @@ internal static class Program {
 
         // #195: stop the command dispatcher thread before exiting. It starts lazily on the first
         // enqueue (e.g. a send_command) and is a background thread, so it could never keep the
-        // process alive — this is a deliberate, clean stop that drops anything still queued (a
+        // process alive; this is a deliberate, clean stop that drops anything still queued (a
         // drop that severs a command tree releases held input) and briefly joins so an in-flight
         // command usually finishes before the process ends.
         AgentRuntime.Invoker?.Shutdown(joinTimeoutMs: 2000);

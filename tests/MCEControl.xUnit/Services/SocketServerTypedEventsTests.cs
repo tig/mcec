@@ -27,7 +27,7 @@ public class SocketServerTypedEventsTests : IDisposable {
 
     public SocketServerTypedEventsTests() {
         // Reaching ServiceStatus.Connected starts ServiceBase's connected-time stopwatch, and
-        // SetStatus(Stopped) then dereferences TelemetryService.Instance.TelemetryClient! —
+        // SetStatus(Stopped) then dereferences TelemetryService.Instance.TelemetryClient!;
         // null until telemetry is initialized (see AgentTestSupport).
         AgentTestSupport.EnsureTelemetry();
     }
@@ -93,7 +93,7 @@ public class SocketServerTypedEventsTests : IDisposable {
         string[] commands = [.. received.Select(r => r.Command)];
         Assert.Equal(["mute", "volup"], commands);
         // The Reply is the per-connection ServerReplyContext, so command output goes back to
-        // the right client — the old code smuggled this through an unchecked downcast.
+        // the right client; the old code smuggled this through an unchecked downcast.
         Assert.All(received, r => Assert.Same(context, r.Reply));
     }
 

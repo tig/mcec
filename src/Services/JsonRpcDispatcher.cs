@@ -7,8 +7,8 @@ using System.Text.Json.Nodes;
 namespace MCEControl;
 
 /// <summary>
-/// The MCP protocol layer (#215): dispatches one JSON-RPC 2.0 request object to its method handler —
-/// <c>initialize</c>, <c>ping</c>, <c>tools/list</c>, <c>tools/call</c> — and shapes the response.
+/// The MCP protocol layer (#215): dispatches one JSON-RPC 2.0 request object to its method handler;
+/// <c>initialize</c>, <c>ping</c>, <c>tools/list</c>, <c>tools/call</c>; and shapes the response.
 /// Shared by both transports (<see cref="McpStdioTransport"/> and <see cref="McpHttpTransport"/>);
 /// tool execution (gate → catalog → build → dispatch → envelope) is delegated to the injected
 /// <see cref="AgentToolExecutor"/>. Extracted from the old monolithic <c>AgentServer</c>, which
@@ -31,7 +31,7 @@ public sealed class JsonRpcDispatcher {
     /// <summary>
     /// Dispatches a single JSON-RPC request object and returns the response object, or null when the
     /// request is a notification (no <c>id</c>) and therefore takes no response. <paramref name="transport"/>
-    /// identifies the calling transport so <c>tools/call</c> can apply transport-sensitive gates —
+    /// identifies the calling transport so <c>tools/call</c> can apply transport-sensitive gates;
     /// <c>send_command</c> honors the network gate over HTTP (#153).
     /// </summary>
     public JsonObject? Dispatch(JsonObject request, AgentTransport transport) {
@@ -91,7 +91,7 @@ public sealed class JsonRpcDispatcher {
     private static JsonArray BuildToolsList() {
         JsonArray tools = [];
 
-        // The gated agent tools — one descriptor per tool, schema included — live in ToolCatalog (#205).
+        // The gated agent tools; one descriptor per tool, schema included; live in ToolCatalog (#205).
         foreach (ToolDescriptor descriptor in ToolCatalog.All) {
             tools.Add(descriptor.BuildSchema());
         }
@@ -121,7 +121,7 @@ public sealed class JsonRpcDispatcher {
             provisionProps, []));
 
         tools.Add(ToolCatalog.Tool("end-session",
-            "Tear down a provisioned session (from provision-session) by deleting its directory. Requires the session's token — the teardown credential provision-session returned. Stop the session's mcec.exe first, or its files stay locked. MCEC also reaps stale session dirs on launch.",
+            "Tear down a provisioned session (from provision-session) by deleting its directory. Requires the session's token; the teardown credential provision-session returned. Stop the session's mcec.exe first, or its files stay locked. MCEC also reaps stale session dirs on launch.",
             new JsonObject {
                 ["sessionId"] = ToolCatalog.PropSchema("string", "The sessionId returned by provision-session"),
                 ["token"] = ToolCatalog.PropSchema("string", "The token returned by provision-session (the teardown credential)"),

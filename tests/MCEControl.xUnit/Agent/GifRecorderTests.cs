@@ -14,7 +14,7 @@ namespace MCEControl.xUnit.Agent;
 /// <summary>
 /// State-machine tests for <see cref="GifRecorder"/> (#157): when the capture loop self-terminates
 /// (max frames, max duration, or a grab exception) the recorder must leave the "recording" state so
-/// a later <c>start</c> is allowed, while a later <c>stop</c> can still fetch the buffered GIF —
+/// a later <c>start</c> is allowed, while a later <c>stop</c> can still fetch the buffered GIF;
 /// exactly once. All tests use a synthetic in-memory grabber; the desktop is never touched.
 /// </summary>
 [Collection("AgentSerial")]
@@ -34,7 +34,7 @@ public class GifRecorderTests {
     /// <summary>Drains any active or completed recording left behind by a prior test.</summary>
     private static void ResetRecorder() {
         while (GifRecorder.Stop() is not null) {
-            // keep draining — an active and a completed slot may both need clearing
+            // keep draining; an active and a completed slot may both need clearing
         }
     }
 
@@ -81,7 +81,7 @@ public class GifRecorderTests {
                 "IsRecording stayed true after the capture loop self-terminated on a grab exception");
             Assert.True(GifRecorder.HasCompletedRecording);
 
-            // The failure reason must still be fetchable by a later stop — and fetching releases it.
+            // The failure reason must still be fetchable by a later stop; and fetching releases it.
             RecordingResult? result = GifRecorder.Stop();
             Assert.NotNull(result);
             Assert.Contains("boom-grab", result!.Error);

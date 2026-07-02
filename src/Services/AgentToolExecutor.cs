@@ -11,7 +11,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The tool-execution layer (#215): everything between a parsed <c>tools/call</c> and its #101
-/// envelope — the security gates (emergency stop, <c>AgentCommandsEnabled</c>, per-command
+/// envelope; the security gates (emergency stop, <c>AgentCommandsEnabled</c>, per-command
 /// <c>Enabled</c>), argument validation, <see cref="ToolCatalog"/> command building, the #113/#105
 /// dispatch rules (input-gate serialization, invoke's modal grace), the meta-tools
 /// (<c>send_command</c>, <c>provision-session</c>, <c>end-session</c>), and envelope/overlay
@@ -22,7 +22,7 @@ namespace MCEControl;
 public sealed class AgentToolExecutor {
     // Grace period for an `invoke` to complete before we assume it opened a modal dialog and return.
     // Must stay above UiaService.InvokeFindTimeoutMs so an invoke's element lookup always resolves within
-    // the grace — otherwise a missing element would be misreported as a pending modal (see #107).
+    // the grace; otherwise a missing element would be misreported as a pending modal (see #107).
     public const int InvokeModalGraceMs = 750;
 
     /// <summary>
@@ -30,7 +30,7 @@ public sealed class AgentToolExecutor {
     /// (#195). Bounded so one hung command (or a deep paced backlog ahead of it) can never wedge the
     /// MCP dispatch worker forever. 30s covers any sane paced macro (a full 50-command tree at the
     /// default 0ms–250ms pacing); a tree that legitimately runs longer keeps executing on the
-    /// dispatcher — only the WAIT gives up, surfacing a timeout error to the agent.
+    /// dispatcher; only the WAIT gives up, surfacing a timeout error to the agent.
     /// </summary>
     public const int SendCommandCompletionTimeoutMs = 30_000;
 
@@ -55,13 +55,13 @@ public sealed class AgentToolExecutor {
 
     /// <summary>
     /// Whether <paramref name="tool"/> serializes on the shared input gate
-    /// (<see cref="AgentRuntime.InputGate"/> — the #113 contract). Global-input actuation
-    /// (<c>drag</c>, <c>send_command</c>) does — it synthesizes physical mouse/keyboard, one shared
+    /// (<see cref="AgentRuntime.InputGate"/>; the #113 contract). Global-input actuation
+    /// (<c>drag</c>, <c>send_command</c>) does; it synthesizes physical mouse/keyboard, one shared
     /// stream that concurrent requests must not interleave. <c>drag</c> actuates directly under the
     /// gate on its MCP worker (its <see cref="ToolDescriptor.SerializesOnInput"/> flag);
     /// <c>send_command</c> is a meta-tool outside the <see cref="ToolCatalog"/> and serializes
     /// INDIRECTLY (#195): it enqueues into the <see cref="CommandInvoker"/>, whose single dispatcher
-    /// thread holds the gate around each queued command's Execute — so it is special-cased here.
+    /// thread holds the gate around each queued command's Execute; so it is special-cased here.
     /// Observation (<c>query</c>/<c>capture</c>/<c>find</c>/<c>wait-for</c>/<c>record</c>) does not
     /// (it runs concurrently); <c>invoke</c> is UIA-pattern actuation dispatched on a worker with the
     /// modal grace, not under this lock (#105).
@@ -78,25 +78,25 @@ public sealed class AgentToolExecutor {
         JsonObject args = prms?["arguments"] as JsonObject ?? [];
 
         // Emergency stop (#135): once the operator engages the panic hotkey, EVERY tool call is refused
-        // (actuation, observation, and raw send_command alike) until they explicitly re-arm — the human
+        // (actuation, observation, and raw send_command alike) until they explicitly re-arm; the human
         // override latches and is checked before anything else. A distinct error code tells the agent to
         // stop and surface it, not retry.
         if (AgentRuntime.EmergencyStopped) {
-            AgentRuntime.Audit(name, "BLOCKED — emergency stop engaged; operator must re-arm");
+            AgentRuntime.Audit(name, "BLOCKED; emergency stop engaged; operator must re-arm");
             return ToolError(
-                "Emergency stop is engaged — the operator halted this session. All tool calls are refused until they re-arm. Stop and tell the user; do not retry.",
+                "Emergency stop is engaged; the operator halted this session. All tool calls are refused until they re-arm. Stop and tell the user; do not retry.",
                 "emergency-stopped");
         }
 
         if (name == "send_command") {
             // #153: send_command is a raw command-injection surface. Over the network-facing HTTP floor it
-            // must NOT be reachable unless the operator opted into the agent surface — otherwise enabling
+            // must NOT be reachable unless the operator opted into the agent surface; otherwise enabling
             // McpServerEnabled alone (with AgentCommandsEnabled=false) leaves a CSRF/DNS-rebinding-reachable
             // (#143) raw pass-through. So over HTTP it honors the SAME AgentCommandsEnabled gate as every
-            // other tool. Over local stdio (the operator launched mcec.exe --mcp — no CSRF surface) the
+            // other tool. Over local stdio (the operator launched mcec.exe --mcp; no CSRF surface) the
             // documented raw pass-through stays available; the per-command Enabled table still applies below.
             if (transport == AgentTransport.Http && !AgentCommandsEnabled) {
-                AgentRuntime.Audit("send_command", "BLOCKED — agent commands disabled; send_command over HTTP requires AgentCommandsEnabled");
+                AgentRuntime.Audit("send_command", "BLOCKED; agent commands disabled; send_command over HTTP requires AgentCommandsEnabled");
                 return ToolError(
                     "send_command over HTTP requires AgentCommandsEnabled=true. Enable the agent surface to opt in, or drive send_command over the local stdio transport (mcec.exe --mcp).",
                     "agent-commands-disabled");
@@ -112,10 +112,10 @@ public sealed class AgentToolExecutor {
             return RunEndSession(args);
         }
 
-        // The gated agent tools are exactly the ToolCatalog membership (#205) — no hand-synced whitelist.
+        // The gated agent tools are exactly the ToolCatalog membership (#205); no hand-synced whitelist.
         if (ToolCatalog.Contains(name)) {
             if (!AgentCommandsEnabled) {
-                AgentRuntime.Audit(name, "BLOCKED — agent commands disabled");
+                AgentRuntime.Audit(name, "BLOCKED; agent commands disabled");
                 return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
             }
             // `drag`/`click` generate real mouse input from their endpoints, and a missing pixel field would
@@ -175,19 +175,19 @@ public sealed class AgentToolExecutor {
     // tools/call gate but has no argument mapping (InternalsVisibleTo). See #201.
     internal JsonObject RunAgentCommand(string name, JsonObject args) {
         // #201: if a name passes the gate but has no command mapping, refuse with a structured error
-        // — the old default arm silently mapped unknown names onto InvokeCommand (an ACTUATION) with
+        //; the old default arm silently mapped unknown names onto InvokeCommand (an ACTUATION) with
         // garbage selector args. Since #205 the gate and the mapping are the SAME ToolCatalog, so
         // this can only trip for a caller that bypassed the gate (tests exercise it directly).
         if (BuildCommand(name, args) is not Command cmd) {
-            AgentRuntime.Audit(name, "BLOCKED — tool has no argument mapping; refusing to run it as another command");
+            AgentRuntime.Audit(name, "BLOCKED; tool has no argument mapping; refusing to run it as another command");
             return ToolError($"Unknown tool: {name}", "unknown-tool");
         }
 
-        // Honor the per-command Enabled flag — the documented second security gate. The MCP tool only
+        // Honor the per-command Enabled flag; the documented second security gate. The MCP tool only
         // runs if the corresponding command in the loaded table is enabled (built-ins ship disabled;
         // the operator opts in per-command via mcec.commands). Fail closed if the table/command is missing.
         if ((_invoker()?[name] as Command)?.Enabled != true) {
-            AgentRuntime.Audit(name, "BLOCKED — command is disabled in mcec.commands");
+            AgentRuntime.Audit(name, "BLOCKED; command is disabled in mcec.commands");
             return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").", "command-disabled");
         }
 
@@ -207,11 +207,11 @@ public sealed class AgentToolExecutor {
 
         // Dispatch under the #113 concurrency contract. `invoke` can activate a control that opens a
         // MODAL dialog (About, Settings, message/file dialogs); the UIA Invoke runs the click handler
-        // synchronously, so the call would block for the dialog's whole lifetime and — if it held a lock
-        // — deadlock every later tool call (the agent couldn't even query or dismiss the dialog it just
+        // synchronously, so the call would block for the dialog's whole lifetime and; if it held a lock
+        //; deadlock every later tool call (the agent couldn't even query or dismiss the dialog it just
         // opened, #105). So run `invoke` on a worker and, if it hasn't returned within a short grace,
         // report "modal pending" and return; the worker finishes when the dialog closes. `drag`
-        // synthesizes physical input and serializes on AgentRuntime.InputGate — the SAME gate the
+        // synthesizes physical input and serializes on AgentRuntime.InputGate; the SAME gate the
         // CommandInvoker's dispatcher thread holds around every queued command's Execute (#195), so a
         // drag gesture can never interleave with queue-driven input from the legacy TCP/serial
         // pipeline or send_command (both are producers into that one dispatcher-drained queue).
@@ -219,7 +219,7 @@ public sealed class AgentToolExecutor {
         // run UNLOCKED, so a long/blocking read never stalls another tool call.
         if (name == "invoke") {
             if (!TryRunInvokeWithModalGrace(cmd)) {
-                AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open — returning without blocking");
+                AgentRuntime.Audit(name, "dispatched; a modal dialog appears to be open; returning without blocking");
                 PublishOverlay(name, args, CommandOutcome.Pending, null, session.SessionId);
                 return McpResult(AgentToolResult.Success(InvokeModalPendingResult(), session.SessionId));
             }
@@ -233,7 +233,7 @@ public sealed class AgentToolExecutor {
             cmd.Execute();
         }
 
-        // Consume the CommandResult OBJECT the command handed to the CapturingReply (#206) — no
+        // Consume the CommandResult OBJECT the command handed to the CapturingReply (#206); no
         // serialize → JsonNode.Parse round-trip of our own output (which used to materialize a
         // capture's base64 PNG three to four times), and no "non-JSON output is success" fallback:
         // an agent command that produced no typed result is a structured internal failure.
@@ -260,8 +260,8 @@ public sealed class AgentToolExecutor {
     }
 
     /// <summary>
-    /// Publishes a command-event for the on-screen overlay (#119). Best-effort and decoupled — the hub
-    /// swallows subscriber faults — so it can never affect the tool result. The overlay window (and its
+    /// Publishes a command-event for the on-screen overlay (#119). Best-effort and decoupled; the hub
+    /// swallows subscriber faults; so it can never affect the tool result. The overlay window (and its
     /// <c>CommandOverlayEnabled</c> gate) lives on the subscriber side.
     /// </summary>
     private static void PublishOverlay(string name, JsonObject args, CommandOutcome outcome, string? detail, string? sessionId) =>
@@ -314,7 +314,7 @@ public sealed class AgentToolExecutor {
         // #195: enqueue-and-await. send_command is a PRODUCER into the invoker's single
         // dispatcher-drained queue (the same queue the legacy TCP/serial pipeline feeds); the
         // dispatcher thread executes the command under AgentRuntime.InputGate (the #113
-        // no-interleaving invariant) and the completion task fires only after it ran — so reading
+        // no-interleaving invariant) and the completion task fires only after it ran; so reading
         // reply.Captured below no longer races the execution. A command that never entered the queue
         // (unknown name, or dropped whole by the #154 bounds) is a failure, not the old always-"ok"
         // (the richer taxonomy stays #206; these two codes are the minimum honest signal).
@@ -346,13 +346,13 @@ public sealed class AgentToolExecutor {
         if (!completion.Result) {
             return ToolError(
                 "The queue was dropped before this command finished (emergency stop engaged or the command engine shut down). " +
-                "It may have PARTIALLY executed — verify the desktop state with query/capture before assuming nothing ran.",
+                "It may have PARTIALLY executed; verify the desktop state with query/capture before assuming nothing ran.",
                 "emergency-stopped");
         }
 
         // The legacy command path returns opaque text, not a CommandResult; carry it forward as the
         // success payload. (An agent command routed through send_command hands over a typed result
-        // instead — CapturingReply.Captured lazily serializes it, so the output is unchanged.)
+        // instead; CapturingReply.Captured lazily serializes it, so the output is unchanged.)
         string captured = reply.Captured.Trim();
         JsonObject result = new() { ["output"] = string.IsNullOrEmpty(captured) ? "ok" : captured };
         CommandEventHub.Publish(new CommandEvent("send_command", CommandTersifier.ForRawCommand(command), CommandOutcome.Ok, session.SessionId));
@@ -361,12 +361,12 @@ public sealed class AgentToolExecutor {
 
     /// <summary>
     /// Provisions a fresh, disposable, isolated MCEC instance (#138) and returns the handoff. Gated behind
-    /// the operator's <see cref="AppSettings.AllowSessionProvisioning"/> opt-in — the one thing that cannot
-    /// be self-served — and never touches the installed config. Also reaps stale session dirs opportunistically.
+    /// the operator's <see cref="AppSettings.AllowSessionProvisioning"/> opt-in; the one thing that cannot
+    /// be self-served; and never touches the installed config. Also reaps stale session dirs opportunistically.
     /// </summary>
     private JsonObject RunProvisionSession(JsonObject args) {
         if (_settings()?.AllowSessionProvisioning != true) {
-            AgentRuntime.Audit("provision-session", "BLOCKED — session provisioning is not authorized");
+            AgentRuntime.Audit("provision-session", "BLOCKED; session provisioning is not authorized");
             return ToolError(
                 "Session provisioning is not authorized. The operator must enable AllowSessionProvisioning to opt in; it cannot be self-served.",
                 "provisioning-not-authorized");
@@ -388,7 +388,7 @@ public sealed class AgentToolExecutor {
 
     /// <summary>
     /// Tears down a provisioned session directory by id (#138). Since #215 the caller must also
-    /// present the session's <c>token</c> — the credential <c>provision-session</c> issued and wrote
+    /// present the session's <c>token</c>; the credential <c>provision-session</c> issued and wrote
     /// into the session's co-located config. end-session is reachable WITHOUT the provisioning
     /// authorization gate (teardown must always be possible), so before the token this tool let any
     /// MCP caller delete any session it could name; now only the token holder can.
@@ -406,7 +406,7 @@ public sealed class AgentToolExecutor {
         }
         switch (SessionProvisioner.ValidateTeardownToken(sessionId, token)) {
             case SessionTokenValidation.TokenMismatch:
-                AgentRuntime.Audit("end-session", $"REJECTED — token does not match session '{sessionId.Trim()}'");
+                AgentRuntime.Audit("end-session", $"REJECTED; token does not match session '{sessionId.Trim()}'");
                 return ToolError(
                     "The token does not match this session (or the session's config could not be verified). " +
                     "Use the exact token provision-session returned; a session you did not provision is not yours to tear down. " +
@@ -424,7 +424,7 @@ public sealed class AgentToolExecutor {
             ["removed"] = removed,
         };
         if (!removed) {
-            result["note"] = "The session directory could not be deleted — its mcec.exe may still be running. Stop it and retry, or MCEC will reap it on a later launch.";
+            result["note"] = "The session directory could not be deleted; its mcec.exe may still be running. Stop it and retry, or MCEC will reap it on a later launch.";
         }
         return McpResult(AgentToolResult.Success(result, _session().SessionId));
     }
@@ -453,7 +453,7 @@ public sealed class AgentToolExecutor {
     internal static Command? BuildCommand(string name, JsonObject args) =>
         ToolCatalog.TryGet(name, out ToolDescriptor descriptor)
             ? descriptor.BuildCommand(args)
-            : null; // unknown name — the caller reports unknown-tool; never guess a command (#201)
+            : null; // unknown name; the caller reports unknown-tool; never guess a command (#201)
 
     // -------------------------------------------------------------------------------------------
     // envelope helpers
@@ -480,7 +480,7 @@ public sealed class AgentToolExecutor {
     /// A tool-level failure (a security gate or a bad request) reported as the #101 envelope. Security/
     /// policy refusals the agent cannot recover from on its own map to the default <c>internal</c>
     /// category; argument-validation refusals pass <see cref="AgentErrorCategory.InvalidArgument"/>
-    /// (#191 — the recovery is to fix the request, not report a bug). <paramref name="code"/>
+    /// (#191; the recovery is to fix the request, not report a bug). <paramref name="code"/>
     /// distinguishes the specific cause. The ambient session's id is attached so even a refused call
     /// tells the agent which session it belonged to.
     /// </summary>

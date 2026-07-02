@@ -2,9 +2,9 @@
 
 `docs/hero.gif` is the hero image shown at the top of [`README.md`](../README.md) and the docs home page
 ([`docs/index.md`](index.md), served at `https://tig.github.io/mcec/hero.gif`). It is MCEC dogfooding
-itself: one MCEC drives a **second MCEC** through a guided tour — launch → **File ▸ Settings** (visit
+itself: one MCEC drives a **second MCEC** through a guided tour (launch → **File ▸ Settings** (visit
 every tab) → **mouse-resize** the window ~25% smaller by dragging its sizing border → **drag the title
-bar in small circles** → **Help ▸ About** → pause — while the **on-screen command overlay**
+bar in small circles** → **Help ▸ About** → pause) while the **on-screen command overlay**
 narrates every command in burnt orange, all recorded by the agent
 [`record`](agent-server.md#record--capturing-change-over-time) tool. No external screen-recorder.
 
@@ -25,7 +25,7 @@ if it looks good, commit `docs/hero.gif`.
 
 ## What the script does (and why)
 
-It is the executable form of these decisions — replicate them if reproducing by hand:
+It is the executable form of these decisions; replicate them if reproducing by hand:
 
 1. **GUI controller that renders the overlay, driven over HTTP.** Unlike a headless `--mcp` controller, a
    **GUI** MCEC has a message loop and so paints the overlay. The controller's co-located `mcec.settings`
@@ -34,13 +34,13 @@ It is the executable form of these decisions — replicate them if reproducing b
    to `http://127.0.0.1:5151/mcp`.
 2. **Separate, isolated subject copy.** The controlled MCEC is a *copy* of the build in
    `%TEMP%\mcec-hero-subject` so it reads its own co-located `mcec.settings` (`Program.ConfigPath` == the
-   exe's folder) — isolated from the controller and your installed MCEC. Its config sets `ActAsServer=false`
+   exe's folder); isolated from the controller and your installed MCEC. Its config sets `ActAsServer=false`
    (else it binds `IPAddress.Any:5150` and triggers the first-run Windows Firewall prompt that steals focus
    and derails the tour), `DisableUpdatePopup=true`, turns its **own overlay off**
-   (`CommandOverlayEnabled=false` — only the controller narrates), and **pins** `WindowLocation`/`WindowSize`.
-3. **Launch it the way an agent would — using the direct `launch` tool (not `Start-Process` or Win+R).** The controller dogfoods the first-class gated launch: it calls `launch { "path": "<exe>", "timeout": 10000 }` which starts the process and returns the pid + primary window handle (when it appears). This is more reliable than the Run dialog. (The script falls back to the Win+R composition only if needed for other demos.) The freshly-launched window handle is used to target the subject thereafter (its "MCEC" title is ambiguous with the controller) and the modal dialogs by their unambiguous titles (`Settings`, `About`).
+   (`CommandOverlayEnabled=false`; only the controller narrates), and **pins** `WindowLocation`/`WindowSize`.
+3. **Launch it the way an agent would: using the direct `launch` tool (not `Start-Process` or Win+R).** The controller dogfoods the first-class gated launch: it calls `launch { "path": "<exe>", "timeout": 10000 }` which starts the process and returns the pid + primary window handle (when it appears). This is more reliable than the Run dialog. (The script falls back to the Win+R composition only if needed for other demos.) The freshly-launched window handle is used to target the subject thereafter (its "MCEC" title is ambiguous with the controller) and the modal dialogs by their unambiguous titles (`Settings`, `About`).
 4. **Overlay docked Left over a wide window → compact capture.** With the overlay on the left of the wide,
-   pinned, left-docked subject window, the recorded region is **just the window** — compact, no wallpaper —
+   pinned, left-docked subject window, the recorded region is **just the window** (compact, no wallpaper)
    yet still contains the narration. The Settings/About dialogs are `CenterParent`, so they sit to the
    right of the left-hugging overlay. (Right is the product default; Left is chosen here only for the hero.)
 5. **Clean backdrop.** All windows are minimized (`Shell.Application.MinimizeAll()`); the overlay is an
@@ -72,7 +72,7 @@ per-step dwell `Start-Sleep`s; to make it richer, raise them.
 
 ## Toward script-free recreation
 
-A key aspect of MCEC is that a capable **agent composes the full command set creatively** — so the right
+A key aspect of MCEC is that a capable **agent composes the full command set creatively**; so the right
 question isn't "can an agent recreate the hero?" but "how *robustly*?" The honest answer: **an agent can
 already recreate almost all of this today with nothing but `mcec.exe`**, by combining existing primitives.
 The `.ps1` reaches outside MCEC mainly for **determinism and convenience**, not because MCEC can't express
@@ -85,7 +85,7 @@ pixels; and `invoke` with `action: "select"` switches tabs/list items. What rema
 window by polling `query`, and record a window by passing its `query`'d bounds as the `record` region.
 
 One caveat: invoking a menu item that opens a **modal** can wedge later UIA queries of that dialog, so the
-tour opens Settings with a keystroke (`key_s`) rather than `invoke` — the keystroke *is* a valid creative
+tour opens Settings with a keystroke (`key_s`) rather than `invoke`; the keystroke *is* a valid creative
 composition.
 
 Deliberately **out of scope** for the agent: provisioning the isolated subject (copy + config) and

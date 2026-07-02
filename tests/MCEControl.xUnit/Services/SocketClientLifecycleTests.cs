@@ -23,14 +23,14 @@ namespace MCEControl.xUnit.Services;
 ///     loop was dereferencing on another thread, NREing on every "Act as client" toggle.
 ///   - Double-Start() must supersede (not orphan) the prior run and its TcpClient.
 ///   - The client must auto-reconnect after the server drops, waiting the configured delay.
-///   - Received bytes are read in buffered async chunks — no 100 ms-per-command cap, no
-///     one-ReadByte-per-syscall — and decoded as UTF-8 with a stateful Decoder.
+///   - Received bytes are read in buffered async chunks; no 100 ms-per-command cap, no
+///     one-ReadByte-per-syscall; and decoded as UTF-8 with a stateful Decoder.
 /// Loopback only: a local TcpListener on an ephemeral port plays the remote server, and
 /// waits poll instead of sleeping fixed times (the #202 house pattern).
 /// </summary>
 public class SocketClientLifecycleTests {
     public SocketClientLifecycleTests() {
-        // SetStatus dereferences TelemetryService.Instance.TelemetryClient — null until
+        // SetStatus dereferences TelemetryService.Instance.TelemetryClient; null until
         // telemetry is initialized (see AgentTestSupport).
         AgentTestSupport.EnsureTelemetry();
     }
@@ -105,7 +105,7 @@ public class SocketClientLifecycleTests {
 
     [Fact]
     public void Receive_Utf8CharSplitAcrossReads_DecodesCorrectly() {
-        // #212: receive decodes UTF-8 with a stateful Decoder — the old loop cast each
+        // #212: receive decodes UTF-8 with a stateful Decoder; the old loop cast each
         // byte to char, so a multi-byte character (here 'é' = 0xC3 0xA9) was mangled,
         // and splitting it across two reads must not corrupt it either.
         using TcpListener listener = NewListener(out int port);
@@ -177,7 +177,7 @@ public class SocketClientLifecycleTests {
                     }
                 }
                 catch (IOException) {
-                    // client vanished mid-pump — expected when Stop wins the race
+                    // client vanished mid-pump; expected when Stop wins the race
                 }
                 catch (ObjectDisposedException) {
                     // ditto
@@ -257,7 +257,7 @@ public class SocketClientLifecycleTests {
         // A short (but nonzero) reconnect delay: nonzero is what enables auto-reconnect.
         using SocketClient client = NewClient(port, 100, out List<string> received);
 
-        client.Start(); // delay: false — first connect is immediate
+        client.Start(); // delay: false; first connect is immediate
         using (TcpClient firstConn = Accept(listener, "the initial connection")) {
             WaitUntil(() => client.CurrentStatus == ServiceStatus.Connected, "the client to report Connected");
         } // dispose = the server drops the connection

@@ -12,7 +12,7 @@ namespace MCEControl.xUnit.Commands;
 /// Regression guard for issue #200. <c>SerializedCommands.Deserialize</c> pipes every .commands file
 /// through an XSLT that lower-cases ALL element and attribute names before XmlSerializer binds. Any
 /// [XmlAttribute]/[XmlElement]/[XmlArray]/[XmlArrayItem] name containing an uppercase character is
-/// written by SaveCommands but can never bind on load — the value is silently lost (this trap claimed
+/// written by SaveCommands but can never bind on load; the value is silently lost (this trap claimed
 /// className/maxDepth/maxNodes/durationMs/maxWidth/workingDirectory across five commands). This test
 /// walks every serialized Command type (and every nested serialized type reachable from them) and
 /// asserts every XML name is fully lowercase, closing the bug class permanently.
@@ -30,7 +30,7 @@ public class XmlNameCasingTests
                 }
                 foreach ((string source, string name) in EffectiveXmlNames(member)) {
                     if (name.Any(char.IsUpper)) {
-                        offenders.Add($"{type.Name}.{member.Name}: [{source}] name \"{name}\" is not all-lowercase — " +
+                        offenders.Add($"{type.Name}.{member.Name}: [{source}] name \"{name}\" is not all-lowercase; " +
                             "the .commands lower-casing XSLT means this value will be silently dropped on load");
                     }
                 }
@@ -43,8 +43,8 @@ public class XmlNameCasingTests
     }
 
     /// <summary>
-    /// Every concrete Command subclass, the Command base, SerializedCommands (the document root), and —
-    /// transitively — any type in the product assembly referenced by a serialized member (nested
+    /// Every concrete Command subclass, the Command base, SerializedCommands (the document root), and;
+    /// transitively; any type in the product assembly referenced by a serialized member (nested
     /// serialized types such as EmbeddedCommands' item types).
     /// </summary>
     private static HashSet<Type> CollectSerializedTypes()
@@ -100,7 +100,7 @@ public class XmlNameCasingTests
     /// <summary>
     /// Yields the XML names XmlSerializer will actually use for a member: explicit names as written, and
     /// the member-name fallback when an attribute gives no name (a PascalCase member name is then just as
-    /// broken as an explicit camelCase one). Un-named polymorphic entries for abstract types are skipped —
+    /// broken as an explicit camelCase one). Un-named polymorphic entries for abstract types are skipped;
     /// an abstract type is never instantiated, so no element is ever emitted under that name.
     /// </summary>
     private static IEnumerable<(string Source, string Name)> EffectiveXmlNames(MemberInfo member)
@@ -113,7 +113,7 @@ public class XmlNameCasingTests
         }
         foreach (XmlElementAttribute el in member.GetCustomAttributes<XmlElementAttribute>()) {
             if (string.IsNullOrEmpty(el.ElementName) && el.Type?.IsAbstract == true) {
-                continue; // catch-all like [XmlElement(typeof(Command))] — never serialized directly
+                continue; // catch-all like [XmlElement(typeof(Command))]; never serialized directly
             }
             yield return ("XmlElement", string.IsNullOrEmpty(el.ElementName) ? member.Name : el.ElementName);
         }

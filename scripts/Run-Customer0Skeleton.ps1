@@ -3,7 +3,7 @@
     MCEC 3.0 Customer 0 "walking skeleton" (issue #98).
 
 .DESCRIPTION
-    The thinnest end-to-end agent slice, driven through MCEC's own MCP HTTP surface —
+    The thinnest end-to-end agent slice, driven through MCEC's own MCP HTTP surface;
     MCEC drives MCEC. Every layer is present in its minimal form (stub of the layer epic):
 
       session (#86)    : runner-owned sessionId + per-session artifact dir
@@ -18,7 +18,7 @@
     Non-goals (live in their Wave 2+ epics): selector stability, rich waits, input
     fallbacks, multi-monitor/DPI, GIF. This is a happy-path slice only.
 
-    A bundle is ALWAYS produced — including on failure, where failure-summary.md is the
+    A bundle is ALWAYS produced; including on failure, where failure-summary.md is the
     deliverable. Exit code is 0 on a verified pass, non-zero otherwise.
 
 .PARAMETER Port
@@ -47,7 +47,7 @@ $buildDir = Join-Path $repoRoot "src/bin/$Configuration/net10.0-windows"
 $exe = Join-Path $buildDir "mcec.exe"
 
 if (-not (Test-Path $exe)) {
-    throw "mcec.exe not found at $exe — build first: dotnet build src/MCEControl.csproj -c $Configuration"
+    throw "mcec.exe not found at $exe; build first: dotnet build src/MCEControl.csproj -c $Configuration"
 }
 if (-not $ArtifactRoot) { $ArtifactRoot = Join-Path $repoRoot "artifacts/customer0" }
 
@@ -227,7 +227,7 @@ try {
     Add-Step "launch" "pass" "MCP HTTP up on $mcpUrl"
 
     # --- Wait for the main window (selector + wait stubs). Match the title exactly ("MCEC") and
-    #     capture its handle, then target everything else by that handle — so a stale 'About'
+    #     capture its handle, then target everything else by that handle; so a stale 'About'
     #     dialog (which also belongs to process mcec) can never be mistaken for the main window. ---
     $win = Wait-For -TimeoutMs 20000 -Condition {
         $q = Invoke-Tool -Name "query" -Arguments @{ window = "MCEC"; maxDepth = 1 }
@@ -249,10 +249,10 @@ try {
     # --- Act: open the Help menu with `expand` (ExpandCollapse, falling back to Invoke for the
     #     WinForms ToolStripMenuItem), then invoke About... Once Help is expanded its sub-items
     #     appear as descendants of the SAME main window (MCEC > Help > Menu > About...), so we
-    #     target the main window by handle — not the foreground. (This is the menu gap the first
+    #     target the main window by handle; not the foreground. (This is the menu gap the first
     #     skeleton run surfaced; the expand action + this targeting is the fix.) ---
     Invoke-Tool -Name "invoke" -Arguments @{ handle = $mainHandle; by = "name"; value = "Help"; action = "expand" } | Out-Null
-    # Synchronize on the menu item appearing with the first-class wait-for tool (#75) — no sleep.
+    # Synchronize on the menu item appearing with the first-class wait-for tool (#75); no sleep.
     Invoke-Tool -Name "wait-for" -Arguments @{ handle = $mainHandle; by = "name"; value = "About..."; timeout = 3000 } | Out-Null
     # Invoking About... opens a modal dialog. Since #105 the invoke returns promptly with
     # modalPending instead of blocking for the dialog's lifetime, so no special timeout handling is
@@ -285,7 +285,7 @@ finally {
     try { Remove-Item -Path $runDir -Recurse -Force -ErrorAction SilentlyContinue } catch {}
 
     # --- Write the standard evidence bundle (#87): session.json, environment.json,
-    #     failure-summary.md, and the zip — all produced by McecEvidence.psm1. ---
+    #     failure-summary.md, and the zip; all produced by McecEvidence.psm1. ---
     $session.LastObservation = $lastGoodObservation
     $environment = Get-McecEnvironment -ExePath $exe -McpUrl $mcpUrl
     $result = Complete-McecSession -Session $session -Passed $passed -Environment $environment

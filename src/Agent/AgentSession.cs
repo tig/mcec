@@ -41,7 +41,7 @@ public sealed class AgentSession {
 
     /// <summary>
     /// Creates a session with a fresh 12-hex-char id (matching the evidence harness'
-    /// <c>New-McecSession</c> format) and a reserved — not yet created — artifact directory path under
+    /// <c>New-McecSession</c> format) and a reserved (not yet created) artifact directory path under
     /// <paramref name="artifactRoot"/>.
     /// </summary>
     public static AgentSession Create(string artifactRoot) =>
@@ -92,12 +92,12 @@ public sealed class AgentSession {
     /// LATER failure then embedded megabytes of stale screenshot into <c>error.lastObservation</c>.
     /// Now an image-bearing observation is compacted BEFORE storage: the PNG bytes are written to a
     /// file under the per-session artifact directory and the session remembers only a summary
-    /// (window descriptor, dimensions, blankCheck verdict, byte count) plus the artifact path — so
+    /// (window descriptor, dimensions, blankCheck verdict, byte count) plus the artifact path; so
     /// <c>error.lastObservation</c> never carries raw base64. Non-image observations (query trees,
     /// find results) are stored as before.</para>
     /// </summary>
     public void RecordObservation(JsonObject? observation, JsonObject? target = null) {
-        // Compact (and write the artifact) OUTSIDE the lock — file IO must never hold up other
+        // Compact (and write the artifact) OUTSIDE the lock; file IO must never hold up other
         // recorders/readers.
         JsonObject? compact = observation is null ? null : CompactObservation(observation);
         lock (_gate) {
@@ -112,7 +112,7 @@ public sealed class AgentSession {
 
     /// <summary>
     /// Returns the session-state form of <paramref name="observation"/>: a clone for ordinary
-    /// payloads, or — when it carries inline image bytes (<c>base64</c>, i.e. a capture) — a compact
+    /// payloads, or; when it carries inline image bytes (<c>base64</c>, i.e. a capture); a compact
     /// summary with the bytes swapped for an artifact file path.
     /// </summary>
     private JsonObject? CompactObservation(JsonObject observation) {
@@ -122,7 +122,7 @@ public sealed class AgentSession {
 
         JsonObject summary = new() { ["kind"] = "capture-summary" };
         // The compact fields the contract names: window descriptor, dimensions, blankCheck verdict,
-        // byte count — plus the small metadata capture already reports (encoding, optional file/handle).
+        // byte count; plus the small metadata capture already reports (encoding, optional file/handle).
         foreach (string key in (string[])["window", "handle", "width", "height", "encoding", "bytes", "blankCheck", "file"]) {
             if (observation[key] is JsonNode node) {
                 summary[key] = node.DeepClone();
@@ -144,7 +144,7 @@ public sealed class AgentSession {
 
     /// <summary>
     /// Writes an observation's image bytes to a fresh file in the per-session artifact directory
-    /// (<see cref="EnsureArtifactDir"/>) and returns its path, or null on any decode/IO failure —
+    /// (<see cref="EnsureArtifactDir"/>) and returns its path, or null on any decode/IO failure;
     /// recording an observation must never throw.
     /// </summary>
     private string? TryWriteArtifact(string base64, string extension) {
@@ -178,7 +178,7 @@ public sealed class AgentSession {
     }
 
     /// <summary>
-    /// Stamps the operator emergency stop (#135) into the session — who/what triggered it and when — so a
+    /// Stamps the operator emergency stop (#135) into the session; who/what triggered it and when; so a
     /// run's evidence bundle shows that a human halted it. Only the first stop of a latched span is kept.
     /// </summary>
     public void RecordEmergencyStop(string source, DateTime atUtc) {
@@ -200,7 +200,7 @@ public sealed class AgentSession {
     /// Records the outcome of a tool call: a successful <b>observation</b> (query/capture/find/wait-for)
     /// updates <see cref="LastObservation"/> and, when the payload names a window, <see cref="ActiveTarget"/>;
     /// a failure updates <see cref="LastError"/>. Actuation tools (invoke/send_command) don't record an
-    /// observation. Centralizing the decision keeps every observation tool — wait-for included — consistent.
+    /// observation. Centralizing the decision keeps every observation tool (wait-for included) consistent.
     /// </summary>
     public void RecordToolOutcome(string toolName, AgentToolResult env) {
         if (env.Ok) {
