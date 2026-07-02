@@ -7,6 +7,10 @@ on:
     branches: [develop, main]
   workflow_dispatch:
 
+# Least-privilege token (#163): read-only by default; jobs elevate only what they need.
+permissions:
+  contents: read
+
 env:
   SOLUTION: 'MCEControl.slnx'
   CONFIGURATION: 'Release'
@@ -31,6 +35,9 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: windows-latest
+    permissions:
+      contents: read
+      checks: write   # EnricoMi/publish-unit-test-result-action creates a check run
 
     steps:
       - name: Checkout
