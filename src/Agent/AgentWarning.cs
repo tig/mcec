@@ -12,17 +12,12 @@ namespace MCEControl;
 /// rules as error codes; kebab-case, branchable, tolerate unknowns. See
 /// <c>docs/design/agent-tool-result-contract.md</c> (#101).
 /// </summary>
-public sealed class AgentWarning {
-    public AgentWarning(string code, string detail) {
-        Code = code;
-        Detail = detail;
-    }
-
+public sealed class AgentWarning(string code, string detail) {
     /// <summary>Stable, kebab-case machine code for the warning condition.</summary>
-    public string Code { get; }
+    private string Code { get; } = code;
 
     /// <summary>Human-readable explanation of the warning.</summary>
-    public string Detail { get; }
+    private string Detail { get; } = detail;
 
     public JsonObject ToJsonObject() => new() {
         ["code"] = Code,

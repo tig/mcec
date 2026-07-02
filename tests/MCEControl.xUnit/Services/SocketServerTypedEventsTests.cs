@@ -85,7 +85,7 @@ public class SocketServerTypedEventsTests : IDisposable {
         var received = new List<(Reply Reply, string Command)>();
         _server.CommandReceived += (reply, command) => received.Add((reply, command));
 
-        byte[] data = Encoding.ASCII.GetBytes("mute\nvolup\n");
+        byte[] data = "mute\nvolup\n"u8.ToArray();
         Array.Copy(data, context.DataBuffer, data.Length);
         Assert.True(_server.ProcessReceivedData(context, data.Length));
 
@@ -107,7 +107,7 @@ public class SocketServerTypedEventsTests : IDisposable {
         int port = ((IPEndPoint)blocker.LocalEndPoint!).Port;
 
         var errors = new List<ServiceError>();
-        _server.ErrorOccurred += error => errors.Add(error);
+        _server.ErrorOccurred += errors.Add;
 
         _server.Start(port, "loopback");
 

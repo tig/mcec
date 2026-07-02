@@ -25,7 +25,7 @@ public class CommandClonePropertyRoundTripTests {
     // - EmbeddedCommands: reference-typed; Clone deep-clones it rather than copying the reference.
     //   Covered by CommandTests.Clone_WithEmbeddedCommands_ClonesEmbedded / _AreDeepCopies /
     //   _KeepTheirOwnEnabled (#183).
-    private static readonly HashSet<string> SkippedProperties = [
+    private static readonly HashSet<string> _skippedProperties = [
         nameof(Command.Reply),
         nameof(Command.EmbeddedCommands),
     ];
@@ -34,7 +34,7 @@ public class CommandClonePropertyRoundTripTests {
         get {
             TheoryData<Type> data = [];
             foreach (Type type in typeof(Command).Assembly.GetTypes()
-                         .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(Command)))
+                         .Where(t => t is { IsClass: true, IsAbstract: false } && t.IsSubclassOf(typeof(Command)))
                          .OrderBy(t => t.FullName, StringComparer.Ordinal)) {
                 data.Add(type);
             }
@@ -59,7 +59,7 @@ public class CommandClonePropertyRoundTripTests {
 
         List<PropertyInfo> properties = [.. commandType
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanWrite && p.SetMethod is { IsPublic: true } && !SkippedProperties.Contains(p.Name))];
+            .Where(p => p is { CanWrite: true, SetMethod.IsPublic: true } && !_skippedProperties.Contains(p.Name))];
         Assert.NotEmpty(properties); // every Command at least has Cmd/Args/Enabled/UserDefined
 
         // Drive every property to a non-default probe value. Comparing original-vs-clone (rather

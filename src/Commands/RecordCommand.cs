@@ -48,8 +48,6 @@ public class RecordCommand : WindowTargetingAgentCommand {
         get => [new RecordCommand { Cmd = "record" }];
     }
 
-    public RecordCommand() { }
-
     // Window resolution happens per-target inside BuildGrabber (a virtual test seam that also owns
     // the region-vs-window branch and its distinct error/audit shapes), not in the base template.
     protected override bool RequiresWindowTarget => false;
@@ -276,6 +274,4 @@ public class RecordCommand : WindowTargetingAgentCommand {
     }
 
     private static int Clamp(int value, int min, int max) => Math.Max(min, Math.Min(max, value));
-
-    private static long Clamp(long value, long min, long max) => Math.Max(min, Math.Min(max, value));
 }

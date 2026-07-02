@@ -3,6 +3,9 @@
 
 using System.Runtime.InteropServices;
 
+// Win32 SM_* metric names are kept verbatim to mirror the WinUser.h vocabulary.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl.xUnit.Integration;
 
 /// <summary>

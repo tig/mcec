@@ -30,7 +30,7 @@ namespace MCEControl;
 /// lifetime.
 /// </summary>
 public sealed class GifRecorder {
-    private static readonly object Gate = new();
+    private static readonly object _gate = new();
     private static GifRecorder? _active;
 
     /// <summary>A recording whose capture loop self-terminated and whose GIF has not been fetched yet.</summary>
@@ -63,22 +63,22 @@ public sealed class GifRecorder {
     /// <summary>True while a recording is in progress. False once the capture loop has
     /// self-terminated (auto-stop), even before the buffered GIF is fetched via <see cref="Stop"/>.</summary>
     public static bool IsRecording {
-        get { lock (Gate) { return _active is not null; } }
+        get { lock (_gate) { return _active is not null; } }
     }
 
     /// <summary>True when a recording auto-stopped and its buffered GIF has not been fetched yet.</summary>
     public static bool HasCompletedRecording {
-        get { lock (Gate) { return _completed is not null; } }
+        get { lock (_gate) { return _completed is not null; } }
     }
 
     /// <summary>The effective fps of the in-progress recording, or 0 when idle.</summary>
     public static int ActiveFps {
-        get { lock (Gate) { return _active?._fps ?? 0; } }
+        get { lock (_gate) { return _active?._fps ?? 0; } }
     }
 
     /// <summary>The target descriptor of the in-progress recording, or null when idle.</summary>
     public static JsonNode? ActiveTarget {
-        get { lock (Gate) { return _active?._target?.DeepClone(); } }
+        get { lock (_gate) { return _active?._target?.DeepClone(); } }
     }
 
     /// <summary>
@@ -92,7 +92,7 @@ public sealed class GifRecorder {
     /// <exception cref="InvalidOperationException">Thrown when a recording is already in progress.</exception>
     public static bool Start(Func<Bitmap> grab, int fps, int maxFrames, int maxWidth, long maxDurationMs, JsonNode? target) {
         ArgumentNullException.ThrowIfNull(grab);
-        lock (Gate) {
+        lock (_gate) {
             if (_active is not null) {
                 throw new InvalidOperationException("A recording is already in progress.");
             }
@@ -118,7 +118,7 @@ public sealed class GifRecorder {
     /// </summary>
     public static RecordingResult? Stop(bool loop = true) {
         GifRecorder? recorder;
-        lock (Gate) {
+        lock (_gate) {
             recorder = _active ?? _completed;
             _active = null;
             _completed = null;
@@ -182,12 +182,12 @@ public sealed class GifRecorder {
 
     /// <summary>
     /// Moves this recorder from active to completed when its loop exited on its own (a limit was hit
-    /// or the grab failed). Under <see cref="Gate"/> so it cannot race <see cref="Start"/>/<see cref="Stop"/>:
+    /// or the grab failed). Under <see cref="_gate"/> so it cannot race <see cref="Start"/>/<see cref="Stop"/>:
     /// when <see cref="Stop"/> already claimed this recorder (it clears <see cref="_active"/> before
     /// requesting the stop), there is nothing to do; Stop owns the frames and will assemble them.
     /// </summary>
     private void TransitionToCompleted() {
-        lock (Gate) {
+        lock (_gate) {
             if (ReferenceEquals(_active, this)) {
                 _clock.Stop(); // freeze the duration at auto-stop, not at whenever the GIF is fetched
                 _active = null;

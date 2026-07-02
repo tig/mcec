@@ -17,17 +17,12 @@ namespace MCEControl.Hooks;
 /// meant to override. Reacting to <see cref="Injected"/> == <c>false</c> only makes the hotkey a true
 /// human override.</para>
 /// </summary>
-public sealed class GlobalKeyEventArgs : EventArgs {
-    public GlobalKeyEventArgs(Keys keyCode, bool injected) {
-        KeyCode = keyCode;
-        Injected = injected;
-    }
-
+public sealed class GlobalKeyEventArgs(Keys keyCode, bool injected) : EventArgs {
     /// <summary>The virtual key code of the event (as a WinForms <see cref="Keys"/> value).</summary>
-    public Keys KeyCode { get; }
+    public Keys KeyCode { get; } = keyCode;
 
     /// <summary>True when the event was software-injected (<c>LLKHF_INJECTED</c>), false for real hardware input.</summary>
-    public bool Injected { get; }
+    public bool Injected { get; } = injected;
 
     /// <summary>Set to true to suppress the key from further processing by other applications.</summary>
     public bool Handled { get; set; }

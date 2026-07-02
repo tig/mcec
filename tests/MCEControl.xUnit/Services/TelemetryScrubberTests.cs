@@ -127,6 +127,8 @@ public class TelemetryScrubberTests {
         ExceptionTelemetry telex = TelemetryScrubber.CreateScrubbedExceptionTelemetry(outer);
 
         Assert.Equal(2, telex.ExceptionDetailsInfoList.Count);
+        // Asserting the callback parameter IS the point; the delegate signature is fixed.
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         Assert.All(telex.ExceptionDetailsInfoList, d => {
             Assert.DoesNotContain(profile, d.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("%USERPROFILE%", d.Message, StringComparison.Ordinal);

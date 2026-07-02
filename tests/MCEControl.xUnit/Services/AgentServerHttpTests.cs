@@ -22,6 +22,13 @@ namespace MCEControl.xUnit.Services;
 /// </summary>
 [Collection("AgentSerial")]
 public class AgentServerHttpTests {
+    /// <summary>
+    /// One long-lived client for every request in this class (HttpClient is thread-safe and
+    /// per-request short-lived instances risk socket exhaustion). The timeout is a generous
+    /// upper bound; no test asserts on client-side timeout behavior.
+    /// </summary>
+    private static readonly HttpClient _client = new() { Timeout = TimeSpan.FromSeconds(60) };
+
     /// <summary>Asks the OS for a free loopback TCP port by binding to port 0 and reading the assignment.</summary>
     private static int FindFreeLoopbackPort() {
         TcpListener listener = new(IPAddress.Loopback, 0);
@@ -49,7 +56,6 @@ public class AgentServerHttpTests {
 
     /// <summary>Posts a JSON-RPC tools/call for <paramref name="tool"/> and returns the HTTP response.</summary>
     private static async Task<HttpResponseMessage> PostToolCallAsync(string url, string tool, JsonObject args) {
-        using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
         JsonObject request = new() {
             ["jsonrpc"] = "2.0",
             ["id"] = 1,
@@ -57,7 +63,7 @@ public class AgentServerHttpTests {
             ["params"] = new JsonObject { ["name"] = tool, ["arguments"] = args },
         };
         StringContent content = new(request.ToJsonString(), Encoding.UTF8, "application/json");
-        return await client.PostAsync(url, content);
+        return await _client.PostAsync(url, content);
     }
 
     /// <summary>Unwraps the #101 envelope out of a tools/call HTTP response body.</summary>
@@ -129,10 +135,9 @@ public class AgentServerHttpTests {
     public async Task Http_NormalRequest_StillWorks_Returns200WithJsonRpcResult() {
         string url = StartServer();
         try {
-            using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
             StringContent content = new("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}", Encoding.UTF8, "application/json");
 
-            using HttpResponseMessage resp = await client.PostAsync(url, content);
+            using HttpResponseMessage resp = await _client.PostAsync(url, content);
 
             Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
             JsonObject body = JsonNode.Parse(await resp.Content.ReadAsStringAsync())!.AsObject();
@@ -152,13 +157,12 @@ public class AgentServerHttpTests {
         // so a 413 here proves the reject path ran instead of the read-everything path.
         string url = StartServer();
         try {
-            using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
             byte[] payload = new byte[McpHttpTransport.MaxHttpBodyBytes + 1];
             Array.Fill(payload, (byte)'x');
             ByteArrayContent content = new(payload);
             content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-            using HttpResponseMessage resp = await client.PostAsync(url, content);
+            using HttpResponseMessage resp = await _client.PostAsync(url, content);
 
             Assert.Equal(HttpStatusCode.RequestEntityTooLarge, resp.StatusCode);
         }
@@ -172,7 +176,7 @@ public class AgentServerHttpTests {
         byte[] payload = new byte[McpHttpTransport.MaxHttpBodyBytes];
         Array.Fill(payload, (byte)'a');
 
-        bool ok = McpHttpTransport.TryReadBoundedBody(new System.IO.MemoryStream(payload), Encoding.UTF8, out string body);
+        bool ok = McpHttpTransport.TryReadBoundedBody(new MemoryStream(payload), Encoding.UTF8, out string body);
 
         Assert.True(ok);
         Assert.Equal(McpHttpTransport.MaxHttpBodyBytes, body.Length);
@@ -183,7 +187,7 @@ public class AgentServerHttpTests {
         byte[] payload = new byte[McpHttpTransport.MaxHttpBodyBytes + 1];
         Array.Fill(payload, (byte)'a');
 
-        bool ok = McpHttpTransport.TryReadBoundedBody(new System.IO.MemoryStream(payload), Encoding.UTF8, out string body);
+        bool ok = McpHttpTransport.TryReadBoundedBody(new MemoryStream(payload), Encoding.UTF8, out string body);
 
         Assert.False(ok);
         Assert.Equal("", body);
@@ -200,8 +204,8 @@ public class AgentServerHttpTests {
         int port = FindFreeLoopbackPort();
         AgentRuntime.Settings = new AppSettings { McpBindAddress = "127.0.0.1", McpHttpPort = port };
         string url = $"http://127.0.0.1:{port}/mcp";
-        using System.Threading.CountdownEvent allParked = new(McpHttpTransport.MaxConcurrentHttpRequests);
-        using System.Threading.ManualResetEventSlim release = new(false);
+        using CountdownEvent allParked = new(McpHttpTransport.MaxConcurrentHttpRequests);
+        using ManualResetEventSlim release = new(false);
         McpHttpTransport transport = new(() => AgentRuntime.Settings, req => {
             allParked.Signal();
             release.Wait(30000);
@@ -209,16 +213,15 @@ public class AgentServerHttpTests {
         });
         transport.Start();
         try {
-            using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(60) };
             Task<HttpResponseMessage>[] saturating = new Task<HttpResponseMessage>[McpHttpTransport.MaxConcurrentHttpRequests];
             for (int i = 0; i < saturating.Length; i++) {
                 StringContent content = new($"{{\"jsonrpc\":\"2.0\",\"id\":{i},\"method\":\"ping\"}}", Encoding.UTF8, "application/json");
-                saturating[i] = client.PostAsync(url, content);
+                saturating[i] = _client.PostAsync(url, content);
             }
             Assert.True(allParked.Wait(30000), "worker slots never all filled");
 
             StringContent overflowContent = new("{\"jsonrpc\":\"2.0\",\"id\":99,\"method\":\"ping\"}", Encoding.UTF8, "application/json");
-            using HttpResponseMessage overflow = await client.PostAsync(url, overflowContent);
+            using HttpResponseMessage overflow = await _client.PostAsync(url, overflowContent);
             Assert.Equal(HttpStatusCode.ServiceUnavailable, overflow.StatusCode);
 
             release.Set();
@@ -241,13 +244,13 @@ public class AgentServerHttpTests {
         // soon as the cap is crossed, not buffer the whole stream. Old code returned 200 (-32700).
         string url = StartServer();
         try {
-            using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
             byte[] payload = new byte[(McpHttpTransport.MaxHttpBodyBytes * 2) + 1];
             Array.Fill(payload, (byte)'x');
-            using HttpRequestMessage request = new(HttpMethod.Post, url) { Content = new ByteArrayContent(payload) };
+            using HttpRequestMessage request = new(HttpMethod.Post, url);
+            request.Content = new ByteArrayContent(payload);
             request.Headers.TransferEncodingChunked = true;
 
-            using HttpResponseMessage resp = await client.SendAsync(request);
+            using HttpResponseMessage resp = await _client.SendAsync(request);
 
             Assert.Equal(HttpStatusCode.RequestEntityTooLarge, resp.StatusCode);
         }

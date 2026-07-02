@@ -74,8 +74,6 @@ public static partial class HookManager {
                     button = MouseButtons.Right;
                     clickCount = 2;
                     break;
-                default:
-                    break;
             }
 
             MouseEventArgs e = new(
@@ -119,7 +117,7 @@ public static partial class HookManager {
             // Test seam (InternalsVisibleTo MCEControl.xUnit): skip the real hook so the
             // subscribe/unsubscribe bookkeeping is testable on hosted CI (no interactive desktop).
             if (SuppressRealHooksForTesting) {
-                _mouseHookHandle = FakeHookHandle;
+                _mouseHookHandle = _fakeHookHandle;
                 return;
             }
 
@@ -153,7 +151,7 @@ public static partial class HookManager {
         if (_mouseHookHandle != IntPtr.Zero) {
             // Test seam: a fake hook (see EnsureSubscribedToGlobalMouseEvents) is "uninstalled" by
             // resetting the bookkeeping; there is no real hook to unhook.
-            if (_mouseHookHandle == FakeHookHandle) {
+            if (_mouseHookHandle == _fakeHookHandle) {
                 _mouseHookHandle = IntPtr.Zero;
                 _mouseDelegate = null;
                 return;
@@ -245,7 +243,7 @@ public static partial class HookManager {
             // Test seam (InternalsVisibleTo MCEControl.xUnit): skip the real hook so the
             // subscribe/unsubscribe bookkeeping is testable on hosted CI (no interactive desktop).
             if (SuppressRealHooksForTesting) {
-                _keyboardHookHandle = FakeHookHandle;
+                _keyboardHookHandle = _fakeHookHandle;
                 return;
             }
 
@@ -278,7 +276,7 @@ public static partial class HookManager {
         if (_keyboardHookHandle != IntPtr.Zero) {
             // Test seam: a fake hook (see EnsureSubscribedToGlobalKeyboardEvents) is "uninstalled" by
             // resetting the bookkeeping; there is no real hook to unhook.
-            if (_keyboardHookHandle == FakeHookHandle) {
+            if (_keyboardHookHandle == _fakeHookHandle) {
                 _keyboardHookHandle = IntPtr.Zero;
                 _keyboardDelegate = null;
                 return;

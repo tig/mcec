@@ -23,7 +23,7 @@ public class CommandFileWatcher : IDisposable {
     /// The default quiet period, in milliseconds, after the last raw change notification before
     /// <see cref="ChangedEvent"/> fires (matches the old FileSystemSafeWatcher consolidation interval).
     /// </summary>
-    internal const int DefaultDebounceMilliseconds = 1000;
+    private const int DefaultDebounceMilliseconds = 1000;
 
     private readonly FileSystemWatcher _fileWatcher;
     private readonly Timer _debounceTimer;
@@ -83,7 +83,7 @@ public class CommandFileWatcher : IDisposable {
     /// re-reads the whole file anyway).
     /// </summary>
     private void OnWatcherError(object sender, ErrorEventArgs e) {
-        Logger.Instance.Log4.Error($"{GetType().Name}: Error watching {_fileWatcher.Path}\\{_fileWatcher.Filter}: {e.GetException()?.Message}");
+        Logger.Instance.Log4.Error($"{GetType().Name}: Error watching {_fileWatcher.Path}\\{_fileWatcher.Filter}: {e.GetException().Message}");
     }
 
     private void DebounceElapsed(object? state) {
@@ -95,7 +95,7 @@ public class CommandFileWatcher : IDisposable {
         OnChangedEvent();
     }
 
-    internal void Stop() {
+    private void Stop() {
         _fileWatcher.EnableRaisingEvents = false;
         _fileWatcher.Changed -= OnRawChanged;
         _fileWatcher.Error -= OnWatcherError;

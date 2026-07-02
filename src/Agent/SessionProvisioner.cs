@@ -38,17 +38,15 @@ public static class SessionProvisioner {
     // ONLY this shape so a caller can never pass a path/traversal token (e.g. ".." or "a/b") that would make
     // Teardown delete something outside the sessions root. end-session is exposed over MCP and is not behind
     // the provisioning-authorization gate, so this validation is the security boundary.
-    private static readonly Regex SessionIdPattern = new("^[0-9a-f]{12}$", RegexOptions.Compiled);
-
-    private static string? _sessionsRoot;
+    private static readonly Regex _sessionIdPattern = new("^[0-9a-f]{12}$", RegexOptions.Compiled);
 
     /// <summary>
     /// Root under which each session gets its own directory. Defaults to
     /// <c>%LOCALAPPDATA%\MCEC\sessions</c> (temp fallback if that can't be resolved). Settable by tests.
     /// </summary>
     public static string SessionsRoot {
-        get => _sessionsRoot ??= DefaultSessionsRoot();
-        set => _sessionsRoot = value;
+        get => field ??= DefaultSessionsRoot();
+        set;
     }
 
     /// <summary>The directory the running mcec.exe (and its dependencies) live in; the copy source.</summary>
@@ -76,7 +74,7 @@ public static class SessionProvisioner {
     public static ProvisionedSession Provision(bool mcpServerEnabled = true, IEnumerable<string>? commands = null) {
         string sessionId = Guid.NewGuid().ToString("N")[..12];
         string dir = Path.Combine(SessionsRoot, sessionId);
-        string version = System.Windows.Forms.Application.ProductVersion;
+        string version = Application.ProductVersion;
         int port = mcpServerEnabled ? FindFreeLoopbackPort() : 0;
         // The session credential (#215): written into the co-located config as the provisioned
         // instance's McpAuthToken (so every HTTP request to the session's MCP endpoint must carry
@@ -127,7 +125,7 @@ public static class SessionProvisioner {
     /// </summary>
     public static SessionTokenValidation ValidateTeardownToken(string? sessionId, string? token) {
         string id = sessionId?.Trim() ?? "";
-        if (!SessionIdPattern.IsMatch(id)) {
+        if (!_sessionIdPattern.IsMatch(id)) {
             return SessionTokenValidation.InvalidId;
         }
         string dir = Path.Combine(SessionsRoot, id);
@@ -165,7 +163,7 @@ public static class SessionProvisioner {
         // Guard against path traversal: only a well-formed session id (bare 12-hex token) is accepted, so a
         // caller can never point Teardown at a directory outside the sessions root (e.g. "..", "a/b", rooted paths).
         string id = sessionId.Trim();
-        if (!SessionIdPattern.IsMatch(id)) {
+        if (!_sessionIdPattern.IsMatch(id)) {
             AgentRuntime.Audit("end-session", $"REJECTED; '{id}' is not a valid session id (expected 12 hex chars)");
             return false;
         }

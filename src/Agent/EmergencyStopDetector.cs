@@ -12,17 +12,12 @@ namespace MCEControl;
 /// modifiers are down. Kept free of any hook/UI/actuation dependency so the trigger logic is fully
 /// unit-testable; <see cref="EmergencyStop"/> owns the global-hook wiring and the actual stop.
 ///
-/// <para>SECURITY: injected events (<see cref="GlobalKeyEventArgs.Injected"/>) are ignored entirely; they
+/// <para>SECURITY: injected events (<see cref="Hooks.GlobalKeyEventArgs.Injected"/>) are ignored entirely; they
 /// never arm a modifier and never trigger; so MCEC's own agent keystrokes can neither trip nor defeat the
 /// stop. Only real hardware input drives the machine, which is what makes the hotkey a true human override.</para>
 /// </summary>
-public sealed class EmergencyStopDetector {
-    private readonly EmergencyStopHotkey _hotkey;
+public sealed class EmergencyStopDetector(EmergencyStopHotkey hotkey) {
     private readonly HashSet<string> _heldModifiers = [];
-
-    public EmergencyStopDetector(EmergencyStopHotkey hotkey) {
-        _hotkey = hotkey;
-    }
 
     /// <summary>
     /// Feeds a key-down event. Returns true when it completes the chord (the main key pressed with every
@@ -40,7 +35,7 @@ public sealed class EmergencyStopDetector {
             return false;
         }
 
-        return NormalizeKey(key) == NormalizeKey(_hotkey.Key) && HasAllRequiredModifiers();
+        return NormalizeKey(key) == NormalizeKey(hotkey.Key) && HasAllRequiredModifiers();
     }
 
     /// <summary>Feeds a key-up event so a released physical modifier no longer counts toward the chord.</summary>
@@ -58,7 +53,7 @@ public sealed class EmergencyStopDetector {
     public void Reset() => _heldModifiers.Clear();
 
     private bool HasAllRequiredModifiers() {
-        foreach (string required in _hotkey.Modifiers) {
+        foreach (string required in hotkey.Modifiers) {
             if (!_heldModifiers.Contains(required)) {
                 return false;
             }

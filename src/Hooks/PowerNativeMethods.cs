@@ -4,6 +4,9 @@
 using System;
 using System.Runtime.InteropServices;
 
+// The WM_*/PBT_*/DEVICE_NOTIFY_*/GUID_* identifiers mirror their winuser.h/winnt.h names.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl.Hooks;
 
 /// <summary>

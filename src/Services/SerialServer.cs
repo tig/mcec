@@ -25,7 +25,6 @@ public sealed class SerialServer : ServiceBase, IDisposable {
 
     public void Dispose() {
         Dispose(true);
-        GC.SuppressFinalize(this);
     }
     #endregion
 
@@ -100,7 +99,7 @@ public sealed class SerialServer : ServiceBase, IDisposable {
     }
 
     // Returns a string with serial settings, e.g. "COM1 9600 baud N81 Xon/Xoff"
-    public string GetSettingsDisplayString() {
+    private string GetSettingsDisplayString() {
         if (_serialPort == null) {
             return "";
         }
@@ -192,7 +191,7 @@ public sealed class SerialServer : ServiceBase, IDisposable {
     public override void Send(string text, Reply? replyContext = null) {
         base.Send(text, replyContext);
 
-        if (_serialPort != null && _serialPort.IsOpen) {
+        if (_serialPort is { IsOpen: true }) {
             _serialPort.Write(text);
         }
 

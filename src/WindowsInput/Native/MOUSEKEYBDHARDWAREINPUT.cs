@@ -1,7 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace WindowsInput.Native; 
+namespace WindowsInput.Native;
 #pragma warning disable 649, CA1028, CA1714, CA1815, CA1051
+// The struct name mirrors the Win32 INPUT union member naming convention (winuser.h).
+// ReSharper disable InconsistentNaming
 /// <summary>
 /// The combined/overlayed structure that includes Mouse, Keyboard and Hardware Input message data (see: http://msdn.microsoft.com/en-us/library/ms646270(VS.85).aspx)
 /// </summary>

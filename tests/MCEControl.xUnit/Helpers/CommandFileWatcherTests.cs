@@ -33,7 +33,7 @@ public class CommandFileWatcherTests : IDisposable
         var watcher = new CommandFileWatcher(_tempFile);
 
         bool eventFired = false;
-        watcher.ChangedEvent += (sender, args) => { eventFired = true; };
+        watcher.ChangedEvent += (_, _) => { eventFired = true; };
 
         // Just test that the event can be subscribed to
         // File system watcher events can be flaky in tests
@@ -58,30 +58,31 @@ public class CommandFileWatcherTests : IDisposable
         try {
             using ManualResetEventSlim fired = new(false);
             int count = 0;
-            using (CommandFileWatcher watcher = new(file, debounceMs)) {
-                watcher.ChangedEvent += (_, _) => {
-                    Interlocked.Increment(ref count);
-                    fired.Set();
-                };
+            using CommandFileWatcher watcher = new(file, debounceMs);
+            watcher.ChangedEvent += (_, _) => {
+                // Intentional: the captured counter is what the test observes across threads (synchronized).
+                // ReSharper disable once AccessToModifiedClosure
+                Interlocked.Increment(ref count);
+                fired.Set();
+            };
 
-                // Several writes in quick succession; well inside one debounce window each.
-                for (int i = 0; i < 5; i++) {
-                    File.WriteAllText(file, $"write {i}");
-                    Thread.Sleep(20);
-                }
-
-                Assert.True(fired.Wait(TimeSpan.FromSeconds(10)), "ChangedEvent did not fire after the write burst");
-                // Let several further debounce windows elapse: the burst must have collapsed to ONE event.
-                Thread.Sleep(debounceMs * 3);
-                Assert.Equal(1, Volatile.Read(ref count));
-
-                // A later write is a new burst: exactly one more event.
-                fired.Reset();
-                File.WriteAllText(file, "later write");
-                Assert.True(fired.Wait(TimeSpan.FromSeconds(10)), "ChangedEvent did not fire for the later write");
-                Thread.Sleep(debounceMs * 3);
-                Assert.Equal(2, Volatile.Read(ref count));
+            // Several writes in quick succession; well inside one debounce window each.
+            for (int i = 0; i < 5; i++) {
+                File.WriteAllText(file, $"write {i}");
+                Thread.Sleep(20);
             }
+
+            Assert.True(fired.Wait(TimeSpan.FromSeconds(10)), "ChangedEvent did not fire after the write burst");
+            // Let several further debounce windows elapse: the burst must have collapsed to ONE event.
+            Thread.Sleep(debounceMs * 3);
+            Assert.Equal(1, Volatile.Read(ref count));
+
+            // A later write is a new burst: exactly one more event.
+            fired.Reset();
+            File.WriteAllText(file, "later write");
+            Assert.True(fired.Wait(TimeSpan.FromSeconds(10)), "ChangedEvent did not fire for the later write");
+            Thread.Sleep(debounceMs * 3);
+            Assert.Equal(2, Volatile.Read(ref count));
         }
         finally {
             try {

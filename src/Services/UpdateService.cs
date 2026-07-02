@@ -24,12 +24,16 @@ public class UpdateService {
 
     // SECURITY (#146): the exact release asset the updater will download and run. Selected by name so a
     // rogue/extra asset that merely sorts first can't be delivered as `Assets[0]`.
-    internal const string InstallerFileName = "mcec.Setup.exe";
+    private const string InstallerFileName = "mcec.Setup.exe";
 
     // The publisher name the installer's Authenticode signer certificate subject must contain. The
     // release is signed via Azure Trusted Signing under the Kindel LLC publisher identity (see
     // docs/code-signing.md); a substring keeps this stable across certificate rotations.
     private const string ExpectedPublisher = "Kindel";
+
+    // One shared client for installer downloads: per-call HttpClient instances risk socket
+    // exhaustion and lose connection reuse.
+    private static readonly HttpClient _httpClient = new();
 
     private UpdateService() {
         LatestStableVersion = new Version(0, 0);
@@ -54,13 +58,13 @@ public class UpdateService {
         _periodicCheckTimer = new Timer { Interval = 24 * 60 * 60 * 1000 };
         // CheckVersion logs its own failures (see the continuation there); the returned task is
         // deliberately not awaited here.
-        _periodicCheckTimer.Tick += (sender, args) => CheckVersion();
+        _periodicCheckTimer.Tick += (_, _) => CheckVersion();
         _periodicCheckTimer.Start();
     }
 
     public string ErrorMessage { get; private set; } = null!;
 
-    public static Version CurrentVersion {
+    private static Version CurrentVersion {
         get {
             // Application.ProductVersion is the assembly's informational version. On non-tagged
             // (dev/CI) builds GitVersion appends a SemVer pre-release/build suffix
@@ -73,14 +77,15 @@ public class UpdateService {
 
     public Version LatestStableVersion { get; private set; }
 
-    public Uri ReleasePageUri { get; set; } = null!;
-    public Uri DownloadUri { get; private set; } = null!;
+    public Uri ReleasePageUri { get; private set; } = null!;
+    // Null until a successful update check has located the pinned installer asset (#146).
+    private Uri? DownloadUri { get; set; }
 
     // FileVersionInfo.GetVersionInfo(Assembly.GetAssembly(typeof(LogService)).Location).FileVersion;
     // Nullable delegate types, not "= null!": an event with no subscribers IS null, and the
     // raisers already ?.Invoke.
     public event EventHandler<Version>? GotLatestVersion;
-    protected void OnGotLatestVersion(Version v) => GotLatestVersion?.Invoke(this, v);
+    private void OnGotLatestVersion(Version v) => GotLatestVersion?.Invoke(this, v);
 
     public event EventHandler? CheckForUpdates;
     protected void OnCheckForUpdates() => CheckForUpdates?.Invoke(this, EventArgs.Empty);
@@ -133,7 +138,7 @@ public class UpdateService {
                 if (assetUrl is null) {
                     ErrorMessage = $"Release {latest.TagName} has no '{InstallerFileName}' asset";
                     Logger.Instance.Log4.Warn($"{GetType().Name}: {ErrorMessage}");
-                    DownloadUri = null!;
+                    DownloadUri = null;
                 }
                 else {
                     Logger.Instance.Log4.Debug(
@@ -218,7 +223,7 @@ public class UpdateService {
         // Explicit host allowlist (not a "*.githubusercontent.com" suffix): the release page lives on
         // github.com and release-asset downloads redirect to the object hosts below. This deliberately
         // excludes raw.githubusercontent.com and any other subdomain that serves arbitrary user content.
-        foreach (string trusted in TrustedDownloadHosts) {
+        foreach (string trusted in _trustedDownloadHosts) {
             if (string.Equals(uri.Host, trusted, StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }
@@ -226,7 +231,7 @@ public class UpdateService {
         return false;
     }
 
-    private static readonly string[] TrustedDownloadHosts = [
+    private static readonly string[] _trustedDownloadHosts = [
         "github.com",
         "objects.githubusercontent.com",
         "release-assets.githubusercontent.com",
@@ -258,8 +263,7 @@ public class UpdateService {
             _tempFilename = Path.Combine(dir, InstallerFileName);
             Logger.Instance.Log4.Info($"{GetType().Name}: Downloading {DownloadUri.AbsoluteUri} to {_tempFilename}...");
 
-            using (HttpClient httpClient = new HttpClient()) {
-                HttpResponseMessage response = await httpClient.GetAsync(DownloadUri);
+            using (HttpResponseMessage response = await _httpClient.GetAsync(DownloadUri)) {
                 response.EnsureSuccessStatusCode();
                 byte[] data = await response.Content.ReadAsByteArrayAsync();
                 await File.WriteAllBytesAsync(_tempFilename, data);

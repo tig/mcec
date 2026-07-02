@@ -10,8 +10,7 @@ public class CommandTests
     [Fact]
     public void Constructor_DisabledByDefault()
     {
-        var cmd = new TestCommand();
-        // We override this in TestCommand, so test with a real command
+        // We override Enabled in TestCommand, so test with a real command
         var pauseCmd = new PauseCommand();
         Assert.False(pauseCmd.Enabled);
     }
@@ -113,6 +112,7 @@ public class CommandTests
         var clone = (TestCommand)original.Clone(null!);
 
         Assert.False(clone.Enabled);
+        Assert.NotNull(clone.EmbeddedCommands);
         Assert.True(clone.EmbeddedCommands[0].Enabled);
         Assert.False(clone.EmbeddedCommands[1].Enabled);
     }
@@ -130,6 +130,7 @@ public class CommandTests
 
         var clone = (TestCommand)original.Clone(null!);
 
+        Assert.NotNull(clone.EmbeddedCommands);
         Assert.NotSame(original.EmbeddedCommands, clone.EmbeddedCommands);
         Assert.NotSame(original.EmbeddedCommands[0], clone.EmbeddedCommands[0]);
         clone.EmbeddedCommands[0].Args = "changed";

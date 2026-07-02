@@ -85,15 +85,15 @@ public class EmbeddedCommandGateTests {
         var typeIntoNotepad = StartProcessCommand.BuiltInCommands
             .Find(c => c.Cmd == "type_into_notepad");
         Assert.NotNull(typeIntoNotepad);
-        Assert.False(typeIntoNotepad!.Enabled, "the shipped parent is disabled by default");
+        Assert.False(typeIntoNotepad.Enabled, "the shipped parent is disabled by default");
         AssertNoEnabledDescendants(typeIntoNotepad);
     }
 
     private static void AssertNoEnabledDescendants(Command command) {
-        if (command.EmbeddedCommands is null) {
+        if (command.EmbeddedCommands is not { } children) {
             return;
         }
-        foreach (Command child in command.EmbeddedCommands) {
+        foreach (Command child in children) {
             Assert.False(child.Enabled, $"shipped embedded command '{child.Cmd}' must be disabled by default (#145)");
             AssertNoEnabledDescendants(child);
         }

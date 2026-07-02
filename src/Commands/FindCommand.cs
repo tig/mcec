@@ -29,7 +29,7 @@ public class FindCommand : WindowTargetingAgentCommand {
     private int EffectiveTimeout =>
         string.Equals(Cmd, "wait-for", StringComparison.OrdinalIgnoreCase) && Timeout <= 0 ? 5000 : Timeout;
 
-    protected override string? AuditDetails() =>
+    protected override string AuditDetails() =>
         $"find by={By} value='{Value}' timeout={EffectiveTimeout} window handle={Handle} title='{Window}' process='{Process}'";
 
     protected override CommandResult ExecuteCore(WindowInfo? target) {

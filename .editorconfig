@@ -46,9 +46,9 @@ csharp_prefer_braces = true:warning
 csharp_style_namespace_declarations = file_scoped:warning
 
 # Prefer explicit type over var unless the type is apparent from the RHS
-csharp_style_var_for_built_in_types = false:suggestion
-csharp_style_var_when_type_is_apparent = true:suggestion
-csharp_style_var_elsewhere = false:suggestion
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_var_when_type_is_apparent = true:silent
+csharp_style_var_elsewhere = false:silent
 
 # Prefer pattern matching and modern C# idioms (enforced)
 csharp_style_pattern_matching_over_is_with_cast_check = true:warning

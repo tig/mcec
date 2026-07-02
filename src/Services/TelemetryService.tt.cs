@@ -4,5 +4,5 @@
 // 
 namespace MCEControl; 
 public partial class TelemetryService {
-    public const string Key = "";
+    private const string Key = "";
 }

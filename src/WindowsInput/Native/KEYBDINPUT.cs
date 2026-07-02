@@ -1,7 +1,9 @@
 ﻿using System;
 
-namespace WindowsInput.Native; 
-#pragma warning disable 
+namespace WindowsInput.Native;
+#pragma warning disable
+// The struct and field names mirror the Win32 KEYBDINPUT declaration in winuser.h.
+// ReSharper disable InconsistentNaming
 /// <summary>
 /// The KEYBDINPUT structure contains information about a simulated keyboard event.  (see: http://msdn.microsoft.com/en-us/library/ms646271(VS.85).aspx)
 /// Declared in Winuser.h, include Windows.h

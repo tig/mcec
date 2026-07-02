@@ -4,6 +4,9 @@
 using System;
 using System.Runtime.InteropServices;
 
+// The WH_*/WM_*/LLKHF_* constants mirror their winuser.h names; renaming would break the Win32 mapping.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl.Hooks;
 
 /// <summary>

@@ -28,12 +28,17 @@ public class SerializedCommands {
     // XmlComments - https://stackoverflow.com/a/46497304/297526
     [XmlAnyElement(Name = "XmlComment", Namespace = "mcecontroller", Order = 0)]
 #pragma warning disable CA1822 // Member XmlComment does not access instance data and can be marked as static
+    // ReSharper disable once ValueParameterNotUsed -- XmlSerializer only emits the comment member when it is settable
     public XmlComment XmlComment { get => new XmlDocument().CreateComment(Properties.Resources.CommandsFileXmlComments); set { } }
 #pragma warning restore CA1822
 
 #pragma warning disable CA1051 // Do not declare visible instance fields
+    // XmlSerializer wire surface: these serialized fields must stay PUBLIC (and their names are
+    // referenced by nameof in CommandRegistry and by tests), so private-style names don't apply.
+    // ReSharper disable InconsistentNaming
     [XmlAttribute("version")]
-    public string Version = null!;
+    // Nullable because that is the truth: absent from hand-edited/legacy files.
+    public string? Version;
 
     // SERIALIZATION (#204): the [XmlArray("commands", Order = 1)] wrapper and the polymorphic
     // [XmlArrayItem("name", typeof(T))] map (one per command type, formerly hardcoded here) now
@@ -42,9 +47,12 @@ public class SerializedCommands {
     //
     // XmlSerialization does not work with List<>. Must use an array.
     // Must be public for serialization to work
-    public Command[] commandArray = null!;
+    // Nullable because that is the truth: an empty/comment-only commands file deserializes with
+    // no array.
+    public Command[]? commandArray;
+    // ReSharper restore InconsistentNaming
 
-    [XmlIgnore] public int Count { get => (commandArray == null ? 0 : commandArray.Length); }
+    [XmlIgnore] public int Count { get => commandArray?.Length ?? 0; }
 
     /// <summary>
     /// THE XmlSerializer for .commands files, wired to the one explicit command registry (#204) via
@@ -53,10 +61,7 @@ public class SerializedCommands {
     /// This static is the process-wide cache; XmlSerializer instance methods are thread-safe. Always
     /// use it; never write `new XmlSerializer(typeof(SerializedCommands), ...)` at a call site.
     /// </summary>
-    private static readonly XmlSerializer Serializer = new(typeof(SerializedCommands), CommandRegistry.CreateXmlOverrides());
-
-    public SerializedCommands() {
-    }
+    private static readonly XmlSerializer _serializer = new(typeof(SerializedCommands), CommandRegistry.CreateXmlOverrides());
 
     /// <summary>
     /// Loads commands from an XML file. If `Version` attribute in file is missing, upgrade the file, 
@@ -66,7 +71,7 @@ public class SerializedCommands {
     /// <param name="userCommandsFile"></param>
     /// <param name="currentVersion">Version of running app</param>
     /// <returns></returns>
-    static public SerializedCommands LoadCommands(string userCommandsFile, string currentVersion) {
+    public static SerializedCommands LoadCommands(string userCommandsFile, string currentVersion) {
         SerializedCommands? cmds = null;
         FileStream? fs = null;
 
@@ -96,15 +101,15 @@ public class SerializedCommands {
                     }
                     Logger.Instance.Log4.Info($"SerializedCommands: {msg}");
                     cmds.Version = currentVersion;
-                    cmds.commandArray = [.. cmds.commandArray.Select(c => { c.Enabled = true; return c; })];
+                    cmds.commandArray = [.. (cmds.commandArray ?? []).Select(c => { c.Enabled = true; return c; })];
                 }
 
                 // If this was written by an older version, re-write it to update it. Use tolerant
                 // parsing: informational/prerelease version strings (e.g. "2.4.2-branch.1+sha") are not
                 // valid System.Version and would otherwise throw here, breaking .commands loading.
                 if (!string.IsNullOrEmpty(cmds.Version)
-                    && System.Version.TryParse(currentVersion, out System.Version? curV)
-                    && System.Version.TryParse(cmds.Version, out System.Version? fileV)
+                    && System.Version.TryParse(currentVersion, out Version? curV)
+                    && System.Version.TryParse(cmds.Version, out Version? fileV)
                     && curV.CompareTo(fileV) > 0) {
                     Logger.Instance.Log4.Info($"SerializedCommands: Upgrading .commands file from v{cmds.Version}");
                     SaveCommands(userCommandsFile, cmds, currentVersion);
@@ -137,17 +142,18 @@ public class SerializedCommands {
     /// </summary>
     /// <param name="userCommandsFile">path to file to save to</param>
     /// <param name="commands">commands to serialize</param>
-    static public void SaveCommands(string userCommandsFile, SerializedCommands commands, string currentVersion) {
+    /// <param name="currentVersion">version stamp written to the file's version attribute</param>
+    public static void SaveCommands(string userCommandsFile, SerializedCommands commands, string currentVersion) {
         if (commands == null) {
             throw new ArgumentNullException(nameof(commands));
         }
         // TODO: Emit comments: https://stackoverflow.com/questions/7385921/how-to-write-a-comment-to-an-xml-file-when-using-the-xmlserializer
 
-        FileStream? ucFS = null;
+        FileStream? ucFs = null;
         try {
             commands.Version = currentVersion;
-            ucFS = new FileStream(userCommandsFile, FileMode.Create);
-            Serializer.Serialize(ucFS, commands);
+            ucFs = new FileStream(userCommandsFile, FileMode.Create);
+            _serializer.Serialize(ucFs, commands);
         }
         catch (Exception e) {
             string msg = $"Could not create commands file ({userCommandsFile}) - {e.Message}.\n\n" +
@@ -163,8 +169,8 @@ public class SerializedCommands {
             Logger.DumpException(e);
         }
         finally {
-            if (ucFS != null) {
-                ucFS.Close();
+            if (ucFs != null) {
+                ucFs.Close();
             }
         }
     }
@@ -191,7 +197,7 @@ public class SerializedCommands {
             };
             // CreateNew: if another instance raced us to it, theirs wins and our load proceeds.
             using FileStream fs = new(userCommandsFile, FileMode.CreateNew, FileAccess.Write);
-            Serializer.Serialize(fs, defaults);
+            _serializer.Serialize(fs, defaults);
             Logger.Instance.Log4.Info($"SerializedCommands: Created default commands file ({defaults.Count} built-in commands, all disabled): {userCommandsFile}");
         }
         catch (IOException e) {
@@ -228,7 +234,7 @@ public class SerializedCommands {
             stm.Position = 0;
             lcReader = new XmlTextReader(stm); // lower-case reader
 
-            cmds = (SerializedCommands)Serializer.Deserialize(lcReader)!;
+            cmds = (SerializedCommands)_serializer.Deserialize(lcReader)!;
         }
         catch (InvalidOperationException ex) {
             Logger.Instance.Log4.Error($"SerializedCommands: No commands loaded. Error parsing .commands XML. {ex.FullMessage()}");

@@ -94,8 +94,11 @@ public class McpStdioTransportTests {
         using ManualResetEventSlim release = new(false);
         int inFlight = 0, peak = 0;
         McpStdioTransport transport = new(req => {
+            // Intentional (both lines): the captured counters are what the test observes across threads.
+            // ReSharper disable once AccessToModifiedClosure
             int now = Interlocked.Increment(ref inFlight);
             int seen;
+            // ReSharper disable once AccessToModifiedClosure
             while (now > (seen = Volatile.Read(ref peak))) {
                 Interlocked.CompareExchange(ref peak, now, seen);
             }

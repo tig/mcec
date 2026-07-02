@@ -3,6 +3,7 @@
 
 using System;
 using System.Text.Json.Nodes;
+using System.Windows.Forms;
 
 namespace MCEControl;
 
@@ -77,7 +78,7 @@ public sealed class JsonRpcDispatcher {
         ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() },
         ["serverInfo"] = new JsonObject {
             ["name"] = "MCEC",
-            ["version"] = System.Windows.Forms.Application.ProductVersion,
+            ["version"] = Application.ProductVersion,
         },
         // Built-in agent guidance: surfaced to the model by the MCP client so it knows how to drive
         // MCEC effectively (the observe -> target -> act loop) and understands the security model.
@@ -135,13 +136,13 @@ public sealed class JsonRpcDispatcher {
     // JSON-RPC response shapes
     // -------------------------------------------------------------------------------------------
 
-    internal static JsonObject Result(JsonNode? id, JsonNode result) => new() {
+    private static JsonObject Result(JsonNode? id, JsonNode result) => new() {
         ["jsonrpc"] = "2.0",
         ["id"] = id?.DeepClone(),
         ["result"] = result,
     };
 
-    internal static JsonObject Error(JsonNode? id, int code, string message) => new() {
+    private static JsonObject Error(JsonNode? id, int code, string message) => new() {
         ["jsonrpc"] = "2.0",
         ["id"] = id?.DeepClone(),
         ["error"] = new JsonObject { ["code"] = code, ["message"] = message },

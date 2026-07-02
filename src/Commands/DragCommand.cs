@@ -43,7 +43,7 @@ public class DragCommand : WindowTargetingAgentCommand {
         get => [new DragCommand { Cmd = "drag" }];
     }
 
-    protected override string? AuditDetails() =>
+    protected override string AuditDetails() =>
         $"drag from (by={FromBy} value='{FromValue}' {FromX},{FromY}) to (by={ToBy} value='{ToValue}' {ToX},{ToY}) window handle={Handle} title='{Window}' process='{Process}'";
 
     // A window is only needed to resolve element endpoints; a pure coordinate drag needs none.

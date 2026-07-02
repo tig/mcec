@@ -18,7 +18,7 @@ public sealed record ServiceError(string Message, SocketError? SocketError = nul
     /// <summary>Builds a <see cref="ServiceError"/> from a <see cref="SocketException"/>, preserving
     /// the typed error code instead of flattening it into the message.</summary>
     public static ServiceError FromSocketException(string message, SocketException se) =>
-        new(message, se?.SocketErrorCode, se?.HResult);
+        new(message, se.SocketErrorCode, se.HResult);
 
     public override string ToString() =>
         SocketError is null ? Message : $"{Message}, {HResult:X} ({SocketError})";

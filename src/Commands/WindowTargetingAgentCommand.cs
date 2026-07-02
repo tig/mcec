@@ -47,7 +47,7 @@ public abstract class WindowTargetingAgentCommand : AgentCommand {
 
     /// <summary>Resolves the target window from the shared selectors. Null when nothing matches.</summary>
     protected WindowInfo? ResolveTargetWindow() =>
-        WindowResolver.Resolve(Handle > 0 ? Handle : (long?)null, Window, Process, ClassName, Foreground);
+        WindowResolver.Resolve(Handle > 0 ? Handle : null, Window, Process, ClassName, Foreground);
 
     /// <summary>
     /// Builds the command's window-not-found failure: one structured shape for every window-targeting

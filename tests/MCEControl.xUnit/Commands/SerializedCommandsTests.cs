@@ -47,6 +47,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         Assert.Equal(2, loaded.commandArray.Length);
         Assert.Equal("pause100", loaded.commandArray[0].Cmd);
         Assert.Equal("hello", loaded.commandArray[1].Cmd);
@@ -77,6 +78,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         var rec = Assert.Single(loaded.commandArray) as RecordCommand;
         Assert.NotNull(rec);
         Assert.Equal("record", rec.Cmd);
@@ -114,6 +116,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         var query = Assert.Single(loaded.commandArray) as QueryCommand;
         Assert.NotNull(query);
         Assert.Equal("query", query.Cmd);
@@ -149,6 +152,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         var launch = Assert.Single(loaded.commandArray) as LaunchCommand;
         Assert.NotNull(launch);
         Assert.Equal("launch", launch.Cmd);
@@ -181,6 +185,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         Assert.Equal(3, loaded.commandArray.Length);
 
         var query = loaded.commandArray[0] as QueryCommand;
@@ -224,6 +229,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         var proc = Assert.Single(loaded.commandArray) as StartProcessCommand;
         Assert.NotNull(proc);
         Assert.NotNull(proc.EmbeddedCommands);
@@ -255,6 +261,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         var drag = Assert.Single(loaded.commandArray) as DragCommand;
         Assert.NotNull(drag);
         Assert.Equal("drag", drag.Cmd);
@@ -286,6 +293,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         var click = Assert.Single(loaded.commandArray) as ClickCommand;
         Assert.NotNull(click);
         Assert.Equal("click", click.Cmd);
@@ -318,6 +326,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         var displays = Assert.Single(loaded.commandArray) as DisplaysCommand;
         Assert.NotNull(displays);
         Assert.Equal("displays", displays.Cmd);
@@ -338,6 +347,7 @@ public class SerializedCommandsTests
 
         Assert.NotNull(loaded);
         Assert.True(loaded.Count > 0);
+        Assert.NotNull(loaded.commandArray);
         Assert.All(loaded.commandArray, c => Assert.False(c.Enabled));
         Assert.True(File.Exists(tempFile));
         File.Delete(tempFile);
@@ -363,6 +373,7 @@ public class SerializedCommandsTests
         var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
         Assert.NotNull(loaded);
+        Assert.NotNull(loaded.commandArray);
         Assert.Equal(3, loaded.commandArray.Length);
 
         var notepadCmd = loaded.commandArray[0] as StartProcessCommand;

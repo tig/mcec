@@ -51,10 +51,10 @@ public static class UiaService {
     /// between attempts happens on the calling thread, so a long <c>wait-for</c> never monopolizes the
     /// worker; concurrent <c>query</c>/<c>capture</c> items interleave between polls (#215).
     /// </summary>
-    public const int FindPollIntervalMs = 100;
+    private const int FindPollIntervalMs = 100;
 
     /// <summary>Bound on how long <see cref="Shutdown"/> waits for the worker to finish its last item.</summary>
-    public const int ShutdownJoinTimeoutMs = 5_000;
+    private const int ShutdownJoinTimeoutMs = 5_000;
 
     /// <summary>
     /// Snapshots the UIA tree rooted at <paramref name="hwnd"/> down to <paramref name="maxDepth"/>
@@ -163,7 +163,7 @@ public static class UiaService {
     /// <summary>True if <paramref name="action"/> is one of the supported invoke actions
     /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>/<c>select</c>, case-insensitive).</summary>
     public static bool IsSupportedAction(string action) =>
-        action?.ToLowerInvariant() switch {
+        action.ToLowerInvariant() switch {
             "invoke" or "toggle" or "setvalue" or "setfocus" or "expand" or "collapse" or "select" => true,
             _ => false,
         };
@@ -172,7 +172,7 @@ public static class UiaService {
     // The dedicated UIA worker (#215)
     // -------------------------------------------------------------------------------------------
 
-    private static readonly object WorkerGate = new();
+    private static readonly Lock _workerGate = new();
     private static BlockingCollection<Action<UIA3Automation>>? _workQueue;
     private static Thread? _workerThread;
     private static int _workerGeneration;
@@ -197,7 +197,7 @@ public static class UiaService {
     }
 
     private static void EnqueueWork(Action<UIA3Automation> item) {
-        lock (WorkerGate) {
+        lock (_workerGate) {
             if (_workQueue is null) {
                 BlockingCollection<Action<UIA3Automation>> queue = [];
                 _workQueue = queue;
@@ -229,7 +229,7 @@ public static class UiaService {
     public static void Shutdown() {
         BlockingCollection<Action<UIA3Automation>>? queue;
         Thread? worker;
-        lock (WorkerGate) {
+        lock (_workerGate) {
             queue = _workQueue;
             worker = _workerThread;
             _workQueue = null;
@@ -267,7 +267,7 @@ public static class UiaService {
     internal static (int ThreadId, int AutomationHash, int Generation) ProbeWorker() {
         (int threadId, int automationHash) = RunOnWorker(automation => (Environment.CurrentManagedThreadId,
             System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(automation)));
-        lock (WorkerGate) {
+        lock (_workerGate) {
             return (threadId, automationHash, _workerGeneration);
         }
     }
@@ -313,6 +313,9 @@ public static class UiaService {
             return info;
         }
 
+        // FlaUI annotates ITreeWalker.GetNextSibling as non-null, but it really returns null at the
+        // end of a child list; the check guards real external input.
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         while (child is not null) {
             if (budget.Count >= budget.MaxNodes) {
                 // Hit the node cap: stop expanding and flag it so the caller surfaces a warning. Because
@@ -472,7 +475,7 @@ public static class UiaService {
         }
 
         try {
-            info.Value = CleanString(el.Patterns.Value.PatternOrDefault?.Value?.ValueOrDefault);
+            info.Value = CleanString(el.Patterns.Value.PatternOrDefault?.Value.ValueOrDefault);
         }
         catch (COMException) {
             // Leave null.

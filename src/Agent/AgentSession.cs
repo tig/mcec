@@ -22,9 +22,8 @@ namespace MCEControl;
 /// worker thread after the dispatching call has already returned.
 /// </summary>
 public sealed class AgentSession {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly string _artifactRoot;
-    private string? _artifactDir;
 
     private JsonObject? _activeTarget;
     private JsonObject? _lastObservation;
@@ -51,7 +50,7 @@ public sealed class AgentSession {
     public string SessionId { get; }
 
     /// <summary>When the session was created (UTC).</summary>
-    public DateTime StartedAtUtc { get; }
+    private DateTime StartedAtUtc { get; }
 
     /// <summary>The window the session is currently operating on, or null before the first target resolves.</summary>
     public JsonObject? ActiveTarget {
@@ -77,7 +76,7 @@ public sealed class AgentSession {
     public string ArtifactDir {
         get {
             lock (_gate) {
-                return _artifactDir ??= Path.Combine(
+                return field ??= Path.Combine(
                     _artifactRoot,
                     $"{StartedAtUtc.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture)}-{SessionId}");
             }
@@ -124,14 +123,14 @@ public sealed class AgentSession {
         // The compact fields the contract names: window descriptor, dimensions, blankCheck verdict,
         // byte count; plus the small metadata capture already reports (encoding, optional file/handle).
         foreach (string key in (string[])["window", "handle", "width", "height", "encoding", "bytes", "blankCheck", "file"]) {
-            if (observation[key] is JsonNode node) {
+            if (observation[key] is { } node) {
                 summary[key] = node.DeepClone();
             }
         }
         string extension = observation["encoding"] is JsonValue ev && ev.TryGetValue(out string? enc) && !string.IsNullOrEmpty(enc)
             ? enc.ToLowerInvariant()
             : "png";
-        if (TryWriteArtifact(base64, extension) is string artifact) {
+        if (TryWriteArtifact(base64, extension) is { } artifact) {
             summary["artifact"] = artifact;
         }
         else {
@@ -152,7 +151,7 @@ public sealed class AgentSession {
             byte[] bytes = Convert.FromBase64String(base64);
             string dir = EnsureArtifactDir();
             string name = string.Create(System.Globalization.CultureInfo.InvariantCulture,
-                $"capture-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{System.Threading.Interlocked.Increment(ref _artifactCounter)}.{extension}");
+                $"capture-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Interlocked.Increment(ref _artifactCounter)}.{extension}");
             string path = Path.Combine(dir, name);
             File.WriteAllBytes(path, bytes);
             return path;

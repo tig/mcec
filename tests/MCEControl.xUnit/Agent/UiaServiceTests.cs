@@ -79,9 +79,9 @@ public class UiaServiceTests {
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Worker_CallsFromDifferentThreads_LandOnTheSameWorker() {
+    public async Task Worker_CallsFromDifferentThreads_LandOnTheSameWorker() {
         (int fromHere, _, _) = UiaService.ProbeWorker();
-        (int fromElsewhere, _, _) = await System.Threading.Tasks.Task.Run(UiaService.ProbeWorker);
+        (int fromElsewhere, _, _) = await Task.Run(UiaService.ProbeWorker);
 
         Assert.Equal(fromHere, fromElsewhere);
     }

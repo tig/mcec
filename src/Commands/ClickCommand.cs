@@ -38,7 +38,7 @@ public class ClickCommand : WindowTargetingAgentCommand {
         get => [new ClickCommand { Cmd = "click" }];
     }
 
-    protected override string? AuditDetails() =>
+    protected override string AuditDetails() =>
         $"click at (by={By} value='{Value}' {X},{Y}) button={Button} count={Count} window handle={Handle} title='{Window}' process='{Process}'";
 
     // A window is only needed to resolve an element endpoint; a pure pixel click needs none.

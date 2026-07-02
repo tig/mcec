@@ -13,12 +13,11 @@ public static class StringExt {
             return -1;
         }
         int ub = str.Length - 1;
-        int intchr;
         if (startIndex > ub) {
             throw new ArgumentOutOfRangeException();
         }
         for (int i = startIndex; i <= ub; i++) {
-            intchr = str[i];
+            int intchr = str[i];
             if (intchr == 0x0D) {
                 if (i < ub && str[i + 1] == 0x0A) {
                     length = 2;

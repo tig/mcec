@@ -12,20 +12,18 @@ using System.Collections.Generic;
 
 namespace MCEControl; 
 /// <summary>
-/// <Pause Cmd="name" Time="<time in ms>" />
+/// <c>&lt;Pause Cmd="name" Time="[time in ms]" /&gt;</c>
 /// or
-/// pause:5000
+/// <c>pause:5000</c>
 /// </summary>
 public class PauseCommand : Command {
-    public const string CmdPrefix = "pause:";
+    private const string CmdPrefix = "pause:";
 
     public static List<Command> BuiltInCommands {
         get => [
             new PauseCommand { Cmd = $"{CmdPrefix}" } // Commands that use form of "cmd:" must define a blank version
         ];
     }
-
-    public PauseCommand() { }
 
     /// <summary>
     /// A pause only sleeps; it can never synthesize input; so the dispatcher (#195) must not hold
@@ -47,7 +45,7 @@ public class PauseCommand : Command {
         if (int.TryParse(Args, out int time)) {
             Logger.Instance.Log4.Info($"{this.GetType().Name}: Pausing {time}ms");
             // TODO: Is this the smartest way to do this?
-            System.Threading.Thread.Sleep(time);
+            Thread.Sleep(time);
         }
         return true;
     }

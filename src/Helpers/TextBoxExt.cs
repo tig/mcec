@@ -7,11 +7,11 @@ namespace MCEControl;
 /// https://stackoverflow.com/questions/10011508/textbox-maximum-amount-of-characters-its-not-maxlength
 /// </summary>
 public class TextBoxExt : TextBox {
-    new public void AppendText(string text) {
+    public new void AppendText(string text) {
         if (this.Text.Length == this.MaxLength) {
             return;
         }
-        else if (text != null && (this.Text.Length + text.Length > this.MaxLength)) {
+        if (this.Text.Length + text.Length > this.MaxLength) {
             this.Clear();
             base.AppendText(text);
             //base.AppendText(text.Substring(0, (this.MaxLength - this.Text.Length)));
@@ -47,10 +47,10 @@ public class TextBoxExt : TextBox {
         }
 
         string txt = this.Text;
-        int cursor = 0, ixOf = 0, brkLength = 0, brkCount = 0;
+        int cursor = 0, brkCount = 0;
 
         while (brkCount < count) {
-            ixOf = txt.IndexOfBreak(cursor, out brkLength);
+            int ixOf = txt.IndexOfBreak(cursor, out int brkLength);
             if (ixOf < 0) {
                 this.Clear();
                 return;

@@ -34,7 +34,7 @@ public sealed class AgentToolResult {
     }
 
     /// <summary>Owning session id, or null for a stateless one-shot call.</summary>
-    public string? SessionId { get; }
+    private string? SessionId { get; }
 
     /// <summary>True when the tool achieved its goal; the field an agent branches on first.</summary>
     public bool Ok { get; }
@@ -43,7 +43,7 @@ public sealed class AgentToolResult {
     public JsonObject? Result { get; }
 
     /// <summary>Non-fatal conditions surfaced alongside the result. May be present on success or failure.</summary>
-    public IReadOnlyList<AgentWarning> Warnings { get; }
+    private IReadOnlyList<AgentWarning> Warnings { get; }
 
     /// <summary>The failure descriptor (present only when <see cref="Ok"/> is false).</summary>
     public AgentError? Error { get; }
@@ -100,7 +100,7 @@ public sealed class AgentToolResult {
         string detail = command.Error ?? "The command failed without a message.";
         string code = string.IsNullOrEmpty(command.ErrorCode) ? "unhandled" : command.ErrorCode;
         AgentErrorCategory category =
-            command.ErrorCategory is string wire && TryParseCategory(wire, out AgentErrorCategory parsed)
+            command.ErrorCategory is { } wire && TryParseCategory(wire, out AgentErrorCategory parsed)
                 ? parsed
                 : AgentErrorCategory.Internal;
         return Failure(new AgentError(code, category, detail, lastObservation, command.Data), sessionId, warnings);

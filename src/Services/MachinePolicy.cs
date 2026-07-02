@@ -16,7 +16,7 @@ public static class MachinePolicy {
     // Registry key for per-machine settings (telemetry opt-in, disable-internal-commands override).
     // For MCEC 3.0 rebrand, new location under "Kindel"; legacy "Kindel Systems" is read as fallback for upgrades.
     public const string RegistryKeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel\MCE Controller";
-    public const string LegacyRegistryKeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller";
+    private const string LegacyRegistryKeyPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Kindel Systems\MCE Controller";
 
     /// <summary>
     /// Read a registry value preferring the current (Kindel) key, falling back to legacy (Kindel Systems) key.
@@ -34,10 +34,7 @@ public static class MachinePolicy {
     /// </summary>
     internal static object? GetRegistryValue(string valueName, object? defaultValue, Func<string, string?, object?, object?> getValue) {
         try {
-            object? val = getValue(RegistryKeyPath, valueName, null);
-            if (val == null) {
-                val = getValue(LegacyRegistryKeyPath, valueName, defaultValue);
-            }
+            object? val = getValue(RegistryKeyPath, valueName, null) ?? getValue(LegacyRegistryKeyPath, valueName, defaultValue);
             return val;
         }
         catch (Exception e) when (e is System.Security.SecurityException || e is IOException || e is UnauthorizedAccessException) {

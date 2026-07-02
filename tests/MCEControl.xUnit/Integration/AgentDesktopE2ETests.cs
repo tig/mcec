@@ -65,12 +65,12 @@ public class AgentDesktopE2ETests {
             Assert.True(tree is not null, "Second MCEC window never appeared after Win+R launch.");
 
             // (2) MOUSE: click the Help menu (rect from UIA) ; KEYBOARD: 'A' opens About.
-            JsonObject? help = FindNode(tree!, n =>
+            JsonObject? help = FindNode(tree, n =>
                 (n["controlType"]?.GetValue<string>() ?? "").Contains("MenuItem", StringComparison.Ordinal)
                 && (n["name"]?.GetValue<string>() ?? "") == "Help");
             Assert.True(help is not null, "Help menu item not found in the controlled MCEC's UIA tree.");
 
-            int cx = help!["x"]!.GetValue<int>() + help["width"]!.GetValue<int>() / 2;
+            int cx = help["x"]!.GetValue<int>() + help["width"]!.GetValue<int>() / 2;
             int cy = help["y"]!.GetValue<int>() + help["height"]!.GetValue<int>() / 2;
             int ax = (int)Math.Round(cx * 65535.0 / (sw - 1));
             int ay = (int)Math.Round(cy * 65535.0 / (sh - 1));
@@ -141,7 +141,7 @@ public class AgentDesktopE2ETests {
         p.StandardInput.Flush();
         string? line = p.StandardOutput.ReadLine();
         Assert.True(line is not null, $"No JSON-RPC response for {method}.");
-        return JsonNode.Parse(line!)!.AsObject();
+        return JsonNode.Parse(line)!.AsObject();
     }
 
     private static void SendCommand(Process p, int id, string command) =>

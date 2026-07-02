@@ -17,7 +17,7 @@ public static class CaptureContent {
     /// null otherwise. The <paramref name="result"/> object is left unmodified.
     /// </summary>
     public static JsonObject? TryBuildImageBlock(JsonObject? result) {
-        if (result?["base64"] is JsonValue v && v.TryGetValue(out string? data) && data is not null) {
+        if (result?["base64"] is JsonValue v && v.TryGetValue(out string? data)) {
             return new JsonObject {
                 ["type"] = "image",
                 ["data"] = data,

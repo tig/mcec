@@ -24,14 +24,14 @@ public class AgentCommandStructuralGateTests {
     /// catalog) so removing or renaming a catalog entry can't silently shrink this enforcement;
     /// <c>ToolCatalogTests</c> pins the same list against the catalog itself.
     /// </summary>
-    private static readonly string[] GatedToolNames = [
+    private static readonly string[] _gatedToolNames = [
         "capture", "query", "displays", "find", "wait-for", "invoke", "record", "launch", "drag", "click",
     ];
 
     public static TheoryData<string> GatedToolNameData {
         get {
             TheoryData<string> data = [];
-            foreach (string name in GatedToolNames) {
+            foreach (string name in _gatedToolNames) {
                 data.Add(name);
             }
             return data;
@@ -66,7 +66,7 @@ public class AgentCommandStructuralGateTests {
         // (i.e. producible by BuildCommand under some gated name), otherwise the enforcement above
         // can't see it. FindCommand covers both "find" and "wait-for".
         HashSet<Type> mappedTypes = [];
-        foreach (string name in GatedToolNames) {
+        foreach (string name in _gatedToolNames) {
             Command? cmd = AgentServer.BuildCommand(name, []);
             if (cmd is not null) {
                 mappedTypes.Add(cmd.GetType());
@@ -74,10 +74,10 @@ public class AgentCommandStructuralGateTests {
         }
 
         foreach (Type type in typeof(Command).Assembly.GetTypes()) {
-            if (type.IsClass && !type.IsAbstract && typeof(AgentCommand).IsAssignableFrom(type)) {
+            if (type is { IsClass: true, IsAbstract: false } && typeof(AgentCommand).IsAssignableFrom(type)) {
                 Assert.True(mappedTypes.Contains(type),
                     $"{type.Name} derives from AgentCommand but no gated tool name maps to it; " +
-                    "add its tool name to AgentServer's gate whitelist, BuildCommand, and GatedToolNames here.");
+                    "add its tool name to AgentServer's gate whitelist, BuildCommand, and _gatedToolNames here.");
             }
         }
     }

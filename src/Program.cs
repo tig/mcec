@@ -205,7 +205,7 @@ internal static class Program {
         // for the same input queue while painting full-screen frames over its prompt. Force the
         // headless --cat rendering instead; that output flows like normal console text.
         if (args.Length > 0 &&
-            Array.Exists(ViewerAliases, v => string.Equals(v, args[0], StringComparison.OrdinalIgnoreCase)) &&
+            Array.Exists(_viewerAliases, v => string.Equals(v, args[0], StringComparison.OrdinalIgnoreCase)) &&
             !Array.Exists(args, a => string.Equals(a, "--cat", StringComparison.OrdinalIgnoreCase))) {
             args = [.. args, "--cat"];
         }
@@ -223,7 +223,7 @@ internal static class Program {
 
     // The registered viewer commands, kept in sync with RunCli's registrations: any viewer added
     // later needs the same forced-non-interactive treatment.
-    private static readonly string[] ViewerAliases = ["help", "agent-guide"];
+    private static readonly string[] _viewerAliases = ["help", "agent-guide"];
 
     /// <summary>
     ///     Headless bootstrap for <c>mcp</c>/<c>--mcp</c>: loads settings and the command core through
@@ -316,7 +316,7 @@ internal static class Program {
         // process alive; this is a deliberate, clean stop that drops anything still queued (a
         // drop that severs a command tree releases held input) and briefly joins so an in-flight
         // command usually finishes before the process ends.
-        AgentRuntime.Invoker?.Shutdown(joinTimeoutMs: 2000);
+        AgentRuntime.Invoker.Shutdown(joinTimeoutMs: 2000);
 
         // #215: stop the dedicated UIA worker and dispose its cached UIA3Automation (bounded join).
         UiaService.Shutdown();

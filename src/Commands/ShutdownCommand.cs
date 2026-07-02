@@ -19,30 +19,28 @@ namespace MCEControl;
 public class ShutdownCommand : Command {
     public static List<Command> BuiltInCommands {
         get => [
-            new ShutdownCommand{ Cmd = $"shutdown", Type = $"shutdown" },
-            new ShutdownCommand{ Cmd = $"shutdown-hybrid", Type = $"shutdown-hybrid" },
-            new ShutdownCommand{ Cmd = $"restart", Type = $"restart" },
-            new ShutdownCommand{ Cmd = $"restart-g", Type = $"restart-g" },
-            new ShutdownCommand{ Cmd = $"standby", Type = $"standby" },
-            new ShutdownCommand{ Cmd = $"hibernate", Type = $"hibernate"},
-            new ShutdownCommand{ Cmd = $"abort", Type = $"abort" },
-            new ShutdownCommand{ Cmd = $"poweroff", Type = $"poweroff" },
-            new ShutdownCommand{ Cmd = $"logoff", Type = $"logoff" },
+            new ShutdownCommand{ Cmd = "shutdown", Type = "shutdown" },
+            new ShutdownCommand{ Cmd = "shutdown-hybrid", Type = "shutdown-hybrid" },
+            new ShutdownCommand{ Cmd = "restart", Type = "restart" },
+            new ShutdownCommand{ Cmd = "restart-g", Type = "restart-g" },
+            new ShutdownCommand{ Cmd = "standby", Type = "standby" },
+            new ShutdownCommand{ Cmd = "hibernate", Type = "hibernate"},
+            new ShutdownCommand{ Cmd = "abort", Type = "abort" },
+            new ShutdownCommand{ Cmd = "poweroff", Type = "poweroff" },
+            new ShutdownCommand{ Cmd = "logoff", Type = "logoff" },
         ];
     }
 
-    private String type = null!;
-    [XmlAttribute("type")] public string Type { get => type; set => type = value; }
-    private int timeOut = 30;
-    [XmlAttribute("timeout")] public int TimeOut { get => timeOut; set => timeOut = value; }
+    [XmlAttribute("type")] public string Type { get; set; } = null!;
+    [XmlAttribute("timeout")] public int TimeOut { get; set; } = 30;
 
     public ShutdownCommand() {
         // Serialzable, must have constructor
     }
 
     public ShutdownCommand(String type, int timeout) {
-        this.type = type;
-        this.TimeOut = timeout;
+        Type = type;
+        TimeOut = timeout;
     }
 
     public override string ToString() {
@@ -80,21 +78,21 @@ public class ShutdownCommand : Command {
 
                 case "shutdown-hybrid":
                     // Shutdown.exe does not suppport timeout on /h (apparently)
-                    Shutdown($"/h /c \"MCE Controller Forced Hybrid Shutdown\"");
+                    Shutdown("/h /c \"MCE Controller Forced Hybrid Shutdown\"");
                     break;
 
                 case "poweroff":
                     // Shutdown.exe does not suppport timeout on /p (apparently)
-                    Shutdown($"/p /c \"MCE Controller Forced Power Off\"");
+                    Shutdown("/p /c \"MCE Controller Forced Power Off\"");
                     break;
 
                 case "logoff":
                     // Shutdown.exe does not suppport timeout on /l (apparently)
-                    Shutdown($"/l /c \"MCE Controller Forced Logoff\"");
+                    Shutdown("/l /c \"MCE Controller Forced Logoff\"");
                     break;
 
                 case "abort":
-                    Shutdown($"/a");
+                    Shutdown("/a");
                     break;
 
                 default:
@@ -109,7 +107,7 @@ public class ShutdownCommand : Command {
         return true;
     }
 
-    public static void Shutdown(string shutdownArgs) {
+    private static void Shutdown(string shutdownArgs) {
         Logger.Instance.Log4.Debug($"ShutdownCommand: Invoking 'shutdown.exe {shutdownArgs}'");
 
         Process? proc = Process.Start(new ProcessStartInfo {

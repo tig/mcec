@@ -17,32 +17,29 @@ namespace MCEControl;
 /// <c>invoke</c> can publish from a background worker thread.</para>
 /// </summary>
 public static class CommandEventHub {
-    private static readonly object Gate = new();
-    private static readonly List<Action<CommandEvent>> Subscribers = [];
+    private static readonly Lock _gate = new();
+    private static readonly List<Action<CommandEvent>> _subscribers = [];
 
     /// <summary>Registers a handler to receive every subsequently-published <see cref="CommandEvent"/>.</summary>
     public static void Subscribe(Action<CommandEvent> handler) {
         ArgumentNullException.ThrowIfNull(handler);
-        lock (Gate) {
-            Subscribers.Add(handler);
+        lock (_gate) {
+            _subscribers.Add(handler);
         }
     }
 
     /// <summary>Removes a previously-registered handler.</summary>
     public static void Unsubscribe(Action<CommandEvent> handler) {
-        lock (Gate) {
-            Subscribers.Remove(handler);
+        lock (_gate) {
+            _subscribers.Remove(handler);
         }
     }
 
     /// <summary>Publishes an event to all current subscribers. Never throws; a faulty subscriber is logged.</summary>
     public static void Publish(CommandEvent ev) {
-        if (ev is null) {
-            return;
-        }
         Action<CommandEvent>[] snapshot;
-        lock (Gate) {
-            snapshot = [.. Subscribers];
+        lock (_gate) {
+            snapshot = [.. _subscribers];
         }
         foreach (Action<CommandEvent> handler in snapshot) {
             try {

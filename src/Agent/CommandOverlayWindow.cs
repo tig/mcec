@@ -7,6 +7,10 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Windows.Forms;
 
+// The WS_EX_* constants below mirror the Win32 extended-window-style names; renaming them would break
+// the 1:1 mapping to the Windows SDK headers.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl;
 
 /// <summary>
@@ -29,11 +33,11 @@ public sealed class CommandOverlayWindow : Form {
     private const int WS_EX_TOPMOST = 0x00000008;
 
     // The About box's brand orange (Color.FromArgb(192, 90, 36)) as the item background at ~30% alpha.
-    private static readonly Color ItemBackground = Color.FromArgb(77, 192, 90, 36);
+    private static readonly Color _itemBackground = Color.FromArgb(77, 192, 90, 36);
 
     // Emergency stop (#135): a solid, high-contrast red for the persistent STOPPED banner (mostly opaque
     // so it reads as an alarm, not a fading log line).
-    private static readonly Color StoppedBackground = Color.FromArgb(235, 176, 0, 0);
+    private static readonly Color _stoppedBackground = Color.FromArgb(235, 176, 0, 0);
 
     private readonly OverlayFeed _feed = new(maxLines: 8, lifetime: TimeSpan.FromSeconds(8));
     private readonly Action<CommandEvent> _onEvent;
@@ -163,7 +167,7 @@ public sealed class CommandOverlayWindow : Form {
     }
 
     private void DrawFeed(Graphics g, int width, int height) {
-        System.Collections.Generic.IReadOnlyList<CommandEvent> lines = _feed.Visible(DateTime.UtcNow);
+        IReadOnlyList<CommandEvent> lines = _feed.Visible(DateTime.UtcNow);
         if (lines.Count == 0) {
             return;
         }
@@ -185,7 +189,7 @@ public sealed class CommandOverlayWindow : Form {
                 break;
             }
 
-            using (SolidBrush scrim = new(ItemBackground))
+            using (SolidBrush scrim = new(_itemBackground))
             using (GraphicsPath path = RoundedRect(new RectangleF(boxX, boxY, boxW, boxH), 6f)) {
                 g.FillPath(scrim, path);
             }
@@ -218,7 +222,7 @@ public sealed class CommandOverlayWindow : Form {
         const string text = "⛔ STOPPED by operator; Re-arm to resume";
         SizeF size = g.MeasureString(text, font, width - pad * 2);
         float boxH = size.Height + pad * 1.5f;
-        using (SolidBrush bg = new(StoppedBackground))
+        using (SolidBrush bg = new(_stoppedBackground))
         using (GraphicsPath path = RoundedRect(new RectangleF(0, 0, width, boxH), 6f)) {
             g.FillPath(bg, path);
         }
@@ -278,7 +282,7 @@ public sealed class CommandOverlayWindow : Form {
         if (disposing) {
             CommandEventHub.Unsubscribe(_onEvent);
             EmergencyStop.StateChanged -= _onEmergencyStop;
-            _ageTimer?.Dispose();
+            _ageTimer.Dispose();
             // OnHandleDestroyed normally clears the registration; unregister defensively in case the
             // window is disposed without a handle-destroyed notification.
             if (_registeredHandle != 0) {
