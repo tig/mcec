@@ -32,17 +32,20 @@ public class CommandInvoker : Hashtable {
     /// SECURITY (#154): Maximum number of commands the execute queue will hold. The queue is drained
     /// synchronously on the UI thread with `CommandPacing` sleeps between items, so a remote client
     /// that enqueues faster than the paced drain would otherwise grow the queue without bound
-    /// (memory DoS) while freezing the UI. Commands enqueued beyond this depth are dropped and logged.
+    /// (memory DoS) while freezing the UI. A command whose tree does not fit in the remaining
+    /// capacity is dropped WHOLE (all-or-nothing, see `EnqueueCommand`) and logged.
     /// </summary>
     internal const int MaxQueueDepth = 200;
 
     /// <summary>
-    /// SECURITY (#154): Maximum number of commands a single enqueue may expand to via
-    /// `EmbeddedCommands` fan-out. A single received command string can otherwise amplify ~10x or
-    /// more (see #145), letting one packet flood the queue. Expansion beyond this bound is
-    /// truncated and logged. The largest shipped built-in (`type_into_notepad`) expands to 10.
+    /// SECURITY (#154): Maximum size of a single command's whole tree — the command itself plus all
+    /// recursively embedded commands. A single received command string can otherwise amplify ~10x or
+    /// more (see #145), letting one packet flood the queue. A tree over this bound is dropped WHOLE
+    /// (all-or-nothing, see `EnqueueCommand`) and logged. 50 leaves generous headroom for authored
+    /// macros (the largest shipped built-in, `type_into_notepad`, expands to 10) while still
+    /// bounding the amplification.
     /// </summary>
-    internal const int MaxEmbeddedExpansion = 20;
+    internal const int MaxEmbeddedExpansion = 50;
 
     /// <summary>
     /// Current number of commands waiting to be executed. Exposed for tests.
@@ -190,8 +193,9 @@ public class CommandInvoker : Hashtable {
             // For example sending a will result in the A key being pressed. 
             // 1 will result in the 1 key being pressed. There is no difference between sending a and A. 
             // Use shiftdown:/shiftup: to simulate the pressing of the shift, control, alt, and windows keys.
-            SendInputCommand siCmd = new SendInputCommand() { Vk = cmdString, Enabled = true, Reply = reply };
-            TryEnqueue(siCmd);
+            // Cmd is set so a drop of this command (queue full, #154) logs something identifiable.
+            SendInputCommand siCmd = new SendInputCommand() { Cmd = cmdString, Vk = cmdString, Enabled = true, Reply = reply };
+            EnqueueCommand(siCmd);
         }
         else {
             // See if we know about this Command - case insensitive
@@ -215,54 +219,54 @@ public class CommandInvoker : Hashtable {
 
     /// <summary>
     /// Enques a Command for execution. Recursively enques embedded commands.
-    /// SECURITY (#154): the total expansion (command plus all recursively embedded commands) is
-    /// bounded by `MaxEmbeddedExpansion` and the overall queue depth by `MaxQueueDepth`; anything
-    /// beyond either bound is dropped and logged.
+    /// SECURITY (#154): enqueue is ALL-OR-NOTHING per command tree. The whole tree (this command
+    /// plus all recursively embedded commands) is counted first; if it exceeds
+    /// `MaxEmbeddedExpansion` or does not fit in the queue's remaining capacity (`MaxQueueDepth`),
+    /// the ENTIRE tree is dropped with a warning and nothing is enqueued. A partial enqueue must
+    /// never happen: it could split paired input commands (e.g. shiftdown:/shiftup:) and leave a
+    /// modifier key latched host-wide.
     /// </summary>
     /// <param name="cmd">Command to enqueue</param>
     internal void EnqueueCommand(ICommand cmd) {
-        int enqueued = 0;
-        bool truncationLogged = false;
-        EnqueueCommandTree(cmd, ref enqueued, ref truncationLogged);
+        int treeSize = CountCommandTree(cmd);
+
+        if (treeSize > MaxEmbeddedExpansion) {
+            Logger.Instance.Log4.Warn($"{GetType().Name}: command expands to {treeSize} commands, over the {MaxEmbeddedExpansion} bound; whole command dropped (nothing enqueued): {((Command)cmd).Cmd}");
+            return;
+        }
+
+        if (executeQueue.Count + treeSize > MaxQueueDepth) {
+            Logger.Instance.Log4.Warn($"{GetType().Name}: execute queue cannot hold {treeSize} more command(s) ({executeQueue.Count}/{MaxQueueDepth} queued); whole command dropped (nothing enqueued): {((Command)cmd).Cmd}");
+            return;
+        }
+
+        EnqueueCommandTree(cmd);
     }
 
-    // Recursively enqueues `cmd` and its EmbeddedCommands, counting every item enqueued from the
-    // single root passed to EnqueueCommand so the fan-out bound applies to the whole tree.
-    private void EnqueueCommandTree(ICommand cmd, ref int enqueued, ref bool truncationLogged) {
-        if (enqueued >= MaxEmbeddedExpansion) {
-            if (!truncationLogged) {
-                Logger.Instance.Log4.Warn($"{GetType().Name}: embedded command expansion exceeded {MaxEmbeddedExpansion}; remaining embedded commands truncated (dropped).");
-                truncationLogged = true;
-            }
-            return;
+    // Counts a command's whole tree: itself plus all recursively embedded commands.
+    private static int CountCommandTree(ICommand cmd) {
+        int count = 1;
+        if (((Command)cmd).EmbeddedCommands is null) {
+            return count;
         }
 
-        if (!TryEnqueue(cmd)) {
-            // Queue is full; don't descend into embedded commands (they'd be dropped anyway).
-            return;
+        foreach (Command embedded in ((Command)cmd).EmbeddedCommands) {
+            count += CountCommandTree(embedded);
         }
-        enqueued++;
+        return count;
+    }
 
+    // Recursively enqueues `cmd` and its EmbeddedCommands. Only called after EnqueueCommand has
+    // verified the whole tree fits both bounds (#154) — never call this directly.
+    private void EnqueueCommandTree(ICommand cmd) {
+        executeQueue.Enqueue(cmd);
         if (((Command)cmd).EmbeddedCommands is null) {
             return;
         }
 
         foreach (Command embedded in ((Command)cmd).EmbeddedCommands) {
-            EnqueueCommandTree(embedded, ref enqueued, ref truncationLogged);
+            EnqueueCommandTree(embedded);
         }
-    }
-
-    // SECURITY (#154): single choke-point for adding to the execute queue. Drops (and logs) the
-    // command if the queue is at `MaxQueueDepth` — the queue drains pacing-limited on the UI
-    // thread, so without a cap a remote sender can grow it without bound (memory/CPU DoS).
-    private bool TryEnqueue(ICommand cmd) {
-        if (executeQueue.Count >= MaxQueueDepth) {
-            Logger.Instance.Log4.Warn($"{GetType().Name}: execute queue is full ({MaxQueueDepth}); command dropped: {((Command)cmd).Cmd}");
-            return false;
-        }
-
-        executeQueue.Enqueue(cmd);
-        return true;
     }
 
 

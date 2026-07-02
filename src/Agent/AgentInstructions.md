@@ -70,11 +70,13 @@ serialized: it runs one-at-a-time (the desktop has a single input stream), so do
 actions to overlap.
 
 PACING: raw commands (`send_command`) are queued and executed paced — a per-command delay set by the
-operator's CommandPacing — and the queue is BOUNDED: at most 200 commands may be pending, and one command
-expands to at most 20 embedded commands; anything beyond either bound is DROPPED (logged on the host, no
-error returned to you). Don't flood the queue with long raw input streams — prefer one higher-level call
-(`drag`, `click`, or a single `mouse:drag,...`) over a long hand-rolled `mouse:mt` path, and if a long
-sequence is unavoidable, send it in small chunks and verify between chunks so the queue drains.
+operator's CommandPacing — and the queue is BOUNDED: at most 200 commands may be pending, and one command's
+whole tree (the command itself plus all recursively embedded commands) may be at most 50. A command that
+breaks either bound is dropped ALL-OR-NOTHING: the entire tree is discarded (logged on the host, no error
+returned to you) — never partially run, so paired input (e.g. shiftdown:/shiftup:) can't be split. Don't
+flood the queue with long raw input streams — prefer one higher-level call (`drag`, `click`, or a single
+`mouse:drag,...`) over a long hand-rolled `mouse:mt` path, and if a long sequence is unavoidable, send it
+in small chunks and verify between chunks so the queue drains.
 
 OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run so the
 operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/UIA targeting
