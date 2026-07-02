@@ -86,6 +86,10 @@ public partial class MainWindow : Form, IAppHost {
 
         InitializeServiceControllers();
 
+        // The status label is a Spring item; its width changes with the window, so re-fit the
+        // (possibly ellipsized) status text whenever the strip is resized.
+        statusStrip.SizeChanged += (s, e) => ApplyStatusText();
+
         SetStatus("");
         sendAwakeMenuItem.Enabled = false;
         installLatestVersionMenuItem.Enabled = false;
@@ -696,16 +700,41 @@ public partial class MainWindow : Form, IAppHost {
         }
     }
 
+    // The full, untruncated status text. The status label is a Spring item (it takes only the
+    // space the Client/Server/Serial indicators leave over), so the displayed text is re-fitted
+    // to that width on every set and on strip resize; the full text lives in the tooltip.
+    private string _statusText = string.Empty;
+
     private void SetStatus(string text) {
         if (statusStrip.InvokeRequired) {
             statusStrip.BeginInvoke((Action)(() => { SetStatus(text); }));
         }
         else {
-            statusStripStatus.Text = text;
+            _statusText = text ?? string.Empty;
+            ApplyStatusText();
             // NotifyIcon.Text throws if longer than 127 chars. Status text can include the full
             // informational version (e.g. a long prerelease "x.y.z-branch.n+sha" string), so cap it.
-            notifyIcon.Text = text.Length > 127 ? text[..124] + "..." : text;
+            notifyIcon.Text = _statusText.Length > 127 ? _statusText[..124] + "..." : _statusText;
         }
+    }
+
+    /// <summary>
+    /// Fits <see cref="_statusText"/> into the status label's current (Spring-allocated) width
+    /// with a trailing ellipsis, so an arbitrarily long status (e.g. the full informational
+    /// version) can never push the Client/Server/Serial indicators out of the strip. The full
+    /// text is kept reachable as the label's tooltip when truncated. Called on every status set
+    /// and on strip resize (the Spring width changes with the window).
+    /// </summary>
+    private void ApplyStatusText() {
+        int width = statusStripStatus.ContentRectangle.Width;
+        if (width <= 0) {
+            // Not laid out yet (constructor-time SetStatus); the SizeChanged hook re-fits later.
+            statusStripStatus.Text = _statusText;
+            return;
+        }
+        string fitted = EllipsizedText.Fit(_statusText, width, statusStripStatus.Font);
+        statusStripStatus.Text = fitted;
+        statusStripStatus.ToolTipText = fitted == _statusText ? string.Empty : _statusText;
     }
 
     // ----------------------------------------
