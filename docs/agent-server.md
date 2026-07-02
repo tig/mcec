@@ -169,7 +169,7 @@ failed call is debuggable without rerunning it):
 > The `AgentServer` translates that into the `{ ok, result, error, … }` envelope at the MCP
 > boundary (`AgentToolResult.FromLegacy`), which is the shape an MCP client actually receives and
 > the one specified by the shared result contract in
-> [`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md) (#101). A
+> [`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md). A
 > couple of feature-specific refusals ride in `error.code` while `error.category` stays `internal`:
 > `emergency-stopped` (the operator engaged the [emergency stop](safety-emergency-stop-and-provisioning.md)),
 > `provisioning-not-authorized` (`AllowSessionProvisioning` is off), and `command-disabled` (the
@@ -209,6 +209,16 @@ geometry:
 comes back blank the result is a failure with `error.category: "capture-blank"`, so an agent
 never trusts a silent bad image. A blank **region** capture is reported as a `capture-blank`
 warning instead, since a user-specified region can legitimately be empty.
+
+**Region size limits.** Region `width`/`height` are agent-controlled, so they are capped — an
+unbounded region (e.g. `40000x40000` ≈ 6.4 GB of raw ARGB, before PNG encoding and base64) could
+otherwise exhaust the host's memory. A region may be at most **16384 px per side** and
+**64,000,000 px total** (64 MP ≈ 256 MB raw — roughly eight 4K frames). An oversized region is
+**rejected before anything is allocated or captured** — the call fails with
+`errorCode: "region-too-large"` (`errorCategory: "no-target"`) and a detail stating the limit,
+and the rejection is `AGENT-AUDIT:`-logged. The same caps apply to `record` regions (window
+targets need no cap: they are bounded by the window's own size). These limits are fixed, not
+settings: they are an anti-DoS bound sized well beyond real desktop geometry, not a tuning knob.
 
 On a successful `capture`, MCEC additionally returns the PNG as an MCP `image` content block so
 the model can view it directly, alongside the JSON envelope above.
@@ -253,6 +263,11 @@ not failed) keep an agent from producing an unbounded file:
 | `AgentRecordMaxDurationMs` | 60000    | Max recording length (60 s). |
 | `AgentRecordMaxFrames`     | 600      | Hard cap on captured frames. |
 | `AgentRecordMaxWidth`      | 1280     | Frames are downscaled so width fits this. |
+
+A `record` **region** target is additionally subject to the fixed capture region size limits
+(max 16384 px per side, 64,000,000 px total — see
+[Region size limits](#capture-result-example)): an oversized region fails fast with
+`errorCode: "region-too-large"` before any recording starts, rather than being clamped.
 
 A finished `record` (one-shot or `stop`) returns the output path and metadata:
 
@@ -357,8 +372,7 @@ Known limits:
 
 - **Locked / disconnected sessions:** when the workstation is locked or the session is detached,
   the desktop cannot be rendered and captures are blank. This is detected (blank frame) but cannot
-  be worked around from user space. Live validation of locked-session behavior is tracked
-  separately in [#78].
+  be worked around from user space.
 - **Elevation (UAC):** MCEC running at medium integrity cannot read the UIA tree of, drive, or
   reliably capture a window owned by an elevated (high-integrity) process. Such targets surface as
   empty/failed observations; run MCEC elevated only if you explicitly need to automate elevated
@@ -378,7 +392,6 @@ trees (e.g. a virtualized list with thousands of items):
 Individual stale or unsupported UIA nodes never abort the whole walk — they are skipped and the
 rest of the tree is returned.
 
-[#78]: https://github.com/tig/mcec/issues/78
 
 ---
 
@@ -504,7 +517,7 @@ origin, remote endpoint) so drive-by and rebinding attempts are visible to the o
 > HTTP listener and logs an error. To expose the door off-box, set a bearer token (and prefer a
 > network-level control too).
 
-The floor is hardened against resource exhaustion ([#151]): a request body larger than
+The floor is hardened against resource exhaustion: a request body larger than
 **1 MB** is refused with `413` (the cap is enforced by a bounded read, so chunked bodies
 without a `Content-Length` can't bypass it), and at most **16** requests are served
 concurrently — past that the server answers `503` rather than queueing.
@@ -531,10 +544,10 @@ concurrently — past that the server answers `503` rather than queueing.
 Two operator-safety features build on the gates above — see
 [`safety-emergency-stop-and-provisioning.md`](safety-emergency-stop-and-provisioning.md):
 
-- **Emergency stop (#135):** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
+- **Emergency stop:** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
   `EmergencyStopHotkey`) that instantly halts a session from any window — latching the actuation gate
   (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
   reacts to physical input only, so the agent can never trip or defeat it.
-- **Isolated session provisioning (#138):** `provision-session` (gated by `AllowSessionProvisioning`) hands
+- **Isolated session provisioning:** `provision-session` (gated by `AllowSessionProvisioning`) hands
   an agent a disposable, isolated MCEC directory instead of it mutating the installed config; `end-session`
   (or launch-time reaping) tears it down.

@@ -23,11 +23,12 @@ namespace MCEControl;
 ///
 /// SECURITY: the observation tools (capture/query/find/invoke) only run when
 /// <see cref="AgentRuntime.AgentCommandsEnabled"/> is true; otherwise a tool call is reported as an
-/// error. The HTTP listener binds to <see cref="AppSettings.McpBindAddress"/> (127.0.0.1 by default),
-/// and loopback-only is ENFORCED (#152): <see cref="StartHttp"/> refuses to start — with a loud error —
-/// unless the address is <c>localhost</c> or a literal loopback IP (see
-/// <see cref="IsLoopbackBindAddress"/>); wildcards and non-loopback values never reach HttpListener.
-/// Every tool call is loudly audit-logged.
+/// error. The HTTP listener binds to <see cref="AppSettings.McpBindAddress"/> (127.0.0.1 by default).
+/// A loopback bind is canonicalized before it reaches <see cref="HttpListener"/> (#152, see
+/// <see cref="TryGetLoopbackPrefixHost"/>) so obfuscated loopback spellings can't slip a wildcard
+/// binding past validation; a non-loopback bind is a deliberate off-box exposure and is allowed only
+/// when <see cref="AppSettings.McpAuthToken"/> is set (#143) — otherwise <see cref="StartHttp"/> refuses
+/// to start with a loud error. Every tool call is loudly audit-logged.
 /// </summary>
 public static class AgentServer {
     public const string ProtocolVersion = "2025-06-18";
@@ -198,8 +199,8 @@ public static class AgentServer {
         JsonObject captureProps = WindowTargetProps();
         captureProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
         captureProps["y"] = PropSchema("integer", "Region top");
-        captureProps["width"] = PropSchema("integer", "Region width");
-        captureProps["height"] = PropSchema("integer", "Region height");
+        captureProps["width"] = PropSchema("integer", "Region width (max 16384/side, 64000000 px total; oversized fails with region-too-large)");
+        captureProps["height"] = PropSchema("integer", "Region height (same limits as width)");
         captureProps["file"] = PropSchema("string", "Optional path to also save the PNG to");
         tools.Add(Tool("capture",
             "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG. Blank/black frames are detected and reported as a capture-blank error (window) or warning (region) rather than a silent bad image.",
@@ -270,8 +271,8 @@ public static class AgentServer {
         JsonObject recordProps = WindowTargetProps();
         recordProps["x"] = PropSchema("integer", "Region left (use with width/height instead of a window)");
         recordProps["y"] = PropSchema("integer", "Region top");
-        recordProps["width"] = PropSchema("integer", "Region width");
-        recordProps["height"] = PropSchema("integer", "Region height");
+        recordProps["width"] = PropSchema("integer", "Region width (max 16384/side, 64000000 px total; oversized fails with region-too-large)");
+        recordProps["height"] = PropSchema("integer", "Region height (same limits as width)");
         recordProps["action"] = PropSchema("string", "start | stop | oneshot (default: oneshot if durationMs given, else start)");
         recordProps["fps"] = PropSchema("integer", "Frames per second (default 5, clamped to the operator limit)");
         recordProps["durationMs"] = PropSchema("integer", "For a one-shot: how long to record (clamped to the operator limit)");

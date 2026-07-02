@@ -26,6 +26,45 @@ public static class ScreenCapture {
     /// <summary>Upper bound on samples per axis; keeps blank analysis O(1) regardless of image size.</summary>
     private const int MaxSamplesPerAxis = 64;
 
+    // SECURITY (#158): region width/height come straight from agent-controlled command attributes
+    // (capture/record), so without a ceiling a single request (e.g. 40000x40000 = ~6.4 GB of ARGB,
+    // then PNG + base64) can OOM the process. Window captures are naturally bounded by window size;
+    // these caps bound the region path. They are fixed (not operator settings) on purpose: they are
+    // an anti-DoS bound sized to plausible desktop geometry, not a quality knob — a raisable setting
+    // would reintroduce the failure mode. Oversized requests FAIL FAST with a clear error (code
+    // `region-too-large`) rather than being silently clamped, so agents get a diagnosable result.
+
+    /// <summary>Max region width or height in pixels — comfortably above any single monitor and
+    /// typical multi-monitor spans (e.g. four 4K displays side by side are 15360 px wide).</summary>
+    public const int MaxRegionDimension = 16384;
+
+    /// <summary>Max region area in pixels (64 MP ≈ 256 MB of ARGB — roughly eight 4K frames, twice
+    /// an 8K frame), bounding the bitmap, the PNG encode, and the base64 reply.</summary>
+    public const int MaxRegionPixels = 64_000_000;
+
+    /// <summary>
+    /// Validates agent-requested region dimensions against the #158 caps. Returns null when the
+    /// region is acceptable, else a human-readable detail (stating the limits) suitable for the
+    /// <c>region-too-large</c> error envelope. The single validation seam used by
+    /// <see cref="CaptureRegionBitmap"/> and the capture/record commands.
+    /// </summary>
+    /// <param name="width">Requested region width in pixels.</param>
+    /// <param name="height">Requested region height in pixels.</param>
+    /// <returns>Null when valid; otherwise the rejection detail.</returns>
+    internal static string? ValidateRegionSize(int width, int height) {
+        if (width <= 0 || height <= 0) {
+            return "Region has no area to capture.";
+        }
+        if (width > MaxRegionDimension || height > MaxRegionDimension) {
+            return $"Region {width}x{height} exceeds the capture limit of {MaxRegionDimension} px per side. Request a smaller region.";
+        }
+        // 64-bit math so a huge product can never wrap around to "valid".
+        if ((long)width * height > MaxRegionPixels) {
+            return $"Region {width}x{height} ({(long)width * height} px) exceeds the capture limit of {MaxRegionPixels} px total. Request a smaller region.";
+        }
+        return null;
+    }
+
     /// <summary>
     /// Captures a top-level window by handle. Uses <c>PrintWindow(PW_RENDERFULLCONTENT)</c>, falling
     /// back to an on-screen blit if that fails, and reports which path ran plus blank-frame stats.
@@ -112,10 +151,13 @@ public static class ScreenCapture {
     /// <param name="width">Region width in pixels.</param>
     /// <param name="height">Region height in pixels.</param>
     /// <returns>A new ARGB bitmap of the region; the caller owns and must dispose it.</returns>
-    /// <exception cref="ArgumentException">Thrown when the region has no area.</exception>
+    /// <exception cref="ArgumentException">Thrown when the region has no area or exceeds
+    /// <see cref="MaxRegionDimension"/>/<see cref="MaxRegionPixels"/> (#158) — thrown BEFORE any
+    /// bitmap is allocated, so an oversized agent request costs nothing.</exception>
     public static Bitmap CaptureRegionBitmap(int x, int y, int width, int height) {
-        if (width <= 0 || height <= 0) {
-            throw new ArgumentException("Region has no area to capture.", nameof(width));
+        string? sizeError = ValidateRegionSize(width, height);
+        if (sizeError is not null) {
+            throw new ArgumentException(sizeError, nameof(width));
         }
 
         Bitmap bmp = new(width, height, PixelFormat.Format32bppArgb);
