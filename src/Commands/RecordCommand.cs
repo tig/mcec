@@ -30,15 +30,15 @@ public class RecordCommand : Command {
     [XmlAttribute("window")] public string Window { get; set; } = null!;
     [XmlAttribute("handle")] public long Handle { get; set; }
     [XmlAttribute("process")] public string Process { get; set; } = null!;
-    [XmlAttribute("className")] public string ClassName { get; set; } = null!;
+    [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
     [XmlAttribute("foreground")] public bool Foreground { get; set; }
     [XmlAttribute("x")] public int X { get; set; }
     [XmlAttribute("y")] public int Y { get; set; }
     [XmlAttribute("width")] public int Width { get; set; }
     [XmlAttribute("height")] public int Height { get; set; }
     [XmlAttribute("fps")] public int Fps { get; set; }
-    [XmlAttribute("durationMs")] public int DurationMs { get; set; }
-    [XmlAttribute("maxWidth")] public int MaxWidth { get; set; }
+    [XmlAttribute("durationms")] public int DurationMs { get; set; }
+    [XmlAttribute("maxwidth")] public int MaxWidth { get; set; }
     [XmlAttribute("file")] public string File { get; set; } = null!;
 
     private const int DefaultFps = 5;

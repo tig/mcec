@@ -15,7 +15,7 @@ public class InvokeCommand : Command {
     [XmlAttribute("window")] public string Window { get; set; } = null!;
     [XmlAttribute("handle")] public long Handle { get; set; }
     [XmlAttribute("process")] public string Process { get; set; } = null!;
-    [XmlAttribute("className")] public string ClassName { get; set; } = null!;
+    [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
     [XmlAttribute("foreground")] public bool Foreground { get; set; }
     [XmlAttribute("by")] public string By { get; set; } = "name";
     [XmlAttribute("value")] public string Value { get; set; } = null!;
