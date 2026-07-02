@@ -31,7 +31,12 @@ namespace MCEControl;
 public sealed class UserActivityMonitorService : IDisposable {
     private static readonly Lazy<UserActivityMonitorService> _lazy = new(() => new UserActivityMonitorService());
 
-    private static GlobalEventProvider? _userActivityMonitor;
+    // True while our activity handlers are attached to HookManager's static events. HookManager
+    // installs the global WH_MOUSE_LL/WH_KEYBOARD_LL hooks on first subscribe and uninstalls them
+    // when the last handler is removed, so attach/detach must stay symmetric (issue #197 — the old
+    // GlobalEventProvider wrapper never detached, leaking the hooks and stacking duplicate handlers
+    // on every Stop/Start cycle).
+    private bool _inputEventsSubscribed;
     private IntPtr? _hAwayMode;
     private IntPtr? _hMonitorPower;
 
@@ -59,16 +64,8 @@ public sealed class UserActivityMonitorService : IDisposable {
         _lastTime = DateTime.Now;
 
         if (InputDetection) {
-            Debug.Assert(_userActivityMonitor == null);
-            _userActivityMonitor = new GlobalEventProvider();
-            _userActivityMonitor.MouseMove += HookManager_MouseMove;
-            _userActivityMonitor.MouseClick += HookManager_MouseClick;
-            _userActivityMonitor.KeyPress += HookManager_KeyPress;
-            _userActivityMonitor.KeyDown += HookManager_KeyDown;
-            _userActivityMonitor.MouseDown += HookManager_MouseDown;
-            _userActivityMonitor.MouseUp += HookManager_MouseUp;
-            _userActivityMonitor.KeyUp += HookManager_KeyUp;
-            _userActivityMonitor.MouseDoubleClick += HookManager_MouseDoubleClick;
+            Debug.Assert(!_inputEventsSubscribed);
+            SubscribeToInputEvents();
         }
 
 
@@ -266,10 +263,7 @@ public sealed class UserActivityMonitorService : IDisposable {
         // how is PII protected: whether activity monitoring is on or off is not PII
         TelemetryService.Instance.TrackEvent("ActivityMonitor Stop");
 
-        if (_userActivityMonitor != null) {
-            _userActivityMonitor.Dispose();
-            _userActivityMonitor = null;
-        }
+        UnsubscribeFromInputEvents();
 
         if (_presencePresumedTimer != null) {
             StopPresencePresumedTimer();
@@ -284,6 +278,49 @@ public sealed class UserActivityMonitorService : IDisposable {
         }
     }
 
+    /// <summary>
+    ///     Attaches the activity handlers directly to <see cref="HookManager" />'s static events (which
+    ///     installs the global low-level hooks on first subscribe). Must stay symmetric with
+    ///     <see cref="UnsubscribeFromInputEvents" /> — a handler attached here and not removed there keeps
+    ///     the system-wide hook installed forever (issue #197).
+    /// </summary>
+    private void SubscribeToInputEvents() {
+        if (_inputEventsSubscribed) {
+            return;
+        }
+
+        HookManager.MouseMove += HookManager_MouseMove;
+        HookManager.MouseClick += HookManager_MouseClick;
+        HookManager.KeyPress += HookManager_KeyPress;
+        HookManager.KeyDown += HookManager_KeyDown;
+        HookManager.MouseDown += HookManager_MouseDown;
+        HookManager.MouseUp += HookManager_MouseUp;
+        HookManager.KeyUp += HookManager_KeyUp;
+        HookManager.MouseDoubleClick += HookManager_MouseDoubleClick;
+        _inputEventsSubscribed = true;
+    }
+
+    /// <summary>
+    ///     Detaches every handler attached by <see cref="SubscribeToInputEvents" />. When these are the
+    ///     last subscribers, <see cref="HookManager" /> uninstalls the global WH_MOUSE_LL/WH_KEYBOARD_LL
+    ///     hooks (UnhookWindowsHookEx). Idempotent.
+    /// </summary>
+    private void UnsubscribeFromInputEvents() {
+        if (!_inputEventsSubscribed) {
+            return;
+        }
+
+        HookManager.MouseMove -= HookManager_MouseMove;
+        HookManager.MouseClick -= HookManager_MouseClick;
+        HookManager.KeyPress -= HookManager_KeyPress;
+        HookManager.KeyDown -= HookManager_KeyDown;
+        HookManager.MouseDown -= HookManager_MouseDown;
+        HookManager.MouseUp -= HookManager_MouseUp;
+        HookManager.KeyUp -= HookManager_KeyUp;
+        HookManager.MouseDoubleClick -= HookManager_MouseDoubleClick;
+        _inputEventsSubscribed = false;
+    }
+
     private void ActivityPresumedTimerTick(object? sender, EventArgs? e) {
         Activity($"{DebounceTime} seconds since user activity detected; User Presence Assumed");
     }
@@ -294,7 +331,7 @@ public sealed class UserActivityMonitorService : IDisposable {
     /// <param name="source">Indicates the source of the detection; for logging</param>
     /// <param name="moreInfo">More info about the activity.</param>
     private void Activity(string source, string moreInfo = "") {
-        if (_userActivityMonitor == null) {
+        if (!_inputEventsSubscribed) {
             return;
         }
 
@@ -363,6 +400,7 @@ public sealed class UserActivityMonitorService : IDisposable {
     void Dispose(bool disposing) {
         if (!_disposedValue) {
             if (disposing) {
+                UnsubscribeFromInputEvents();
                 _presencePresumedTimer?.Dispose();
                 _presencePresumedTimer = null!;
             }
