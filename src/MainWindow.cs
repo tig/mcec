@@ -154,7 +154,7 @@ public partial class MainWindow : Form {
 
         if (Settings.HideOnStartup) {
             Opacity = 0;
-            Win32.PostMessage(Handle, (UInt32)WM.SYSCOMMAND, (UInt32)SC.CLOSE, 0);
+            Win32.PostMessage(Handle, (UInt32)WM.SYSCOMMAND, (nint)SC.CLOSE, 0);
         }
 
         SystemEvents.UserPreferenceChanged += new UserPreferenceChangedEventHandler(SystemEvents_UserPreferenceChanged);
