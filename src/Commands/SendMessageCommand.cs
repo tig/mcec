@@ -82,6 +82,7 @@ public class SendMessageCommand : Command {
                     }
                     if (win == null) {
                         Logger.Instance.Log4.Error($"{this.GetType().Name}: Could not find a window of class '{ClassName}' captioned with '{WindowName}'");
+                        return false;
                     }
                     else {
                         Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(\"{win.MainWindowTitle}\", {Msg}, {WParam}, {LParam}) - {ToString()}");
@@ -90,6 +91,7 @@ public class SendMessageCommand : Command {
                 }
                 else {
                     Logger.Instance.Log4.Error($"{this.GetType().Name}: GetProcessByName for class '{ClassName}' failed");
+                    return false;
                 }
             }
             else {
@@ -100,8 +102,8 @@ public class SendMessageCommand : Command {
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"{this.GetType().Name}: Failed for '{ClassName}' with error: {e.Message}");
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 }
