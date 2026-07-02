@@ -875,9 +875,9 @@ public partial class MainWindow : Form, IAppHost {
         Logger.Instance.Log4.Info(s);
     }
 
-    private void ShowSettings(string defaultTabName) {
+    private void ShowSettings(SettingsTab defaultTab) {
         SettingsDialog d = new SettingsDialog(Settings) {
-            DefaultTab = defaultTabName
+            DefaultTab = defaultTab
         };
 
         TelemetryService.Instance.TrackEvent("ShowSettings");
@@ -886,6 +886,16 @@ public partial class MainWindow : Form, IAppHost {
             Stop();
 
             ApplySettings(d.Settings);
+
+            // #213 ordering decision: persist AFTER the clone has been adopted as the active
+            // settings object (ApplySettings, the single apply path) and BEFORE Start(). The
+            // dialog itself no longer serializes (it used to commit to disk before the owner
+            // applied anything). Saving before Start() is deliberate: Start() has no failure
+            // contract — a service that cannot start with the new config logs the error and shows
+            // it in the status bar, but does NOT roll back the in-memory settings — so disk must
+            // match memory or the next exit/logoff (PerformShutdown saves too) would rewrite it
+            // anyway. The user's OK is the commit point; a Cancel never touches disk.
+            SaveSettings(Settings);
 
             Opacity = (double)Settings.Opacity / 100;
 
@@ -995,7 +1005,7 @@ public partial class MainWindow : Form, IAppHost {
 
     private void settingsMenuItem_Click(object sender, EventArgs e) {
         TelemetryService.Instance.TrackEvent("settingsMenuItem");
-        ShowSettings("General");
+        ShowSettings(SettingsTab.General);
     }
 
     private void sendAwakeMenuItem_Click(object sender, EventArgs e) {
@@ -1037,7 +1047,7 @@ public partial class MainWindow : Form, IAppHost {
             ToggleClient();
         }
         else {
-            ShowSettings("Client");
+            ShowSettings(SettingsTab.Client);
         }
     }
 
@@ -1046,16 +1056,16 @@ public partial class MainWindow : Form, IAppHost {
             ToggleServer();
         }
         else {
-            ShowSettings("Server");
+            ShowSettings(SettingsTab.Server);
         }
     }
 
     private void statusStripSerial_Click(object sender, EventArgs e) {
-        ShowSettings("Serial");
+        ShowSettings(SettingsTab.Serial);
     }
 
     private void statusStripStatus_Click(object sender, EventArgs e) {
-        ShowSettings("General");
+        ShowSettings(SettingsTab.General);
     }
 
     // WinForms layout with MenuStrip and StatusStrip has issues (apparently) with
