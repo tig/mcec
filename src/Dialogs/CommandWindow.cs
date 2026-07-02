@@ -97,7 +97,10 @@ public partial class CommandWindow : Form {
         listCmds.Columns[2].Width = -1;
 
         listCmds.Focus();
-        listCmds.Items[0].Selected = true;
+        // #203: the list can be empty (DisableInternalCommands + no user commands).
+        if (listCmds.Items.Count > 0) {
+            listCmds.Items[0].Selected = true;
+        }
         saveChangesBtn.Enabled = false;
     }
 

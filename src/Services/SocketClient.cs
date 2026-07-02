@@ -112,7 +112,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
         }
 
         try {
-            byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(text.Replace("\0xFF", "\0xFF\0xFF"));
+            byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(TelnetProtocol.EscapeIac(text));
             _tcpClient.GetStream().Write(buf, 0, buf.Length);
         }
         catch (IOException ioe) {

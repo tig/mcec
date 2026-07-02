@@ -82,26 +82,29 @@ public class SendMessageCommand : Command {
                     }
                     if (win == null) {
                         Logger.Instance.Log4.Error($"{this.GetType().Name}: Could not find a window of class '{ClassName}' captioned with '{WindowName}'");
+                        return false;
                     }
                     else {
                         Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(\"{win.MainWindowTitle}\", {Msg}, {WParam}, {LParam}) - {ToString()}");
-                        Win32.SendMessage(win.MainWindowHandle, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
+                        // #203: (nint) sign-extends the stored int (lParam=-1 stays -1 on x64).
+                        Win32.SendMessage(win.MainWindowHandle, (DWORD)Msg, (nint)WParam, (nint)LParam);
                     }
                 }
                 else {
                     Logger.Instance.Log4.Error($"{this.GetType().Name}: GetProcessByName for class '{ClassName}' failed");
+                    return false;
                 }
             }
             else {
                 IntPtr h = Win32.GetForegroundWindow();
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(<forground window>, {Msg}, {WParam}, {LParam}) - {ToString()}");
-                Win32.SendMessage(h, (DWORD)Msg, (DWORD)WParam, (DWORD)LParam);
+                Win32.SendMessage(h, (DWORD)Msg, (nint)WParam, (nint)LParam);
             }
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"{this.GetType().Name}: Failed for '{ClassName}' with error: {e.Message}");
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 }

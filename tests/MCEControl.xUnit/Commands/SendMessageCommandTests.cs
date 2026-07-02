@@ -66,6 +66,37 @@ public class SendMessageCommandTests
     }
 
     [Fact]
+    public void Execute_WhenEnabled_ProcessNotFound_ReturnsFalse()
+    {
+        // #203: Execute's returns were inverted (success fell through to `return false`,
+        // the catch returned `true`). Failure paths must return false.
+        var cmd = new SendMessageCommand("NoSuchProcess_Issue203_BogusClass", "NoSuchWindow", 0, 0, 0)
+        {
+            Cmd = "test",
+            Enabled = true
+        };
+
+        bool result = cmd.Execute();
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Execute_WhenEnabled_WindowNameNotFound_ReturnsFalse()
+    {
+        // The current test process exists but has no window with this caption:
+        // the `win == null` failure path must return false (not fall through to success).
+        string thisProcess = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+        var cmd = new SendMessageCommand(thisProcess, "NoSuchWindowCaption_Issue203", 0, 0, 0)
+        {
+            Cmd = "test",
+            Enabled = true
+        };
+
+        bool result = cmd.Execute();
+        Assert.False(result);
+    }
+
+    [Fact]
     public void ToString_ReturnsFormattedString()
     {
         var cmd = new SendMessageCommand("TestClass", "TestWindow", 100, 200, 300)

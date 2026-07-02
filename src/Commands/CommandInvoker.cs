@@ -188,7 +188,10 @@ public class CommandInvoker : Hashtable {
 
         // TODO: Implement ignoreInternalCommands?
 
-        if (cmdString.Length == 1 && ((Command)this["chars:"]!).Enabled) {
+        // #203: `this["chars:"]` is null when built-ins are disabled (DisableInternalCommands)
+        // or a user .commands file omits it — pattern-match instead of casting so a missing
+        // "chars:" falls through to normal unknown-command handling rather than throwing.
+        if (cmdString.Length == 1 && this["chars:"] is Command charsCommand && charsCommand.Enabled) {
             // Sending a single character is equivalent to a single key press of a key on the keyboard. 
             // For example sending a will result in the A key being pressed. 
             // 1 will result in the 1 key being pressed. There is no difference between sending a and A. 

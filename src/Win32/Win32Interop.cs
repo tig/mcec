@@ -434,11 +434,14 @@ namespace Microsoft.Win32.Security {
         ///
         /// USER32.DLL (NT4+ only) 
         ///
+        // #203: WPARAM/LPARAM are pointer-sized (UINT_PTR/LONG_PTR), not 32-bit DWORDs.
+        // Declaring them as DWORD zero-extended negative values (e.g. monitoron's lParam=-1)
+        // on x64. Declared as nint so call sites can sign-extend stored ints correctly.
         [DllImport(User32, EntryPoint = "SendMessage")]
-        public static extern Int32 SendMessage(HWND hWnd, DWORD Msg, DWORD wParam, DWORD lParam);
+        public static extern IntPtr SendMessage(HWND hWnd, DWORD Msg, nint wParam, nint lParam);
 
         [DllImport(User32, EntryPoint = "PostMessage")]
-        public static extern Int32 PostMessage(HWND hWnd, DWORD Msg, DWORD wParam, DWORD lParam);
+        public static extern BOOL PostMessage(HWND hWnd, DWORD Msg, nint wParam, nint lParam);
 
         [DllImport(User32, EntryPoint = "FindWindow")]
         public static extern HWND FindWindow(string ClassName, string WindowName);

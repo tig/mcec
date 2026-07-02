@@ -97,6 +97,22 @@ public class CommandInvokerTests
     }
 
     /// <summary>
+    /// #203: a single-character payload used to NRE when the registry had no "chars:"
+    /// prototype (DisableInternalCommands, or a user .commands file without it). It must
+    /// fall through to normal unknown-command handling instead of throwing.
+    /// </summary>
+    [Fact]
+    public void Enqueue_SingleChar_NoCharsCommand_DoesNotThrow()
+    {
+        CommandInvoker invoker = [];
+        Assert.Null(invoker["chars:"]);
+
+        invoker.Enqueue(new Commands.TestReply(), "a");
+
+        Assert.Equal(0, invoker.QueuedCommandCount);
+    }
+
+    /// <summary>
     /// Test create where there were user-defined changes to builtin commands
     /// </summary>
     [Fact]
