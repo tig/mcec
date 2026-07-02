@@ -205,6 +205,13 @@ public static partial class HookManager {
     private static void EnsureSubscribedToGlobalMouseEvents() {
         // install Mouse hook only if it is not installed and must be installed
         if (s_MouseHookHandle == 0) {
+            // Test seam (InternalsVisibleTo MCEControl.xUnit): skip the real hook so the
+            // subscribe/unsubscribe bookkeeping is testable on hosted CI (no interactive desktop).
+            if (SuppressRealHooksForTesting) {
+                s_MouseHookHandle = FakeHookHandle;
+                return;
+            }
+
             //See comment of this field. To avoid GC to clean it up.
             s_MouseDelegate = MouseHookProc;
             //install hook
@@ -243,6 +250,14 @@ public static partial class HookManager {
 
     private static void ForceUnsunscribeFromGlobalMouseEvents() {
         if (s_MouseHookHandle != 0) {
+            // Test seam: a fake hook (see EnsureSubscribedToGlobalMouseEvents) is "uninstalled" by
+            // resetting the bookkeeping — there is no real hook to unhook.
+            if (s_MouseHookHandle == FakeHookHandle) {
+                s_MouseHookHandle = 0;
+                s_MouseDelegate = null;
+                return;
+            }
+
             //uninstall hook
             int result = UnhookWindowsHookEx(s_MouseHookHandle);
             //reset invalid handle
@@ -386,6 +401,13 @@ public static partial class HookManager {
     private static void EnsureSubscribedToGlobalKeyboardEvents() {
         // install Keyboard hook only if it is not installed and must be installed
         if (s_KeyboardHookHandle == 0) {
+            // Test seam (InternalsVisibleTo MCEControl.xUnit): skip the real hook so the
+            // subscribe/unsubscribe bookkeeping is testable on hosted CI (no interactive desktop).
+            if (SuppressRealHooksForTesting) {
+                s_KeyboardHookHandle = FakeHookHandle;
+                return;
+            }
+
             //See comment of this field. To avoid GC to clean it up.
             s_KeyboardDelegate = KeyboardHookProc;
 
@@ -423,6 +445,14 @@ public static partial class HookManager {
 
     private static void ForceUnsunscribeFromGlobalKeyboardEvents() {
         if (s_KeyboardHookHandle != 0) {
+            // Test seam: a fake hook (see EnsureSubscribedToGlobalKeyboardEvents) is "uninstalled" by
+            // resetting the bookkeeping — there is no real hook to unhook.
+            if (s_KeyboardHookHandle == FakeHookHandle) {
+                s_KeyboardHookHandle = 0;
+                s_KeyboardDelegate = null;
+                return;
+            }
+
             //uninstall hook
             int result = UnhookWindowsHookEx(s_KeyboardHookHandle);
             //reset invalid handle
