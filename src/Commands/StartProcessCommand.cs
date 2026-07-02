@@ -93,12 +93,6 @@ public class StartProcessCommand : Command {
         return $"Cmd=\"{Cmd}\" File=\"{File}\" Arguments=\"{Arguments}\" Verb=\"{Verb}\"";
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new StartProcessCommand() {
-        File = this.File,
-        Arguments = this.Arguments,
-        Verb = this.Verb
-    });
-
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Process is long lived")]
     // ICommand:Execute
     public override bool Execute() {

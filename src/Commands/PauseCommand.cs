@@ -38,8 +38,6 @@ public class PauseCommand : Command {
         return $"Cmd=\"{Cmd}\" Args=\"{Args}\"";
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new PauseCommand());
-
     // ICommand:Execute
     public override bool Execute() {
         if (!base.Execute()) {

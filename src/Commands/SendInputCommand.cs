@@ -23,7 +23,7 @@ namespace MCEControl;
 /// modifiers.
 /// </summary>
 [Serializable]
-public class SendInputCommand : Command, ICommand {
+public class SendInputCommand : Command {
     private bool alt;
     private bool ctrl;
     private bool shift;
@@ -138,8 +138,6 @@ public class SendInputCommand : Command, ICommand {
     public override string ToString() {
         return $"Cmd=\"{Cmd}\" Args=\"{Args}\" Vk=\"{Vk}\" Shift=\"{Shift}\" Ctrl=\"{Ctrl}\" Alt=\"{Alt}\" Win=\"{Win}\"";
     }
-
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new SendInputCommand(vk, shift, ctrl, alt, win));
 
     private bool ExecuteShiftCmd(string cmd) {
         // TODO: Break this out to a separate command

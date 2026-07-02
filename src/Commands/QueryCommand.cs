@@ -22,11 +22,6 @@ public class QueryCommand : WindowTargetingAgentCommand {
         get => [new QueryCommand { Cmd = "query" }];
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new QueryCommand {
-        MaxDepth = this.MaxDepth,
-        MaxNodes = this.MaxNodes,
-    });
-
     protected override string? AuditDetails() =>
         $"query window handle={Handle} title='{Window}' process='{Process}' class='{ClassName}' fg={Foreground} maxDepth={MaxDepth} maxNodes={MaxNodes}";
 

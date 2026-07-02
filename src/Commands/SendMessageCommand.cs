@@ -60,8 +60,6 @@ public class SendMessageCommand : Command {
         return $"Cmd=\"{Cmd}\" Msg=\"{Msg}\" lParam=\"{LParam}\" wParam=\"{WParam}\" ClassName=\"{ClassName}\" WindowName=\"{WindowName}\"";
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new SendMessageCommand(ClassName, WindowName, Msg, WParam, LParam));
-
     // ICommand:Execute
     public override bool Execute() {
         if (!base.Execute()) {

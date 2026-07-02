@@ -43,18 +43,6 @@ public class DragCommand : WindowTargetingAgentCommand {
         get => [new DragCommand { Cmd = "drag" }];
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new DragCommand {
-        FromBy = this.FromBy,
-        FromValue = this.FromValue,
-        FromX = this.FromX,
-        FromY = this.FromY,
-        ToBy = this.ToBy,
-        ToValue = this.ToValue,
-        ToX = this.ToX,
-        ToY = this.ToY,
-        PathSpec = this.PathSpec,
-    });
-
     protected override string? AuditDetails() =>
         $"drag from (by={FromBy} value='{FromValue}' {FromX},{FromY}) to (by={ToBy} value='{ToValue}' {ToX},{ToY}) window handle={Handle} title='{Window}' process='{Process}'";
 

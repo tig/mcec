@@ -30,13 +30,6 @@ public class LaunchCommand : AgentCommand {
 
     public LaunchCommand() { }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new LaunchCommand {
-        Path = Path,
-        Arguments = Arguments,
-        WorkingDirectory = WorkingDirectory,
-        Timeout = Timeout,
-    });
-
     // Audits after path validation (below), with the effective timeout — not via AuditDetails.
     protected override bool ExecuteCore() {
         if (string.IsNullOrWhiteSpace(Path)) {

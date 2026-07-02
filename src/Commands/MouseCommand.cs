@@ -68,8 +68,6 @@ public class MouseCommand : Command {
         return $"Cmd=\"{Cmd}\"";
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new MouseCommand());
-
     // ICommand:Execute
     public override bool Execute() {
         if (!base.Execute()) {

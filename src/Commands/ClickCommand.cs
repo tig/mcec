@@ -38,15 +38,6 @@ public class ClickCommand : WindowTargetingAgentCommand {
         get => [new ClickCommand { Cmd = "click" }];
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new ClickCommand {
-        By = this.By,
-        Value = this.Value,
-        X = this.X,
-        Y = this.Y,
-        Button = this.Button,
-        Count = this.Count,
-    });
-
     protected override string? AuditDetails() =>
         $"click at (by={By} value='{Value}' {X},{Y}) button={Button} count={Count} window handle={Handle} title='{Window}' process='{Process}'";
 

@@ -40,14 +40,6 @@ public class CaptureCommand : WindowTargetingAgentCommand {
 
     public CaptureCommand() { }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new CaptureCommand {
-        X = X,
-        Y = Y,
-        Width = Width,
-        Height = Height,
-        File = File,
-    });
-
     /// <summary>True when this is an explicit-region capture (region given, no window selector).</summary>
     private bool IsRegionCapture => Width > 0 && Height > 0 && !HasWindowTarget;
 

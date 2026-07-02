@@ -43,6 +43,6 @@ internal sealed class CommandDispatchCompletion : ICommand {
     }
 
     /// <summary>Never called — markers are created fresh per enqueue and never live in the command table.</summary>
-    Command ICommand.Clone(Reply reply, Command clone) =>
+    ICommand ICommand.Clone(Reply reply) =>
         throw new NotSupportedException($"{nameof(CommandDispatchCompletion)} is dispatcher bookkeeping and cannot be cloned.");
 }

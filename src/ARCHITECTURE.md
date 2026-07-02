@@ -156,7 +156,7 @@ All services inherit from `ServiceBase` which provides:
 ```csharp
 public interface ICommand {
     bool Execute();
-    Command Clone(Reply reply, Command clone);
+    ICommand Clone(Reply reply);
 }
 ```
 
@@ -167,6 +167,10 @@ public interface ICommand {
 - Support for nested/embedded commands
 - Telemetry tracking
 - Reply context for bidirectional communication
+- `Clone(Reply)` is MemberwiseClone-based (#207): every field — all serializable state is
+  value/string-typed — is copied by construction, then the fresh `Reply` is set and
+  `EmbeddedCommands` deep-cloned. Subclasses do not (and must not need to) override it to copy
+  fields; a reflection hygiene test round-trips every public settable property of every command.
 
 #### 3.3 Command Types
 

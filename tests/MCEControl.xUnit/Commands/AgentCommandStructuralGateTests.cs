@@ -84,8 +84,9 @@ public class AgentCommandStructuralGateTests {
 
     [Fact]
     public void WindowTargetingClone_CopiesTheSharedSelectors() {
-        // The five window selectors moved to WindowTargetingAgentCommand (#208); its Clone layer —
-        // not each subclass — copies them. Pin that so a future clone refactor can't drop them.
+        // The five window selectors moved to WindowTargetingAgentCommand (#208); since #207 the
+        // MemberwiseClone-based Command.Clone copies them (no per-layer copying anywhere). Pin that
+        // they survive Clone so a future clone refactor can't drop them.
         QueryCommand original = new() {
             Cmd = "query",
             Window = "Notepad",

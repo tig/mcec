@@ -24,8 +24,6 @@ public class DisplaysCommand : AgentCommand {
         get => [new DisplaysCommand { Cmd = "displays" }];
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new DisplaysCommand());
-
     protected override string? AuditDetails() => "displays";
 
     protected override bool ExecuteCore() {

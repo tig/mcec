@@ -49,8 +49,6 @@ public class ShutdownCommand : Command {
         return $"Cmd=\"{Cmd}\" Type=\"{Type}\" TimeOut=\"{TimeOut}\"";
     }
 
-    public override ICommand Clone(Reply reply) => base.Clone(reply, new ShutdownCommand(Type, TimeOut));
-
     // ICommand:Execute
     public override bool Execute() {
         if (!base.Execute()) {
