@@ -40,11 +40,13 @@ public abstract class ServiceBase {
 
         Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending \"{Regex.Escape(text)}\"");
 
-        // TELEMETRY: 
+        // TELEMETRY:
         // what: the number of commands of each type (key) sent
         // why: to understand what commands are used to control other systems and which are not
         // how is PII protected: we only collect the text if it is a key for a built-in command
-        Command? userDefined = MainWindow.Instance.Invoker.Values.Cast<Command>().FirstOrDefault(q => (q.Cmd == text.Trim('\r').Trim('\n') && q.UserDefined == false));
+        // #209: read the command table via the UI-agnostic AgentRuntime seam (populated by both the
+        // GUI and headless hosts) — never MainWindow, which this engine-layer code must not touch.
+        Command? userDefined = AgentRuntime.Invoker?.Values.Cast<Command>().FirstOrDefault(q => (q.Cmd == text.Trim('\r').Trim('\n') && q.UserDefined == false));
         TelemetryService.Instance.TrackMetric($"{(userDefined == null ? "<userDefined>" : text.Trim('\r').Trim('\n'))} Sent", 1);
     }
 

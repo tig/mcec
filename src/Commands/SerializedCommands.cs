@@ -146,11 +146,15 @@ public class SerializedCommands {
             new XmlSerializer(typeof(SerializedCommands)).Serialize(ucFS, commands);
         }
         catch (Exception e) {
-            // TODO: Move MessageBox out of here into MainWindow
             string msg = $"Could not create commands file ({userCommandsFile}) - {e.Message}.\n\n" +
                          $"See log file for details: {Logger.Instance.LogFile}\n\n" +
                          $"For help, open an issue at github.com/tig/mcec";
-            MessageBox.Show(msg, Application.ProductName);
+            // #209: same headless gate as LoadCommands above — in --mcp mode there is no operator
+            // and stdout is the protocol stream, so a failed save must log, never block on a dialog
+            // no one can dismiss (SessionProvisioner saves .commands headless).
+            if (!AgentRuntime.Headless) {
+                MessageBox.Show(msg, Application.ProductName);
+            }
             Logger.Instance.Log4.Error($"SerializedCommands: {msg}");
             Logger.DumpException(e);
         }
