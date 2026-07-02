@@ -63,6 +63,15 @@ public class McecCommand : Command {
             // Cause MCE Controller to exit
             case "exit":
                 Reply.WriteLine("exiting");
+                // #195: commands now execute on the invoker's dispatcher thread. ShutDown()
+                // self-marshals (BeginInvoke when InvokeRequired), so calling it from here is safe
+                // in GUI mode. Headless (--mcp) has no MainWindow — touching the lazy singleton
+                // would construct a Form on this worker thread — so decline there (the MCP client
+                // owns the process lifetime; it exits MCEC by closing stdin).
+                if (AgentRuntime.Headless) {
+                    Logger.Instance.Log4.Info($"{this.GetType().Name}: '{Cmd}{Args}' ignored in headless MCP mode — the MCP client owns the process lifetime.");
+                    return true;
+                }
                 MainWindow.Instance.ShutDown();
                 return true;
 
@@ -70,12 +79,18 @@ public class McecCommand : Command {
             case "cmds":
                 Command cmd = this;
                 Match? match = null;
+                // #195: read the command table via the UI-agnostic AgentRuntime seam (populated by
+                // both the GUI and headless hosts) instead of MainWindow.Instance — this runs on the
+                // dispatcher thread and must not touch (or lazily construct) the Form.
+                if (AgentRuntime.Invoker is not CommandInvoker invoker) {
+                    Logger.Instance.Log4.Error($"{this.GetType().Name}: ({Cmd}:{Args}) command table is not available");
+                    return false;
+                }
                 try {
                     replyBuilder.Append(Environment.NewLine);
-                    IOrderedEnumerable<string> orderedKeys = MainWindow.Instance.Invoker.Keys.Cast<string>().OrderBy(c => c);
+                    IOrderedEnumerable<string> orderedKeys = invoker.Keys.Cast<string>().OrderBy(c => c);
                     foreach (string key in orderedKeys) {
-                        cmd = (Command)MainWindow.Instance.Invoker[key]!;
-                        ListViewItem item = new ListViewItem(cmd.Cmd);
+                        cmd = (Command)invoker[key]!;
                         match = Regex.Match(cmd.GetType().ToString(), @"MCEControl\.([A-za-z]+)Command");
                         replyBuilder.Append($"<{match.Groups[1].Value} {cmd.ToString()} />{Environment.NewLine}");
                     }

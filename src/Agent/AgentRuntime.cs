@@ -24,6 +24,22 @@ public static class AgentRuntime {
     public static CommandInvoker? Invoker { get; set; }
 
     /// <summary>
+    /// The single gate over the ONE physical desktop input stream (#113/#195). Two actuation paths
+    /// synthesize global input and must never interleave: (1) the <see cref="CommandInvoker"/>
+    /// dispatcher thread, which holds this around each queued command's <c>Execute</c>, and (2)
+    /// <c>AgentServer</c>'s <c>drag</c> tool, which actuates a press→move→release gesture directly on
+    /// an MCP worker under this lock. It lives here — not in <c>AgentServer</c> — because both the
+    /// command engine and the agent front door need it, and the engine must work headless.
+    /// <para>
+    /// LOCK ORDERING: this is a LEAF lock. Never acquire another lock, block on the command queue, or
+    /// wait on a task/thread while holding it — a command's <c>Execute</c> may take seconds (paced
+    /// macros, <c>pause</c>), and anything that waits on the dispatcher while holding this deadlocks
+    /// it. Observation (query/capture/find/wait-for/record) deliberately never takes it.
+    /// </para>
+    /// </summary>
+    internal static readonly object InputGate = new();
+
+    /// <summary>
     /// True when running as the headless MCP server (<c>--mcp</c>). In this mode the engine MUST NOT
     /// show modal dialogs (there is no operator at a screen and stdout is the protocol stream), so the
     /// settings/commands load paths suppress their <c>MessageBox</c> prompts when this is set.
