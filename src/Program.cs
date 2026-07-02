@@ -1,17 +1,14 @@
 ﻿// Copyright © Kindel, LLC - http://www.kindel.com
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
-using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace MCEControl;
 
 internal static class Program {
     internal static string ConfigPath {
         get {
-            // Get dir of mcecontrol.exe
+            // Get dir of mcec.exe
             string path = AppDomain.CurrentDomain.BaseDirectory;
             string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
@@ -20,9 +17,8 @@ internal static class Program {
             // ("Program Files (x86)") roots; the installer puts the self-contained x64 build under
             // 64-bit Program Files, while older installs used the x86 path.
             foreach (Environment.SpecialFolder folder in new[] {
-                Environment.SpecialFolder.ProgramFiles,
-                Environment.SpecialFolder.ProgramFilesX86,
-            }) {
+                         Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86
+                     }) {
                 string programFiles = Environment.GetFolderPath(folder);
                 if (!string.IsNullOrEmpty(programFiles) &&
                     path.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase)) {
@@ -36,8 +32,8 @@ internal static class Program {
     }
 
     /// <summary>
-    /// Safely launches a URL, file, or folder using the shell (UseShellExecute).
-    /// Catches launch errors (e.g. no browser association), logs them, and shows a non-fatal message.
+    ///     Safely launches a URL, file, or folder using the shell (UseShellExecute).
+    ///     Catches launch errors (e.g. no browser association), logs them, and shows a non-fatal message.
     /// </summary>
     internal static void LaunchExternal(string target) {
         if (string.IsNullOrWhiteSpace(target)) {
@@ -45,19 +41,18 @@ internal static class Program {
         }
 
         try {
-            Process.Start(new ProcessStartInfo {
-                FileName = target,
-                UseShellExecute = true
-            });
-        } catch (Exception ex) {
+            Process.Start(new ProcessStartInfo { FileName = target, UseShellExecute = true });
+        }
+        catch (Exception ex) {
             Logger.Instance.Log4.Error($"Failed to launch external target '{target}': {ex.Message}");
             try {
                 MessageBox.Show(
-                    $"MCE Controller could not open:\n{target}\n\n{ex.Message}",
-                    "MCE Controller",
+                    @$"MCEC could not open:\n{target}\n\n{ex.Message}",
+                    @"MCEC",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
-            } catch {
+            }
+            catch {
                 // UI may not be available (e.g. headless)
             }
         }
@@ -105,8 +100,8 @@ internal static class Program {
     }
 
     /// <summary>
-    /// Headless bootstrap for <c>--mcp</c>: loads settings and the command core through the
-    /// UI-agnostic <see cref="AgentRuntime"/> seam (no <c>MainWindow</c>), then serves MCP over stdio.
+    ///     Headless bootstrap for <c>--mcp</c>: loads settings and the command core through the
+    ///     UI-agnostic <see cref="AgentRuntime" /> seam (no <c>MainWindow</c>), then serves MCP over stdio.
     /// </summary>
     private static void RunHeadlessMcp() {
         // Headless: never show a modal dialog (no operator; stdout is the JSON-RPC stream).
@@ -148,7 +143,7 @@ internal static class Program {
         // process alive; this is a deliberate, clean stop that drops anything still queued (a
         // drop that severs a command tree releases held input) and briefly joins so an in-flight
         // command usually finishes before the process ends.
-        AgentRuntime.Invoker?.Shutdown(joinTimeoutMs: 2000);
+        AgentRuntime.Invoker?.Shutdown(2000);
 
         // #215: stop the dedicated UIA worker and dispose its cached UIA3Automation (bounded join).
         UiaService.Shutdown();
@@ -158,7 +153,7 @@ internal static class Program {
         Logger.DumpException(e.Exception);
         TelemetryService.Instance.TrackException(e.Exception);
         MessageBox.Show(@$"Unhandled Exception: {e.Exception.Message}\n\n" +
-                       @$"See log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec",
+                        @$"See log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec",
             Application.ProductName);
     }
 
