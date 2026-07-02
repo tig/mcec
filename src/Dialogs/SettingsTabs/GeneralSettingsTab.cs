@@ -32,9 +32,9 @@ public partial class GeneralSettingsTab : UserControl, ISettingsTab {
         _checkBoxHideOnStartup.Checked = settings.HideOnStartup;
         _checkBoxAutoStart.Checked = settings.AutoStart;
 
-        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap["ALL"]!);
-        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap["INFO"]!);
-        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl")!.Logger!.Repository!.LevelMap["DEBUG"]!);
+        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository!.LevelMap["ALL"]!);
+        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository!.LevelMap["INFO"]!);
+        _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository!.LevelMap["DEBUG"]!);
 
         switch (settings.TextBoxLogThreshold) {
             case "ALL":

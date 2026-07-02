@@ -21,7 +21,7 @@ namespace MCEControl;
 /// Simulates mouse movements.
 /// </summary>
 public class MouseCommand : Command {
-    public const string CmdPrefix = "mouse:";
+    private const string CmdPrefix = "mouse:";
 
     public static List<Command> BuiltInCommands {
         get => [
@@ -55,14 +55,12 @@ public class MouseCommand : Command {
     // Execute() so no other command interleaves (issue #123 / #113). Successive synthesized move
     // points are kept within DragStepPx of each other so slow drop targets (title bars, sizing
     // borders, sliders) track the held button; the dwells give the target loop time to react.
-    internal const int DragStepPx = 12;      // max pixel gap between synthesized move points
-    internal const int DragMaxPoints = 400;  // cap synthesized points so a huge path can't spin forever
+    private const int DragStepPx = 12;      // max pixel gap between synthesized move points
+    private const int DragMaxPoints = 400;  // cap synthesized points so a huge path can't spin forever
     private const int DragPressDwellMs = 90;    // dwell after moving to the start and after button-down
     private const int DragMoveDwellMs = 12;     // dwell between successive move points
     private const int DragReleaseDwellMs = 90;  // dwell before button-up so the drop registers
     private const int ClickMoveDwellMs = 40;    // settle after moving before a click so the target registers hover
-
-    public MouseCommand() { }
 
     public override string ToString() {
         return $"Cmd=\"{Cmd}\"";
@@ -81,7 +79,7 @@ public class MouseCommand : Command {
             return true;
         }
 
-        int mb = 0;
+        int mb;
 
         switch (param[0]) {
             case "lbc":
@@ -329,7 +327,7 @@ public class MouseCommand : Command {
     /// this thread so the gesture is atomic. Shared by <c>mouse:drag</c> and the agent
     /// <see cref="DragCommand"/> so both dispatch an identical, un-interleavable gesture.
     /// </summary>
-    public static void PerformDrag(IReadOnlyList<(int X, int Y)> pixelWaypoints) {
+    public static void PerformDrag(IReadOnlyList<(int X, int Y)>? pixelWaypoints) {
         if (pixelWaypoints is null || pixelWaypoints.Count < 2) {
             return;
         }

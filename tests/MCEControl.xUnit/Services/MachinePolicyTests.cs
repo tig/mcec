@@ -46,7 +46,7 @@ public class MachinePolicyTests
     public void GetRegistryValue_SecurityException_ReturnsDefault()
     {
         object? result = MachinePolicy.GetRegistryValue("Whatever", "fallback",
-            (key, name, def) => throw new System.Security.SecurityException("deny-read ACE"));
+            (_, _, _) => throw new System.Security.SecurityException("deny-read ACE"));
         Assert.Equal("fallback", result);
     }
 
@@ -54,7 +54,7 @@ public class MachinePolicyTests
     public void GetRegistryValue_IOException_ReturnsDefault()
     {
         object? result = MachinePolicy.GetRegistryValue("Whatever", 42,
-            (key, name, def) => throw new IOException("key has been marked for deletion"));
+            (_, _, _) => throw new IOException("key has been marked for deletion"));
         Assert.Equal(42, result);
     }
 
@@ -62,7 +62,7 @@ public class MachinePolicyTests
     public void GetRegistryValue_UnauthorizedAccessException_ReturnsDefault()
     {
         object? result = MachinePolicy.GetRegistryValue("Whatever", null,
-            (key, name, def) => throw new UnauthorizedAccessException("no read access"));
+            (_, _, _) => throw new UnauthorizedAccessException("no read access"));
         Assert.Null(result);
     }
 
@@ -71,7 +71,7 @@ public class MachinePolicyTests
     {
         // Current key reads fine (absent -> null); the legacy fallback key is the one that throws.
         object? result = MachinePolicy.GetRegistryValue("Whatever", false,
-            (key, name, def) => key == MachinePolicy.RegistryKeyPath
+            (key, _, _) => key == MachinePolicy.RegistryKeyPath
                 ? null
                 : throw new System.Security.SecurityException("deny-read ACE on legacy key"));
         Assert.Equal(false, result);
@@ -85,7 +85,7 @@ public class MachinePolicyTests
     public void GetRegistryValue_CurrentKeyAbsent_FallsBackToLegacyKey()
     {
         object? result = MachinePolicy.GetRegistryValue("Telemetry", 0,
-            (key, name, def) => key == MachinePolicy.RegistryKeyPath ? null : (object?)1);
+            (key, _, _) => key == MachinePolicy.RegistryKeyPath ? null : 1);
         Assert.Equal(1, result);
     }
 
@@ -96,7 +96,7 @@ public class MachinePolicyTests
     public void GetRegistryValue_CurrentKeyPresent_LegacyIgnored()
     {
         object? result = MachinePolicy.GetRegistryValue("Telemetry", 0,
-            (key, name, def) => key == MachinePolicy.RegistryKeyPath ? (object?)1 : (object?)0);
+            (key, _, _) => key == MachinePolicy.RegistryKeyPath ? 1 : 0);
         Assert.Equal(1, result);
     }
 }

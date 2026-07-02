@@ -26,23 +26,21 @@ namespace MCEControl;
 // only "Info" level items are shown in the log viewer (by default).
 //
 public class Logger {
-    private static readonly Lazy<Logger> lazy = new(() => new Logger());
-    public static Logger Instance { get { return lazy.Value; } }
+    private static readonly Lazy<Logger> _lazy = new(() => new Logger());
+    public static Logger Instance { get { return _lazy.Value; } }
 
     // reference to MainWindow._log
-    private ILog log4 = null!;
+    // Null only while the singleton constructor is still running; the property accessors below
+    // guard that window. External callers always observe a non-null Log4 (set at the end of the ctor).
+    private readonly ILog? _log4;
     public ILog Log4 {
-        get {
-            return log4;
-        }
-        set {
-            log4 = value;
-        }
+        get => _log4 ?? throw new InvalidOperationException("Logger.Log4 touched while the singleton constructor is still running.");
+        private init => _log4 = value;
     }
 
     public TextBoxExt LogTextBox {
         get {
-            if (log4 != null) {
+            if (_log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
                 TextBoxAppender? a = (TextBoxAppender?)hierarchy.Root.GetAppender("TextBox");
                 return a!.LogTextBox;
@@ -52,7 +50,7 @@ public class Logger {
             }
         }
         set {
-            if (log4 != null) {
+            if (_log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
                 TextBoxAppender? a = (TextBoxAppender?)hierarchy.Root.GetAppender("TextBox");
                 a!.LogTextBox = value;
@@ -63,7 +61,7 @@ public class Logger {
 
     public Level TextBoxThreshold {
         get {
-            if (log4 != null) {
+            if (_log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
                 TextBoxAppender? a = (TextBoxAppender?)hierarchy.Root.GetAppender("TextBox");
                 return a!.Threshold;
@@ -73,7 +71,7 @@ public class Logger {
             }
         }
         set {
-            if (log4 != null) {
+            if (_log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
                 TextBoxAppender? a = (TextBoxAppender?)hierarchy.Root.GetAppender("TextBox");
                 if (a != null) {
@@ -87,7 +85,7 @@ public class Logger {
     // Setting the logFile location resets log4net
     public string LogFile {
         get {
-            if (log4 != null) {
+            if (_log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
                 RollingFileAppender? a = (RollingFileAppender?)hierarchy.Root.GetAppender("File");
                 return a!.File!;
@@ -97,7 +95,7 @@ public class Logger {
             }
         }
         set {
-            if (log4 != null) {
+            if (_log4 != null) {
                 Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
                 RollingFileAppender? a = (RollingFileAppender?)hierarchy.Root.GetAppender("File");
                 a!.File = value;
@@ -106,13 +104,11 @@ public class Logger {
         }
     }
 
-#pragma warning disable IDE0044 // Add readonly modifier
-    private PatternLayout patternLayout = new();
-#pragma warning restore IDE0044 // Add readonly modifier
+    private readonly PatternLayout _patternLayout = new();
     private Logger() {
         // Pattern
-        patternLayout.ConversionPattern = "%date %-5level - %message%newline";
-        patternLayout.ActivateOptions();
+        _patternLayout.ConversionPattern = "%date %-5level - %message%newline";
+        _patternLayout.ActivateOptions();
 
         Hierarchy hierarchy = (Hierarchy)LogManager.GetRepository();
 
@@ -120,7 +116,7 @@ public class Logger {
         RollingFileAppender roller = new RollingFileAppender {
             Name = "File",
             AppendToFile = true,
-            Layout = patternLayout,
+            Layout = _patternLayout,
             MaxSizeRollBackups = 10,
             MaximumFileSize = "1MB",
             RollingStyle = RollingFileAppender.RollingMode.Size,
@@ -132,7 +128,7 @@ public class Logger {
 
         TextBoxAppender textbox = new TextBoxAppender {
             Name = "TextBox",
-            Layout = patternLayout,
+            Layout = _patternLayout,
             LogTextBox = LogTextBox,
             Threshold = TextBoxThreshold
         };
@@ -145,14 +141,14 @@ public class Logger {
         ConsoleAppender debugAppender = new ConsoleAppender {
             Name = "Console",
             Target = ConsoleAppender.ConsoleError,
-            Layout = patternLayout
+            Layout = _patternLayout
         };
         debugAppender.ActivateOptions();
         hierarchy.Root.AddAppender(debugAppender);
 
         hierarchy.Root.Level = Level.All;
         hierarchy.Configured = true;
-        Log4 = log4net.LogManager.GetLogger("MCEControl");
+        Log4 = LogManager.GetLogger("MCEControl");
     }
     public static void DumpException(Exception ex) {
         if (ex is null) {
@@ -162,18 +158,18 @@ public class Logger {
         WriteExceptionInfo(ex);
     }
 
-    public static void WriteExceptionInfo(Exception ex) {
+    private static void WriteExceptionInfo(Exception ex) {
         if (ex is null) {
             throw new ArgumentNullException(nameof(ex));
         }
 
-        Logger.Instance.Log4.Debug($"--------- Exception Data ---------");
+        Logger.Instance.Log4.Debug("--------- Exception Data ---------");
         Logger.Instance.Log4.Debug($"Message:        {ex.FullMessage()}");
         Logger.Instance.Log4.Debug($"Exception Type: {ex.GetType().FullName}");
         Logger.Instance.Log4.Debug($"Source:         {ex.Source}");
         Logger.Instance.Log4.Debug($"StrackTrace:    {ex.StackTrace}");
         Logger.Instance.Log4.Debug($"TargetSite:     {ex.TargetSite}");
-        Logger.Instance.Log4.Debug($"--------- Full Exception ---------");
-        Logger.Instance.Log4.Debug($"{ex.ToString()}");
+        Logger.Instance.Log4.Debug("--------- Full Exception ---------");
+        Logger.Instance.Log4.Debug($"{ex}");
     }
 }

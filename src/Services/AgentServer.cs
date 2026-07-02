@@ -42,19 +42,19 @@ public static class AgentServer {
     /// The production executor: tool gating/dispatch bound to the ambient <see cref="AgentRuntime"/>
     /// (settings, invoker, session) via accessors, so live settings changes are always observed.
     /// </summary>
-    private static readonly AgentToolExecutor Executor = new(
+    private static readonly AgentToolExecutor _executor = new(
         () => AgentRuntime.Settings,
         () => AgentRuntime.Invoker,
         () => AgentRuntime.Session);
 
     /// <summary>The production protocol layer, serving the embedded <see cref="Instructions"/>.</summary>
-    private static readonly JsonRpcDispatcher Dispatcher = new(Executor, () => Instructions);
+    private static readonly JsonRpcDispatcher _dispatcher = new(_executor, () => Instructions);
 
     /// <summary>
     /// The production HTTP transport instance (#215). Tests construct their own transport with an
     /// injected dispatch delegate instead of the old <c>HttpDispatchOverride</c> static seam.
     /// </summary>
-    private static readonly McpHttpTransport Http = new(
+    private static readonly McpHttpTransport _http = new(
         () => AgentRuntime.Settings,
         req => Dispatch(req, AgentTransport.Http));
 
@@ -62,7 +62,7 @@ public static class AgentServer {
     /// Whether the MCP HTTP transport is currently listening. Read-only status for the GUI's
     /// status strip (#211).
     /// </summary>
-    internal static bool IsHttpListening => Http.IsListening;
+    internal static bool IsHttpListening => _http.IsListening;
 
     /// <summary>
     /// Starts the localhost MCP/HTTP front door. SECURITY: refused from the installed (Program Files)
@@ -76,10 +76,10 @@ public static class AgentServer {
                 $"AgentServer: MCP/HTTP server refused from the installed location. {Program.InstalledAgentServingGuidance}");
             return;
         }
-        Http.Start();
+        _http.Start();
     }
 
-    public static void StopHttp() => Http.Stop();
+    public static void StopHttp() => _http.Stop();
 
     /// <summary>
     /// Runs the newline-delimited JSON-RPC loop over the given streams (stdin/stdout for <c>--mcp</c>).
@@ -87,7 +87,7 @@ public static class AgentServer {
     /// pruning, and the concurrency cap; lives in <see cref="McpStdioTransport"/> (#215).
     /// </summary>
     public static void RunStdio(Stream input, Stream output) =>
-        new McpStdioTransport(req => Dispatch(req, AgentTransport.Stdio)).Run(input, output);
+        new McpStdioTransport(req => Dispatch(req)).Run(input, output);
 
     /// <summary>
     /// Dispatches a single JSON-RPC request object through the production
@@ -96,7 +96,7 @@ public static class AgentServer {
     /// <see cref="AgentTransport.Http"/> so <c>send_command</c> honors the network gate (#153).
     /// </summary>
     public static JsonObject? Dispatch(JsonObject request, AgentTransport transport = AgentTransport.Stdio) =>
-        Dispatcher.Dispatch(request, transport);
+        _dispatcher.Dispatch(request, transport);
 
     /// <summary>See <see cref="AgentToolExecutor.SerializesOnInputLock"/> (the #113 contract).</summary>
     public static bool SerializesOnInputLock(string tool) => AgentToolExecutor.SerializesOnInputLock(tool);
@@ -105,7 +105,7 @@ public static class AgentServer {
     internal static Command? BuildCommand(string name, JsonObject args) => AgentToolExecutor.BuildCommand(name, args);
 
     /// <summary>See <see cref="AgentToolExecutor.RunAgentCommand"/>. Kept for tests (InternalsVisibleTo).</summary>
-    internal static JsonObject RunAgentCommand(string name, JsonObject args) => Executor.RunAgentCommand(name, args);
+    internal static JsonObject RunAgentCommand(string name, JsonObject args) => _executor.RunAgentCommand(name, args);
 
     /// <summary>
     /// Built-in guidance handed to an agent at connect time (the MCP client shows this to the model). It
@@ -113,9 +113,9 @@ public static class AgentServer {
     /// into the exe at build time; this loads it once, collapsing each blank-line-separated paragraph to
     /// a single line (the historical connect-time format).
     /// </summary>
-    public static string Instructions => LazyInstructions.Value;
+    public static string Instructions => _lazyInstructions.Value;
 
-    private static readonly Lazy<string> LazyInstructions = new(LoadInstructions);
+    private static readonly Lazy<string> _lazyInstructions = new(LoadInstructions);
 
     private static string LoadInstructions() {
         using Stream? stream = typeof(AgentServer).Assembly.GetManifestResourceStream("MCEControl.AgentInstructions.md");

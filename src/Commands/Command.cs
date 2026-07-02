@@ -21,29 +21,36 @@ namespace MCEControl;
 /// IMPORANT: Be very careful changing this schema as it may break forward compat
 /// </summary>
 public abstract class Command : ICommand {
-    private String cmd = null!;
+    private String _cmd = null!;
 
+    // Kept as explicit constructor assignments: the SECURITY comment below must stay attached to
+    // the assignment it justifies.
+    // ReSharper disable once ConvertConstructorToMemberInitializers
     protected Command() {
         Enabled = false; // SECURITY: Explicity
         UserDefined = false; // TELEMERTRY: Explicit
     }
 
     [XmlAttribute("cmd")]
-    public string Cmd { get => cmd; set => cmd = value; }
+    public string Cmd { get => _cmd; set => _cmd = value; }
 
     // SERIALIZATION (#204): the polymorphic element-name map for embedded commands (one
     // [XmlElement("name", typeof(T))] per command type, formerly hardcoded here) now comes from
     // CommandRegistry.CreateXmlOverrides(), applied by SerializedCommands' cached serializer;
     // register a new command type there, not here.
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2227:Collection properties should be read only", Justification = "Serializable")]
-    public List<Command> EmbeddedCommands { get; set; } = null!;
+    // Nullable because that is the truth: XmlSerializer leaves this null when a command has no
+    // embedded children (leaf commands), and prototype/table instances never populate it.
+    public List<Command>? EmbeddedCommands { get; set; }
 
     [XmlAttribute("args")]
     public virtual string Args { get; set; } = null!;
 
     [XmlAttribute("enabled")]
     public bool Enabled { get; set; }
-    public virtual Reply Reply { get; set; } = null!;
+    // Nullable because that is the truth: prototype/table instances have no reply context; Clone
+    // installs one on the executing copy, and legacy write sites null-guard.
+    public virtual Reply? Reply { get; set; }
 
     public override string ToString() => $"Cmd=\"{Cmd}\" Args=\"{Args}\"";
 
@@ -96,15 +103,15 @@ public abstract class Command : ICommand {
     public virtual bool Execute() {
         if (!Enabled) {
             Logger.Instance.Log4.Info($"Command: Attempt to execute a disabled command ({Cmd})");
-            Logger.Instance.Log4.Info($"         As of MCEC v2.2.1 commands are disabled by default.");
-            Logger.Instance.Log4.Info($"         Edit mcec.commands to enable commands (change `Enabled=\"false\"' to 'Enabled=\"true\"').");
+            Logger.Instance.Log4.Info("         As of MCEC v2.2.1 commands are disabled by default.");
+            Logger.Instance.Log4.Info("         Edit mcec.commands to enable commands (change `Enabled=\"false\"' to 'Enabled=\"true\"').");
             return false;
         }
         // TELEMETRY: 
         // what: the number of commands of each type (key) received and executed
         // why: to understand what commands are used and which are not
         // how is PII protected: the name of the command, key, is not user definable
-        TelemetryService.Instance.TrackMetric($"{(UserDefined ? "<userDefined>" : cmd)} Executed", 1);
+        TelemetryService.Instance.TrackMetric($"{(UserDefined ? "<userDefined>" : _cmd)} Executed", 1);
         return true;
     }
 }

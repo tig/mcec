@@ -18,26 +18,26 @@ public static class WindowResolver {
     // Windows MCEC owns that must never be agent targets; notably the on-screen command overlay (#119).
     // The overlay annotates the screen; if it could be resolved by handle/foreground/process, an agent
     // would see and try to drive its own overlay. Handles are registered by the windows themselves.
-    private static readonly HashSet<long> IgnoredHandles = [];
+    private static readonly HashSet<long> _ignoredHandles = [];
 
     /// <summary>Marks a window handle as never-a-target (e.g. the command overlay registers itself).</summary>
     public static void RegisterIgnoredWindow(long handle) {
-        lock (IgnoredHandles) {
-            IgnoredHandles.Add(handle);
+        lock (_ignoredHandles) {
+            _ignoredHandles.Add(handle);
         }
     }
 
     /// <summary>Removes a previously-ignored handle (on window close).</summary>
     public static void UnregisterIgnoredWindow(long handle) {
-        lock (IgnoredHandles) {
-            IgnoredHandles.Remove(handle);
+        lock (_ignoredHandles) {
+            _ignoredHandles.Remove(handle);
         }
     }
 
     /// <summary>True if the handle is registered as never-a-target.</summary>
     public static bool IsIgnoredWindow(long handle) {
-        lock (IgnoredHandles) {
-            return IgnoredHandles.Contains(handle);
+        lock (_ignoredHandles) {
+            return _ignoredHandles.Contains(handle);
         }
     }
 

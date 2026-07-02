@@ -22,7 +22,7 @@ public class QueryCommand : WindowTargetingAgentCommand {
         get => [new QueryCommand { Cmd = "query" }];
     }
 
-    protected override string? AuditDetails() =>
+    protected override string AuditDetails() =>
         $"query window handle={Handle} title='{Window}' process='{Process}' class='{ClassName}' fg={Foreground} maxDepth={MaxDepth} maxNodes={MaxNodes}";
 
     protected override CommandResult ExecuteCore(WindowInfo? target) {

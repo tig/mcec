@@ -29,7 +29,7 @@ namespace MCEControl;
 /// <see cref="HeadlessOperatorUi"/>'s dedicated STA pump thread.</para>
 /// </summary>
 public static class EmergencyStop {
-    private static readonly object Gate = new();
+    private static readonly Lock _gate = new();
     private static EmergencyStopDetector? _detector;
     private static EmergencyStopHotkey _hotkey = EmergencyStopHotkey.Default;
     private static bool _armed;
@@ -55,7 +55,7 @@ public static class EmergencyStop {
     public static bool IsStopped => AgentRuntime.EmergencyStopped;
 
     /// <summary>When the current stop was engaged (UTC), or null when not stopped.</summary>
-    public static DateTime? StoppedAtUtc { get; private set; }
+    private static DateTime? StoppedAtUtc { get; set; }
 
     /// <summary>A short description of what engaged the current stop (e.g. the hotkey), or null when not stopped.</summary>
     public static string? StoppedReason { get; private set; }
@@ -69,7 +69,7 @@ public static class EmergencyStop {
     /// </summary>
     public static void Start(EmergencyStopHotkey hotkey) {
         ArgumentNullException.ThrowIfNull(hotkey);
-        lock (Gate) {
+        lock (_gate) {
             _hotkey = hotkey;
             _detector = new EmergencyStopDetector(hotkey);
             if (!_armed) {
@@ -83,7 +83,7 @@ public static class EmergencyStop {
 
     /// <summary>Disarms the hotkey detector (on host shutdown / settings reload).</summary>
     public static void Stop() {
-        lock (Gate) {
+        lock (_gate) {
             if (!_armed) {
                 return;
             }
@@ -97,7 +97,7 @@ public static class EmergencyStop {
 
     private static void OnKeyDown(object? sender, GlobalKeyEventArgs e) {
         bool fire;
-        lock (Gate) {
+        lock (_gate) {
             fire = _detector?.OnKeyDown(e.KeyCode, e.Injected) ?? false;
         }
         if (fire) {
@@ -106,7 +106,7 @@ public static class EmergencyStop {
     }
 
     private static void OnKeyUp(object? sender, GlobalKeyEventArgs e) {
-        lock (Gate) {
+        lock (_gate) {
             _detector?.OnKeyUp(e.KeyCode, e.Injected);
         }
     }
@@ -118,7 +118,7 @@ public static class EmergencyStop {
     /// button) as well as from the hotkey.
     /// </summary>
     public static void Trigger(string source) {
-        lock (Gate) {
+        lock (_gate) {
             if (AgentRuntime.EmergencyStopped) {
                 // Already latched: the stop itself is idempotent, but surface the re-press so a host can
                 // re-offer its re-arm affordance. Dispatched off the hook callback path like everything
@@ -180,7 +180,7 @@ public static class EmergencyStop {
     /// operator action the latch waits for; it is never cleared automatically. No-op when not stopped.
     /// </summary>
     public static void Rearm() {
-        lock (Gate) {
+        lock (_gate) {
             if (!AgentRuntime.EmergencyStopped) {
                 return;
             }

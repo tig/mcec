@@ -17,7 +17,7 @@ namespace MCEControl.xUnit.Services;
 public class UpdateServiceVerificationTests {
     // ---- (1) asset pinning ----
 
-    private static readonly (string Name, string Url)[] Assets = [
+    private static readonly (string Name, string Url)[] _assets = [
         ("SHA256SUMS", "https://github.com/tig/mcec/releases/download/v3.0/SHA256SUMS"),
         ("mcec.Setup.exe", "https://github.com/tig/mcec/releases/download/v3.0/mcec.Setup.exe"),
         ("source.zip", "https://github.com/tig/mcec/releases/download/v3.0/source.zip"),
@@ -25,13 +25,13 @@ public class UpdateServiceVerificationTests {
 
     [Fact]
     public void SelectInstallerAssetUrl_PicksPinnedName_NotFirstAsset() {
-        string? url = UpdateService.SelectInstallerAssetUrl(Assets, "mcec.Setup.exe");
+        string? url = UpdateService.SelectInstallerAssetUrl(_assets, "mcec.Setup.exe");
         Assert.Equal("https://github.com/tig/mcec/releases/download/v3.0/mcec.Setup.exe", url);
     }
 
     [Fact]
     public void SelectInstallerAssetUrl_IsCaseInsensitiveOnName() {
-        string? url = UpdateService.SelectInstallerAssetUrl(Assets, "MCEC.SETUP.EXE");
+        string? url = UpdateService.SelectInstallerAssetUrl(_assets, "MCEC.SETUP.EXE");
         Assert.NotNull(url);
     }
 

@@ -17,7 +17,7 @@ namespace MCEControl.xUnit.Agent;
 /// <c>error</c>; <c>ok:true</c> ⟹ no <c>error</c>; <c>category</c> from the closed taxonomy.
 /// </summary>
 public class AgentToolResultTests {
-    private static readonly HashSet<string> CategoryEnum = [
+    private static readonly HashSet<string> _categoryEnum = [
         "timeout", "ambiguous-selector", "stale-element", "no-target", "invalid-argument",
         "capture-blank", "focus", "elevation", "foreground", "internal",
     ];
@@ -35,11 +35,11 @@ public class AgentToolResultTests {
             Assert.False(string.IsNullOrEmpty(error["code"]?.GetValue<string>()), "error.code is required");
             Assert.False(string.IsNullOrEmpty(error["detail"]?.GetValue<string>()), "error.detail is required");
             string category = error["category"]!.GetValue<string>();
-            Assert.Contains(category, CategoryEnum);
+            Assert.Contains(category, _categoryEnum);
             Assert.False(env.ContainsKey("result"), "a failure envelope must not carry 'result'");
         }
 
-        if (env["warnings"] is JsonNode warnings) {
+        if (env["warnings"] is { } warnings) {
             JsonArray arr = Assert.IsType<JsonArray>(warnings);
             foreach (JsonNode? w in arr) {
                 JsonObject wo = Assert.IsType<JsonObject>(w);
@@ -141,7 +141,7 @@ public class AgentToolResultTests {
     public void CategoryWire_MapsEveryCategoryToSchemaEnum(AgentErrorCategory category, string expected) {
         string wire = new AgentError("c", category, "d").CategoryWire;
         Assert.Equal(expected, wire);
-        Assert.Contains(wire, CategoryEnum);
+        Assert.Contains(wire, _categoryEnum);
     }
 
     // #206: the prose-sniffing Categorize shim is GONE. The envelope is built from the CommandResult

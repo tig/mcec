@@ -29,8 +29,8 @@ namespace MCEControl;
 /// piece logs a warning and is skipped; the MCP server itself is unaffected.</para>
 /// </summary>
 internal static class HeadlessOperatorUi {
-    private static readonly object Gate = new();
-    private static readonly ManualResetEventSlim Ready = new(false);
+    private static readonly Lock _gate = new();
+    private static readonly ManualResetEventSlim _ready = new(false);
     private static Thread? _thread;
     private static ApplicationContext? _context;
     private static Control? _marshal;
@@ -48,7 +48,7 @@ internal static class HeadlessOperatorUi {
     /// <summary>True while the pump thread is hosting.</summary>
     internal static bool IsRunning {
         get {
-            lock (Gate) {
+            lock (_gate) {
                 return _thread is not null;
             }
         }
@@ -70,11 +70,11 @@ internal static class HeadlessOperatorUi {
             return;
         }
 
-        lock (Gate) {
+        lock (_gate) {
             if (_thread is not null) {
                 return;
             }
-            Ready.Reset();
+            _ready.Reset();
             string hotkeySpec = settings.EmergencyStopHotkey;
             _thread = new Thread(() => Pump(armEstop, hotkeySpec, showOverlay)) {
                 Name = "MCEC-HeadlessOperatorUi",
@@ -84,7 +84,7 @@ internal static class HeadlessOperatorUi {
             _thread.Start();
         }
 
-        if (!Ready.Wait(TimeSpan.FromSeconds(10))) {
+        if (!_ready.Wait(TimeSpan.FromSeconds(10))) {
             Logger.Instance.Log4.Warn("HeadlessOperatorUi: pump thread did not finish arming within 10s; continuing.");
         }
     }
@@ -96,7 +96,7 @@ internal static class HeadlessOperatorUi {
     /// </summary>
     public static void Stop() {
         Thread? thread;
-        lock (Gate) {
+        lock (_gate) {
             thread = _thread;
             _thread = null;
         }
@@ -104,12 +104,12 @@ internal static class HeadlessOperatorUi {
             return;
         }
 
-        Ready.Wait(TimeSpan.FromSeconds(2)); // let a mid-arming thread reach its pump first
+        _ready.Wait(TimeSpan.FromSeconds(2)); // let a mid-arming thread reach its pump first
         try {
             // ExitThread must execute ON the pump thread (it ends that thread's message loop).
             Control? marshal = _marshal;
             if (marshal is not null && marshal.IsHandleCreated) {
-                marshal.BeginInvoke(new Action(static () => _context?.ExitThread()));
+                marshal.BeginInvoke(static () => _context?.ExitThread());
             }
         }
         catch (Exception ex) {
@@ -152,14 +152,14 @@ internal static class HeadlessOperatorUi {
             }
 
             _context = new ApplicationContext();
-            Ready.Set();
+            _ready.Set();
             Application.Run(_context);
         }
         catch (Exception ex) {
             Logger.Instance.Log4.Error($"HeadlessOperatorUi: pump thread failed: {ex.Message}");
         }
         finally {
-            Ready.Set(); // a setup failure must not leave Start waiting out its full bound
+            _ready.Set(); // a setup failure must not leave Start waiting out its full bound
             if (_estopArmed) {
                 EmergencyStop.StateChanged -= OnStateChanged;
                 EmergencyStop.Retriggered -= OnRetriggered;
@@ -190,7 +190,7 @@ internal static class HeadlessOperatorUi {
             return;
         }
         try {
-            marshal.BeginInvoke(new Action(ShowPrompt));
+            marshal.BeginInvoke(ShowPrompt);
         }
         catch (InvalidOperationException) {
             // Handle torn down between the check and the post (shutdown); the stop stays latched.

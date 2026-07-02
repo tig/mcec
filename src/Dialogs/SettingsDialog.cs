@@ -39,6 +39,9 @@ public partial class SettingsDialog : Form {
         // Required for Windows Form Designer support
         //
         // https://www.sgrottel.de/?p=1581&lang=en
+        // Deliberate WinForms per-monitor-DPI pattern (see the reference above): the Font must be
+        // assigned before handle creation, and Form.Font is virtual.
+        // ReSharper disable once VirtualMemberCallInConstructor
         Font = SystemFonts.DefaultFont;
         InitializeComponent();
 

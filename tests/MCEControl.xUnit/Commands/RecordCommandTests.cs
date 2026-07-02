@@ -104,7 +104,7 @@ public class RecordCommandTests {
             Assert.False(result);
             JsonObject json = JsonNode.Parse(reply.Captured.Trim())!.AsObject();
             Assert.False(json["success"]!.GetValue<bool>());
-            Assert.Contains("action", json["error"]!.GetValue<string>(), System.StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("action", json["error"]!.GetValue<string>(), StringComparison.OrdinalIgnoreCase);
         }
         finally {
             AgentRuntime.Settings = null;
@@ -177,7 +177,7 @@ public class RecordCommandTests {
     public void Execute_StopAfterAutoStop_WritesBufferedGif() {
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
-        string outFile = Path.Combine(Path.GetTempPath(), $"mcec-rec-test-{System.Guid.NewGuid():N}.gif");
+        string outFile = Path.Combine(Path.GetTempPath(), $"mcec-rec-test-{Guid.NewGuid():N}.gif");
         try {
             GifRecorder.Stop(); // clear any prior recording
             // A tiny maxFrames makes the capture loop self-terminate almost immediately (#157).
@@ -211,7 +211,7 @@ public class RecordCommandTests {
     public void Execute_Oneshot_AfterAutoStop_WarnsUnfetchedRecordingDiscarded() {
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
-        string outFile = Path.Combine(Path.GetTempPath(), $"mcec-rec-test-{System.Guid.NewGuid():N}.gif");
+        string outFile = Path.Combine(Path.GetTempPath(), $"mcec-rec-test-{Guid.NewGuid():N}.gif");
         try {
             GifRecorder.Stop(); // clear any prior recording
             // Leave a completed-but-unfetched recording behind (tiny maxFrames → immediate auto-stop).
@@ -239,7 +239,7 @@ public class RecordCommandTests {
 
             JsonArray? warnings = json["warnings"]?.AsArray();
             Assert.NotNull(warnings);
-            Assert.Contains(warnings!, w => w?["code"]?.GetValue<string>() == "unfetched-recording-discarded");
+            Assert.Contains(warnings, w => w?["code"]?.GetValue<string>() == "unfetched-recording-discarded");
 
             // The discarded recording is gone: nothing else is left to fetch.
             Assert.False(GifRecorder.HasCompletedRecording);

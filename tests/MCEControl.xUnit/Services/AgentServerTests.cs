@@ -80,10 +80,10 @@ public class AgentServerTests {
         // other. If the loop dispatched serially, the first would wait alone and time out (met=1); only
         // concurrent dispatch lets both meet (met=2). Deterministic; the count gates on an actual
         // rendezvous, not on write order or wall-clock speed.
-        using System.Threading.ManualResetEventSlim aArrived = new(false);
-        using System.Threading.ManualResetEventSlim bArrived = new(false);
+        using ManualResetEventSlim aArrived = new(false);
+        using ManualResetEventSlim bArrived = new(false);
         int metTheOther = 0;
-        Func<JsonObject, JsonObject?> dispatch = req => {
+        JsonObject? Dispatch(JsonObject req) {
             long id = req["id"]!.GetValue<long>();
             bool sawOther;
             if (id == 1) {
@@ -95,16 +95,16 @@ public class AgentServerTests {
                 bArrived.Set();
             }
             if (sawOther) {
-                System.Threading.Interlocked.Increment(ref metTheOther);
+                Interlocked.Increment(ref metTheOther);
             }
             return new JsonObject { ["jsonrpc"] = "2.0", ["id"] = id, ["result"] = new JsonObject() };
-        };
-        System.IO.StringReader reader = new(
+        }
+        StringReader reader = new(
             "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"x\"}\n" +
             "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"x\"}\n");
-        System.IO.StringWriter writer = new();
+        StringWriter writer = new();
 
-        new McpStdioTransport(dispatch).Run(reader, writer);
+        new McpStdioTransport(Dispatch).Run(reader, writer);
 
         string output = writer.ToString();
         Assert.Equal(2, metTheOther); // both dispatches were in flight at once => concurrent
@@ -152,7 +152,7 @@ public class AgentServerTests {
         }
 
         Assert.NotNull(click);
-        JsonObject schema = click!["inputSchema"]!.AsObject();
+        JsonObject schema = click["inputSchema"]!.AsObject();
         JsonObject props = schema["properties"]!.AsObject();
         Assert.True(props.ContainsKey("at"));
         Assert.True(props.ContainsKey("button"));
@@ -232,7 +232,7 @@ public class AgentServerTests {
         }
 
         Assert.NotNull(drag);
-        JsonObject schema = drag!["inputSchema"]!.AsObject();
+        JsonObject schema = drag["inputSchema"]!.AsObject();
         JsonObject props = schema["properties"]!.AsObject();
         Assert.True(props.ContainsKey("from"));
         Assert.True(props.ContainsKey("to"));

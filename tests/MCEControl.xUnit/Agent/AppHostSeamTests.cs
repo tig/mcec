@@ -146,7 +146,7 @@ public class AppHostSeamTests {
     [Fact]
     public void HeadlessHost_MessageWindowHandle_ThrowsPointedException() {
         InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
-            () => ((IAppHost)new HeadlessAppHost()).MessageWindowHandle);
+            () => new HeadlessAppHost().MessageWindowHandle);
 
         Assert.Contains("headless", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

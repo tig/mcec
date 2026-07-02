@@ -8,6 +8,9 @@ using System.Collections.Generic;
 using System.Text;
 using Xunit;
 
+// Telnet negotiation constants keep their RFC 854 protocol names (IAC/WILL/WONT/DO/DONT/SGA).
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl.xUnit.Services;
 
 /// <summary>
@@ -29,8 +32,8 @@ public class SocketServerTelnetParseTests {
             buffer,
             count,
             new CommandAccumulator(),
-            reply => replies.Add(reply),
-            cmd => cmds.Add(cmd));
+            replies.Add,
+            cmds.Add);
         commands = cmds;
         return replies;
     }
@@ -64,7 +67,7 @@ public class SocketServerTelnetParseTests {
     [Fact]
     public void TrailingLoneIac_DoesNotThrow_AndProducesNoReply() {
         // A chunk ending in a bare IAC (no verb byte follows): must be ignored, no reply, no throw.
-        var buffer = new byte[] { (byte)'x', IAC };
+        var buffer = new[] { (byte)'x', IAC };
 
         var replies = Parse(buffer, buffer.Length, out _);
 
@@ -75,7 +78,7 @@ public class SocketServerTelnetParseTests {
     public void LiteralIacEscape_DoesNotThrow_AndProducesNoReply() {
         // IAC IAC is the escape for a literal 0xFF; it is appended to the command buffer, not
         // treated as negotiation, so it must emit no telnet reply and must not throw.
-        var buffer = new byte[] { IAC, IAC };
+        var buffer = new[] { IAC, IAC };
 
         var replies = Parse(buffer, buffer.Length, out _);
 
@@ -85,7 +88,7 @@ public class SocketServerTelnetParseTests {
     [Fact]
     public void CompleteDoSga_RepliesWill() {
         // IAC DO SGA -> server replies IAC WILL SGA.
-        var buffer = new byte[] { IAC, DO, SGA };
+        var buffer = new[] { IAC, DO, SGA };
 
         var replies = Parse(buffer, 3, out _);
 
@@ -99,7 +102,7 @@ public class SocketServerTelnetParseTests {
     public void CompleteDoNonSga_RepliesWont() {
         // IAC DO <non-SGA option> -> server replies IAC WONT option.
         const byte someOption = 24; // TERMINAL-TYPE
-        var buffer = new byte[] { IAC, DO, someOption };
+        var buffer = new[] { IAC, DO, someOption };
 
         var replies = Parse(buffer, 3, out _);
 
@@ -114,7 +117,7 @@ public class SocketServerTelnetParseTests {
         // IAC IAC is the telnet escape for a literal 0xFF data byte: exactly one (char)255
         // must land in the accumulated command; not the decimal string "255"
         // (StringBuilder.Append(byte) formats the number; #148 review follow-up).
-        var buffer = new byte[] { (byte)'a', IAC, IAC, (byte)'b', (byte)'\n' };
+        var buffer = new[] { (byte)'a', IAC, IAC, (byte)'b', (byte)'\n' };
 
         Parse(buffer, buffer.Length, out var commands);
 
@@ -124,7 +127,7 @@ public class SocketServerTelnetParseTests {
 
     [Fact]
     public void PlainText_TerminatedByNewline_YieldsOneCommand() {
-        var buffer = Encoding.ASCII.GetBytes("hello\r");
+        var buffer = "hello\r"u8.ToArray();
 
         Parse(buffer, buffer.Length, out var commands);
 

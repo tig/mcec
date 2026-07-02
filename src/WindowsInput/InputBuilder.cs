@@ -66,14 +66,18 @@ internal class InputBuilder : IEnumerable<INPUT> {
     /// <param name="keyCode">The <see cref="VirtualKeyCode"/>.</param>
     /// <returns>This <see cref="InputBuilder"/> instance.</returns>
     public InputBuilder AddKeyDown(VirtualKeyCode keyCode) {
-        INPUT down = new INPUT();
-        down.Type = (UInt32)InputType.Keyboard;
-        down.Data.Keyboard = new KEYBDINPUT();
-        down.Data.Keyboard.KeyCode = (UInt16)keyCode;
-        down.Data.Keyboard.Scan = 0;
-        down.Data.Keyboard.Flags = 0;
-        down.Data.Keyboard.Time = 0;
-        down.Data.Keyboard.ExtraInfo = IntPtr.Zero;
+        INPUT down = new INPUT {
+            Type = (UInt32)InputType.Keyboard,
+            Data = {
+                Keyboard = new KEYBDINPUT {
+                    KeyCode = (UInt16)keyCode,
+                    Scan = 0,
+                    Flags = 0,
+                    Time = 0,
+                    ExtraInfo = IntPtr.Zero
+                }
+            }
+        };
 
         _inputList.Add(down);
         return this;
@@ -85,14 +89,18 @@ internal class InputBuilder : IEnumerable<INPUT> {
     /// <param name="keyCode">The <see cref="VirtualKeyCode"/>.</param>
     /// <returns>This <see cref="InputBuilder"/> instance.</returns>
     public InputBuilder AddKeyUp(VirtualKeyCode keyCode) {
-        INPUT up = new INPUT();
-        up.Type = (UInt32)InputType.Keyboard;
-        up.Data.Keyboard = new KEYBDINPUT();
-        up.Data.Keyboard.KeyCode = (UInt16)keyCode;
-        up.Data.Keyboard.Scan = 0;
-        up.Data.Keyboard.Flags = (UInt32)KeyboardFlag.KeyUp;
-        up.Data.Keyboard.Time = 0;
-        up.Data.Keyboard.ExtraInfo = IntPtr.Zero;
+        INPUT up = new INPUT {
+            Type = (UInt32)InputType.Keyboard,
+            Data = {
+                Keyboard = new KEYBDINPUT {
+                    KeyCode = (UInt16)keyCode,
+                    Scan = 0,
+                    Flags = (UInt32)KeyboardFlag.KeyUp,
+                    Time = 0,
+                    ExtraInfo = IntPtr.Zero
+                }
+            }
+        };
 
         _inputList.Add(up);
         return this;
@@ -113,27 +121,34 @@ internal class InputBuilder : IEnumerable<INPUT> {
     /// Adds the character to the list of <see cref="INPUT"/> messages.
     /// </summary>
     /// <param name="character">The <see cref="System.Char"/> to be added to the list of <see cref="INPUT"/> messages.</param>
-    /// <returns>This <see cref="InputBuilder"/> instance.</returns>
-    public InputBuilder AddCharacter(char character) {
+    private void AddCharacter(char character) {
         UInt16 scanCode = character;
 
-        INPUT down = new INPUT();
-        down.Type = (UInt32)InputType.Keyboard;
-        down.Data.Keyboard = new KEYBDINPUT();
-        down.Data.Keyboard.KeyCode = 0;
-        down.Data.Keyboard.Scan = scanCode;
-        down.Data.Keyboard.Flags = (UInt32)KeyboardFlag.Unicode;
-        down.Data.Keyboard.Time = 0;
-        down.Data.Keyboard.ExtraInfo = IntPtr.Zero;
+        INPUT down = new INPUT {
+            Type = (UInt32)InputType.Keyboard,
+            Data = {
+                Keyboard = new KEYBDINPUT {
+                    KeyCode = 0,
+                    Scan = scanCode,
+                    Flags = (UInt32)KeyboardFlag.Unicode,
+                    Time = 0,
+                    ExtraInfo = IntPtr.Zero
+                }
+            }
+        };
 
-        INPUT up = new INPUT();
-        up.Type = (UInt32)InputType.Keyboard;
-        up.Data.Keyboard = new KEYBDINPUT();
-        up.Data.Keyboard.KeyCode = 0;
-        up.Data.Keyboard.Scan = scanCode;
-        up.Data.Keyboard.Flags = (UInt32)(KeyboardFlag.KeyUp | KeyboardFlag.Unicode);
-        up.Data.Keyboard.Time = 0;
-        up.Data.Keyboard.ExtraInfo = IntPtr.Zero;
+        INPUT up = new INPUT {
+            Type = (UInt32)InputType.Keyboard,
+            Data = {
+                Keyboard = new KEYBDINPUT {
+                    KeyCode = 0,
+                    Scan = scanCode,
+                    Flags = (UInt32)(KeyboardFlag.KeyUp | KeyboardFlag.Unicode),
+                    Time = 0,
+                    ExtraInfo = IntPtr.Zero
+                }
+            }
+        };
 
         // Handle extended keys:
         // If the scan code is preceded by a prefix byte that has the value 0xE0 (224),
@@ -145,7 +160,6 @@ internal class InputBuilder : IEnumerable<INPUT> {
 
         _inputList.Add(down);
         _inputList.Add(up);
-        return this;
     }
 
     /// <summary>
@@ -153,7 +167,7 @@ internal class InputBuilder : IEnumerable<INPUT> {
     /// </summary>
     /// <param name="characters">The characters to add.</param>
     /// <returns>This <see cref="InputBuilder"/> instance.</returns>
-    public InputBuilder AddCharacters(IEnumerable<char> characters) {
+    private InputBuilder AddCharacters(IEnumerable<char> characters) {
         foreach (char character in characters) {
             AddCharacter(character);
         }
@@ -172,11 +186,10 @@ internal class InputBuilder : IEnumerable<INPUT> {
     #region Mouse
 
     public InputBuilder AddRelativeMouseMovement(int x, int y) {
-        INPUT movement = new INPUT();
-        movement.Type = (UInt32)InputType.Mouse;
-        movement.Data.Mouse.Flags = (UInt32)MouseFlag.Move;
-        movement.Data.Mouse.X = x;
-        movement.Data.Mouse.Y = y;
+        INPUT movement = new INPUT {
+            Type = (UInt32)InputType.Mouse,
+            Data = { Mouse = { Flags = (UInt32)MouseFlag.Move, X = x, Y = y } }
+        };
 
         _inputList.Add(movement);
 
@@ -184,11 +197,10 @@ internal class InputBuilder : IEnumerable<INPUT> {
     }
 
     public InputBuilder AddAbsoluteMouseMovement(int absoluteX, int absoluteY) {
-        INPUT movement = new INPUT();
-        movement.Type = (UInt32)InputType.Mouse;
-        movement.Data.Mouse.Flags = (UInt32)(MouseFlag.Move | MouseFlag.Absolute);
-        movement.Data.Mouse.X = absoluteX;
-        movement.Data.Mouse.Y = absoluteY;
+        INPUT movement = new INPUT {
+            Type = (UInt32)InputType.Mouse,
+            Data = { Mouse = { Flags = (UInt32)(MouseFlag.Move | MouseFlag.Absolute), X = absoluteX, Y = absoluteY } }
+        };
 
         _inputList.Add(movement);
 
@@ -196,11 +208,10 @@ internal class InputBuilder : IEnumerable<INPUT> {
     }
 
     public InputBuilder AddAbsoluteMouseMovementOnVirtualDesktop(int absoluteX, int absoluteY) {
-        INPUT movement = new INPUT();
-        movement.Type = (UInt32)InputType.Mouse;
-        movement.Data.Mouse.Flags = (UInt32)(MouseFlag.Move | MouseFlag.Absolute | MouseFlag.VirtualDesk);
-        movement.Data.Mouse.X = absoluteX;
-        movement.Data.Mouse.Y = absoluteY;
+        INPUT movement = new INPUT {
+            Type = (UInt32)InputType.Mouse,
+            Data = { Mouse = { Flags = (UInt32)(MouseFlag.Move | MouseFlag.Absolute | MouseFlag.VirtualDesk), X = absoluteX, Y = absoluteY } }
+        };
 
         _inputList.Add(movement);
 
@@ -208,9 +219,10 @@ internal class InputBuilder : IEnumerable<INPUT> {
     }
 
     public InputBuilder AddMouseButtonDown(MouseButton button) {
-        INPUT buttonDown = new INPUT();
-        buttonDown.Type = (UInt32)InputType.Mouse;
-        buttonDown.Data.Mouse.Flags = (UInt32)button.ToMouseButtonDownFlag();
+        INPUT buttonDown = new INPUT {
+            Type = (UInt32)InputType.Mouse,
+            Data = { Mouse = { Flags = (UInt32)button.ToMouseButtonDownFlag() } }
+        };
 
         _inputList.Add(buttonDown);
 
@@ -218,29 +230,30 @@ internal class InputBuilder : IEnumerable<INPUT> {
     }
 
     public InputBuilder AddMouseXButtonDown(int xButtonId) {
-        INPUT buttonDown = new INPUT();
-        buttonDown.Type = (UInt32)InputType.Mouse;
-        buttonDown.Data.Mouse.Flags = (UInt32)MouseFlag.XDown;
-        buttonDown.Data.Mouse.MouseData = (UInt32)xButtonId;
+        INPUT buttonDown = new INPUT {
+            Type = (UInt32)InputType.Mouse,
+            Data = { Mouse = { Flags = (UInt32)MouseFlag.XDown, MouseData = (UInt32)xButtonId } }
+        };
         _inputList.Add(buttonDown);
 
         return this;
     }
 
     public InputBuilder AddMouseButtonUp(MouseButton button) {
-        INPUT buttonUp = new INPUT();
-        buttonUp.Type = (UInt32)InputType.Mouse;
-        buttonUp.Data.Mouse.Flags = (UInt32)button.ToMouseButtonUpFlag();
+        INPUT buttonUp = new INPUT {
+            Type = (UInt32)InputType.Mouse,
+            Data = { Mouse = { Flags = (UInt32)button.ToMouseButtonUpFlag() } }
+        };
         _inputList.Add(buttonUp);
 
         return this;
     }
 
     public InputBuilder AddMouseXButtonUp(int xButtonId) {
-        INPUT buttonUp = new INPUT();
-        buttonUp.Type = (UInt32)InputType.Mouse;
-        buttonUp.Data.Mouse.Flags = (UInt32)MouseFlag.XUp;
-        buttonUp.Data.Mouse.MouseData = (UInt32)xButtonId;
+        INPUT buttonUp = new INPUT {
+            Type = (UInt32)InputType.Mouse,
+            Data = { Mouse = { Flags = (UInt32)MouseFlag.XUp, MouseData = (UInt32)xButtonId } }
+        };
         _inputList.Add(buttonUp);
 
         return this;
@@ -263,10 +276,10 @@ internal class InputBuilder : IEnumerable<INPUT> {
     }
 
     public InputBuilder AddMouseVerticalWheelScroll(int scrollAmount) {
-        INPUT scroll = new INPUT();
-        scroll.Type = (UInt32)InputType.Mouse;
-        scroll.Data.Mouse.Flags = (UInt32)MouseFlag.VerticalWheel;
-        scroll.Data.Mouse.MouseData = (UInt32)scrollAmount;
+        INPUT scroll = new INPUT {
+            Type = (UInt32)InputType.Mouse,
+            Data = { Mouse = { Flags = (UInt32)MouseFlag.VerticalWheel, MouseData = (UInt32)scrollAmount } }
+        };
 
         _inputList.Add(scroll);
 
@@ -274,10 +287,10 @@ internal class InputBuilder : IEnumerable<INPUT> {
     }
 
     public InputBuilder AddMouseHorizontalWheelScroll(int scrollAmount) {
-        INPUT scroll = new INPUT();
-        scroll.Type = (UInt32)InputType.Mouse;
-        scroll.Data.Mouse.Flags = (UInt32)MouseFlag.HorizontalWheel;
-        scroll.Data.Mouse.MouseData = (UInt32)scrollAmount;
+        INPUT scroll = new INPUT {
+            Type = (UInt32)InputType.Mouse,
+            Data = { Mouse = { Flags = (UInt32)MouseFlag.HorizontalWheel, MouseData = (UInt32)scrollAmount } }
+        };
 
         _inputList.Add(scroll);
 

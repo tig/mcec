@@ -13,7 +13,7 @@ namespace MCEControl.xUnit.Commands;
 /// the desktop, so start/oneshot paths can be exercised in a normal (headless-safe) test run.
 /// </summary>
 public class SyntheticGrabRecordCommand : RecordCommand {
-    protected override Func<Bitmap>? BuildGrabber(out JsonNode? target, out string? error) {
+    protected override Func<Bitmap> BuildGrabber(out JsonNode? target, out string? error) {
         target = new JsonObject { ["type"] = "synthetic" };
         error = null;
         return () => new Bitmap(8, 8);

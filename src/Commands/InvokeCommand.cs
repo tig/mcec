@@ -24,7 +24,7 @@ public class InvokeCommand : WindowTargetingAgentCommand {
         get => [new InvokeCommand { Cmd = "invoke" }];
     }
 
-    protected override string? AuditDetails() =>
+    protected override string AuditDetails() =>
         $"invoke action={Action} by={By} value='{Value}' window handle={Handle} title='{Window}' process='{Process}'";
 
     protected override CommandResult ExecuteCore(WindowInfo? target) {

@@ -19,12 +19,8 @@ public class MouseSimulator : IMouseSimulator {
     /// <param name="messageDispatcher">The <see cref="IInputMessageDispatcher"/> to use for dispatching <see cref="INPUT"/> messages.</param>
     /// <exception cref="InvalidOperationException">If null is passed as the <paramref name="messageDispatcher"/>.</exception>
     public MouseSimulator(IInputMessageDispatcher messageDispatcher) {
-        if (messageDispatcher == null) {
-            throw new InvalidOperationException(
-                $"The {typeof(MouseSimulator).Name} cannot operate with a null {typeof(IInputMessageDispatcher).Name}. Please provide a valid {typeof(IInputMessageDispatcher).Name} instance to use for dispatching {typeof(INPUT).Name} messages.");
-        }
-
-        _messageDispatcher = messageDispatcher;
+        _messageDispatcher = messageDispatcher ?? throw new InvalidOperationException(
+            $"The {nameof(MouseSimulator)} cannot operate with a null {nameof(IInputMessageDispatcher)}. Please provide a valid {nameof(IInputMessageDispatcher)} instance to use for dispatching {nameof(INPUT)} messages.");
     }
 
     /// <summary>
@@ -38,13 +34,12 @@ public class MouseSimulator : IMouseSimulator {
     /// Sends the list of <see cref="INPUT"/> messages using the <see cref="IInputMessageDispatcher"/> instance.
     /// </summary>
     /// <param name="inputList">The <see cref="System.Array"/> of <see cref="INPUT"/> messages to send.</param>
-    /// <returns>The number of successful messages that were sent.</returns>
-    private int SendSimulatedInput(INPUT[] inputList) {
-        if (inputList == null || inputList.Length == 0) {
-            return -1;
+    private void SendSimulatedInput(INPUT[] inputList) {
+        if (inputList.Length == 0) {
+            return;
         }
 
-        return (int)_messageDispatcher.DispatchInput(inputList);
+        _messageDispatcher.DispatchInput(inputList);
     }
 
     /// <summary>

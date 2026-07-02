@@ -30,7 +30,7 @@ internal static class ConsoleNativeMethods {
     private const uint FileShareRead = 0x00000001;
     private const uint FileShareWrite = 0x00000002;
     private const uint OpenExisting = 3;
-    private static readonly IntPtr InvalidHandleValue = new(-1);
+    private static readonly IntPtr _invalidHandleValue = new(-1);
 
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern IntPtr CreateFile(
@@ -65,7 +65,7 @@ internal static class ConsoleNativeMethods {
     internal static void TryEnableVtProcessing() {
         IntPtr conout = CreateFile("CONOUT$", GenericRead | GenericWrite, FileShareRead | FileShareWrite,
             IntPtr.Zero, OpenExisting, 0, IntPtr.Zero);
-        if (conout == IntPtr.Zero || conout == InvalidHandleValue) {
+        if (conout == IntPtr.Zero || conout == _invalidHandleValue) {
             return;
         }
         try {

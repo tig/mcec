@@ -56,12 +56,12 @@ public sealed class McpHttpTransport {
     /// is logged and abandoned (it is a background task holding no listener resources) rather than
     /// wedging the operator's Stop.
     /// </summary>
-    public const int StopDrainTimeoutMs = 5_000;
+    private const int StopDrainTimeoutMs = 5_000;
 
     private readonly Func<AppSettings?> _settings;
     private readonly Func<JsonObject, JsonObject?> _dispatch;
     private readonly SemaphoreSlim _workerSlots = new(MaxConcurrentHttpRequests, MaxConcurrentHttpRequests);
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private HttpListener? _listener;
     private Thread? _acceptThread;
 
@@ -301,7 +301,7 @@ public sealed class McpHttpTransport {
     /// is the CANONICAL form; <c>localhost</c>, a dotted IPv4 literal (<c>127.0.0.1</c>), or a bracketed
     /// IPv6 literal (<c>[::1]</c>).
     /// <para>
-    /// Canonicalizing is load-bearing, not cosmetic. <see cref="IPAddress.TryParse"/> also blesses
+    /// Canonicalizing is load-bearing, not cosmetic. <see cref="IPAddress.TryParse(string, out IPAddress)"/> also blesses
     /// obfuscated loopback spellings; <c>0x7f.0.0.1</c>, <c>127.1</c>, <c>2130706433</c>,
     /// <c>127.00.00.01</c>, <c>::ffff:127.0.0.1</c>; as loopback, but <c>http.sys</c> parses those RAW
     /// strings differently: some register as hostname/wildcard bindings that, under an elevated MCEC,
@@ -325,7 +325,7 @@ public sealed class McpHttpTransport {
             return true;
         }
         // An IPv6 literal may be written bracketed ([::1]), as it appears inside a URL/prefix.
-        if (candidate.Length >= 2 && candidate[0] == '[' && candidate[^1] == ']') {
+        if (candidate is ['[', .., ']']) {
             candidate = candidate[1..^1];
         }
         if (!IPAddress.TryParse(candidate, out IPAddress? ip) || !IPAddress.IsLoopback(ip)) {

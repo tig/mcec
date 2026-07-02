@@ -19,6 +19,5 @@ namespace MCEControl;
 /// <summary>
 /// Used by TELEMETRY to determine which settings are safe for collection.
 /// </summary>
-[System.AttributeUsage(System.AttributeTargets.Property)]
-public class SafeForTelemetryAttribute : System.Attribute {
-}
+[AttributeUsage(AttributeTargets.Property)]
+public class SafeForTelemetryAttribute : Attribute;

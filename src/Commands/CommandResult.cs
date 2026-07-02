@@ -19,9 +19,9 @@ namespace MCEControl;
 /// added additively so existing consumers that read <c>success</c>/<c>data</c>/<c>error</c> keep working.
 /// </summary>
 public sealed class CommandResult {
-    public bool Success { get; set; }
-    public string? Command { get; set; }
-    public string? Error { get; set; }
+    public bool Success { get; private init; }
+    public string? Command { get; private init; }
+    public string? Error { get; private init; }
 
     /// <summary>Stable, fine-grained error code (kebab-case); narrows <see cref="ErrorCategory"/>.</summary>
     public string? ErrorCode { get; set; }
@@ -31,7 +31,7 @@ public sealed class CommandResult {
     /// foreground, internal).</summary>
     public string? ErrorCategory { get; set; }
 
-    public JsonObject? Data { get; set; }
+    public JsonObject? Data { get; private init; }
 
     /// <summary>Non-fatal conditions surfaced alongside the result; can be present on success or failure.</summary>
     public List<CommandWarning> Warnings { get; } = [];

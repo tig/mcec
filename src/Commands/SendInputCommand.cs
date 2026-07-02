@@ -24,80 +24,80 @@ namespace MCEControl;
 /// </summary>
 [Serializable]
 public class SendInputCommand : Command {
-    private bool alt;
-    private bool ctrl;
-    private bool shift;
-    private bool win;
-    private string vk = null!;
+    private bool _alt;
+    private bool _ctrl;
+    private bool _shift;
+    private bool _win;
+    private string _vk = null!;
 
-    [XmlAttribute("alt")] public bool Alt { get => alt; set => alt = value; }
-    [XmlAttribute("ctrl")] public bool Ctrl { get => ctrl; set => ctrl = value; }
-    [XmlAttribute("shift")] public bool Shift { get => shift; set => shift = value; }
-    [XmlAttribute("win")] public bool Win { get => win; set => win = value; }
-    [XmlAttribute("vk")] public string Vk { get => vk; set => vk = value; }
+    [XmlAttribute("alt")] public bool Alt { get => _alt; set => _alt = value; }
+    [XmlAttribute("ctrl")] public bool Ctrl { get => _ctrl; set => _ctrl = value; }
+    [XmlAttribute("shift")] public bool Shift { get => _shift; set => _shift = value; }
+    [XmlAttribute("win")] public bool Win { get => _win; set => _win = value; }
+    [XmlAttribute("vk")] public string Vk { get => _vk; set => _vk = value; }
     private static List<Command> _builtins = [
-            new SendInputCommand($"shiftdown:", false, false, false, false),
-            new SendInputCommand($"shiftup:", false, false, false, false),
-            new SendInputCommand() { Cmd = "atlesc", vk = "VK_ESCAPE", Alt = true },
-            new SendInputCommand() { Cmd="wintab", vk="VK_TAB", Win=true },
-            new SendInputCommand() { Cmd="close", vk="VK_F4", Alt=true },
-            new SendInputCommand() { Cmd="ctrl-F1", vk="0x70", Ctrl=true },
-            new SendInputCommand() { Cmd="winkey", vk="VK_LWIN"},
-            new SendInputCommand() { Cmd="desktop", vk="VK_D", Win=true },
-            new SendInputCommand() { Cmd="winsearch", vk="VK_Q", Win=true},
-            new SendInputCommand() { Cmd="Windows Explorer", vk="VK_E", Shift=false, Ctrl=false, Alt=false, Win=true },
-            new SendInputCommand() { Cmd="Windows Desktop", vk="VK_D", Shift=false, Ctrl=false, Alt=false, Win=true },
-            new SendInputCommand() { Cmd="run", vk="VK_R", Shift=false, Ctrl=false, Alt=false, Win=true },
-            new SendInputCommand() { Cmd="Tile Left", vk="37", Shift=false, Ctrl=false, Alt=false, Win=true },
-            new SendInputCommand() { Cmd="Tile Right", vk="39", Shift=false, Ctrl=false, Alt=false, Win=true },
-            new SendInputCommand() { Cmd="back", vk="8", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="vol-", vk="VK_VOLUME_DOWN", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="vol+", vk="VK_VOLUME_UP", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="mute", vk="VK_VOLUME_MUTE", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="pause", vk="VK_MEDIA_PLAY_PAUSE", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="play", vk="VK_MEDIA_PLAY_PAUSE", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="ctrl-x", vk="VK_X", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="cc", vk="67", Shift=true, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="ch+", vk="187", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="ch-", vk="189", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="dvdaudio", vk="65", Shift=true, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="dvdmenu", vk="77", Shift=true, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="dvdsubtitle", vk="85", Shift=true, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="execute", vk="43", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="fwd", vk="70", Shift=true, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="guide", vk="71", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="prior", vk="8", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="livetv", vk="84", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="greenbutton", vk="13", Shift=false, Ctrl=false, Alt=true, Win=true },
-            new SendInputCommand() { Cmd="mymusic", vk="77", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="mypictures", vk="73", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="mytv", vk="84", Shift=true, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="myvideos", vk="69", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="record", vk="82", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="recordedtv", vk="79", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="rew", vk="66", Shift=true, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="stop", vk="83", Shift=true, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="skipback", vk="66", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="skipfwd", vk="70", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="enter", vk="13", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="escape", vk="27", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="delete", vk="46", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="end", vk="35", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="left", vk="37", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="up", vk="38", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="right", vk="39", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="down", vk="40", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="help", vk="47", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="home", vk="36", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="insert", vk="45", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="select", vk="41", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="moreinfo", vk="68", Shift=false, Ctrl=true, Alt=false },
-            new SendInputCommand() { Cmd="next", vk="34", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="ok", vk="13", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="print", vk="42", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="tab", vk="9", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="snapshot", vk="44", Shift=false, Ctrl=false, Alt=false },
-            new SendInputCommand() { Cmd="zoom", vk="90", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand("shiftdown:", false, false, false, false),
+            new SendInputCommand("shiftup:", false, false, false, false),
+            new SendInputCommand() { Cmd = "atlesc", Vk = "VK_ESCAPE", Alt = true },
+            new SendInputCommand() { Cmd="wintab", Vk="VK_TAB", Win=true },
+            new SendInputCommand() { Cmd="close", Vk="VK_F4", Alt=true },
+            new SendInputCommand() { Cmd="ctrl-F1", Vk="0x70", Ctrl=true },
+            new SendInputCommand() { Cmd="winkey", Vk="VK_LWIN"},
+            new SendInputCommand() { Cmd="desktop", Vk="VK_D", Win=true },
+            new SendInputCommand() { Cmd="winsearch", Vk="VK_Q", Win=true},
+            new SendInputCommand() { Cmd="Windows Explorer", Vk="VK_E", Shift=false, Ctrl=false, Alt=false, Win=true },
+            new SendInputCommand() { Cmd="Windows Desktop", Vk="VK_D", Shift=false, Ctrl=false, Alt=false, Win=true },
+            new SendInputCommand() { Cmd="run", Vk="VK_R", Shift=false, Ctrl=false, Alt=false, Win=true },
+            new SendInputCommand() { Cmd="Tile Left", Vk="37", Shift=false, Ctrl=false, Alt=false, Win=true },
+            new SendInputCommand() { Cmd="Tile Right", Vk="39", Shift=false, Ctrl=false, Alt=false, Win=true },
+            new SendInputCommand() { Cmd="back", Vk="8", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="vol-", Vk="VK_VOLUME_DOWN", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="vol+", Vk="VK_VOLUME_UP", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="mute", Vk="VK_VOLUME_MUTE", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="pause", Vk="VK_MEDIA_PLAY_PAUSE", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="play", Vk="VK_MEDIA_PLAY_PAUSE", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="ctrl-x", Vk="VK_X", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="cc", Vk="67", Shift=true, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="ch+", Vk="187", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="ch-", Vk="189", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="dvdaudio", Vk="65", Shift=true, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="dvdmenu", Vk="77", Shift=true, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="dvdsubtitle", Vk="85", Shift=true, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="execute", Vk="43", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="fwd", Vk="70", Shift=true, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="guide", Vk="71", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="prior", Vk="8", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="livetv", Vk="84", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="greenbutton", Vk="13", Shift=false, Ctrl=false, Alt=true, Win=true },
+            new SendInputCommand() { Cmd="mymusic", Vk="77", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="mypictures", Vk="73", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="mytv", Vk="84", Shift=true, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="myvideos", Vk="69", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="record", Vk="82", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="recordedtv", Vk="79", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="rew", Vk="66", Shift=true, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="stop", Vk="83", Shift=true, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="skipback", Vk="66", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="skipfwd", Vk="70", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="enter", Vk="13", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="escape", Vk="27", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="delete", Vk="46", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="end", Vk="35", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="left", Vk="37", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="up", Vk="38", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="right", Vk="39", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="down", Vk="40", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="help", Vk="47", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="home", Vk="36", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="insert", Vk="45", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="select", Vk="41", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="moreinfo", Vk="68", Shift=false, Ctrl=true, Alt=false },
+            new SendInputCommand() { Cmd="next", Vk="34", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="ok", Vk="13", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="print", Vk="42", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="tab", Vk="9", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="snapshot", Vk="44", Shift=false, Ctrl=false, Alt=false },
+            new SendInputCommand() { Cmd="zoom", Vk="90", Shift=false, Ctrl=false, Alt=false },
         ];
     public static List<Command> BuiltInCommands {
         get => _builtins;
@@ -107,7 +107,7 @@ public class SendInputCommand : Command {
         // Populate default VK_ codes
         foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
             string s;
-            if (vk > VirtualKeyCode.HELP && vk < VirtualKeyCode.LWIN) {
+            if (vk is > VirtualKeyCode.HELP and < VirtualKeyCode.LWIN) {
                 s = vk.ToString();  // already have VK_
             }
             else {
@@ -174,7 +174,7 @@ public class SendInputCommand : Command {
                 return true;
             }
 
-            VirtualKeyCode vkcode = 0;
+            VirtualKeyCode vkcode;
             if (Vk.Length == 1) {
                 // Deal with <SendInput Vk="x"/> - Vk includes an explicit 'x' char.
                 // ASCII of x 0x78. ASCII of X is 0x58. VK_X = 0x58m. Thus convert to
@@ -203,7 +203,7 @@ public class SendInputCommand : Command {
 
             string s;
             // it's a single char; convert to upper case
-            if (vkcode > VirtualKeyCode.HELP && vkcode < VirtualKeyCode.LWIN) {
+            if (vkcode is > VirtualKeyCode.HELP and < VirtualKeyCode.LWIN) {
                 s = $"{Char.ToUpper((char)vkcode, CultureInfo.InvariantCulture)}";
             }
             else {
@@ -322,7 +322,7 @@ public class SendInputCommand : Command {
                 break;
 
             default:
-                Logger.Instance.Log4.Info($"ShiftKey: No shift key specified");
+                Logger.Instance.Log4.Info("ShiftKey: No shift key specified");
                 break;
         }
     }

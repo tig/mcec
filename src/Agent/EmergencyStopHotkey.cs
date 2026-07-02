@@ -78,7 +78,7 @@ public sealed class EmergencyStopHotkey {
                 // More than one non-modifier key; not a supported single-key chord.
                 return null;
             }
-            if (ParseKey(token) is not Keys k) {
+            if (ParseKey(token) is not { } k) {
                 return null;
             }
             mainKey = k;

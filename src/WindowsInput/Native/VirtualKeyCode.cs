@@ -1,5 +1,8 @@
-﻿namespace WindowsInput.Native; 
+﻿namespace WindowsInput.Native;
 #pragma warning disable 649, CA1028, CA1714, CA1008, CA1720, CS3009
+// The VK member names mirror winuser.h and are the string vocabulary SendInputCommand parses
+// (Enum.Parse); renaming any member would silently break users' commands files.
+// ReSharper disable InconsistentNaming
 /// <summary>
 /// The list of VKs (see: http://msdn.microsoft.com/en-us/library/ms645540(VS.85).aspx)
 /// </summary>

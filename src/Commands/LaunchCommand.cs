@@ -20,15 +20,14 @@ namespace MCEControl;
 /// </summary>
 public class LaunchCommand : AgentCommand {
     [XmlAttribute("path")] public string Path { get; set; } = null!;
-    [XmlAttribute("arguments")] public string Arguments { get; set; } = null!;
+    // Genuinely absent (null) when the XML attribute is omitted; nullable models that honestly.
+    [XmlAttribute("arguments")] public string? Arguments { get; set; }
     [XmlAttribute("workingdirectory")] public string WorkingDirectory { get; set; } = null!;
     [XmlAttribute("timeout")] public int Timeout { get; set; }
 
     public static List<Command> BuiltInCommands {
         get => [new LaunchCommand { Cmd = "launch" }];
     }
-
-    public LaunchCommand() { }
 
     // Audits after path validation (below), with the effective timeout; not via AuditDetails.
     protected override CommandResult ExecuteCore() {
@@ -64,7 +63,8 @@ public class LaunchCommand : AgentCommand {
             int pid = p?.Id ?? 0;
             string processName = "";
             if (p != null) {
-                try { processName = p.ProcessName; } catch { }
+                // Best-effort: the process can exit between launch and this probe.
+                try { processName = p.ProcessName; } catch (InvalidOperationException) { }
             }
 
             WindowInfo? win = pid > 0 ? WaitForWindowByPid(pid, timeout) : null;

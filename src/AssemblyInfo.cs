@@ -67,5 +67,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("")]
 [assembly: AssemblyKeyName("")]
-[assembly: ComVisibleAttribute(false)]
+[assembly: ComVisible(false)]
 //[assembly: log4net.Config.XmlConfigurator(Watch = true)]

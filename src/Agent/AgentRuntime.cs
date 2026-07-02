@@ -143,7 +143,7 @@ public static class AgentRuntime {
     // Session runtime (#86)
     // -------------------------------------------------------------------------------------------
 
-    private static readonly object SessionGate = new();
+    private static readonly Lock _sessionGate = new();
     private static AgentSession? _session;
     private static string? _artifactRoot;
 
@@ -154,12 +154,12 @@ public static class AgentRuntime {
     /// </summary>
     public static string ArtifactRoot {
         get {
-            lock (SessionGate) {
+            lock (_sessionGate) {
                 return _artifactRoot ??= DefaultArtifactRoot();
             }
         }
         set {
-            lock (SessionGate) {
+            lock (_sessionGate) {
                 _artifactRoot = value;
                 _session = null;
             }
@@ -174,7 +174,7 @@ public static class AgentRuntime {
     /// </summary>
     public static AgentSession Session {
         get {
-            lock (SessionGate) {
+            lock (_sessionGate) {
                 return _session ??= AgentSession.Create(_artifactRoot ??= DefaultArtifactRoot());
             }
         }
@@ -182,14 +182,14 @@ public static class AgentRuntime {
 
     /// <summary>Drops the ambient session so the next access starts a fresh one (used by tests and a future <c>session/end</c>).</summary>
     public static void ResetSession() {
-        lock (SessionGate) {
+        lock (_sessionGate) {
             _session = null;
         }
     }
 
     private static string DefaultArtifactRoot() {
         try {
-            string baseDir = SettingsStore.GetSettingsPath(System.Windows.Forms.Application.StartupPath);
+            string baseDir = SettingsStore.GetSettingsPath(Application.StartupPath);
             return Path.Combine(baseDir, "sessions");
         }
         catch (Exception e) {

@@ -16,7 +16,7 @@ namespace MCEControl;
 public sealed class OverlayFeed {
     private readonly int _maxLines;
     private readonly TimeSpan _lifetime;
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly LinkedList<(DateTime At, CommandEvent Ev)> _items = new();
 
     public OverlayFeed(int maxLines, TimeSpan lifetime) {

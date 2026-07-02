@@ -6,6 +6,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 
+// Identifiers mirror the Win32 WinTrust constant/parameter names (WTD_*, TRUST_E_*, pgActionID, pWVTData).
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl;
 
 /// <summary>
@@ -19,7 +22,7 @@ namespace MCEControl;
     Justification = "WinVerifyTrust is grouped with its own verifier, matching the repo's thematic Win32 grouping.")]
 internal static class AuthenticodeVerifier {
     // WINTRUST_ACTION_GENERIC_VERIFY_V2
-    private static readonly Guid GenericVerifyV2 = new("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
+    private static readonly Guid _genericVerifyV2 = new("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
 
     private const uint WTD_UI_NONE = 2;
     private const uint WTD_REVOKE_NONE = 0;
@@ -95,7 +98,7 @@ internal static class AuthenticodeVerifier {
             pData = Marshal.AllocHGlobal(Marshal.SizeOf<WinTrustData>());
             Marshal.StructureToPtr(data, pData, false);
 
-            Guid action = GenericVerifyV2;
+            Guid action = _genericVerifyV2;
             trustResult = WinVerifyTrust(IntPtr.Zero, ref action, pData);
 
             // Always release the state data with a CLOSE call.

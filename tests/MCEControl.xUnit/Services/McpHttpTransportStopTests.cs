@@ -53,12 +53,15 @@ public class McpHttpTransportStopTests {
         McpHttpTransport transport = new(() => settings, req => {
             entered.Set();
             release.Wait(10000);
+            // Intentional: the captured flag is what the test observes across threads (synchronized).
+            // ReSharper disable once AccessToModifiedClosure
             Volatile.Write(ref dispatchExited, true);
             return new JsonObject { ["jsonrpc"] = "2.0", ["id"] = req["id"]?.DeepClone(), ["result"] = new JsonObject() };
         });
         transport.Start();
         try {
-            using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
+            using HttpClient client = new();
+            client.Timeout = TimeSpan.FromSeconds(30);
             Task<HttpResponseMessage> parked = PostPingAsync(client, url, 1);
             Assert.True(entered.Wait(10000), "request never reached dispatch");
 
@@ -109,7 +112,8 @@ public class McpHttpTransportStopTests {
             req => new JsonObject { ["jsonrpc"] = "2.0", ["id"] = req["id"]?.DeepClone(), ["result"] = new JsonObject() });
         try {
             transport.Start();
-            using HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
+            using HttpClient client = new();
+            client.Timeout = TimeSpan.FromSeconds(30);
             using (HttpResponseMessage first = await PostPingAsync(client, url, 1)) {
                 Assert.Equal(HttpStatusCode.OK, first.StatusCode);
             }

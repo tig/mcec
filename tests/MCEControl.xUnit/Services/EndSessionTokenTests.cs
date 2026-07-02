@@ -127,7 +127,7 @@ public class EndSessionTokenTests : IDisposable {
             }
         }
         Assert.NotNull(endSession);
-        JsonObject schema = endSession!["inputSchema"]!.AsObject();
+        JsonObject schema = endSession["inputSchema"]!.AsObject();
         Assert.True(schema["properties"]!.AsObject().ContainsKey("token"));
         bool tokenRequired = false;
         foreach (JsonNode? r in schema["required"]!.AsArray()) {

@@ -121,10 +121,10 @@ public sealed class AgentToolExecutor {
             // `drag`/`click` generate real mouse input from their endpoints, and a missing pixel field would
             // otherwise default to 0 and actuate at a bogus coordinate. Reject an ill-formed endpoint up
             // front rather than actuating it.
-            if (name == "drag" && DragArgsError(args) is string dragError) {
+            if (name == "drag" && DragArgsError(args) is { } dragError) {
                 return ToolError(dragError, "bad-arguments", AgentErrorCategory.InvalidArgument);
             }
-            if (name == "click" && ClickArgsError(args) is string clickError) {
+            if (name == "click" && ClickArgsError(args) is { } clickError) {
                 return ToolError(clickError, "bad-arguments", AgentErrorCategory.InvalidArgument);
             }
             return RunAgentCommand(name, args);
@@ -178,7 +178,7 @@ public sealed class AgentToolExecutor {
         //; the old default arm silently mapped unknown names onto InvokeCommand (an ACTUATION) with
         // garbage selector args. Since #205 the gate and the mapping are the SAME ToolCatalog, so
         // this can only trip for a caller that bypassed the gate (tests exercise it directly).
-        if (BuildCommand(name, args) is not Command cmd) {
+        if (BuildCommand(name, args) is not { } cmd) {
             AgentRuntime.Audit(name, "BLOCKED; tool has no argument mapping; refusing to run it as another command");
             return ToolError($"Unknown tool: {name}", "unknown-tool");
         }
@@ -237,7 +237,7 @@ public sealed class AgentToolExecutor {
         // serialize → JsonNode.Parse round-trip of our own output (which used to materialize a
         // capture's base64 PNG three to four times), and no "non-JSON output is success" fallback:
         // an agent command that produced no typed result is a structured internal failure.
-        if (reply.Result is not CommandResult commandResult) {
+        if (reply.Result is not { } commandResult) {
             AgentError noOutput = new("no-output", AgentErrorCategory.Internal,
                 $"The '{name}' command produced no structured result.", priorObservation);
             session.RecordError(noOutput.ToJsonObject());

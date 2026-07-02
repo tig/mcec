@@ -15,17 +15,12 @@ using log4net;
 
 namespace MCEControl;
 public abstract class ServiceBase {
-    protected ILog Log4 { get; set; }
+    protected ILog Log4 { get; set; } = LogManager.GetLogger("MCEControl");
 
     /// <summary>
     /// TELEMETRY: Enables collecting of how long sessions are connected for.
     /// </summary>
-    private Stopwatch _connectedTime = new();
-
-    protected ServiceBase() {
-        Log4 = log4net.LogManager.GetLogger("MCEControl");
-        CurrentStatus = ServiceStatus.Stopped;
-    }
+    private readonly Stopwatch _connectedTime = new();
 
     // Typed service events (#211). These replace the old 4-arg stringly NotificationCallback
     // (with its god-enum ServiceNotification) that forced every subscriber to demultiplex
@@ -45,7 +40,7 @@ public abstract class ServiceBase {
     /// the typed <see cref="System.Net.Sockets.SocketError"/>/HResult when one applies.</summary>
     public event Action<ServiceError>? ErrorOccurred;
 
-    public ServiceStatus CurrentStatus { get; set; }
+    public ServiceStatus CurrentStatus { get; private set; } = ServiceStatus.Stopped;
 
     public virtual void Send(string text, Reply? replyContext = null) {
         if (text == null) {

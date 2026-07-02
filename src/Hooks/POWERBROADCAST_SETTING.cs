@@ -4,6 +4,9 @@
 using System;
 using System.Runtime.InteropServices;
 
+// The struct name mirrors the Win32 POWERBROADCAST_SETTING declaration in winuser.h.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl.Hooks;
 
 /// <summary>
