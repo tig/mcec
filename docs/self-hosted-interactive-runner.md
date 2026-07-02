@@ -112,7 +112,7 @@ dotnet build MCEControl.slnx -c Release
 
 The lane should report the smoke as skipped with a notice if run on a non-interactive machine.
 
-## Artifact Shape (aligned with #87 bundle ideas)
+## Artifact Shape (aligned with the evidence-bundle layout)
 - test-results-... (trx, coverage)
 - smoke-... (if produced)
 - Any future per-observation screenshots/GIFs from E2E/agent tests can follow the same upload pattern.
@@ -120,4 +120,4 @@ The lane should report the smoke as skipped with a notice if run on a non-intera
 This lane is intentionally independent of the agent "skeleton" and only consumes the built MCEC binary + existing test infrastructure.
 
 ## Next
-Once stable, it can host the full desktop E2E / agent automation tests (#98) that require real input + visible desktop.
+Once stable, it can host the full desktop E2E / agent automation tests that require real input + visible desktop.

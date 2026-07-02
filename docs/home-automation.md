@@ -223,7 +223,7 @@ escapes* for unprintable/Unicode characters — `chars:\\` sends `\`, `chars:☺
 [documented here](https://docs.microsoft.com/en-us/dotnet/standard/base-types/character-escapes-in-regular-expressions).)
 
 How `chars:` interacts with modifier keys (shift/ctrl/alt/win) is app-dependent; for fine-grained control
-use `SendInput` commands instead (see [Issue #14](https://github.com/tig/mcec/issues/14)).
+use `SendInput` commands instead.
 
 Sending a single character without `chars:` (e.g. just `c`) is equivalent to a `SendInput` command — a
 single key press. There is no difference between sending `a` and `A`; use `shiftdown:`/`shiftup:` to hold
