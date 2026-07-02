@@ -15,13 +15,13 @@ public class QueryCommand : Command {
     [XmlAttribute("window")] public string Window { get; set; } = null!;
     [XmlAttribute("handle")] public long Handle { get; set; }
     [XmlAttribute("process")] public string Process { get; set; } = null!;
-    [XmlAttribute("className")] public string ClassName { get; set; } = null!;
+    [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
     [XmlAttribute("foreground")] public bool Foreground { get; set; }
-    [XmlAttribute("maxDepth")] public int MaxDepth { get; set; } = 6;
+    [XmlAttribute("maxdepth")] public int MaxDepth { get; set; } = 6;
 
     /// <summary>Upper bound on UIA nodes returned; keeps the result bounded for huge/virtualized trees.
     /// A clipped walk is reported via a <c>tree-truncated</c> warning. 0 means unbounded.</summary>
-    [XmlAttribute("maxNodes")] public int MaxNodes { get; set; } = 1000;
+    [XmlAttribute("maxnodes")] public int MaxNodes { get; set; } = 1000;
 
     public static new List<Command> BuiltInCommands {
         get => [new QueryCommand { Cmd = "query" }];

@@ -60,11 +60,16 @@ public class SerializedCommandsTests
         string tempFile = Path.GetTempFileName();
         File.Delete(tempFile);
 
+        // Regression (#200): durationMs/maxWidth/classname were serialized camelCase, so the
+        // lower-casing XSLT in LoadCommands silently dropped them on reload.
         var original = new SerializedCommands
         {
             commandArray =
             [
-                new RecordCommand() { Cmd = "record", Action = "oneshot", Fps = 7, DurationMs = 3000, Enabled = true }
+                new RecordCommand() {
+                    Cmd = "record", Action = "oneshot", Fps = 7, DurationMs = 3000,
+                    MaxWidth = 560, ClassName = "Notepad", Enabled = true,
+                }
             ]
         };
 
@@ -77,7 +82,121 @@ public class SerializedCommandsTests
         Assert.Equal("record", rec.Cmd);
         Assert.Equal("oneshot", rec.Action);
         Assert.Equal(7, rec.Fps);
+        Assert.Equal(3000, rec.DurationMs);
+        Assert.Equal(560, rec.MaxWidth);
+        Assert.Equal("Notepad", rec.ClassName);
         Assert.True(rec.Enabled);
+
+        File.Delete(tempFile);
+    }
+
+    [Fact]
+    public void SaveLoad_RoundTrip_QueryCommand_TopLevel()
+    {
+        // Regression (#200): className/maxDepth/maxNodes were serialized camelCase, so the
+        // lower-casing XSLT in LoadCommands silently dropped them on reload — a saved query lost its
+        // targeting and limits.
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
+
+        var original = new SerializedCommands
+        {
+            commandArray =
+            [
+                new QueryCommand() {
+                    Cmd = "query", Window = "Calc", Process = "calc", ClassName = "ApplicationFrameWindow",
+                    MaxDepth = 9, MaxNodes = 250, Enabled = true,
+                }
+            ]
+        };
+
+        SerializedCommands.SaveCommands(tempFile, original, "1.0.0.0");
+        var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
+
+        Assert.NotNull(loaded);
+        var query = Assert.Single(loaded.commandArray) as QueryCommand;
+        Assert.NotNull(query);
+        Assert.Equal("query", query.Cmd);
+        Assert.Equal("Calc", query.Window);
+        Assert.Equal("calc", query.Process);
+        Assert.Equal("ApplicationFrameWindow", query.ClassName);
+        Assert.Equal(9, query.MaxDepth);
+        Assert.Equal(250, query.MaxNodes);
+        Assert.True(query.Enabled);
+
+        File.Delete(tempFile);
+    }
+
+    [Fact]
+    public void SaveLoad_RoundTrip_LaunchCommand_TopLevel()
+    {
+        // Regression (#200): workingDirectory was serialized camelCase and silently dropped on reload.
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
+
+        var original = new SerializedCommands
+        {
+            commandArray =
+            [
+                new LaunchCommand() {
+                    Cmd = "launch", Path = @"C:\Windows\notepad.exe", Arguments = "readme.txt",
+                    WorkingDirectory = @"C:\Temp", Timeout = 5000, Enabled = true,
+                }
+            ]
+        };
+
+        SerializedCommands.SaveCommands(tempFile, original, "1.0.0.0");
+        var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
+
+        Assert.NotNull(loaded);
+        var launch = Assert.Single(loaded.commandArray) as LaunchCommand;
+        Assert.NotNull(launch);
+        Assert.Equal("launch", launch.Cmd);
+        Assert.Equal(@"C:\Windows\notepad.exe", launch.Path);
+        Assert.Equal("readme.txt", launch.Arguments);
+        Assert.Equal(@"C:\Temp", launch.WorkingDirectory);
+        Assert.Equal(5000, launch.Timeout);
+        Assert.True(launch.Enabled);
+
+        File.Delete(tempFile);
+    }
+
+    [Fact]
+    public void LoadCommands_LegacyCamelCaseAttributes_StillBind()
+    {
+        // Old files written before #200 contain camelCase attribute names (className=, maxDepth=,
+        // maxNodes=, durationMs=, maxWidth=, workingDirectory=). The lower-casing XSLT normalizes them
+        // on load, so they must bind to the now-lowercase serialization names.
+        string tempFile = Path.GetTempFileName();
+        File.WriteAllText(tempFile,
+            "<?xml version=\"1.0\"?>\r\n" +
+            "<MCEController Version=\"1.0.0.0\">\r\n" +
+            "  <Commands xmlns=\"http://www.kindel.com/products/mcecontroller\">\r\n" +
+            "    <Query Cmd=\"query\" className=\"Shell_TrayWnd\" maxDepth=\"4\" maxNodes=\"99\" Enabled=\"true\" />\r\n" +
+            "    <Record Cmd=\"record\" durationMs=\"2500\" maxWidth=\"320\" Enabled=\"true\" />\r\n" +
+            "    <Launch Cmd=\"launch\" path=\"x.exe\" workingDirectory=\"C:\\Temp\" Enabled=\"true\" />\r\n" +
+            "  </Commands>\r\n" +
+            "</MCEController>\r\n");
+
+        var loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
+
+        Assert.NotNull(loaded);
+        Assert.Equal(3, loaded.commandArray.Length);
+
+        var query = loaded.commandArray[0] as QueryCommand;
+        Assert.NotNull(query);
+        Assert.Equal("Shell_TrayWnd", query.ClassName);
+        Assert.Equal(4, query.MaxDepth);
+        Assert.Equal(99, query.MaxNodes);
+
+        var rec = loaded.commandArray[1] as RecordCommand;
+        Assert.NotNull(rec);
+        Assert.Equal(2500, rec.DurationMs);
+        Assert.Equal(320, rec.MaxWidth);
+
+        var launch = loaded.commandArray[2] as LaunchCommand;
+        Assert.NotNull(launch);
+        Assert.Equal(@"C:\Temp", launch.WorkingDirectory);
 
         File.Delete(tempFile);
     }

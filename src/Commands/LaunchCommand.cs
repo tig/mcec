@@ -20,7 +20,7 @@ namespace MCEControl;
 public class LaunchCommand : Command {
     [XmlAttribute("path")] public string Path { get; set; } = null!;
     [XmlAttribute("arguments")] public string Arguments { get; set; } = null!;
-    [XmlAttribute("workingDirectory")] public string WorkingDirectory { get; set; } = null!;
+    [XmlAttribute("workingdirectory")] public string WorkingDirectory { get; set; } = null!;
     [XmlAttribute("timeout")] public int Timeout { get; set; }
 
     public static new List<Command> BuiltInCommands {

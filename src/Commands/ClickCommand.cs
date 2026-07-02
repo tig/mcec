@@ -21,7 +21,8 @@ namespace MCEControl;
 public class ClickCommand : Command {
     // NOTE: attribute names MUST be all-lowercase. SerializedCommands.Deserialize runs an XSLT that
     // lower-cases every element/attribute name before deserializing, so a camelCase name would never
-    // bind on load and the value would be silently lost (see DragCommand).
+    // bind on load and the value would be silently lost (see DragCommand). Enforced for every Command
+    // by XmlNameCasingTests (#200).
     [XmlAttribute("window")] public string Window { get; set; } = null!;
     [XmlAttribute("handle")] public long Handle { get; set; }
     [XmlAttribute("process")] public string Process { get; set; } = null!;
