@@ -24,10 +24,9 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     // to communicate with each connected client. For thread safety.
     private readonly ConcurrentDictionary<int, Socket> _clientList = new();
 
-    // The following variable will keep track of the cumulative
-    // total number of clients connected at any time. Since multiple threads
-    // can access this variable, modifying this variable should be done
-    // in a thread safe manner
+    // Number of currently connected clients (incremented on connect,
+    // decremented on disconnect). Since multiple threads can access this
+    // variable, modifying it should be done in a thread safe manner.
     private int _clientCount;
 
     // Monotonically increasing id used as the _clientList key and ClientNumber.
@@ -59,6 +58,9 @@ sealed public class SocketServer : ServiceBase, IDisposable {
             _clientList.TryRemove(i, out Socket? socket);
             if (socket != null) {
                 Log4.Debug("Closing Socket #" + i);
+                // Keep the connected tally in sync with the force-closed sockets
+                // so a later Start does not report a stale count.
+                Interlocked.Decrement(ref _clientCount);
                 socket.Close();
             }
         }
@@ -161,8 +163,14 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         // socket and later closing the wrong client (#147).
         int clientId = Interlocked.Increment(ref _nextClientId);
 
-        // Add the workerSocket reference to the list
-        _clientList.GetOrAdd(clientId, workerSocket);
+        // Add the workerSocket reference to the list. Ids are never reused, so
+        // TryAdd must always succeed; fail loudly if that invariant regresses
+        // (a silent GetOrAdd is exactly how #147 hid).
+        bool added = _clientList.TryAdd(clientId, workerSocket);
+        System.Diagnostics.Debug.Assert(added, $"SocketServer client id {clientId} was already in use");
+        if (!added) {
+            Log4.Error($"SocketServer RegisterClient: duplicate client id {clientId}; socket will not be tracked");
+        }
 
         return new ServerReplyContext(this, workerSocket, clientId);
     }

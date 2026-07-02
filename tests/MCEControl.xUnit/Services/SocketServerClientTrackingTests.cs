@@ -70,6 +70,21 @@ public class SocketServerClientTrackingTests : IDisposable
     }
 
     [Fact]
+    public void Dispose_WithConnectedClients_ResetsConnectedClientCount()
+    {
+        _ = _server.RegisterClient(NewSocket());
+        _ = _server.RegisterClient(NewSocket());
+        Assert.Equal(2, _server.ConnectedClientCount);
+
+        _server.Stop();
+
+        // Stop force-closes every tracked socket; the connected tally must
+        // drain with them or a later Start reports a stale count.
+        Assert.Empty(_server.TrackedClients);
+        Assert.Equal(0, _server.ConnectedClientCount);
+    }
+
+    [Fact]
     public void ConnectedClientCount_TracksOnlyCurrentlyConnectedClients()
     {
         var contextA = _server.RegisterClient(NewSocket());
