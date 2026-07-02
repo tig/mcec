@@ -83,8 +83,10 @@ public class UserActivityMonitorServiceTests {
     /// work (log I/O, telemetry, SendLine's synchronous socket/serial writes) — never run it inline in
     /// the hook callback. Windows silently evicts an LL hook whose callback exceeds
     /// LowLevelHooksTimeout, and the #135 emergency-stop hotkey rides the same WH_KEYBOARD_LL hook.
-    /// The heavy work would throw here if executed (no MainWindow in the test process), so the handler
-    /// completing with the work merely captured proves it was not invoked synchronously.
+    /// The dispatch seam captures the work without running it; the dispatch count proves the handler
+    /// hands the work off exactly once (post-#209 the work itself is harmless in-proc — SendLine goes
+    /// through AgentRuntime, a logged no-op with no host registered — but it must still never run
+    /// inline on the hook path).
     /// </summary>
     [Fact]
     public void Activity_DispatchesHeavyWorkOffHookPath_AndDebouncesInHandler() {
