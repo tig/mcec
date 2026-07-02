@@ -260,11 +260,22 @@ public class CommandInvoker : Hashtable {
     // verified the whole tree fits both bounds (#154) — never call this directly.
     private void EnqueueCommandTree(ICommand cmd) {
         executeQueue.Enqueue(cmd);
-        if (((Command)cmd).EmbeddedCommands is null) {
+        Command command = (Command)cmd;
+        if (command.EmbeddedCommands is null) {
             return;
         }
 
-        foreach (Command embedded in ((Command)cmd).EmbeddedCommands) {
+        // SECURITY (#145): a disabled parent must suppress its entire embedded subtree. Embedded
+        // commands are flattened into the execute queue as independent siblings and each is gated
+        // only on its OWN Enabled flag, so descending into a disabled parent would let its
+        // Enabled=true children run — bypassing the per-command gate that "disabled by default"
+        // depends on. Stop descending unless this command is itself enabled. (An enabled parent
+        // with a disabled child still stops at that child, because the recursion re-checks here.)
+        if (!command.Enabled) {
+            return;
+        }
+
+        foreach (Command embedded in command.EmbeddedCommands) {
             EnqueueCommandTree(embedded);
         }
     }

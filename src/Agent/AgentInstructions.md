@@ -13,7 +13,10 @@ so you can pick a control instead of guessing pixels; `capture` returns a PNG of
 composited WinUI/WPF surfaces). Use `capture` for a single state check; use `record` ONLY to show CHANGE
 over time — a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
-whole duration. Check results for trouble: a `capture` with errorCategory `capture-blank` is a black/empty
+whole duration. An open `start` auto-stops at the operator's limits (default 60 s / 600 frames); `stop`
+still returns that buffered GIF — exactly once — and after an auto-stop a new recording (`start` or a
+one-shot) is allowed: it discards the unfetched GIF, carrying an `unfetched-recording-discarded` warning
+on its result, so `stop` promptly to collect your output. Check results for trouble: a `capture` with errorCategory `capture-blank` is a black/empty
 frame (minimized, cloaked, occluded, or a locked session) — restore/foreground the window and retry
 instead of trusting the image; a `capture-fallback` warning means PrintWindow was refused and the picture
 may be wrong. If `query` returns `truncated:true` (a `tree-truncated` warning), the tree hit the node cap
