@@ -108,13 +108,18 @@ jobs:
         run: |
           $sig = Get-AuthenticodeSignature artifacts/mcec.Setup.exe
           Write-Host "Signature status: $($sig.Status); signer: $($sig.SignerCertificate.Subject)"
+          # HARD gate (the #160 fix): a non-Valid signature must never publish. This catches signing
+          # failures and no-ops alike.
           if ($sig.Status -ne 'Valid') {
             throw "mcec.Setup.exe is not validly signed (status: $($sig.Status)). Refusing to publish."
           }
+          # SOFT check: warn (don't block) if the signer subject doesn't look like the Kindel publisher.
+          # The Trusted Signing certificate CN is set by Microsoft from the validated legal entity, so a
+          # formatting difference must not false-negative-block a legitimately signed release.
           if ($sig.SignerCertificate.Subject -notmatch 'Kindel') {
-            throw "mcec.Setup.exe signer '$($sig.SignerCertificate.Subject)' is not the expected Kindel publisher. Refusing to publish."
+            Write-Host "::warning::mcec.Setup.exe signer '$($sig.SignerCertificate.Subject)' does not contain 'Kindel' — verify the signing certificate identity."
           }
-          Write-Host "::notice::Installer signature verified (Valid, Kindel publisher)."
+          Write-Host "::notice::Installer signature verified (status: Valid)."
 
       - name: Warn that installer is unsigned
         if: ${{ env.SIGN != 'true' }}
