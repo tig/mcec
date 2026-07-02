@@ -39,6 +39,23 @@ The single ambient hook the commands and server talk to:
 and tiny lets both the WinForms host and the `--mcp` headless bootstrap share one
 configuration/gating point without dependency plumbing.
 
+It also holds the host-capability half of the seam (#209): `Host` is a small `IAppHost`
+each host registers — `MainWindow` in GUI mode (in its settings-apply path, alongside
+`Settings`), `HeadlessAppHost` in `--mcp` mode. Engine code calls the static wrappers:
+
+- `SendLine(line)` — outbound line to all connected transports (GUI: `MainWindow.SendLine`;
+  headless/no host: logged no-op).
+- `RequestShutdown()` — orderly app shutdown (GUI: `MainWindow.ShutDown()`, self-marshaled;
+  headless: deferred clean process exit after in-flight replies flush, so `mcec:exit` over
+  MCP actually exits; no host: logged no-op so tests survive strays).
+- `MessageWindowHandle` — for `RegisterPowerSettingNotification` and the like (GUI: the
+  `MainWindow` handle; headless: throws — the activity monitor never runs headless).
+
+This is what makes "no `MainWindow.Instance` below the UI layer" enforceable:
+`MainWindow.Instance` is explicitly assigned by `Program`'s GUI path (no lazy
+construct-on-touch), and any touch before assignment — or ever, headless — throws a
+pointed exception naming the seam instead of silently constructing a Form.
+
 ### `AgentNativeMethods` (P/Invoke)
 Internal static P/Invoke surface (carries the required CA1060 suppression).
 Provides `PrintWindow` with `PW_RENDERFULLCONTENT` (captures occluded/composited
@@ -140,10 +157,12 @@ to the caller.
 ## `--mcp` headless bootstrap
 
 The `--mcp` command-line switch starts MCEC without the WinForms UI: it initializes
-`AgentRuntime` (settings + invoker), then runs `AgentServer` as an MCP stdio server and
-pumps stdin/stdout until the client disconnects. This path shares the exact same
-commands and gating as the interactive host — the only difference is the absence of UI
-and the stdio transport.
+`AgentRuntime` (settings + invoker + the `HeadlessAppHost`), then runs `AgentServer` as
+an MCP stdio server and pumps stdin/stdout until the client disconnects. This path
+shares the exact same commands and gating as the interactive host — the only difference
+is the absence of UI and the stdio transport. The process exits when the client closes
+stdin (EOF) or when a `mcec:exit` command runs (`HeadlessAppHost.RequestShutdown`
+performs the same teardown as the EOF path after letting the in-flight reply flush).
 
 ## Gating model recap
 

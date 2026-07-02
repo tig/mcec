@@ -64,7 +64,7 @@ MCEC is a Windows desktop application built on .NET 10 (WinForms) that enables r
 **Location**: `MainWindow.cs`
 
 **Responsibilities**:
-- Singleton pattern - single instance of the application UI
+- Singleton, but explicitly assigned (#209): `Program.Main`'s GUI path constructs the one instance and sets `MainWindow.Instance` before `Application.Run`. It is **not** lazily constructed — touching `Instance` before assignment (or ever, in headless `--mcp` mode) throws a pointed exception. Code below the UI layer must use the `AgentRuntime` seam (`Invoker`, `SendLine`, `RequestShutdown`, `MessageWindowHandle`) instead; MainWindow registers itself as the seam's `IAppHost` when settings are applied.
 - Lifecycle management for all services
 - UI presentation (WinForms with MenuStrip, StatusStrip, system tray icon)
 - Coordination between communication services and command execution
@@ -452,13 +452,13 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
 
 ## Design Patterns Used
 
-- **Singleton**: MainWindow, Logger, TelemetryService, UpdateService
+- **Singleton**: MainWindow (explicitly assigned by Program, never lazy — #209), Logger, TelemetryService, UpdateService
 - **Command Pattern**: ICommand, Command, CommandInvoker
 - **Observer Pattern**: ServiceBase notifications via delegates
 - **Factory Pattern**: CommandInvoker.Create(), Command.BuiltInCommands
 - **Strategy Pattern**: Different Command implementations
 - **Facade Pattern**: InputSimulator wraps KeyboardSimulator and MouseSimulator
-- **Lazy Initialization**: Lazy<T> for singletons
+- **Lazy Initialization**: Lazy<T> for service singletons (NOT MainWindow — see #209)
 - **Object Pool**: Command cloning for execution contexts
 
 ## Dependencies (NuGet)

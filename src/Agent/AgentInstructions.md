@@ -92,6 +92,10 @@ in small chunks and verify between chunks so the queue drains. Avoid sending a r
 through `send_command` if it may open a modal dialog — the queue path has no modal grace and the command
 queue stalls until the dialog is dismissed; use the `invoke` tool, which handles modals.
 
+LIFECYCLE: `send_command mcec:exit` (when that command is enabled) shuts MCEC itself down — on the stdio
+transport it ends this MCP server (your call's reply flushes first, then the process exits) — so send it
+only to deliberately end the session, e.g. stopping a provisioned instance before `end-session`.
+
 OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run so the
 operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/UIA targeting
 — you will never see or target it, and it is never a candidate window — but it DOES appear in
