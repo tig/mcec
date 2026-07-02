@@ -149,6 +149,9 @@ internal static class Program {
         // drop that severs a command tree releases held input) and briefly joins so an in-flight
         // command usually finishes before the process ends.
         AgentRuntime.Invoker?.Shutdown(joinTimeoutMs: 2000);
+
+        // #215: stop the dedicated UIA worker and dispose its cached UIA3Automation (bounded join).
+        UiaService.Shutdown();
     }
 
     private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
