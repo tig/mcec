@@ -102,19 +102,12 @@ exactly like the GUI host.
 
 ## 2. Isolated session provisioning
 
-### Problem
-
-Historically an agent would `Start-Process` the **installed** MCEC, flip `AgentCommandsEnabled=true` and
-enable the commands it needs in the installed `mcec.commands`, then disable them at the end. That mutates
-the operator's config and (because "disable at the end" only runs on the happy path) **leaks enabled
-security gates** on any crash/timeout/kill. It also can't compose across concurrent sessions.
-
-### Solution
-
-MCEC owns the isolation. `provision-session` hands an authorized agent a fresh, disposable directory
-containing `mcec.exe` + dependencies and a **co-located, agent-ready config** (agent commands enabled
-**only** inside the copy). The agent runs from there and deletes it when done; so enabled state lives only
-in the throwaway copy, "cleanup" is `rm -rf <dir>`, and a crashed session leaves the real install untouched.
+Isolated session provisioning gives an authorized agent a fresh, disposable copy of MCEC to drive instead
+of the operator's installed instance. `provision-session` hands the agent a throwaway directory containing
+`mcec.exe` + dependencies and a **co-located, agent-ready config** (agent commands enabled **only** inside
+that copy). The agent runs from there and deletes it when done, so any enabled state lives only in the
+throwaway copy, "cleanup" is `rm -rf <dir>`, and a crashed or killed session leaves the real install
+untouched. Concurrent sessions each get their own directory and never contend.
 
 The installed copy **enforces** its side of this: `mcec.exe` running from Program Files refuses
 `mcp`/`--mcp` and refuses to start the MCP/HTTP endpoint (`Program.IsProgramFilesInstall`), with an

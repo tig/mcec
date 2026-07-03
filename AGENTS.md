@@ -125,6 +125,9 @@ exe (`winr`, `chars:`, `enter`, `mouse:`, `key_a`, `key_esc`, `alt_f`, `key_x`) 
 
 ## Dogfood: WinPrint hero GIF (Customer 1, issue #84)
 
+> The worked examples (this one, the mcec hero GIF, and prompt demos like Paint → smiley → email) are
+> cataloged for humans and agents in [`docs/examples.md`](docs/examples.md), with a template for adding more.
+
 Script: [`scripts/Generate-WinPrint-HeroGif.ps1`](scripts/Generate-WinPrint-HeroGif.ps1). Run from the
 **winprint** repo root; output is `docs/hero-gui-win.gif` there. Full recipe:
 [`docs/winprint-hero-gif.md`](docs/winprint-hero-gif.md).

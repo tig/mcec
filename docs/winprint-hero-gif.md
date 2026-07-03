@@ -1,5 +1,8 @@
 # WinPrint Windows hero GIF (Customer 1, issue #84)
 
+> **Flavor:** Scripted recipe. One of the worked [Examples](examples.md); the shared bootstrap, MCP
+> envelope, and targeting gotchas live there and aren't repeated here.
+
 `docs/hero-gui-win.gif` in [tig/winprint](https://github.com/tig/winprint) is produced by **MCEC driving a real
 Windows desktop** — Start Menu launch, settings/zoom tour, Print to Microsoft Print to PDF, save
 `winprintdemo.pdf`, open the PDF — recorded as a **desktop region** GIF with the MCEC command overlay

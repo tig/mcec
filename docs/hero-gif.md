@@ -1,5 +1,8 @@
 # Recreating the hero GIF (`docs/hero.gif`)
 
+> **Flavor:** Scripted recipe. One of the worked [Examples](examples.md); the shared bootstrap, MCP
+> envelope, and targeting gotchas live there and aren't repeated here.
+
 `docs/hero.gif` is the hero image shown at the top of [`README.md`](../README.md) and the docs home page
 ([`docs/index.md`](index.md), served at `https://tig.github.io/mcec/hero.gif`). It is MCEC dogfooding
 itself: one MCEC drives a **second MCEC** through a guided tour (launch → **File ▸ Settings** (visit
