@@ -69,16 +69,20 @@ Set-Content -Encoding UTF8 -Path (Join-Path $ctrlDir 'mcec.settings') -Value @"
 "@
 
 # The agent tools (provision-session/launch/query/click/drag/record/capture/displays/end-session) are
-# gated by AgentCommandsEnabled and need no command-table entries; only the raw menu-mnemonic keystrokes
-# (send_command key_*) do, so those are all this file needs.
+# gated by AgentCommandsEnabled and need no command-table entries. For keystrokes the agent sends via
+# send_command, enable MCEC's built-in keyboard PRIMITIVES rather than defining named commands: `chars:`
+# sends any single character (built-ins ship disabled, so enabling it here is the opt-in), and
+# `shiftdown:`/`shiftup:` hold/release modifiers. That is the whole keyboard surface the tour needs
+# (letters as chars; Win+D via shiftdown:lwin + d + shiftup:lwin); dialog buttons are clicked with the
+# invoke tool, so no VK_ESCAPE/F4 entries are needed.
 Set-Content -Encoding UTF8 -Path (Join-Path $ctrlDir 'mcec.commands') -Value @'
 <?xml version="1.0" encoding="utf-8"?>
 <MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="3.0.0">
 <Commands xmlns="http://www.kindel.com/products/mcecontroller">
-  <sendinput Cmd="key_s"   Vk="s" Enabled="true" />
-  <sendinput Cmd="key_a"   Vk="a" Enabled="true" />
-  <sendinput Cmd="key_esc" Vk="VK_ESCAPE" Enabled="true" />
+  <chars     Cmd="chars:"     Enabled="true" />
+  <sendinput Cmd="shiftdown:" Enabled="true" />
+  <sendinput Cmd="shiftup:"   Enabled="true" />
 </Commands>
 </MCEController>
 '@
