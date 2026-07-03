@@ -167,8 +167,8 @@ survives installed-instance restarts and is retired the moment the directory is 
 
 We copy the binaries into the session directory (rather than a `--config-dir` redirect of the installed
 exe). Because the copy runs from a non-`Program Files` location, `Program.ConfigPath` resolves to the
-session directory itself, so it reads its own co-located config with no launch flags. This matches the
-existing manual practice (`scripts/Run-Customer0Skeleton.ps1`) and is isolated by construction.
+session directory itself, so it reads its own co-located config with no launch flags. This is isolated by
+construction, and supersedes the earlier hand-rolled "copy the build and write a config" practice.
 
 ### Teardown & reaping
 
