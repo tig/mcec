@@ -1,4 +1,4 @@
-# WinPrint Windows hero GIF (Customer 1, issue #84)
+# WinPrint Windows hero GIF
 
 > **Flavor:** Scripted recipe. One of the worked [Examples](examples.md); the shared bootstrap, MCP
 > envelope, and targeting gotchas live there and aren't repeated here.
@@ -23,13 +23,12 @@ here and accepts `-WinPrintRoot` (default: current directory).
 
 ### Harness-only prep (not MCP choreography)
 
-- **Delete prior `winprintdemo.pdf`** — the harness runs `Remove-Item` before `record start`. When
-  [issue #138](https://github.com/tig/mcec/issues/138) (disposable `provision-session`) lands, demo
-  artifact cleanup becomes semi-automatic inside session provisioning.
+- **Delete prior `winprintdemo.pdf`** — the harness runs `Remove-Item` before `record start`. Disposable
+  `provision-session` will fold this artifact cleanup into session provisioning.
 - **Disposable MCEC session** — the harness copies the installed MCEC into
   `%LOCALAPPDATA%\MCEC\sessions\winprint-hero`, writes agent config **only there**, and deletes the
-  dir afterward. The core install's `mcec.settings` / `mcec.commands` are never touched (same idea as
-  #138; formal tool replaces this copy/delete dance later).
+  dir afterward. The core install's `mcec.settings` / `mcec.commands` are never touched (a formal
+  `provision-session` replaces this copy/delete dance).
 
 ## One-shot regeneration
 
@@ -83,7 +82,8 @@ operator/harness has provisioned it (agent commands enabled in the session copy 
 | Close PDF | `send_command alt_f4` — release the file lock so the next run's harness `Remove-Item` succeeds |
 
 **Not in the agent recipe:** deleting the old PDF (harness `Remove-Item` before connect), installing
-MCEC/WinPrint, copying the session dir, evidence zip — see [issue #138](https://github.com/tig/mcec/issues/138).
+MCEC/WinPrint, copying the session dir, evidence zip — the harness/operator handles these around the
+MCP choreography.
 
 Agent connect-time guidance: `AgentServer.Instructions` in `src/Services/AgentServer.cs` and
 [Agents.md](../Agents.md).
