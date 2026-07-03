@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,8 +65,8 @@ public sealed class AgentToolExecutor {
     }
 
     /// <summary>Routes a call to its session; false with <paramref name="session"/> null when a non-empty id names no live session.</summary>
-    private bool TryResolveRoutedSession(string? sessionId, out AgentSession session) {
-        session = _resolveSession(sessionId)!;
+    private bool TryResolveRoutedSession(string? sessionId, [MaybeNullWhen(false)] out AgentSession session) {
+        session = _resolveSession(sessionId);
         return session is not null;
     }
 
@@ -143,11 +144,14 @@ public sealed class AgentToolExecutor {
         // no live session is refused rather than silently spawning a new one, so a stale id can't fork
         // state unnoticed. Every branch below stamps the resolved session's id onto its envelope.
         string? routeId = Str(args, "sessionId");
-        if (!TryResolveRoutedSession(routeId, out AgentSession session)) {
+        if (!TryResolveRoutedSession(routeId, out AgentSession? session)) {
             AgentRuntime.Audit(name, $"BLOCKED; unknown sessionId '{routeId}'");
+            // Stamp the REJECTED id, not the default session: a client that carries envelope.sessionId
+            // forward after an error must not be silently handed the default session (which would fork the
+            // isolated task's state). We only reach here for a non-empty id (empty routes to default above).
             return ToolError(
                 $"Unknown sessionId '{routeId}'. It was never started or has ended. Call session-start to get a fresh sessionId, or omit sessionId to use the default session.",
-                "unknown-session", AgentErrorCategory.InvalidArgument, DefaultSessionId());
+                "unknown-session", AgentErrorCategory.InvalidArgument, routeId!);
         }
 
         if (name == "send_command") {
@@ -208,10 +212,12 @@ public sealed class AgentToolExecutor {
     /// when it is omitted. An id that names no live session is refused with <c>unknown-session</c>.
     /// </summary>
     private JsonObject RunSessionStatus(string? sessionId) {
-        if (!TryResolveRoutedSession(sessionId, out AgentSession session)) {
+        if (!TryResolveRoutedSession(sessionId, out AgentSession? session)) {
+            // Echo the rejected id, not the default (see the routing refusal in CallTool). Non-empty here:
+            // an omitted/empty id resolves to the default session and never enters this branch.
             return ToolError(
                 $"Unknown sessionId '{sessionId}'. It was never started or has ended. Call session-start, or omit sessionId for the default session.",
-                "unknown-session", AgentErrorCategory.InvalidArgument, DefaultSessionId());
+                "unknown-session", AgentErrorCategory.InvalidArgument, sessionId!);
         }
         AgentRuntime.Audit("session-status", session.SessionId);
         return McpResult(AgentToolResult.Success(session.ToStatusJson(), session.SessionId));
@@ -220,7 +226,8 @@ public sealed class AgentToolExecutor {
     /// <summary>
     /// <c>session-end</c>: ends the session named by <paramref name="sessionId"/> (required). Idempotent;
     /// ending an id that is already gone returns <c>ended:false</c> rather than an error, so a retry is
-    /// safe. The envelope is stamped with the default session's id (the ended session no longer exists).
+    /// safe. The envelope is stamped with the ended id (metadata; consistent with <c>session-status</c>
+    /// stamping its inspected session), so a client can correlate the result with the session it ended.
     /// </summary>
     private JsonObject RunSessionEnd(string? sessionId) {
         if (string.IsNullOrWhiteSpace(sessionId)) {
@@ -236,7 +243,7 @@ public sealed class AgentToolExecutor {
         if (!ended) {
             result["note"] = "No live session had that id (already ended or never started); nothing to do.";
         }
-        return McpResult(AgentToolResult.Success(result, DefaultSessionId()));
+        return McpResult(AgentToolResult.Success(result, id));
     }
 
     /// <summary>

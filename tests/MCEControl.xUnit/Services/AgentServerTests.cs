@@ -701,6 +701,31 @@ public class AgentServerTests {
             JsonObject error = env["error"]!.AsObject();
             Assert.Equal("unknown-session", error["code"]!.GetValue<string>());
             Assert.Equal("invalid-argument", error["category"]!.GetValue<string>());
+
+            // The refusal echoes the REJECTED id, never the default session; else a client that carries
+            // envelope.sessionId forward after an error would silently continue the independent task in the
+            // default session, cross-contaminating the state the explicit session was meant to isolate (CR).
+            Assert.Equal("deadbeefcafe", env["sessionId"]!.GetValue<string>());
+            Assert.NotEqual(AgentRuntime.Session.SessionId, env["sessionId"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
+        }
+    }
+
+    [Fact]
+    public void Dispatch_WhitespaceOnlySessionId_IsRefused_NotRoutedToDefault() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
+        AgentRuntime.ResetSession();
+        try {
+            // A whitespace-only id is non-empty content, not an omitted arg: refuse it as unknown rather
+            // than silently routing to the default session (which would fork/cross-contaminate state) (CR).
+            JsonObject env = CallEnvelope(54, "capture", new JsonObject { ["sessionId"] = "   " });
+            Assert.False(env["ok"]!.GetValue<bool>());
+            Assert.Equal("unknown-session", env["error"]!.AsObject()["code"]!.GetValue<string>());
         }
         finally {
             AgentRuntime.Settings = null;
@@ -746,6 +771,9 @@ public class AgentServerTests {
             JsonObject ended = CallEnvelope(50, "session-end", new JsonObject { ["sessionId"] = started });
             Assert.True(ended["ok"]!.GetValue<bool>());
             Assert.True(ended["result"]!.AsObject()["ended"]!.GetValue<bool>());
+            // The envelope names the ended session (metadata; consistent with session-status stamping its
+            // inspected session), so a client can correlate the result with the session it ended (CR).
+            Assert.Equal(started, ended["sessionId"]!.GetValue<string>());
 
             // The id no longer resolves: a routed call is refused.
             JsonObject afterEnd = CallEnvelope(51, "capture", new JsonObject { ["sessionId"] = started });

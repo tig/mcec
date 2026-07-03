@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace MCEControl;
@@ -216,13 +217,17 @@ public static class AgentRuntime {
     /// <paramref name="session"/> null when a non-empty id names no live session, so the caller can refuse
     /// the call rather than silently forking a new session's state under a stale id.
     /// </summary>
-    public static bool TryResolveSession(string? sessionId, out AgentSession session) {
+    public static bool TryResolveSession(string? sessionId, [MaybeNullWhen(false)] out AgentSession session) {
         lock (_sessionGate) {
-            if (string.IsNullOrWhiteSpace(sessionId)) {
+            // Only an absent/empty id means "default"; a whitespace-only id is non-empty content, so it is
+            // NOT treated as missing (it will simply match no live session and be refused). Otherwise a
+            // stray " " would silently route into the default session and fork the state an explicit
+            // session was meant to isolate.
+            if (string.IsNullOrEmpty(sessionId)) {
                 session = _defaultSession ??= CreateAndRegister();
                 return true;
             }
-            return _sessions.TryGetValue(sessionId.Trim(), out session!);
+            return _sessions.TryGetValue(sessionId.Trim(), out session);
         }
     }
 

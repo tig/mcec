@@ -45,7 +45,7 @@ public static class AgentServer {
     private static readonly AgentToolExecutor _executor = new(
         () => AgentRuntime.Settings,
         () => AgentRuntime.Invoker,
-        sessionId => AgentRuntime.TryResolveSession(sessionId, out AgentSession s) ? s : null,
+        sessionId => AgentRuntime.TryResolveSession(sessionId, out AgentSession? s) ? s : null,
         () => AgentRuntime.StartSession(),
         id => AgentRuntime.EndSession(id));
 
