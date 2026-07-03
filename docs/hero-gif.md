@@ -36,9 +36,9 @@ pwsh -NoProfile -File scripts/Generate-HeroGif.ps1
 #   Register it  : claude mcp add --transport http mcec http://127.0.0.1:<free-port>/mcp
 ```
 
-Register the printed endpoint so your agent has MCEC's tools (`provision-session`, `launch`, `query`,
-`click`, `drag`, `record`, `capture`, `displays`, `send_command`, `end-session`), then ask it to recreate
-the hero. The controller's config enables everything the tour needs: the agent surface, per-command
+Register the printed endpoint (or POST JSON-RPC to it directly, see the playbook note below) so your agent
+has MCEC's tools (`provision-session`, `launch`, `query`, `click`, `drag`, `record`, `capture`,
+`displays`, `send_command`, `end-session`), then ask it to recreate the hero. The controller's config enables everything the tour needs: the agent surface, per-command
 `Enabled` for the tools it calls (`query`/`click`/`drag`/`record`/`capture`/`launch`/`displays`; agent
 tools are gated by BOTH `AgentCommandsEnabled` and their own table entry), `AllowSessionProvisioning`, the
 overlay on/docked Left, and the built-in keyboard primitives (`chars:` for single characters,
@@ -62,6 +62,17 @@ observations below; do not hard-code them. Keystrokes go through MCEC's native k
 custom commands): `send_command { "command": "<char>" }` types any single character (the `chars:`
 built-in), and `shiftdown:<mod>` / `shiftup:<mod>` hold and release a modifier (`lwin`, `alt`, `ctrl`,
 `shift`) around it. Dialog buttons and menu items are reached with `click`/`invoke` by name.
+
+**Before you start, three things that trip agents up:**
+- **Responses.** Every tool returns the shared envelope `{ ok, result, warnings?, error }` as JSON inside
+  the MCP text content; branch on `ok` (not `success`), read `result` on success and `error.code` on
+  failure. See [`agent-tool-result-contract.md`](design/agent-tool-result-contract.md).
+- **Absolute paths.** The controller's working directory is its temp copy, so any repo path you pass a
+  tool (notably `record` `stop`'s `file`) must be the repo's **absolute** path, or output lands in the
+  temp copy and is lost.
+- **Registration is optional.** `claude mcp add` is only for an interactive MCP client. A script or agent
+  session can POST JSON-RPC straight to the printed URL (copy it whole, including `http://` and the port);
+  that is how this playbook is driven.
 
 1. **Screen size.** `displays` → take the primary monitor's width `SW` and height `SH`.
 2. **Provision the subject.** `provision-session { "mcpServer": false }` → keep `exePath`, `sessionId`,
@@ -90,13 +101,18 @@ built-in), and `shiftdown:<mod>` / `shiftup:<mod>` hold and release a modifier (
    `click { "window": "Settings", "at": { "by": "name", "value": "Cancel" } }`.
 8. **Resize ~25% smaller.** Drag the bottom-right sizing border inward:
    `drag { "handle": <handle>, "from": { "x": WX+WW-2, "y": WY+WH-2 }, "to": { "x": WX+0.75*WW, "y": WY+0.75*WH } }`.
-9. **Move in a small circle.** Drag the title bar around a small circular `path` and back:
-   grab at `{ x: WX+0.375*WW, y: WY+12 }`, with `path` waypoints stepping around a ~55 px circle just
-   below the grab point, and `to` the last point.
+9. **Move in a small circle.** Re-`query { "handle": <handle> }` first (the resize changed the window; its
+   top-left stayed put but read fresh bounds to be safe). Grab the title bar at `G = { x: WX+WW*0.375,
+   y: WY+12 }` and drag it around a small circle centred just below the grab point: let `cx = G.x`,
+   `cy = G.y+55`, `r = 55`, and build `path` from points `{ x: cx+r*cos(θ), y: cy+r*sin(θ) }` for
+   `θ = 0°,50°,100°,…,720°` (two loops, ~15 waypoints); pass all but the last as `path` and the last as
+   `to`. `drag { "handle": <handle>, "from": G, "path": [...], "to": <lastPoint> }`.
 10. **Help ▸ About.** `click { "handle": <handle>, "at": { "by": "name", "value": "Help" } }` →
     `send_command { "command": "a" }` (the About mnemonic) → `capture { "window": "About" }`, then dwell
     ~1 s on it.
-11. **Stop and write the GIF.** `record { "action": "stop", "file": "docs/hero.gif" }`.
+11. **Stop and write the GIF.** `record { "action": "stop", "file": "<repo>/docs/hero.gif" }` with the
+    repo's **absolute** path (a relative path lands in the controller's temp copy and is lost). Check the
+    result: `ok:true` with a frame count and byte size.
 12. **Close the subject, then tear down.** Close the About box:
     `click { "window": "About", "at": { "by": "name", "value": "OK" } }`. Close the subject via its menu:
     `click { "handle": <handle>, "at": { "by": "name", "value": "File" } }` → `send_command { "command": "x" }`
@@ -128,10 +144,25 @@ aware of which build you are recording.
 
 ## Verify, then commit
 
-The subject's log window is in frame (marketing surface) and the recording doubles as a bug-finding
-channel. Before committing, extract a few keyframes (System.Drawing `SelectActiveFrame`; read the old GIF
-via bash `git show HEAD:docs/hero.gif > f`, since PowerShell pipes mangle binary) and confirm the shot is
-clean (no stray menus, expected tabs, readable log). Commit `docs/hero.gif` on the operator's say-so.
+The whole tour is ~30–60 s including dwells. The subject's log window is in frame (marketing surface) and
+the recording doubles as a bug-finding channel, so spot-check a few keyframes before committing. Confirm:
+the Settings strip shows **Agent as the second tab** (the #259 feature this hero exists to show), no stray
+desktop menu is in frame, and the log window reads cleanly. Extract frames with:
+
+```powershell
+Add-Type -AssemblyName System.Drawing
+$img = [System.Drawing.Image]::FromFile("<repo>\docs\hero.gif")
+$fd  = New-Object System.Drawing.Imaging.FrameDimension $img.FrameDimensionsList[0]  # NOT FrameDimension.Time
+for ($f = 0; $f -lt $img.GetFrameCount($fd); $f += 12) {
+  $img.SelectActiveFrame($fd, $f) | Out-Null
+  $bmp = New-Object System.Drawing.Bitmap $img.Width, $img.Height
+  ([System.Drawing.Graphics]::FromImage($bmp)).DrawImage($img, 0, 0, $img.Width, $img.Height)
+  $bmp.Save("$env:TEMP\hero_$f.png")
+}
+```
+
+(To diff against the committed GIF, extract it via bash `git show HEAD:docs/hero.gif > f` first; PowerShell
+pipes mangle binary.) Commit `docs/hero.gif` on the operator's say-so.
 
 ## Tuning size
 
