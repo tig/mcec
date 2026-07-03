@@ -3,7 +3,7 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# MCEC 3.0: The Agent Automation Server
+# Environment Controller
 
 MCEC 3.0 turns the MCE Controller daemon into a small, opt-in automation server for
 AI agents and scripts running on a Windows PC. It gives an agent three things:
@@ -27,15 +27,18 @@ success and failure uniformly.
 
 ## SECURITY: read this first
 
-**If anything useful is enabled, all bets are off.** MCEC drives the desktop with real user
-input; there is no sandbox, no permission model inside the session, and no way to give an
-agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent
-can do**: read whatever is on screen, type into any app, click anything, launch programs,
-open a browser logged in as you, delete files, send email. The gates below decide *whether*
-an agent gets that power; they do not and cannot meter *how much*. Enable the agent surface
-only on a machine and session where you accept an agent acting **as you**, and prefer a
-disposable [provisioned session](safety-emergency-stop-and-provisioning.md) over enabling
-your installed instance.
+**Enabling the agent surface lets an agent act with your rights.** MCEC drives the desktop with
+**real user input**, and there is no OS sandbox around what an enabled command may touch: within its
+capability, an enabled command acts as you on whatever it targets (`invoke`/`click` can operate any
+control, `launch` can start any program, `capture` can read any window). What the gates below control is
+the **capability surface**, not a per-target sandbox. The agent surface is off until you opt in, and every
+command ships individually disabled, so you choose exactly which commands an agent may run; you can, for
+example, allow read-only observation (`query`/`capture`) with no actuation at all. Every action is
+audit-logged, and the operator can halt the session instantly with the emergency-stop hotkey (see
+**[Agent Safety](safety-emergency-stop-and-provisioning.md)**). The safest posture is a disposable
+[provisioned session](safety-emergency-stop-and-provisioning.md) rather than opening up your installed
+instance; enable the agent surface only where you accept an agent acting as you on whatever the enabled
+commands can reach.
 
 With that understood: the agent server is locked down by default and uses **layered,
 independent opt-ins**. Turning one thing on does **not** turn the others on.

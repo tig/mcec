@@ -88,7 +88,7 @@ is always a live front door, so there is no `McpServerEnabled` qualifier). That 
 thread hosts the command overlay, so a headless session narrates and shows the `⛔ STOPPED` banner
 exactly like the GUI host.
 
-### Limitations / follow-ups
+### Limitations
 
 - **Elevated targets / secure desktop (UIPI).** A non-elevated MCEC's LL hook won't receive keys while an
   **elevated** window is foreground, and never on the secure desktop (UAC/lock). If MCEC drives elevated
@@ -192,11 +192,11 @@ construction, and supersedes the earlier hand-rolled "copy the build and write a
 | Session enumeration for the UI | `SessionProvisioner.ListSessions` |
 | Reap on launch | `Program.Main` |
 
-### Limitations / follow-ups
+### Limitations
 
-- **Authorization depth.** `AllowSessionProvisioning` is a single operator opt-in. A richer per-session
-  authorization / token-scoping model is future work.
-- **Auto-launch.** `provision-session` returns a directory + how to launch; it does not spawn the process
-  (the caller/host does). An optional MCEC-side launch is a candidate follow-up.
-- **Artifacts** (evidence bundles) live under the session directory so teardown collects them.
+- **Authorization depth.** `AllowSessionProvisioning` is a single operator opt-in; there is no per-session
+  authorization or token-scoping.
+- **Auto-launch.** `provision-session` returns a directory and how to launch it; it does not spawn the
+  process (the caller/host does).
+- **Artifacts.** Evidence bundles live under the session directory, so teardown collects them.
 

@@ -6,12 +6,20 @@ By Tig Kindel ([@tigkindel on Twitter](https://twitter.com/tigkindel)) - Copyrig
 
 It is a small, self-contained native Windows daemon that a computer-use model can **mount, see through, and drive**. An agent runs the loop *observe → target → act → observe*, and MCEC gives it all four: capture a window as a PNG, read its UI Automation tree, find and wait for controls, launch apps, and actuate keyboard/mouse/window input; exposed to agents and scripts over the **Model Context Protocol (MCP)** (stdio via `mcec.exe --mcp`, or a localhost HTTP floor).
 
+**Install with winget:**
+
+```
+winget install Kindel.mcec
+```
+
+or [download the installer](https://github.com/tig/mcec/releases).
+
 ```
 mcec.exe --mcp        # run headless as an MCP stdio server an agent can mount
 ```
 
 > [!CAUTION]
-> MCEC is extremely powerful; if anything useful is enabled, everything a user can do at the keyboard and mouse, an agent can do.
+> MCEC is powerful and off by default: once you enable it, an agent acts with your rights on whatever it targets. See [Agent Safety](docs/safety-emergency-stop-and-provisioning.md).
 
 MCEC drives the Windows desktop with real user input. There is no sandbox, no permission model inside the session, and no way to give an agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent can do**: read whatever is on screen, type into any app, click anything, launch programs, open a browser logged in as you, delete files, send email. The gates decide *whether* an agent gets that power; they do not and cannot meter *how much*.
 
