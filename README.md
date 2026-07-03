@@ -14,10 +14,6 @@ winget install Kindel.mcec
 
 or [download the installer](https://github.com/tig/mcec/releases).
 
-```
-mcec.exe --mcp        # run headless as an MCP stdio server an agent can mount
-```
-
 > [!CAUTION]
 > MCEC is powerful and off by default: once you enable it, an agent acts with your rights on whatever it targets. See [Agent Safety](docs/safety-emergency-stop-and-provisioning.md).
 
@@ -34,17 +30,14 @@ Enable the agent surface only on a machine and session where you accept an agent
 
 MCEC is also the same **battle-tested remote control for home-automation systems** it has always been. In its long-standing role it runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that can send text over TCP/IP or RS-232 ([Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/), [Crestron](http://www.crestron.com/), and others) can use MCEC to drive a Windows PC. The agent surface in 3.0 is **purely additive**: every existing home-automation feature is unchanged.
 
-* [Documentation](https://tig.github.io/mcec/configuration.html): start here
+* [Documentation](https://tig.github.io/mcec): start here
+* [Configuration](https://tig.github.io/mcec/configuration.md): configuring mcec
 * [Environment Controller](docs/environment-controller.md): the full agent/MCP tool reference and security model
 * [Agent safety](docs/safety-emergency-stop-and-provisioning.md): emergency stop + isolated session provisioning
 * [Home Automation & Remote Control](docs/home-automation.md): the classic TCP/serial command surface
 * [AGENTS.md](AGENTS.md): connect-time agent guidance + the dogfood recipe (MCEC driving MCEC)
 
 Links:
-
-* [Home Page](https://tig.github.io/mcec/)
-* [Download & Install](https://github.com/tig/mcec/releases)
-* [Tig's Blog Posts on MCEC](https://ceklog.kindel.com/?s=mcec)
 
 # Integrations
 * [Control4 User Activity Driver](https://github.com/tig/User_Activity)
