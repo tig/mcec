@@ -13,10 +13,12 @@ namespace MCEControl;
 /// (<see cref="SessionId"/>), a per-session artifact directory, and a memory of the most recent
 /// target/observation/action/error so a multi-step task is one durable, debuggable record.
 ///
-/// <para>Phase 2 (#86) introduces a single <b>ambient</b> session owned by
-/// <see cref="AgentRuntime.Session"/>; explicit <c>session/start|status|end</c> lifecycle tools and
-/// per-call session routing are Phase 3. The state recorded here is what feeds <c>sessionId</c> on
-/// every result, <c>error.lastObservation</c> on failures, and (later) #87's evidence bundle.</para>
+/// <para>Phase 2 (#86) introduced a single <b>ambient</b> session; Phase 3 adds explicit
+/// <c>session-start</c>/<c>session-status</c>/<c>session-end</c> lifecycle tools and per-call routing, so
+/// there can now be several addressable sessions alongside the implicit default (see
+/// <see cref="AgentRuntime.StartSession"/>/<see cref="AgentRuntime.TryResolveSession"/>). The state
+/// recorded here is what feeds <c>sessionId</c> on every result, <c>error.lastObservation</c> on
+/// failures, and (later) #87's evidence bundle.</para>
 ///
 /// All mutators are guarded by an internal lock because an <c>invoke</c> can finish on a background
 /// worker thread after the dispatching call has already returned.
@@ -223,7 +225,7 @@ public sealed class AgentSession {
         return dir;
     }
 
-    /// <summary>A debug/replay snapshot of the session's current state (the basis for <c>session/status</c>, Phase 3).</summary>
+    /// <summary>A debug/replay snapshot of the session's current state (the payload of the <c>session-status</c> tool, #86 Phase 3).</summary>
     public JsonObject ToStatusJson() {
         lock (_gate) {
             JsonObject obj = new() {

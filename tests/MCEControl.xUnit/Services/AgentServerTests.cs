@@ -609,6 +609,233 @@ public class AgentServerTests {
         Assert.Equal("hi", invoke.Text);
     }
 
+    // -------------------------------------------------------------------------------------------
+    // #86 Phase 3: session lifecycle tools (session-start/status/end) + per-call sessionId routing.
+    // -------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Dispatch_ToolsList_AdvertisesSessionLifecycleAndRoutingArg() {
+        JsonObject resp = AgentServer.Dispatch(Request(2, "tools/list"))!;
+        JsonArray tools = resp["result"]!.AsObject()["tools"]!.AsArray();
+
+        Dictionary<string, JsonObject> byName = [];
+        foreach (JsonNode? tool in tools) {
+            if (tool?["name"]?.GetValue<string>() is { } n) {
+                byName[n] = tool.AsObject();
+            }
+        }
+
+        // The three lifecycle tools are advertised (hyphenated, not session/start; '/' is invalid in an
+        // MCP/Anthropic tool name).
+        Assert.Contains("session-start", byName.Keys);
+        Assert.Contains("session-status", byName.Keys);
+        Assert.Contains("session-end", byName.Keys);
+
+        // Routable tools (catalog + send_command) advertise an OPTIONAL sessionId arg.
+        foreach (string routable in (string[])["capture", "invoke", "drag", "send_command"]) {
+            JsonObject schema = byName[routable]["inputSchema"]!.AsObject();
+            Assert.True(schema["properties"]!.AsObject().ContainsKey("sessionId"), $"{routable} should advertise sessionId");
+            Assert.DoesNotContain("sessionId", Required(schema));
+        }
+
+        // session-end targets a session, so its sessionId is REQUIRED; session-status's is optional;
+        // session-start takes none (it never routes; it mints a new id).
+        Assert.Contains("sessionId", Required(byName["session-end"]["inputSchema"]!.AsObject()));
+        Assert.True(byName["session-status"]["inputSchema"]!.AsObject()["properties"]!.AsObject().ContainsKey("sessionId"));
+        Assert.DoesNotContain("sessionId", Required(byName["session-status"]["inputSchema"]!.AsObject()));
+        Assert.False(byName["session-start"]["inputSchema"]!.AsObject()["properties"]!.AsObject().ContainsKey("sessionId"));
+    }
+
+    [Fact]
+    public void Dispatch_SessionStart_MintsFreshAddressableSessionDistinctFromDefault() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
+        AgentRuntime.ResetSession();
+        try {
+            string defaultId = AgentRuntime.Session.SessionId;
+
+            JsonObject env = CallEnvelope(40, "session-start");
+            Assert.True(env["ok"]!.GetValue<bool>());
+            string started = env["result"]!.AsObject()["sessionId"]!.GetValue<string>();
+
+            // The started session names itself on the envelope, is a real new id, and is NOT the default.
+            Assert.Equal(started, env["sessionId"]!.GetValue<string>());
+            Assert.NotEqual(defaultId, started);
+
+            // Two starts give two different sessions.
+            string started2 = CallEnvelope(41, "session-start")["result"]!.AsObject()["sessionId"]!.GetValue<string>();
+            Assert.NotEqual(started, started2);
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
+        }
+    }
+
+    [Fact]
+    public void Dispatch_SessionId_RoutesTheCall_AndEchoesTheRoutedId() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
+        AgentRuntime.ResetSession();
+        try {
+            string started = CallEnvelope(42, "session-start")["result"]!.AsObject()["sessionId"]!.GetValue<string>();
+
+            // A tool call echoing that sessionId runs in (and names) that session; the command itself is
+            // disabled (no loaded table), but the refusal still carries the ROUTED session id.
+            JsonObject routed = CallEnvelope(43, "capture", new JsonObject { ["sessionId"] = started });
+            Assert.Equal(started, routed["sessionId"]!.GetValue<string>());
+
+            // A call with no sessionId falls back to the default session, a different id.
+            JsonObject defaulted = CallEnvelope(44, "capture");
+            Assert.Equal(AgentRuntime.Session.SessionId, defaulted["sessionId"]!.GetValue<string>());
+            Assert.NotEqual(started, defaulted["sessionId"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
+        }
+    }
+
+    [Fact]
+    public void Dispatch_UnknownSessionId_IsRefused_NotSilentlyForked() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
+        AgentRuntime.ResetSession();
+        try {
+            JsonObject env = CallEnvelope(45, "capture", new JsonObject { ["sessionId"] = "deadbeefcafe" });
+            Assert.False(env["ok"]!.GetValue<bool>());
+            JsonObject error = env["error"]!.AsObject();
+            Assert.Equal("unknown-session", error["code"]!.GetValue<string>());
+            Assert.Equal("invalid-argument", error["category"]!.GetValue<string>());
+
+            // The refusal echoes the REJECTED id, never the default session; else a client that carries
+            // envelope.sessionId forward after an error would silently continue the independent task in the
+            // default session, cross-contaminating the state the explicit session was meant to isolate (CR).
+            Assert.Equal("deadbeefcafe", env["sessionId"]!.GetValue<string>());
+            Assert.NotEqual(AgentRuntime.Session.SessionId, env["sessionId"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
+        }
+    }
+
+    [Fact]
+    public void Dispatch_WhitespaceOnlySessionId_IsRefused_NotRoutedToDefault() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
+        AgentRuntime.ResetSession();
+        try {
+            // A whitespace-only id is non-empty content, not an omitted arg: refuse it as unknown rather
+            // than silently routing to the default session (which would fork/cross-contaminate state) (CR).
+            JsonObject env = CallEnvelope(54, "capture", new JsonObject { ["sessionId"] = "   " });
+            Assert.False(env["ok"]!.GetValue<bool>());
+            Assert.Equal("unknown-session", env["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
+        }
+    }
+
+    [Fact]
+    public void Dispatch_SessionStatus_ReturnsSessionState() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
+        AgentRuntime.ResetSession();
+        try {
+            string started = CallEnvelope(46, "session-start")["result"]!.AsObject()["sessionId"]!.GetValue<string>();
+
+            JsonObject env = CallEnvelope(47, "session-status", new JsonObject { ["sessionId"] = started });
+            Assert.True(env["ok"]!.GetValue<bool>());
+            JsonObject status = env["result"]!.AsObject();
+            Assert.Equal(started, status["sessionId"]!.GetValue<string>());
+            Assert.True(status.ContainsKey("startedAt"));
+            Assert.True(status.ContainsKey("artifactDir"));
+
+            // Omitting sessionId reports the DEFAULT session.
+            JsonObject def = CallEnvelope(48, "session-status");
+            Assert.Equal(AgentRuntime.Session.SessionId, def["result"]!.AsObject()["sessionId"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
+        }
+    }
+
+    [Fact]
+    public void Dispatch_SessionEnd_RemovesSession_ThenRoutingItIsUnknown_AndReEndIsIdempotent() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
+        AgentRuntime.ResetSession();
+        try {
+            string started = CallEnvelope(49, "session-start")["result"]!.AsObject()["sessionId"]!.GetValue<string>();
+
+            JsonObject ended = CallEnvelope(50, "session-end", new JsonObject { ["sessionId"] = started });
+            Assert.True(ended["ok"]!.GetValue<bool>());
+            Assert.True(ended["result"]!.AsObject()["ended"]!.GetValue<bool>());
+            // The envelope names the ended session (metadata; consistent with session-status stamping its
+            // inspected session), so a client can correlate the result with the session it ended (CR).
+            Assert.Equal(started, ended["sessionId"]!.GetValue<string>());
+
+            // The id no longer resolves: a routed call is refused.
+            JsonObject afterEnd = CallEnvelope(51, "capture", new JsonObject { ["sessionId"] = started });
+            Assert.False(afterEnd["ok"]!.GetValue<bool>());
+            Assert.Equal("unknown-session", afterEnd["error"]!.AsObject()["code"]!.GetValue<string>());
+
+            // Re-ending is idempotent (ended:false, not an error).
+            JsonObject reEnd = CallEnvelope(52, "session-end", new JsonObject { ["sessionId"] = started });
+            Assert.True(reEnd["ok"]!.GetValue<bool>());
+            Assert.False(reEnd["result"]!.AsObject()["ended"]!.GetValue<bool>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
+        }
+    }
+
+    [Fact]
+    public void Dispatch_SessionLifecycle_RequiresAgentCommandsEnabled() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = null; // agent surface not opted in
+        AgentRuntime.ResetSession();
+        try {
+            JsonObject env = CallEnvelope(53, "session-start");
+            Assert.False(env["ok"]!.GetValue<bool>());
+            Assert.Equal("agent-commands-disabled", env["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
+        }
+    }
+
+    /// <summary>Dispatches a tools/call and returns the #101 envelope from its first text content block.</summary>
+    private static JsonObject CallEnvelope(int id, string name, JsonObject? arguments = null) {
+        JsonObject prms = new() { ["name"] = name, ["arguments"] = arguments ?? [] };
+        JsonObject resp = AgentServer.Dispatch(Request(id, "tools/call", prms))!;
+        return JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
+    }
+
+    /// <summary>The <c>required</c> array of an inputSchema as a list of strings.</summary>
+    private static List<string> Required(JsonObject inputSchema) {
+        List<string> required = [];
+        if (inputSchema["required"] is JsonArray arr) {
+            foreach (JsonNode? r in arr) {
+                if (r?.GetValue<string>() is { } s) {
+                    required.Add(s);
+                }
+            }
+        }
+        return required;
+    }
+
     private static string FirstTextBlock(JsonObject toolResult) {
         foreach (JsonNode? block in toolResult["content"]!.AsArray()) {
             if (block?["type"]?.GetValue<string>() == "text") {

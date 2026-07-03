@@ -174,7 +174,8 @@ success it reads `result`, on failure it reads `error`:
 
 A result is **either** a success (`ok: true`, `result` present, no `error`) **or** a failure
 (`ok: false`, `error` present, no `result`); never both. `warnings` (non-fatal conditions)
-may appear on either. `sessionId` is present when the call ran inside a mounted session.
+may appear on either. `sessionId` names the [session](#agent-sessions) the call ran in (the
+implicit default session unless the call routed itself with a `sessionId` argument).
 Over MCP, the transport's `isError` flag mirrors the envelope (`isError = !ok`).
 
 On failure the `error` object carries a stable, fine-grained `code`, a coarse `category` from
@@ -210,6 +211,44 @@ failing call's own partial payload, e.g. a blank capture's suspect PNG):
 > `emergency-stopped` (the operator engaged the [emergency stop](safety-emergency-stop-and-provisioning.md)),
 > `provisioning-not-authorized` (`AllowSessionProvisioning` is off), and `command-disabled` (the
 > per-command `Enabled` gate).
+
+### Agent sessions
+
+Every result carries a `sessionId`; the **session** it ran in. A session is the server's
+memory of one task: its active target window, last observation, last action, last error, and a
+per-session artifact directory (where a `capture`'s bytes are spilled so a later
+`error.lastObservation` never re-embeds megabytes of screenshot). This lets a multi-step task be
+one durable, debuggable record instead of a string of stateless calls.
+
+For a single linear task you never touch sessions: omit `sessionId` and every call shares one
+**implicit default session**, so state simply accumulates (and stdio "just works" with one ambient
+session). To run **independent** tasks that must not share a target or history, use the lifecycle
+tools:
+
+- **`session-start`** creates a fresh session and returns its `sessionId` (plus its initial
+  status). Echo that `sessionId` on later tool calls; each such call runs in that session and is
+  echoed back on the result.
+- **`session-status`** returns a session's remembered state (active target, last
+  observation/action/error, artifact dir, any emergency stop). Pass `sessionId` to inspect a
+  specific session, or omit it for the default.
+- **`session-end`** frees a session's server-side state. It is idempotent (ending an unknown or
+  already-ended id reports `ended: false` rather than erroring). Afterward a tool call that still
+  echoes that id is refused with `error.code: unknown-session` (category `invalid-argument`); start
+  a new one or omit `sessionId` to fall back to the default.
+
+> **Identity is carried in-band, not bound to the connection.** Both stdio and the HTTP floor
+> funnel into one stateless dispatch; the store is keyed by id, not by socket, so the same
+> `sessionId` addresses the same session across either transport. The lifecycle tools are part of
+> the agent surface and honor the same `AgentCommandsEnabled` opt-in and emergency-stop latch as
+> every other tool.
+>
+> **Not the same as `provision-session`.** These sessions are in-process runtime state. A
+> [provisioned session](safety-emergency-stop-and-provisioning.md) is a whole disposable MCEC
+> *install* on disk (`#138`); a different concept with its own `sessionId`/`token`.
+>
+> **Tool names are hyphenated** (`session-start`, not `session/start`) because MCP/Anthropic tool
+> names must match `^[a-zA-Z0-9_-]{1,64}$`, and to match the existing `wait-for`/`end-session`
+> convention.
 
 ### `capture` result example
 
@@ -505,6 +544,12 @@ When connected, the server advertises these tools:
 | `click`        | The `click` command (atomic click at an element centre or pixel). |
 | `record`       | The `record` command (window/region → animated GIF over time). |
 | `send_command` | Generic raw-command passthrough; send any MCEC command line.  |
+| `session-start`  | Start a new [agent session](#agent-sessions) and return its `sessionId`. |
+| `session-status` | Report a session's state (active target, last observation/action/error, artifact dir). |
+| `session-end`    | End an agent session, freeing its server-side state. |
+
+Every observation/actuation tool and `send_command` also accept an optional `sessionId`
+argument (from `session-start`) to [route the call into that session](#agent-sessions).
 
 ---
 

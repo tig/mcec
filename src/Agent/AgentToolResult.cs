@@ -21,8 +21,9 @@ namespace MCEControl;
 /// <para>Since #206 the envelope is built from the <see cref="CommandResult"/> OBJECT the command
 /// returned (see <see cref="FromCommandResult"/>); no serialize → re-parse round-trip, and no
 /// free-text "categorization": every agent command emits the structured code/category itself
-/// (enforced by <see cref="AgentCommand"/>'s sealed template). <see cref="SessionId"/> stays null
-/// until the session store lands (Phase 2/3).</para>
+/// (enforced by <see cref="AgentCommand"/>'s sealed template). <see cref="SessionId"/> names the
+/// session the call ran in (#86; the implicit default session unless the call routed itself with a
+/// <c>sessionId</c> argument).</para>
 /// </summary>
 public sealed class AgentToolResult {
     private AgentToolResult(bool ok, JsonObject? result, AgentError? error, string? sessionId, IReadOnlyList<AgentWarning> warnings) {

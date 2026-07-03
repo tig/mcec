@@ -2,6 +2,8 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace MCEControl;
@@ -144,13 +146,29 @@ public static class AgentRuntime {
     // -------------------------------------------------------------------------------------------
 
     private static readonly Lock _sessionGate = new();
-    private static AgentSession? _session;
+
+    /// <summary>
+    /// Live sessions keyed by <see cref="AgentSession.SessionId"/> (Phase 3). Both the implicit default
+    /// session and every explicitly <c>session-start</c>ed one are registered here, so a call can be
+    /// routed to any of them by echoing its id. Sessions are removed by <c>session-end</c> (or a test
+    /// reset); there is no time-based reaping in-process (a session is cheap; its only heap cost is the
+    /// small last-target/observation/action/error state, and capture bytes already spill to disk).
+    /// </summary>
+    private static readonly Dictionary<string, AgentSession> _sessions = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The implicit default session: the one a call with no <c>sessionId</c> runs in, so the common
+    /// single-agent / stdio case "just works" with one ambient session (Phase 3, decision 1). Created on
+    /// first use and also registered in <see cref="_sessions"/> under its id, so an agent that reads the
+    /// default's id from <c>session-status</c> can then address it explicitly and get the same instance.
+    /// </summary>
+    private static AgentSession? _defaultSession;
     private static string? _artifactRoot;
 
     /// <summary>
     /// Root directory under which each session reserves its artifact subdirectory. Defaults to a
     /// <c>sessions</c> folder beside MCEC's settings/logs (or a temp fallback if that can't be resolved);
-    /// overridable by the host or tests. Setting it clears the ambient session so the next one uses it.
+    /// overridable by the host or tests. Setting it clears every live session so the next ones use it.
     /// </summary>
     public static string ArtifactRoot {
         get {
@@ -161,30 +179,87 @@ public static class AgentRuntime {
         set {
             lock (_sessionGate) {
                 _artifactRoot = value;
-                _session = null;
+                _sessions.Clear();
+                _defaultSession = null;
             }
         }
     }
 
     /// <summary>
-    /// The ambient agent session, created on first use. Phase 2 (#86) runs a single runner-owned session;
-    /// explicit <c>session/start|status|end</c> lifecycle and per-call routing arrive in Phase 3. The
-    /// session carries <c>sessionId</c> onto every result and the last target/observation/action/error
-    /// for debugging and replay.
+    /// The implicit default agent session (#86), created and registered on first use. A tool call that
+    /// carries no <c>sessionId</c> runs here; explicit <c>session-start</c> creates additional addressable
+    /// sessions alongside it (see <see cref="StartSession"/>/<see cref="TryResolveSession"/>). The session
+    /// carries <c>sessionId</c> onto every result and the last target/observation/action/error for
+    /// debugging and replay.
     /// </summary>
     public static AgentSession Session {
         get {
             lock (_sessionGate) {
-                return _session ??= AgentSession.Create(_artifactRoot ??= DefaultArtifactRoot());
+                return _defaultSession ??= CreateAndRegister();
             }
         }
     }
 
-    /// <summary>Drops the ambient session so the next access starts a fresh one (used by tests and a future <c>session/end</c>).</summary>
+    /// <summary>
+    /// Phase 3 (<c>session-start</c>): creates, registers, and returns a fresh addressable session. Unlike
+    /// <see cref="Session"/> it never becomes the default; the agent routes to it by echoing the returned
+    /// <see cref="AgentSession.SessionId"/> as the <c>sessionId</c> argument on later calls.
+    /// </summary>
+    public static AgentSession StartSession() {
+        lock (_sessionGate) {
+            return CreateAndRegister();
+        }
+    }
+
+    /// <summary>
+    /// Resolves the session a call runs in (Phase 3, decision 1): the session named by
+    /// <paramref name="sessionId"/>, or the implicit default when it is null/empty. Returns false with
+    /// <paramref name="session"/> null when a non-empty id names no live session, so the caller can refuse
+    /// the call rather than silently forking a new session's state under a stale id.
+    /// </summary>
+    public static bool TryResolveSession(string? sessionId, [MaybeNullWhen(false)] out AgentSession session) {
+        lock (_sessionGate) {
+            // Only an absent/empty id means "default"; a whitespace-only id is non-empty content, so it is
+            // NOT treated as missing (it will simply match no live session and be refused). Otherwise a
+            // stray " " would silently route into the default session and fork the state an explicit
+            // session was meant to isolate.
+            if (string.IsNullOrEmpty(sessionId)) {
+                session = _defaultSession ??= CreateAndRegister();
+                return true;
+            }
+            return _sessions.TryGetValue(sessionId.Trim(), out session);
+        }
+    }
+
+    /// <summary>
+    /// Phase 3 (<c>session-end</c>): removes a session by id, returning whether it existed. Ending the
+    /// default session drops the ambient pointer so the next default access starts a fresh one; a
+    /// subsequent call with that (now dead) id resolves to nothing and is refused.
+    /// </summary>
+    public static bool EndSession(string sessionId) {
+        lock (_sessionGate) {
+            string id = sessionId?.Trim() ?? "";
+            bool removed = _sessions.Remove(id);
+            if (_defaultSession?.SessionId == id) {
+                _defaultSession = null;
+            }
+            return removed;
+        }
+    }
+
+    /// <summary>Drops every live session so the next access starts fresh (used by tests; a <c>session-end</c> on a specific id is <see cref="EndSession"/>).</summary>
     public static void ResetSession() {
         lock (_sessionGate) {
-            _session = null;
+            _sessions.Clear();
+            _defaultSession = null;
         }
+    }
+
+    /// <summary>Creates a session against the current artifact root and registers it in <see cref="_sessions"/>. Caller holds <see cref="_sessionGate"/>.</summary>
+    private static AgentSession CreateAndRegister() {
+        AgentSession session = AgentSession.Create(_artifactRoot ??= DefaultArtifactRoot());
+        _sessions[session.SessionId] = session;
+        return session;
     }
 
     private static string DefaultArtifactRoot() {
