@@ -13,15 +13,17 @@ so the About dialog and the narration match.
 
 ## How it is made
 
-An **agent drives MCEC over MCP** and does everything itself; there is no driver script to run or write.
-One MCEC is the **controller** the agent is connected to; the agent uses the controller's tools to
+An **agent drives MCEC over MCP** and does the whole tour itself; **no tour-logic script ships in the
+repo**. One MCEC is the **controller** the agent is connected to; the agent uses the controller's tools to
 [`provision-session`](safety-emergency-stop-and-provisioning.md) a disposable **subject** MCEC, `launch`
 it, tour it, and `record` the region while the controller's overlay narrates. The only scripted step is
 standing up that first controller, because an agent cannot bootstrap it over MCP (there is nothing to
 connect to yet).
 
-This page is written so a **fresh agent session can reproduce the hero by reading it and calling MCEC's
-MCP tools**, no scripting required beyond the one bootstrap command below.
+This page is written so a **fresh agent session can reproduce the hero by reading it**. An agent with MCEC
+mounted as native MCP tools calls them directly; an agent without one (most IDE agents) writes a thin
+JSON-RPC wrapper to POST to the controller (see the reference call in the playbook). Either way the
+choreography is the agent's, not a shipped driver's; only the one bootstrap command below is in-repo.
 
 ## Setup (the only script)
 
@@ -38,12 +40,15 @@ pwsh -NoProfile -File scripts/Generate-HeroGif.ps1
 
 Register the printed endpoint (or POST JSON-RPC to it directly, see the playbook note below) so your agent
 has MCEC's tools (`provision-session`, `launch`, `query`, `click`, `drag`, `record`, `capture`,
-`displays`, `send_command`, `end-session`), then ask it to recreate the hero. The controller's config enables everything the tour needs: the agent surface, per-command
-`Enabled` for the tools it calls (`query`/`click`/`drag`/`record`/`capture`/`launch`/`displays`; agent
-tools are gated by BOTH `AgentCommandsEnabled` and their own table entry), `AllowSessionProvisioning`, the
-overlay on/docked Left, and the built-in keyboard primitives (`chars:` for single characters,
-`shiftdown:`/`shiftup:` for modifier chords). Drive the whole tour promptly in one pass; the controller
-stays up while idle, but do not dawdle. When finished, tear it down:
+`displays`, `send_command`, `end-session`), then ask it to recreate the hero. The controller's config
+enables everything the tour needs: the agent surface, per-command `Enabled` for the tools it calls
+(`query`/`click`/`drag`/`record`/`capture`/`launch`/`displays`; agent tools are gated by BOTH
+`AgentCommandsEnabled` and their own table entry), `AllowSessionProvisioning`, the overlay on/docked Left,
+and the built-in keyboard primitives. (`send_command` itself is a meta-tool and needs no `Enabled` row;
+only the raw commands it runs do, so the config enables `chars:` for single characters and
+`shiftdown:`/`shiftup:` for modifier holds.) The controller is launched **detached** (via WMI, outside the
+launcher's job) so it survives this script exiting; still, drive the tour in one prompt pass. When
+finished, tear it down:
 
 ```powershell
 pwsh -NoProfile -File scripts/Generate-HeroGif.ps1 -Stop
@@ -57,68 +62,85 @@ front door by design (`Program.IsProgramFilesInstall`).
 
 ## The playbook (the agent drives, all via MCP tools)
 
-Coordinates are absolute screen pixels (the space `query`/`displays` report). Compute them from the two
-observations below; do not hard-code them. Keystrokes go through MCEC's native keyboard primitives (no
-custom commands): `send_command { "command": "<char>" }` types any single character (the `chars:`
-built-in), and `shiftdown:<mod>` / `shiftup:<mod>` hold and release a modifier (`lwin`, `alt`, `ctrl`,
-`shift`) around it. Dialog buttons and menu items are reached with `click`/`invoke` by name.
+Coordinates are absolute screen pixels (the space `query`/`displays` report); compute them from the two
+observations below, do not hard-code them, and **send integers** (a tool expecting a pixel rejects
+`767.0`). Keystrokes go through the `send_command` meta-tool and MCEC's native keyboard primitives:
+`send_command { "command": "<char>" }` types any single character (the `chars:` built-in), and
+`send_command { "command": "shiftdown:<mod>" }` / `"shiftup:<mod>"` hold and release a modifier (`lwin`,
+`alt`, `ctrl`, `shift`) around it. Dialog buttons and menu items are reached with `click` by name.
 
-**Before you start, three things that trip agents up:**
-- **Responses.** Every tool returns the shared envelope `{ ok, result, warnings?, error }` as JSON inside
-  the MCP text content; branch on `ok` (not `success`), read `result` on success and `error.code` on
-  failure. See [`agent-tool-result-contract.md`](design/agent-tool-result-contract.md).
-- **Absolute paths.** The controller's working directory is its temp copy, so any repo path you pass a
-  tool (notably `record` `stop`'s `file`) must be the repo's **absolute** path, or output lands in the
-  temp copy and is lost.
-- **Registration is optional.** `claude mcp add` is only for an interactive MCP client. A script or agent
-  session can POST JSON-RPC straight to the printed URL (copy it whole, including `http://` and the port);
-  that is how this playbook is driven.
+**Before you start, the things that trip agents up:**
+- **Responses are double-wrapped.** A tool's envelope `{ ok, result, warnings?, error }` arrives as a JSON
+  **string** inside the JSON-RPC `result.content[]` text block, NOT at the top level. Unwrap it, then
+  branch on `ok` (not `success`); read `result` on success, `error.code` on failure. Canonical parser:
+  `PayloadData` in [`AgentDesktopE2ETests.cs`](../tests/MCEControl.xUnit/Integration/AgentDesktopE2ETests.cs);
+  full contract: [`agent-tool-result-contract.md`](design/agent-tool-result-contract.md).
+- **Absolute paths.** The controller's working dir is its temp copy, so any repo path you pass a tool
+  (notably `record stop`'s `file`) must be the repo's **absolute** path, or output lands in the temp copy
+  and is lost.
+- **Registration is optional.** `claude mcp add` is only for an interactive MCP client. An agent without
+  MCEC mounted POSTs JSON-RPC straight to the printed URL (copy it whole, including `http://` and the
+  port); that is how this playbook is driven.
 
-1. **Screen size.** `displays` → take the primary monitor's width `SW` and height `SH`.
-2. **Provision the subject.** `provision-session { "mcpServer": false }` → keep `exePath`, `sessionId`,
-   `token`. This is the isolated copy being toured; it replaces any hand-managed subject directory.
-3. **Clear the backdrop, then launch.** Send **Win+D** to minimize other windows so they are not in frame
-   (the controller is hidden and its overlay is a tool window, so both survive): `shiftdown:lwin`, then
-   `d`, then `shiftup:lwin`. Do this before the subject exists so it is not minimized too. Then
-   `launch { "path": <exePath>, "timeout": 8000 }` → keep the returned window `handle`; drive the subject
-   by that handle from here on (the controller also owns an "MCEC" window, so a title match is ambiguous).
-   Wait ~1.5–2 s for the window and menu bar to build.
-4. **Read its bounds.** `query { "handle": <handle>, "maxDepth": 1 }` → the window rect `WX, WY, WW, WH`.
-   Derive everything below from these (nothing is pinned).
+**Reference call** (issue one tool and unwrap its envelope; every step below is this shape):
+
+```powershell
+$body = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"displays","arguments":{}}}'
+$rpc  = Invoke-RestMethod -Uri $McpUrl -Method Post -Body $body -ContentType 'application/json'
+$env  = ($rpc.result.content | Where-Object type -eq 'text').text | ConvertFrom-Json  # { ok, result, error }
+if (-not $env.ok) { throw $env.error.code }
+$env.result    # tool-specific payload; the field paths are named in each step
+```
+
+1. **Screen size.** `displays` → `result.displays[]`; take the entry with `primary:true`. Read
+   `bounds.x/y/width/height` as `SX, SY, SW, SH` (on a secondary-as-primary setup `SX/SY` can be non-zero;
+   the record region below uses them).
+2. **Provision the subject.** `provision-session { "mcpServer": false }` → top-level in `result`:
+   `exePath`, `sessionId`, `token`. This isolated copy is what you tour.
+3. **Clear the backdrop, then launch.** Send **Win+D** to minimize other windows (the controller is hidden
+   and its overlay is a tool window, so both survive), as three separate `send_command` calls:
+   `{ "command": "shiftdown:lwin" }`, `{ "command": "d" }`, `{ "command": "shiftup:lwin" }`. Do this before
+   the subject exists so it is not minimized too. Then `launch { "path": <exePath>, "timeout": 8000 }` →
+   `result.handle`; drive the subject by that `handle` from here on (the controller also owns an "MCEC"
+   window, so a title match is ambiguous). Wait ~1.5–2 s for the window and menu bar to build.
+4. **Read its bounds.** `query { "handle": <handle>, "maxDepth": 1 }` → `result.window` gives `x, y, width,
+   height` (the window rect, not the UIA tree) as `WX, WY, WW, WH`. Derive everything below from these.
 5. **Clear any stray desktop popup BEFORE recording.** A leftover right-click context menu on the desktop
-   will otherwise sit in frame. Dismiss it with a click well OUTSIDE its bounds: the subject's lower-right
-   client area is safely clear of a top-left menu. `click { "at": { "x": WX+WW-60, "y": WY+WH-60 } }` (a
-   click outside a menu dismisses it; Escape does not reliably reach a desktop menu).
-6. **Start recording.** Record the left band, full height (so the overlay's narration column stays in
-   frame wherever the window sits) out to the window's right edge:
-   `record { "action": "start", "x": 0, "y": 0, "width": min(SW, WX+WW+12), "height": SH, "fps": 4, "maxWidth": 560 }`.
+   would sit in frame. Use `click { "at": { "x": WX+WW-60, "y": WY+WH-60 } }`, a **coordinate-only** click
+   with no `handle`/`window`, so it lands on whatever is at that desktop pixel (the subject's lower-right,
+   clear of a top-left menu) and dismisses the menu. (Escape does not reliably reach a desktop menu.)
+6. **Start recording.** Record the left band, full height, out to the window's right edge so the overlay's
+   narration column stays in frame:
+   `record { "action": "start", "x": SX, "y": SY, "width": min(SW, WX+WW+12-SX), "height": SH, "fps": 4, "maxWidth": 560 }`.
    Then `capture { "handle": <handle> }` and dwell ~0.6 s so the opening frame settles.
-7. **Tour Settings, every tab (Agent is second).** `click { "handle": <handle>, "at": { "by": "name", "value": "File" } }`
-   → `send_command { "command": "s" }` (the Settings mnemonic an open WinForms menu exposes only to the
-   keyboard; a single char via `chars:`). Then for each of **General, Agent, Client, Server, Serial Server,
+7. **Tour Settings, every tab (Agent is second).** `click { "handle": <handle>, "at": { "by": "name", "value": "File" } }`,
+   wait ~0.3 s for the menu → `send_command { "command": "s" }` (the Settings mnemonic; a single char via
+   `chars:`), wait ~0.6 s for the dialog. Then for each of **General, Agent, Client, Server, Serial Server,
    Activity Monitor**: `click { "window": "Settings", "at": { "by": "name", "value": <tab> } }`, dwelling
-   ~0.65 s. Close the dialog by clicking its button:
-   `click { "window": "Settings", "at": { "by": "name", "value": "Cancel" } }`.
-8. **Resize ~25% smaller.** Drag the bottom-right sizing border inward:
-   `drag { "handle": <handle>, "from": { "x": WX+WW-2, "y": WY+WH-2 }, "to": { "x": WX+0.75*WW, "y": WY+0.75*WH } }`.
+   ~0.65 s. Close with `click { "window": "Settings", "at": { "by": "name", "value": "Cancel" } }`.
+8. **Resize ~25% smaller.** Drag the bottom-right sizing border inward (integer pixels):
+   `drag { "handle": <handle>, "from": { "x": WX+WW-2, "y": WY+WH-2 }, "to": { "x": round(WX+0.75*WW), "y": round(WY+0.75*WH) } }`.
 9. **Move in a small circle.** Re-`query { "handle": <handle> }` first (the resize changed the window; its
-   top-left stayed put but read fresh bounds to be safe). Grab the title bar at `G = { x: WX+WW*0.375,
-   y: WY+12 }` and drag it around a small circle centred just below the grab point: let `cx = G.x`,
-   `cy = G.y+55`, `r = 55`, and build `path` from points `{ x: cx+r*cos(θ), y: cy+r*sin(θ) }` for
-   `θ = 0°,50°,100°,…,720°` (two loops, ~15 waypoints); pass all but the last as `path` and the last as
-   `to`. `drag { "handle": <handle>, "from": G, "path": [...], "to": <lastPoint> }`.
-10. **Help ▸ About.** `click { "handle": <handle>, "at": { "by": "name", "value": "Help" } }` →
-    `send_command { "command": "a" }` (the About mnemonic) → `capture { "window": "About" }`, then dwell
-    ~1 s on it.
+   top-left stayed put, but read fresh bounds to be safe). Grab the title bar at
+   `G = { x: round(WX+WW*0.375), y: WY+12 }`; build a circular `path` of **integer** points
+   `{ x: round(cx+r*cos θ), y: round(cy+r*sin θ) }` with `cx=G.x`, `cy=G.y+55`, `r=55`, for
+   `θ = 0°,50°,…,720°` (two loops, ~15 points). Pass all but the last as `path`, the last as `to`:
+   `drag { "handle": <handle>, "from": G, "path": [ {"x":123,"y":456}, {"x":140,"y":470}, … ], "to": <lastPoint> }`.
+10. **Help ▸ About.** `click { "handle": <handle>, "at": { "by": "name", "value": "Help" } }`, wait ~0.3 s
+    → `send_command { "command": "a" }` (the About mnemonic), wait ~0.8 s for the dialog →
+    `capture { "window": "About" }`, then dwell ~1 s on it.
 11. **Stop and write the GIF.** `record { "action": "stop", "file": "<repo>/docs/hero.gif" }` with the
-    repo's **absolute** path (a relative path lands in the controller's temp copy and is lost). Check the
-    result: `ok:true` with a frame count and byte size.
-12. **Close the subject, then tear down.** Close the About box:
+    repo's **absolute** path (relative lands in the temp copy and is lost). Encoding takes a few seconds,
+    so give the HTTP call a generous timeout. Verify `result`: `ok:true`, `result.frames` (≈35–50),
+    `result.bytes` (≈3–4 MB), `result.file`.
+12. **Close the subject.** Close the About box:
     `click { "window": "About", "at": { "by": "name", "value": "OK" } }`. Close the subject via its menu:
     `click { "handle": <handle>, "at": { "by": "name", "value": "File" } }` → `send_command { "command": "x" }`
     (the Exit mnemonic) so its exe exits and releases the directory. Then
     `end-session { "sessionId": <sessionId>, "token": <token> }` removes it (the age-reaper is the fallback
-    if anything is still locked). Finally run `-Stop` to remove the controller copy.
+    if anything is still locked).
+13. **Tear down the controller.** `pwsh -NoProfile -File scripts/Generate-HeroGif.ps1 -Stop` removes the
+    throwaway controller copy so no orphan lingers.
 
 Because `provision-session` copies the **controller's own binaries** into the subject, the subject is
 stamped with the controller's build. GitVersion bakes the current branch name into that stamp, and it is
@@ -144,10 +166,11 @@ aware of which build you are recording.
 
 ## Verify, then commit
 
-The whole tour is ~30–60 s including dwells. The subject's log window is in frame (marketing surface) and
-the recording doubles as a bug-finding channel, so spot-check a few keyframes before committing. Confirm:
-the Settings strip shows **Agent as the second tab** (the #259 feature this hero exists to show), no stray
-desktop menu is in frame, and the log window reads cleanly. Extract frames with:
+The tour drives in ~20 s (the GIF is written by then; longer runs are just idle time, so don't pad with
+dwells beyond those noted). The result is ≈3–4 MB. The subject's log window is in frame (marketing
+surface) and the recording doubles as a bug-finding channel, so spot-check a few keyframes before
+committing. Confirm: the Settings strip shows **Agent as the second tab** (the #259 feature this hero
+exists to show), no stray desktop menu is in frame, and the log window reads cleanly. Extract frames with:
 
 ```powershell
 Add-Type -AssemblyName System.Drawing
