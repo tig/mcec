@@ -5,6 +5,10 @@ using System;
 using System.Windows.Forms;
 using Timer = System.Windows.Forms.Timer;
 
+// The private backing events keep the _camelCase field convention: each pairs with a public
+// PascalCase custom event accessor of the same name (_mouseMove/MouseMove), so PascalCase would collide.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl.Hooks;
 
 /// <summary>

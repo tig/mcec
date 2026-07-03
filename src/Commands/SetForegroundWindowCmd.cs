@@ -52,7 +52,7 @@ public class SetForegroundWindowCommand : Command {
             if (!string.IsNullOrEmpty(AppName)) {
                 Process[] procs = Process.GetProcessesByName(AppName);
                 if (procs.Length > 0) {
-                    Process? process = procs.Where(p => p.MainWindowHandle != IntPtr.Zero).FirstOrDefault();
+                    Process? process = procs.FirstOrDefault(p => p.MainWindowHandle != IntPtr.Zero);
 
                     Logger.Instance.Log4.Info($"{this.GetType().Name}: SetForegroundWindow({ClassName})");
                     Win32NativeMethods.SetForegroundWindow(process!.MainWindowHandle);

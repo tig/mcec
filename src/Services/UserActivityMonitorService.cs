@@ -43,7 +43,8 @@ public sealed class UserActivityMonitorService : IDisposable {
 
     private IntPtr? _hUserPresence;
     private DateTime _lastTime;
-    private Timer _presencePresumedTimer = null!;
+    // Null whenever the monitor is stopped/disposed; created by StartPresencePresumedTimer.
+    private Timer? _presencePresumedTimer;
 
     // Captured on Start()'s thread (the WinForms UI thread in the GUI host). The heavy per-activity
     // work; log4net file I/O, a telemetry metric, and SendLine's synchronous socket/serial writes;
@@ -153,7 +154,9 @@ public sealed class UserActivityMonitorService : IDisposable {
 
                         case 2
                             : // PowerUserInactive(2) - The user activity timeout has elapsed with no interaction from the user.
-                            _presencePresumedTimer.Enabled = false;
+                            if (_presencePresumedTimer != null) {
+                                _presencePresumedTimer.Enabled = false;
+                            }
                             Logger.Instance.Log4.Info(
                                 "ActivityMonitor: PowerBroadcast: The user activity timeout has elapsed with no interaction from the user.");
                             break;
@@ -175,7 +178,9 @@ public sealed class UserActivityMonitorService : IDisposable {
 
 
                         case 1: // 0x1 - The computer is entering away mode.
-                            _presencePresumedTimer.Enabled = false;
+                            if (_presencePresumedTimer != null) {
+                                _presencePresumedTimer.Enabled = false;
+                            }
                             Logger.Instance.Log4.Info(
                                 "ActivityMonitor: PowerBroadcast: The computer is entering away mode.");
                             break;
@@ -190,7 +195,9 @@ public sealed class UserActivityMonitorService : IDisposable {
                     // BUGBUG: Data is just a byte and we're lucky the MSB has our value in it
                     switch (pbSetting.Data) {
                         case 0: // 0x0 - The monitor is off.
-                            _presencePresumedTimer.Enabled = false;
+                            if (_presencePresumedTimer != null) {
+                                _presencePresumedTimer.Enabled = false;
+                            }
                             Logger.Instance.Log4.Info("ActivityMonitor: PowerBroadcast: The monitor is off");
                             break;
 
@@ -269,7 +276,7 @@ public sealed class UserActivityMonitorService : IDisposable {
         Debug.Assert(_presencePresumedTimer != null);
         _presencePresumedTimer.Stop();
         _presencePresumedTimer.Dispose();
-        _presencePresumedTimer = null!;
+        _presencePresumedTimer = null;
     }
 
     public void Stop() {
@@ -474,7 +481,7 @@ public sealed class UserActivityMonitorService : IDisposable {
             if (disposing) {
                 UnsubscribeFromInputEvents();
                 _presencePresumedTimer?.Dispose();
-                _presencePresumedTimer = null!;
+                _presencePresumedTimer = null;
             }
 
             _disposedValue = true;

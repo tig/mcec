@@ -41,6 +41,21 @@ public sealed class EmergencyStopHotkey {
     public static EmergencyStopHotkey Default => Parse(DefaultSpec)!;
 
     /// <summary>
+    /// Parses <paramref name="spec"/>, falling back to <see cref="Default"/> (with a logged warning) when
+    /// it is invalid. The arm-the-hotkey paths (GUI <c>MainWindow.Start</c> and headless
+    /// <see cref="HeadlessOperatorUi"/>) share this so a typo in settings degrades to the default chord
+    /// identically in both hosts instead of leaving the operator with no panic hotkey.
+    /// </summary>
+    public static EmergencyStopHotkey ParseOrDefault(string? spec) {
+        EmergencyStopHotkey? parsed = Parse(spec);
+        if (parsed is null) {
+            Logger.Instance.Log4.Warn($"EmergencyStop: could not parse hotkey '{spec}'; using default {DefaultSpec}.");
+            return Default;
+        }
+        return parsed;
+    }
+
+    /// <summary>
     /// Parses a <c>+</c>-separated chord spec (e.g. <c>Ctrl+Alt+Shift+S</c>, <c>Pause</c>). Returns null
     /// when the spec is empty, names no main key, or names an unrecognized key. Modifier-only specs are
     /// rejected (a chord must have exactly one non-modifier key).
@@ -63,7 +78,7 @@ public sealed class EmergencyStopHotkey {
                 // More than one non-modifier key; not a supported single-key chord.
                 return null;
             }
-            if (ParseKey(token) is not Keys k) {
+            if (ParseKey(token) is not { } k) {
                 return null;
             }
             mainKey = k;

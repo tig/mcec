@@ -13,7 +13,7 @@ mcec.exe --mcp        # run headless as an MCP stdio server an agent can mount
 > [!CAUTION]
 > MCEC is extremely powerful; if anything useful is enabled, everything a user can do at the keyboard and mouse, an agent can do.
 
-MCEC drives the Windowshelloa desktop with real user input. There is no sandbox, no permission model inside the session, and no way to give an agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent can do**: read whatever is on screen, type into any app, click anything, launch programs, open a browser logged in as you, delete files, send email. The gates decide *whether* an agent gets that power; they do not and cannot meter *how much*.
+MCEC drives the Windows desktop with real user input. There is no sandbox, no permission model inside the session, and no way to give an agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent can do**: read whatever is on screen, type into any app, click anything, launch programs, open a browser logged in as you, delete files, send email. The gates decide *whether* an agent gets that power; they do not and cannot meter *how much*.
 
 So the operator stays in control by construction:
 

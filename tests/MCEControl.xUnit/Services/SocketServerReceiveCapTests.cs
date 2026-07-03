@@ -90,7 +90,7 @@ public class SocketServerReceiveCapTests : IDisposable {
         var errors = new List<string>();
         var commands = new List<string>();
         _server.ErrorOccurred += error => errors.Add(error.Message);
-        _server.CommandReceived += (reply, command) => commands.Add(command);
+        _server.CommandReceived += (_, command) => commands.Add(command);
         Array.Fill(context.DataBuffer, (byte)'a');
 
         // 8 KB of delimiter-less data. #212: ONE overflow policy; the accumulator's
@@ -109,7 +109,7 @@ public class SocketServerReceiveCapTests : IDisposable {
         Assert.Empty(commands); // the oversized run (and its tail) never surfaces as a command
 
         // Recovery: a delimiter ends the discard and the next command parses normally.
-        byte[] recovery = Encoding.ASCII.GetBytes("\nmute\n");
+        byte[] recovery = "\nmute\n"u8.ToArray();
         Array.Copy(recovery, context.DataBuffer, recovery.Length);
         Assert.True(_server.ProcessReceivedData(context, recovery.Length));
         Assert.Equal(new[] { "mute" }, commands);
@@ -120,8 +120,8 @@ public class SocketServerReceiveCapTests : IDisposable {
         using Socket socket = NewSocket();
         var context = _server.RegisterClient(socket);
         var commands = new List<string>();
-        _server.CommandReceived += (reply, command) => commands.Add(command);
-        byte[] data = Encoding.ASCII.GetBytes("mute\n");
+        _server.CommandReceived += (_, command) => commands.Add(command);
+        byte[] data = "mute\n"u8.ToArray();
         Array.Copy(data, context.DataBuffer, data.Length);
 
         bool keepReceiving = _server.ProcessReceivedData(context, data.Length);

@@ -73,15 +73,34 @@ stale-element, no-target, invalid-argument, capture-blank, focus, elevation, for
 choose recovery; e.g. `no-target` means broaden the selector, `query` to discover targets, or `wait-for`
 the element; `invalid-argument` means the REQUEST itself is wrong (unknown action, oversized region,
 ill-formed endpoint, an action the element can't perform); fix the arguments, do NOT retry the same call
-or broaden a selector; `ambiguous-selector` means add `processName`/`className`/`automationId`;
-`stale-element` means re-`query`/`find` for a fresh handle; `internal` is not recoverable by you; report
-it. Branch on codes and categories, never on the wording of `error.detail` (it is human-readable and may
-change). `error.lastObservation`, when present, is the last good state before the failure, and
+or broaden a selector; `ambiguous-selector` means the element selector matched more than one element and
+the tool refused to guess (the match count rides in the code, `selector-matched-N`); NARROW the selector
+(prefer `automationId`, else `className` or a more specific name); retrying it unchanged cannot help;
+`stale-element` means the window/element went away mid-call (closed or re-rendered); re-`query`/`find`
+for a fresh handle, then retry; `elevation` means the target runs elevated (UAC) at a higher integrity
+level than MCEC and cannot be observed or driven; report it to the user, do not retry; `internal` is not
+recoverable by you; report it. `focus` and `foreground` are reserved for future detection and are never
+produced today; treat them like `internal` if one ever appears. Branch on codes and categories, never on
+the wording of `error.detail` (it is human-readable and may change). `error.lastObservation`, when present, is the last good state before the failure, and
 `error.partialResult` is the failing call's OWN partial payload (e.g. a blank capture's suspect PNG).
 When the last good observation was a `capture`, `lastObservation` is a compact summary; the window
 descriptor, dimensions, blankCheck verdict, and byte count, with `kind:"capture-summary"`; plus an
 `artifact` path where the PNG was saved on the host; it never carries the image bytes inline, so
 re-`capture` if you need to SEE the prior state rather than reason about its metadata.
+
+SESSIONS: every result carries a `sessionId`; the session it ran in. A session is the runtime's memory of
+one task: its active target window, last observation, last action, last error, and a per-session artifact
+directory (where a `capture`'s bytes are spilled). You do NOT need to manage sessions for a single linear
+task: omit `sessionId` and every call shares one implicit default session, so state just accumulates. To
+run INDEPENDENT tasks that must not share state, call `session-start` to get a fresh `sessionId`, then pass
+that `sessionId` on each call to route it into that session; two sessions keep separate targets and
+histories. `session-status` (optional `sessionId`, else the default) returns a session's remembered state
+for debugging or replay; `session-end` (required `sessionId`) frees a session's state. After you end a
+session, a call that still echoes its id is refused with `error.code:unknown-session` (category
+`invalid-argument`); start a new one or omit `sessionId` to fall back to the default. An id you never
+started is refused the same way. (Note the hyphen: the tools are `session-start`/`session-status`/
+`session-end`.) This is separate from `provision-session`, which hands you a whole disposable MCEC INSTALL
+(see PROVISION), not an in-process session.
 
 COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. When
 injected keystrokes must reach Start/search or the bare desktop, first show the desktop (Win+D) or `click` an
@@ -130,7 +149,9 @@ you will never see or target it, and it is never a candidate window; but it DOES
 full-screen/region `capture`s and `record`ings (not in window-targeted captures).
 
 PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it and disabling them
-when done; an abnormal exit leaks those security gates enabled. Instead, when the operator has authorized it,
+when done; an abnormal exit leaks those security gates enabled. The installed copy enforces this: run from
+Program Files, `mcec.exe mcp`/`--mcp` exits with an error and the MCP/HTTP endpoint refuses to start, so do
+not try to spawn or point at the installed exe. Instead, when the operator has authorized it,
 call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
 `mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
 launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), a `sessionId`, and a
@@ -142,15 +163,18 @@ directory, so a crash leaves the real install untouched. An `end-session` with a
 fails with `error.code:session-token-invalid`; a session you did not provision is not yours to tear
 down; orphaned sessions are reaped automatically. If `provision-session` returns
 `error.code:provisioning-not-authorized` (these feature-specific refusals ride in `error.code`, while
-`error.category` stays `internal`), the operator has not opted in (AllowSessionProvisioning); tell them,
-don't retry.
+`error.category` stays `internal`), the operator has not opted in; tell them to enable "Allow agents to
+provision disposable instances" on the Settings dialog's Agent tab (File > Settings > Agent), then retry;
+do not retry blindly before they do. That same Agent tab lists the provisioned instances and lets the
+operator delete any you leave behind, but you own teardown: `end-session` every instance you provision.
 
 EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
 session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category;
 `error.category` stays `internal`), the operator has engaged it and deliberately halted you; STOP
 immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
-SECURITY: the agent tools (capture/query/displays/find/wait-for/invoke/record/launch/drag/click/clipboard) only work when the operator has set
+SECURITY: the agent tools (capture/query/displays/find/wait-for/invoke/record/launch/drag/click/clipboard, and the
+session-start/session-status/session-end lifecycle) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error; surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is
 refused with `error.code:agent-commands-disabled` if the agent surface is not opted in); over the local

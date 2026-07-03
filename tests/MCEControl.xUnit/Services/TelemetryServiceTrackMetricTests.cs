@@ -30,10 +30,9 @@ public class TelemetryServiceTrackMetricTests {
         bool originalEnabled = svc.TelemetryEnabled;
 
         using StubTelemetryChannel channel = new();
-        using TelemetryConfiguration config = new() {
-            TelemetryChannel = channel,
-            ConnectionString = "InstrumentationKey=00000000-0000-0000-0000-000000000000",
-        };
+        using TelemetryConfiguration config = new();
+        config.TelemetryChannel = channel;
+        config.ConnectionString = "InstrumentationKey=00000000-0000-0000-0000-000000000000";
 
         try {
             svc.TelemetryClient = new TelemetryClient(config);
@@ -60,10 +59,9 @@ public class TelemetryServiceTrackMetricTests {
         bool originalEnabled = svc.TelemetryEnabled;
 
         using StubTelemetryChannel channel = new();
-        using TelemetryConfiguration config = new() {
-            TelemetryChannel = channel,
-            ConnectionString = "InstrumentationKey=00000000-0000-0000-0000-000000000000",
-        };
+        using TelemetryConfiguration config = new();
+        config.TelemetryChannel = channel;
+        config.ConnectionString = "InstrumentationKey=00000000-0000-0000-0000-000000000000";
 
         try {
             svc.TelemetryClient = new TelemetryClient(config);

@@ -128,7 +128,9 @@ public class AgentServerSafetyTests {
             SessionProvisioner.SessionsRoot = origRoot;
             SessionProvisioner.BinariesDir = origBin;
             AgentRuntime.Settings = null;
-            try { if (Directory.Exists(baseTemp)) { Directory.Delete(baseTemp, recursive: true); } } catch { }
+            try { if (Directory.Exists(baseTemp)) { Directory.Delete(baseTemp, recursive: true); } }
+            catch (IOException) { /* best-effort temp cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort temp cleanup */ }
         }
     }
 }

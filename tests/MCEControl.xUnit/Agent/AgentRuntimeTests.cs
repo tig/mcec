@@ -41,7 +41,7 @@ public class AgentRuntimeTests {
 
     [Fact]
     public void Audit_DoesNotThrow() {
-        System.Exception? ex = Record.Exception(() => AgentRuntime.Audit("capture", "window 0x1234 \"Title\""));
+        Exception? ex = Record.Exception(() => AgentRuntime.Audit("capture", "window 0x1234 \"Title\""));
 
         Assert.Null(ex);
 

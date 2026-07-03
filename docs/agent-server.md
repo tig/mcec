@@ -131,6 +131,14 @@ Restart MCEC after editing the settings file. Remember you must **also** enable 
 individual agent commands you intend to use (they ship `Enabled=false` like every other
 command).
 
+The recommended path, though, is **not** to open the agent front door on your installed
+copy at all: leave these gates off and instead let an agent request a disposable, isolated
+instance via [session provisioning](safety-emergency-stop-and-provisioning.md). That needs
+only one opt-in, the **Allow agents to provision disposable instances** checkbox on the
+Settings dialog's **Agent** tab, and the agent drives a throwaway copy (agent gates enabled
+only inside it) that is deleted on teardown; the same tab lists and deletes any copies left
+behind.
+
 ---
 
 ## The commands
@@ -166,12 +174,14 @@ success it reads `result`, on failure it reads `error`:
 
 A result is **either** a success (`ok: true`, `result` present, no `error`) **or** a failure
 (`ok: false`, `error` present, no `result`); never both. `warnings` (non-fatal conditions)
-may appear on either. `sessionId` is present when the call ran inside a mounted session.
+may appear on either. `sessionId` names the [session](#agent-sessions) the call ran in (the
+implicit default session unless the call routed itself with a `sessionId` argument).
 Over MCP, the transport's `isError` flag mirrors the envelope (`isError = !ok`).
 
 On failure the `error` object carries a stable, fine-grained `code`, a coarse `category` from
 the closed taxonomy (`timeout`, `ambiguous-selector`, `stale-element`, `no-target`,
-`invalid-argument`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`), a
+`invalid-argument`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`; `focus`
+and `foreground` are reserved for future detection and are not currently produced), a
 human-readable `detail`, and (when available) a `lastObservation` (the last good state before
 the failure, so a failed call is debuggable without rerunning it) and a `partialResult` (the
 failing call's own partial payload, e.g. a blank capture's suspect PNG):
@@ -201,6 +211,44 @@ failing call's own partial payload, e.g. a blank capture's suspect PNG):
 > `emergency-stopped` (the operator engaged the [emergency stop](safety-emergency-stop-and-provisioning.md)),
 > `provisioning-not-authorized` (`AllowSessionProvisioning` is off), and `command-disabled` (the
 > per-command `Enabled` gate).
+
+### Agent sessions
+
+Every result carries a `sessionId`; the **session** it ran in. A session is the server's
+memory of one task: its active target window, last observation, last action, last error, and a
+per-session artifact directory (where a `capture`'s bytes are spilled so a later
+`error.lastObservation` never re-embeds megabytes of screenshot). This lets a multi-step task be
+one durable, debuggable record instead of a string of stateless calls.
+
+For a single linear task you never touch sessions: omit `sessionId` and every call shares one
+**implicit default session**, so state simply accumulates (and stdio "just works" with one ambient
+session). To run **independent** tasks that must not share a target or history, use the lifecycle
+tools:
+
+- **`session-start`** creates a fresh session and returns its `sessionId` (plus its initial
+  status). Echo that `sessionId` on later tool calls; each such call runs in that session and is
+  echoed back on the result.
+- **`session-status`** returns a session's remembered state (active target, last
+  observation/action/error, artifact dir, any emergency stop). Pass `sessionId` to inspect a
+  specific session, or omit it for the default.
+- **`session-end`** frees a session's server-side state. It is idempotent (ending an unknown or
+  already-ended id reports `ended: false` rather than erroring). Afterward a tool call that still
+  echoes that id is refused with `error.code: unknown-session` (category `invalid-argument`); start
+  a new one or omit `sessionId` to fall back to the default.
+
+> **Identity is carried in-band, not bound to the connection.** Both stdio and the HTTP floor
+> funnel into one stateless dispatch; the store is keyed by id, not by socket, so the same
+> `sessionId` addresses the same session across either transport. The lifecycle tools are part of
+> the agent surface and honor the same `AgentCommandsEnabled` opt-in and emergency-stop latch as
+> every other tool.
+>
+> **Not the same as `provision-session`.** These sessions are in-process runtime state. A
+> [provisioned session](safety-emergency-stop-and-provisioning.md) is a whole disposable MCEC
+> *install* on disk (`#138`); a different concept with its own `sessionId`/`token`.
+>
+> **Tool names are hyphenated** (`session-start`, not `session/start`) because MCP/Anthropic tool
+> names must match `^[a-zA-Z0-9_-]{1,64}$`, and to match the existing `wait-for`/`end-session`
+> convention.
 
 ### `capture` result example
 
@@ -403,9 +451,10 @@ Known limits:
   the desktop cannot be rendered and captures are blank. This is detected (blank frame) but cannot
   be worked around from user space.
 - **Elevation (UAC):** MCEC running at medium integrity cannot read the UIA tree of, drive, or
-  reliably capture a window owned by an elevated (high-integrity) process. Such targets surface as
-  empty/failed observations; run MCEC elevated only if you explicitly need to automate elevated
-  apps, and understand the security trade-off.
+  reliably capture a window owned by an elevated (high-integrity) process. When UI Automation
+  reports access denied for such a target, the tool fails with `error.category: elevation`
+  (`code: target-elevated`) so an agent knows to stop rather than retry; run MCEC elevated only
+  if you explicitly need to automate elevated apps, and understand the security trade-off.
 
 ### UIA tree size & stability
 
@@ -426,13 +475,29 @@ rest of the tree is returned.
 
 ## Using MCEC as an MCP server
 
-MCEC can run **headless** as an MCP **stdio** server (no UI, no tray icon) so an MCP
-client (such as a desktop AI assistant) can spawn it on demand and talk to it over
-standard input/output:
+MCEC can run **headless** as an MCP **stdio** server (no main window, no tray icon; the
+on-screen command overlay and the emergency-stop hotkey still work) so an MCP client
+(such as a desktop AI assistant) can spawn it on demand and talk to it over standard
+input/output:
 
 ```
-mcec.exe --mcp
+mcec.exe mcp        # or the equivalent legacy spelling: mcec.exe --mcp
 ```
+
+**Never point an MCP client at the installed copy.** `mcec.exe` under Program Files
+refuses `mcp`/`--mcp` (and refuses to start the MCP/HTTP endpoint) with an error
+explaining the alternatives: serving agents from the installed, operator-owned copy
+would mean enabling agent security gates in the one configuration the operator's own
+MCEC reads, where a crashed session leaks them enabled. Instead, either have an agent
+call `provision-session` (see
+[Agent safety](safety-emergency-stop-and-provisioning.md)) to get a disposable,
+isolated copy, or copy the install directory somewhere writable and point the client
+there; a non-installed copy reads its own co-located `mcec.settings`.
+
+The exe also exposes a CLI surface (built on
+[Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--opencli` emits machine-readable
+command metadata, and `agent-guide` prints the same agent guidance the MCP server
+hands connecting clients.
 
 Wire it into your MCP client config (the `claude_desktop_config.json` / `mcp.json`
 style used by most clients):
@@ -441,12 +506,22 @@ style used by most clients):
 {
   "mcpServers": {
     "mcec": {
-      "command": "C:/Program Files/Kindel Systems/MCEC/mcec.exe",
-      "args": ["--mcp"]
+      "command": "C:/mcec/mcec.exe",
+      "args": ["mcp"]
     }
   }
 }
 ```
+
+(`C:/mcec` here is a writable copy of the install directory, or a provisioned session's
+`directory`; the Program Files path itself would be refused, per above.)
+
+`mcp` is a spawned server, not an interactive command: typed at a terminal it refuses
+(stdin is an interactive console; the server would block on the shared console and
+Ctrl+C could not stop it). To experiment by hand, pipe requests in
+(`echo '{...}' | mcec mcp`). A running server stops when its client closes stdin (EOF)
+or sends `send_command mcec:exit` (the reply flushes, then the process exits); a stuck
+one can always be killed (`Stop-Process -Name mcec`).
 
 > The agent commands still obey the security gates above. Running `--mcp` does **not**
 > bypass `AgentCommandsEnabled` or the per-command `Enabled` flags; set those in
@@ -469,6 +544,12 @@ When connected, the server advertises these tools:
 | `click`        | The `click` command (atomic click at an element centre or pixel). |
 | `record`       | The `record` command (window/region → animated GIF over time). |
 | `send_command` | Generic raw-command passthrough; send any MCEC command line.  |
+| `session-start`  | Start a new [agent session](#agent-sessions) and return its `sessionId`. |
+| `session-status` | Report a session's state (active target, last observation/action/error, artifact dir). |
+| `session-end`    | End an agent session, freeing its server-side state. |
+
+Every observation/actuation tool and `send_command` also accept an optional `sessionId`
+argument (from `session-start`) to [route the call into that session](#agent-sessions).
 
 ---
 
@@ -595,7 +676,8 @@ Two operator-safety features build on the gates above; see
 - **Emergency stop:** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
   `EmergencyStopHotkey`) that instantly halts a session from any window; latching the actuation gate
   (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
-  reacts to physical input only, so the agent can never trip or defeat it.
+  reacts to physical input only, so the agent can never trip or defeat it. The operator re-arms via the
+  **⛔ Re-arm** menu item (GUI) or the modal prompt that opens when the stop engages (headless `--mcp`).
 - **Isolated session provisioning:** `provision-session` (gated by `AllowSessionProvisioning`) hands
   an agent a disposable, isolated MCEC directory instead of it mutating the installed config, plus a
   session `token` that is both the instance's `McpAuthToken` (HTTP requests to the session's endpoint

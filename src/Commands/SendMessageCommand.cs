@@ -20,28 +20,23 @@ namespace MCEControl;
 /// Summary description for SendMessageCommand.
 /// </summary>
 public class SendMessageCommand : Command {
-    private int msg;
-    [XmlAttribute("msg")] public int Msg { get => msg; set => msg = value; }
+    [XmlAttribute("msg")] public int Msg { get; set; }
 
     // This is int so that -1 can be specified in the XML
-    private int lParam;
-    [XmlAttribute("lparam")] public int LParam { get => lParam; set => lParam = value; }
+    [XmlAttribute("lparam")] public int LParam { get; set; }
 
-    private int wParam;
-    [XmlAttribute("wparam")] public int WParam { get => wParam; set => wParam = value; }
+    [XmlAttribute("wparam")] public int WParam { get; set; }
 
-    private String className = null!;
-    [XmlAttribute("classname")] public String ClassName { get => className; set => className = value; }
+    [XmlAttribute("classname")] public String ClassName { get; set; } = null!;
 
-    private String windowName = null!;
-    [XmlAttribute("windowname")] public String WindowName { get => windowName; set => windowName = value; }
+    [XmlAttribute("windowname")] public String WindowName { get; set; } = null!;
 
     public static List<Command> BuiltInCommands {
         get => [
-              new SendMessageCommand() { Cmd = "maximize", Msg=274, wParam=61488, lParam=0 },
-              new SendMessageCommand() { Cmd = "screensaver", Msg=274, wParam=61760, lParam=0 },
-              new SendMessageCommand() { Cmd = "monitoroff", Msg=274, wParam=61808, lParam=2 },
-              new SendMessageCommand() { Cmd = "monitoron", Msg=274, wParam=61808, lParam=-1 }
+              new SendMessageCommand() { Cmd = "maximize", Msg=274, WParam=61488, LParam=0 },
+              new SendMessageCommand() { Cmd = "screensaver", Msg=274, WParam=61760, LParam=0 },
+              new SendMessageCommand() { Cmd = "monitoroff", Msg=274, WParam=61808, LParam=2 },
+              new SendMessageCommand() { Cmd = "monitoron", Msg=274, WParam=61808, LParam=-1 }
         ];
     }
 
@@ -51,9 +46,9 @@ public class SendMessageCommand : Command {
     public SendMessageCommand(String className, String windowName, int msg, int wParam, int lParam) {
         ClassName = className;
         WindowName = windowName;
-        Msg = (int)msg;
-        WParam = (int)wParam;
-        LParam = (int)lParam;
+        Msg = msg;
+        WParam = wParam;
+        LParam = lParam;
     }
 
     public override string ToString() {
@@ -82,8 +77,8 @@ public class SendMessageCommand : Command {
                     }
                     else {
                         Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(\"{win.MainWindowTitle}\", {Msg}, {WParam}, {LParam}) - {ToString()}");
-                        // #203: (nint) sign-extends the stored int (lParam=-1 stays -1 on x64).
-                        Win32NativeMethods.SendMessage(win.MainWindowHandle, (uint)Msg, (nint)WParam, (nint)LParam);
+                        // #203: the implicit int-to-nint widening sign-extends (lParam=-1 stays -1 on x64).
+                        Win32NativeMethods.SendMessage(win.MainWindowHandle, (uint)Msg, WParam, LParam);
                     }
                 }
                 else {
@@ -96,7 +91,7 @@ public class SendMessageCommand : Command {
                 // shared rather than duplicated here).
                 IntPtr h = AgentNativeMethods.GetForegroundWindow();
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: SendMessage(<forground window>, {Msg}, {WParam}, {LParam}) - {ToString()}");
-                Win32NativeMethods.SendMessage(h, (uint)Msg, (nint)WParam, (nint)LParam);
+                Win32NativeMethods.SendMessage(h, (uint)Msg, WParam, LParam);
             }
         }
         catch (Exception e) {

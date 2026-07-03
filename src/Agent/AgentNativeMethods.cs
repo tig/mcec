@@ -5,6 +5,10 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
+// The SCREAMING_SNAKE constants below mirror the Win32 API names they stand for; renaming them would
+// break the 1:1 mapping to the Windows SDK headers.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl;
 
 /// <summary>
@@ -37,6 +41,18 @@ internal static class AgentNativeMethods {
 
     /// <summary>BLENDFUNCTION AlphaFormat: the source bitmap has per-pixel alpha.</summary>
     public const byte AC_SRC_ALPHA = 0x01;
+
+    /// <summary>SetWindowPos hWndInsertAfter: place the window at the top of the always-on-top band.</summary>
+    public static readonly IntPtr HWND_TOPMOST = new(-1);
+
+    /// <summary>SetWindowPos flag: keep the current size (ignore cx/cy).</summary>
+    public const uint SWP_NOSIZE = 0x0001;
+
+    /// <summary>SetWindowPos flag: keep the current position (ignore X/Y).</summary>
+    public const uint SWP_NOMOVE = 0x0002;
+
+    /// <summary>SetWindowPos flag: do not activate the window (never steal focus from the driven app).</summary>
+    public const uint SWP_NOACTIVATE = 0x0010;
 
     /// <summary>Render the full window content, including DirectComposition/DWM surfaces.</summary>
     public const uint PW_RENDERFULLCONTENT = 0x00000002;
@@ -81,6 +97,10 @@ internal static class AgentNativeMethods {
 
     [DllImport(User32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    [DllImport(User32, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
     [DllImport(Dwmapi)]
@@ -91,7 +111,7 @@ internal static class AgentNativeMethods {
     // by value without a dedicated interop struct (which the one-type-per-file analyzer would reject here).
 
     [DllImport(User32)]
-    public static extern IntPtr MonitorFromPoint(System.Drawing.Point pt, uint dwFlags);
+    public static extern IntPtr MonitorFromPoint(Point pt, uint dwFlags);
 
     [DllImport(Shcore)]
     public static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
@@ -121,6 +141,6 @@ internal static class AgentNativeMethods {
     [DllImport(User32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool UpdateLayeredWindow(
-        IntPtr hwnd, IntPtr hdcDst, ref System.Drawing.Point pptDst, ref System.Drawing.Size psize,
-        IntPtr hdcSrc, ref System.Drawing.Point pptSrc, int crKey, ref BlendFunction pblend, int dwFlags);
+        IntPtr hwnd, IntPtr hdcDst, ref Point pptDst, ref Size psize,
+        IntPtr hdcSrc, ref Point pptSrc, int crKey, ref BlendFunction pblend, int dwFlags);
 }

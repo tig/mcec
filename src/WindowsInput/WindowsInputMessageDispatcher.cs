@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Runtime.InteropServices;
 using WindowsInput.Native;
 
@@ -16,8 +15,6 @@ internal class WindowsInputMessageDispatcher : IInputMessageDispatcher {
     /// The number of <see cref="INPUT"/> messages that were successfully dispatched.
     /// </returns>
     public UInt32 DispatchInput(INPUT[] inputs) {
-#pragma warning disable CA1829 // Use Length/Count property instead of Count() when available
-        return NativeMethods.SendInput((UInt32)inputs.Count(), [.. inputs], Marshal.SizeOf(typeof(INPUT)));
-#pragma warning restore CA1829 // Use Length/Count property instead of Count() when available
+        return NativeMethods.SendInput((UInt32)inputs.Length, [.. inputs], Marshal.SizeOf(typeof(INPUT)));
     }
 }

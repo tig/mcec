@@ -28,14 +28,14 @@ public static class ToolCatalog {
     /// <summary>Every gated agent tool, in the order <c>tools/list</c> advertises them.</summary>
     public static IReadOnlyList<ToolDescriptor> All { get; } = BuildCatalog();
 
-    private static readonly Dictionary<string, ToolDescriptor> ByName = BuildIndex();
+    private static readonly Dictionary<string, ToolDescriptor> _byName = BuildIndex();
 
     /// <summary>Whether <paramref name="name"/> is a gated agent tool (the tools/call gate membership test).</summary>
-    public static bool Contains(string name) => ByName.ContainsKey(name);
+    public static bool Contains(string name) => _byName.ContainsKey(name);
 
     /// <summary>Looks up the descriptor for <paramref name="name"/> (ordinal match).</summary>
     public static bool TryGet(string name, out ToolDescriptor descriptor) {
-        if (ByName.TryGetValue(name, out ToolDescriptor? found)) {
+        if (_byName.TryGetValue(name, out ToolDescriptor? found)) {
             descriptor = found;
             return true;
         }
@@ -52,7 +52,7 @@ public static class ToolCatalog {
     }
 
     private static IReadOnlyList<ToolDescriptor> BuildCatalog() => [
-        new ToolDescriptor {
+        new() {
             Name = "capture",
             BuildSchema = BuildCaptureSchema,
             BuildCommand = args => new CaptureCommand {
@@ -72,24 +72,28 @@ public static class ToolCatalog {
             IsObservation = true,
             ProvisionedByDefault = true,
         },
-        new ToolDescriptor {
+        new() {
             Name = "query",
             BuildSchema = BuildQuerySchema,
-            BuildCommand = args => new QueryCommand {
-                Window = Str(args, "window")!,
-                Handle = Long(args, "handle"),
-                Process = Str(args, "process")!,
-                ClassName = Str(args, "className")!,
-                Foreground = Bool(args, "foreground"),
-                MaxDepth = Int(args, "maxDepth") is int d and > 0 ? d : 6,
-                MaxNodes = Int(args, "maxNodes") is int n and > 0 ? n : 1000,
+            BuildCommand = args => {
+                int maxDepth = Int(args, "maxDepth");
+                int maxNodes = Int(args, "maxNodes");
+                return new QueryCommand {
+                    Window = Str(args, "window")!,
+                    Handle = Long(args, "handle"),
+                    Process = Str(args, "process")!,
+                    ClassName = Str(args, "className")!,
+                    Foreground = Bool(args, "foreground"),
+                    MaxDepth = maxDepth > 0 ? maxDepth : 6,
+                    MaxNodes = maxNodes > 0 ? maxNodes : 1000,
+                };
             },
             CreateCommandInstance = () => new QueryCommand(),
             Tersify = args => $"query {CommandTersifier.Target(args)}",
             IsObservation = true,
             ProvisionedByDefault = true,
         },
-        new ToolDescriptor {
+        new() {
             Name = "displays",
             BuildSchema = BuildDisplaysSchema,
             BuildCommand = _ => new DisplaysCommand(),
@@ -97,7 +101,7 @@ public static class ToolCatalog {
             Tersify = _ => "displays",
             ProvisionedByDefault = true,
         },
-        new ToolDescriptor {
+        new() {
             Name = "find",
             BuildSchema = BuildFindSchema,
             BuildCommand = BuildFindCommand,
@@ -106,7 +110,7 @@ public static class ToolCatalog {
             IsObservation = true,
             ProvisionedByDefault = true,
         },
-        new ToolDescriptor {
+        new() {
             Name = "wait-for",
             BuildSchema = BuildWaitForSchema,
             BuildCommand = BuildFindCommand,
@@ -115,7 +119,7 @@ public static class ToolCatalog {
             IsObservation = true,
             ProvisionedByDefault = true,
         },
-        new ToolDescriptor {
+        new() {
             Name = "invoke",
             BuildSchema = BuildInvokeSchema,
             BuildCommand = args => new InvokeCommand {
@@ -133,7 +137,7 @@ public static class ToolCatalog {
             Tersify = args => $"invoke {CommandTersifier.Arg(args, "action") ?? "invoke"} \"{CommandTersifier.Arg(args, "value") ?? ""}\"",
             ProvisionedByDefault = true,
         },
-        new ToolDescriptor {
+        new() {
             Name = "drag",
             BuildSchema = BuildDragSchema,
             BuildCommand = BuildDragCommand,
@@ -142,7 +146,7 @@ public static class ToolCatalog {
             SerializesOnInput = true,
             ProvisionedByDefault = true,
         },
-        new ToolDescriptor {
+        new() {
             Name = "click",
             BuildSchema = BuildClickSchema,
             BuildCommand = BuildClickCommand,
@@ -161,7 +165,7 @@ public static class ToolCatalog {
             Tersify = args => $"clipboard {CommandTersifier.Arg(args, "action") ?? "?"}",
             ProvisionedByDefault = true,
         },
-        new ToolDescriptor {
+        new() {
             Name = "record",
             BuildSchema = BuildRecordSchema,
             BuildCommand = args => new RecordCommand {
@@ -186,7 +190,7 @@ public static class ToolCatalog {
             Tersify = args => $"record {CommandTersifier.Target(args)}",
             ProvisionedByDefault = true,
         },
-        new ToolDescriptor {
+        new() {
             Name = "launch",
             BuildSchema = BuildLaunchSchema,
             BuildCommand = args => new LaunchCommand {
@@ -337,7 +341,7 @@ public static class ToolCatalog {
     // -------------------------------------------------------------------------------------------
 
     /// <summary>The five shared window-targeting selector properties.</summary>
-    internal static JsonObject WindowTargetProps() => new() {
+    private static JsonObject WindowTargetProps() => new() {
         ["window"] = PropSchema("string", "Window title substring (case-insensitive) to target"),
         ["handle"] = PropSchema("integer", "Explicit window handle (HWND) to target"),
         ["process"] = PropSchema("string", "Process name (without .exe) to target"),
@@ -349,8 +353,18 @@ public static class ToolCatalog {
     internal static JsonObject PropSchema(string type, string description) =>
         new() { ["type"] = type, ["description"] = description };
 
+    /// <summary>
+    /// The optional per-call session-routing argument (#86 Phase 3). Every observation/actuation tool and
+    /// <c>send_command</c> accepts it: echo the <c>sessionId</c> that <c>session-start</c> returned to run
+    /// the call in that session, or omit it to use the implicit default session. Advertised on those tools'
+    /// schemas (injected in <see cref="JsonRpcDispatcher"/>) so a schema-validating client keeps it. The
+    /// session-lifecycle tools read <c>sessionId</c> as a TARGET, not routing, and carry their own copy.
+    /// </summary>
+    internal static JsonObject SessionArgProp() =>
+        PropSchema("string", "Optional session id (from session-start) to run this call in; omit to use the default session (#86).");
+
     /// <summary>Schema for a drag/click endpoint: either an element ({ by, value }) or a pixel ({ x, y }).</summary>
-    internal static JsonObject EndpointSchema(string description) => new() {
+    private static JsonObject EndpointSchema(string description) => new() {
         ["type"] = "object",
         ["description"] = description,
         ["properties"] = new JsonObject {
@@ -413,6 +427,7 @@ public static class ToolCatalog {
     /// <summary>Maps the click tool's nested <c>at</c> endpoint and button/count onto a <see cref="ClickCommand"/>.</summary>
     private static ClickCommand BuildClickCommand(JsonObject args) {
         JsonObject at = args["at"] as JsonObject ?? [];
+        int count = Int(args, "count");
         return new ClickCommand {
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),
@@ -424,7 +439,7 @@ public static class ToolCatalog {
             X = Int(at, "x"),
             Y = Int(at, "y"),
             Button = Str(args, "button") ?? "left",
-            Count = Int(args, "count") is int c and > 0 ? c : 1,
+            Count = count > 0 ? count : 1,
         };
     }
 

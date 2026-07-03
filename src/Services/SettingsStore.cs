@@ -98,7 +98,7 @@ public static class SettingsStore {
     /// </summary>
     /// <param name="settingsFile">full path to settings file</param>
     public static SettingsLoadResult Load(string settingsFile) {
-        AppSettings? settings = null;
+        AppSettings? settings;
         SettingsLoadOutcome outcome;
         Exception? error = null;
         string? errorDetail = null;

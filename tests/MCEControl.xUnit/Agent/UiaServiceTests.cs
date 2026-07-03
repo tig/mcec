@@ -55,14 +55,69 @@ public class UiaServiceTests {
 
     [Fact]
     public void DumpTree_ZeroHandle_ReturnsEmptyUntruncatedResult() {
-        // The guard path must return a well-formed result (null root, no nodes, not truncated) rather
-        // than null, so query can always read nodeCount/truncated.
+        // The guard path must return a well-formed result (null root, no nodes, not truncated, no
+        // classified failure) rather than null, so query can always read nodeCount/truncated.
         UiaTreeResult result = UiaService.DumpTree(IntPtr.Zero, maxDepth: 6, maxNodes: 1000);
 
         Assert.NotNull(result);
         Assert.Null(result.Root);
         Assert.Equal(0, result.NodeCount);
         Assert.False(result.Truncated);
+        Assert.Equal(UiaFailureKind.None, result.Failure);
+    }
+
+    [Fact]
+    public void Find_ZeroHandle_ReturnsCleanMiss() {
+        // #261: the guard path is a clean miss (no match, no fault), never a classified failure.
+        UiaFindOutcome outcome = UiaService.Find(IntPtr.Zero, "name", "OK", timeoutMs: 0);
+
+        Assert.Null(outcome.Element);
+        Assert.Equal(0, outcome.MatchCount);
+        Assert.False(outcome.Ambiguous);
+        Assert.Equal(UiaFailureKind.None, outcome.Failure);
+    }
+
+    // --- #261: UIA exception classification onto the closed error taxonomy.
+
+    [Fact]
+    public void ClassifyUiaFailure_ElementNotAvailableHResult_IsWindowGone() {
+        // UIA_E_ELEMENTNOTAVAILABLE: the window/element backing a UIA object is gone -> stale-element.
+        var e = new System.Runtime.InteropServices.COMException("gone", unchecked((int)0x80040201));
+
+        Assert.Equal(UiaFailureKind.WindowGone, UiaService.ClassifyUiaFailure(e));
+    }
+
+    [Fact]
+    public void ClassifyUiaFailure_FlaUIElementNotAvailable_IsWindowGone() {
+        // FlaUI wraps the COM error in a typed exception on some paths; both forms classify the same.
+        var e = new FlaUI.Core.Exceptions.ElementNotAvailableException("gone");
+
+        Assert.Equal(UiaFailureKind.WindowGone, UiaService.ClassifyUiaFailure(e));
+    }
+
+    [Fact]
+    public void ClassifyUiaFailure_AccessDenied_IsElevationCase() {
+        // E_ACCESSDENIED on a valid window is the UIPI/elevation case, via COMException or the
+        // UnauthorizedAccessException COM interop sometimes surfaces instead.
+        var com = new System.Runtime.InteropServices.COMException("denied", unchecked((int)0x80070005));
+        var uae = new UnauthorizedAccessException("denied");
+
+        Assert.Equal(UiaFailureKind.AccessDenied, UiaService.ClassifyUiaFailure(com));
+        Assert.Equal(UiaFailureKind.AccessDenied, UiaService.ClassifyUiaFailure(uae));
+    }
+
+    [Fact]
+    public void ClassifyUiaFailure_WalksInnerExceptions() {
+        // A classified COM error wrapped by an outer exception must still classify.
+        var inner = new System.Runtime.InteropServices.COMException("gone", unchecked((int)0x80040201));
+        var outer = new InvalidOperationException("wrapper", inner);
+
+        Assert.Equal(UiaFailureKind.WindowGone, UiaService.ClassifyUiaFailure(outer));
+    }
+
+    [Fact]
+    public void ClassifyUiaFailure_UnrecognizedException_IsFaulted() {
+        Assert.Equal(UiaFailureKind.Faulted, UiaService.ClassifyUiaFailure(new InvalidOperationException("boom")));
     }
 
     // --- #215: all UIA work funnels through ONE dedicated MTA worker with one cached UIA3Automation.
@@ -79,9 +134,9 @@ public class UiaServiceTests {
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Worker_CallsFromDifferentThreads_LandOnTheSameWorker() {
+    public async Task Worker_CallsFromDifferentThreads_LandOnTheSameWorker() {
         (int fromHere, _, _) = UiaService.ProbeWorker();
-        (int fromElsewhere, _, _) = await System.Threading.Tasks.Task.Run(UiaService.ProbeWorker);
+        (int fromElsewhere, _, _) = await Task.Run(UiaService.ProbeWorker);
 
         Assert.Equal(fromHere, fromElsewhere);
     }

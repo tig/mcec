@@ -3,6 +3,7 @@
 
 using System;
 using System.Text.Json.Nodes;
+using System.Windows.Forms;
 
 namespace MCEControl;
 
@@ -77,7 +78,7 @@ public sealed class JsonRpcDispatcher {
         ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() },
         ["serverInfo"] = new JsonObject {
             ["name"] = "MCEC",
-            ["version"] = System.Windows.Forms.Application.ProductVersion,
+            ["version"] = Application.ProductVersion,
         },
         // Built-in agent guidance: surfaced to the model by the MCP client so it knows how to drive
         // MCEC effectively (the observe -> target -> act loop) and understands the security model.
@@ -92,19 +93,42 @@ public sealed class JsonRpcDispatcher {
         JsonArray tools = [];
 
         // The gated agent tools; one descriptor per tool, schema included; live in ToolCatalog (#205).
+        // Each also accepts the optional per-call session-routing arg (#86 Phase 3), injected here in one
+        // place rather than repeated in every catalog schema.
         foreach (ToolDescriptor descriptor in ToolCatalog.All) {
-            tools.Add(descriptor.BuildSchema());
+            JsonObject schema = descriptor.BuildSchema();
+            AddSessionArg(schema);
+            tools.Add(schema);
         }
 
         // META-TOOLS: deliberately NOT in the catalog, because they do not map 1:1 onto a Command in
         // the loaded table and have their own gating. send_command is the raw pass-through into the
         // CommandInvoker queue (transport-sensitive gate, #153); provision-session/end-session are the
-        // isolated-session lifecycle (#138, gated by the operator's AllowSessionProvisioning). They are
+        // isolated-session lifecycle (#138, gated by the operator's AllowSessionProvisioning);
+        // session-start/status/end are the in-process agent-session lifecycle (#86 Phase 3). They are
         // special-cased here and in AgentToolExecutor.CallTool, right next to the catalog dispatch.
-        tools.Add(ToolCatalog.Tool("send_command",
+        JsonObject sendCommandSchema = ToolCatalog.Tool("send_command",
             "Send any raw MCEC command string to the existing command core (e.g. actuation commands).",
             new JsonObject { ["command"] = ToolCatalog.PropSchema("string", "The MCEC command string to enqueue") },
-            ["command"]));
+            ["command"]);
+        AddSessionArg(sendCommandSchema); // send_command is routable like the catalog tools (#86)
+        tools.Add(sendCommandSchema);
+
+        // In-process agent-session lifecycle (#86 Phase 3). session-start hands back a fresh addressable
+        // sessionId; session-status/end read `sessionId` as the TARGET session (not call routing), so they
+        // are NOT given the injected routing arg above. NOTE: hyphenated names (session-start, not
+        // session/start) because MCP/Anthropic tool names must match ^[a-zA-Z0-9_-]{1,64}$; '/' is invalid.
+        tools.Add(ToolCatalog.Tool("session-start",
+            "Start a new agent session and get its sessionId. Echo that sessionId on later tool calls to run them in this session (its own active target, last observation/action/error, and artifact directory); omit sessionId on a call to use the default session. Returns the new session's status. Use this to run independent multi-step tasks that must not share state.",
+            [], []));
+        tools.Add(ToolCatalog.Tool("session-status",
+            "Report a session's state: active target window, last observation, last action, last error, artifact directory, and any emergency stop. Pass 'sessionId' to inspect a specific session (from session-start), or omit it for the default session.",
+            new JsonObject { ["sessionId"] = ToolCatalog.PropSchema("string", "The session to inspect (from session-start); omit for the default session") },
+            []));
+        tools.Add(ToolCatalog.Tool("session-end",
+            "End an agent session started with session-start, freeing its server-side state. Idempotent: ending an unknown/already-ended id reports ended:false rather than erroring. After this, a tool call echoing that sessionId is refused with unknown-session.",
+            new JsonObject { ["sessionId"] = ToolCatalog.PropSchema("string", "The session to end (from session-start)") },
+            ["sessionId"]));
 
         // Isolated session provisioning (#138). Requires the operator to have opted in
         // (AllowSessionProvisioning); it never mutates the installed config.
@@ -131,17 +155,28 @@ public sealed class JsonRpcDispatcher {
         return tools;
     }
 
+    /// <summary>
+    /// Adds the optional <c>sessionId</c> routing property (#86 Phase 3) to a tool's
+    /// <c>inputSchema.properties</c>. It stays optional (never added to <c>required</c>) so omitting it
+    /// keeps using the default session. Best-effort: a schema without the expected shape is left untouched.
+    /// </summary>
+    private static void AddSessionArg(JsonObject schema) {
+        if (schema["inputSchema"] is JsonObject input && input["properties"] is JsonObject props) {
+            props["sessionId"] = ToolCatalog.SessionArgProp();
+        }
+    }
+
     // -------------------------------------------------------------------------------------------
     // JSON-RPC response shapes
     // -------------------------------------------------------------------------------------------
 
-    internal static JsonObject Result(JsonNode? id, JsonNode result) => new() {
+    private static JsonObject Result(JsonNode? id, JsonNode result) => new() {
         ["jsonrpc"] = "2.0",
         ["id"] = id?.DeepClone(),
         ["result"] = result,
     };
 
-    internal static JsonObject Error(JsonNode? id, int code, string message) => new() {
+    private static JsonObject Error(JsonNode? id, int code, string message) => new() {
         ["jsonrpc"] = "2.0",
         ["id"] = id?.DeepClone(),
         ["error"] = new JsonObject { ["code"] = code, ["message"] = message },

@@ -38,7 +38,7 @@ namespace MCEControl.xUnit.Commands;
 /// </summary>
 public class CommandRegistryTests {
     private static List<Type> ConcreteCommandTypes => [.. typeof(Command).Assembly.GetTypes()
-        .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(Command)))
+        .Where(t => t is { IsClass: true, IsAbstract: false } && t.IsSubclassOf(typeof(Command)))
         .OrderBy(t => t.FullName, StringComparer.Ordinal)];
 
     [Fact]
@@ -56,7 +56,7 @@ public class CommandRegistryTests {
         List<Type> concrete = ConcreteCommandTypes;
 
         List<string> missing = [.. concrete
-            .Where(t => !CommandRegistry.Entries.Any(e => e.CommandType == t))
+            .Where(t => CommandRegistry.Entries.All(e => e.CommandType != t))
             .Select(t => t.Name)];
         List<string> duplicated = [.. CommandRegistry.Entries
             .GroupBy(e => e.CommandType)
@@ -161,6 +161,7 @@ public class CommandRegistryTests {
             SerializedCommands loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
             Assert.NotNull(loaded);
+            Assert.NotNull(loaded.commandArray);
             Assert.Equal(CommandRegistry.Entries.Count + 1, loaded.commandArray.Length);
             foreach (CommandRegistryEntry entry in CommandRegistry.Entries) {
                 Command topLevel = Assert.Single(loaded.commandArray, c => c.Cmd == $"hygiene_{entry.XmlName}");
@@ -188,7 +189,7 @@ public class CommandRegistryTests {
     /// list deliberately does not chase the registry); renaming or unregistering any of these
     /// breaks users and fails here.
     /// </summary>
-    private static readonly (string XmlName, Type CommandType)[] FrozenV3WireNames = [
+    private static readonly (string XmlName, Type CommandType)[] _frozenV3WireNames = [
         ("chars", typeof(CharsCommand)),
         ("startprocess", typeof(StartProcessCommand)),
         ("sendinput", typeof(SendInputCommand)),
@@ -218,7 +219,7 @@ public class CommandRegistryTests {
             "<?xml version=\"1.0\"?>\r\n" +
             "<mcecontroller version=\"1.0.0.0\">\r\n" +
             "  <commands xmlns=\"http://www.kindel.com/products/mcecontroller\">\r\n" +
-            string.Concat(FrozenV3WireNames.Select(f => $"    <{f.XmlName} cmd=\"fix_{f.XmlName}\" enabled=\"true\" />\r\n")) +
+            string.Concat(_frozenV3WireNames.Select(f => $"    <{f.XmlName} cmd=\"fix_{f.XmlName}\" enabled=\"true\" />\r\n")) +
             "  </commands>\r\n" +
             "</mcecontroller>\r\n";
 
@@ -228,8 +229,9 @@ public class CommandRegistryTests {
             SerializedCommands loaded = SerializedCommands.LoadCommands(tempFile, "1.0.0.0");
 
             Assert.NotNull(loaded);
-            Assert.Equal(FrozenV3WireNames.Length, loaded.commandArray.Length);
-            foreach ((string xmlName, Type commandType) in FrozenV3WireNames) {
+            Assert.NotNull(loaded.commandArray);
+            Assert.Equal(_frozenV3WireNames.Length, loaded.commandArray.Length);
+            foreach ((string xmlName, Type commandType) in _frozenV3WireNames) {
                 Command cmd = Assert.Single(loaded.commandArray, c => c.Cmd == $"fix_{xmlName}");
                 Assert.IsType(commandType, cmd);
                 Assert.True(cmd.Enabled);

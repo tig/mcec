@@ -31,13 +31,21 @@ public enum AgentErrorCategory {
     /// <summary>A screenshot was produced but detected as black/blank.</summary>
     CaptureBlank,
 
-    /// <summary>An action required input focus that could not be set.</summary>
+    /// <summary>An action required input focus that could not be set. RESERVED (#261): part of the
+    /// closed wire contract but not yet produced by any code path; <c>setfocus</c> dispatch is
+    /// fire-and-forget and no command verifies focus landed. Do not document recovery guidance for it
+    /// until a producer exists.</summary>
     Focus,
 
-    /// <summary>The target runs at a higher integrity level (UAC) than MCEC and cannot be driven.</summary>
+    /// <summary>The target runs at a higher integrity level (UAC) than MCEC and cannot be driven.
+    /// Produced (#261) when a UIA attach/read/dispatch on a valid window fails with E_ACCESSDENIED
+    /// (UIPI); see <see cref="UiaService.ClassifyUiaFailure"/>.</summary>
     Elevation,
 
-    /// <summary>An action required the target to be foreground and it could not be brought forward.</summary>
+    /// <summary>An action required the target to be foreground and it could not be brought forward.
+    /// RESERVED (#261): part of the closed wire contract but not yet produced by any code path; no
+    /// agent command checks a SetForegroundWindow result. Do not document recovery guidance for it
+    /// until a producer exists.</summary>
     Foreground,
 
     /// <summary>An unexpected MCEC-side fault (bug, unhandled exception) or a policy refusal the agent

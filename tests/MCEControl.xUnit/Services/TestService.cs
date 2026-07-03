@@ -26,9 +26,4 @@ internal class TestService : ServiceBase
     {
         Error(error);
     }
-
-    public override void Send(string text, Reply? replyContext = null)
-    {
-        base.Send(text, replyContext);
-    }
 }

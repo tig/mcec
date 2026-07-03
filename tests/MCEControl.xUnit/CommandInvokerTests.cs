@@ -22,7 +22,7 @@ public class CommandInvokerTests
         string tempCommandsFile = Path.GetTempFileName();
         File.Delete(tempCommandsFile);
 
-        CommandInvoker? commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
+        CommandInvoker commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
         Assert.NotEmpty(commands);
     }
 
@@ -32,7 +32,7 @@ public class CommandInvokerTests
         string tempCommandsFile = Path.GetTempFileName();
         File.Delete(tempCommandsFile);
 
-        CommandInvoker? commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
+        CommandInvoker commands = CommandInvoker.Create(tempCommandsFile, "0.0.0.0", false);
 
         Assert.DoesNotContain(commands.Values.Cast<Command>(), cmd => cmd.Enabled);
     }
@@ -55,7 +55,7 @@ public class CommandInvokerTests
         };
         SerializedCommands.SaveCommands(userCommandsFile, userCommands, "0.0.0.0");
 
-        CommandInvoker? commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
+        CommandInvoker commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
 
         Assert.Contains(commands.Values.Cast<Command>(), cmd => cmd.Cmd.Equals("userCmd"));
     }
@@ -95,7 +95,7 @@ public class CommandInvokerTests
         };
         SerializedCommands.SaveCommands(userCommandsFile, userCommands, "0.0.0.0");
 
-        CommandInvoker? commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
+        CommandInvoker commands = CommandInvoker.Create(userCommandsFile, "0.0.0.0", false);
 
         StartProcessCommand? codeCmd = commands["code"] as StartProcessCommand;
         Assert.NotNull(codeCmd);

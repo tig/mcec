@@ -12,7 +12,7 @@ namespace MCEControl;
 /// shape: camelCase names, nulls omitted, compact by default.
 /// </summary>
 public static class AgentJson {
-    public static JsonSerializerOptions Options { get; } = new JsonSerializerOptions {
+    public static JsonSerializerOptions Options { get; } = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = false,

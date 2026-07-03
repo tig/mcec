@@ -155,8 +155,9 @@ By default **all** commands are disabled, to reduce the surface area MCEC expose
 
 ![Commands](commands_enable.png "Commands")
 
-Clicking **Save mcec.commands file** saves changes immediately. The `.commands` file is also saved
-automatically whenever MCEC exits.
+Clicking **Save mcec.commands file** saves changes immediately. The `.commands` file is **not** saved
+automatically on exit; MCEC only writes it in response to that explicit action, so a crash or power loss
+can never corrupt it mid-write on the way out.
 
 ## Testing MCEC
 
@@ -246,6 +247,11 @@ VK_F1
 
 A full list of virtual key codes is on
 [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx).
+
+> Since Windows 10, `VK_MEDIA_*` keys (play/pause, next/prev track, volume) are only delivered to the
+> **foreground** application; this is a Windows platform behavior, not something MCEC controls. If a media
+> key seems to do nothing, bring the target app to the foreground first (e.g. with `SetForegroundWindow` or
+> a launch sequence), then send the key.
 
 Sending `chars:` plus text simulates typing that text. `chars:3` types `3`; `chars:Hello` types the
 letters H-e-l-l-o (including the shift for the capital). The text after `chars:` can include *character

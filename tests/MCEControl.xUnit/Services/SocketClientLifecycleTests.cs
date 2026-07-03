@@ -60,7 +60,7 @@ public class SocketClientLifecycleTests {
         };
         var client = new SocketClient(settings);
         var list = new List<string>();
-        client.CommandReceived += (reply, command) => {
+        client.CommandReceived += (_, command) => {
             lock (list) {
                 list.Add(command);
             }
@@ -91,7 +91,7 @@ public class SocketClientLifecycleTests {
         using TcpClient server = Accept(listener, "the client to connect");
         WaitUntil(() => client.CurrentStatus == ServiceStatus.Connected, "the client to report Connected");
 
-        byte[] data = Encoding.UTF8.GetBytes("mute\n");
+        byte[] data = "mute\n"u8.ToArray();
         server.GetStream().Write(data, 0, data.Length);
 
         WaitUntil(() => CountReceived(received) == 1, "the command to arrive");
@@ -115,7 +115,7 @@ public class SocketClientLifecycleTests {
         using TcpClient server = Accept(listener, "the client to connect");
         WaitUntil(() => client.CurrentStatus == ServiceStatus.Connected, "the client to report Connected");
 
-        byte[] data = Encoding.UTF8.GetBytes("café\n"); // 'é' is two bytes
+        byte[] data = "café\n"u8.ToArray(); // 'é' is two bytes
         NetworkStream stream = server.GetStream();
         stream.Write(data, 0, 4); // "caf" + the FIRST byte of 'é'
         stream.Flush();
@@ -192,8 +192,8 @@ public class SocketClientLifecycleTests {
             var ex = Record.Exception(client.Stop);
 
             Assert.Null(ex);
-            WaitUntil(() => run!.IsCompleted, $"the run to complete after Stop (iteration {iteration})");
-            Assert.False(run!.IsFaulted, $"run faulted (iteration {iteration}): {run.Exception}");
+            WaitUntil(() => run.IsCompleted, $"the run to complete after Stop (iteration {iteration})");
+            Assert.False(run.IsFaulted, $"run faulted (iteration {iteration}): {run.Exception}");
             WaitUntil(() => pump.IsCompleted, $"the pump to complete (iteration {iteration})");
         }
     }
@@ -225,8 +225,8 @@ public class SocketClientLifecycleTests {
         // worker and TcpClient (they kept running, untracked, forever).
         client.Start();
 
-        WaitUntil(() => firstRun!.IsCompleted, "the superseded run to complete");
-        Assert.False(firstRun!.IsFaulted, $"superseded run faulted: {firstRun.Exception}");
+        WaitUntil(() => firstRun.IsCompleted, "the superseded run to complete");
+        Assert.False(firstRun.IsFaulted, $"superseded run faulted: {firstRun.Exception}");
 
         // The superseded run closed ITS OWN TcpClient: the first accepted socket sees EOF.
         first.ReceiveTimeout = 5000;
@@ -241,7 +241,7 @@ public class SocketClientLifecycleTests {
 
         // The second run's connection is live and receives commands.
         using TcpClient second = Accept(listener, "the second run to connect");
-        byte[] data = Encoding.UTF8.GetBytes("mute\n");
+        byte[] data = "mute\n"u8.ToArray();
         second.GetStream().Write(data, 0, data.Length);
         WaitUntil(() => CountReceived(received) == 1, "a command over the second connection");
         lock (received) {
@@ -258,7 +258,7 @@ public class SocketClientLifecycleTests {
         using SocketClient client = NewClient(port, 100, out List<string> received);
 
         client.Start(); // delay: false; first connect is immediate
-        using (TcpClient firstConn = Accept(listener, "the initial connection")) {
+        using (Accept(listener, "the initial connection")) {
             WaitUntil(() => client.CurrentStatus == ServiceStatus.Connected, "the client to report Connected");
         } // dispose = the server drops the connection
 
@@ -266,7 +266,7 @@ public class SocketClientLifecycleTests {
         using TcpClient secondConn = Accept(listener, "the client to reconnect after the drop");
 
         // ...and the new connection must actually work.
-        byte[] data = Encoding.UTF8.GetBytes("mute\n");
+        byte[] data = "mute\n"u8.ToArray();
         secondConn.GetStream().Write(data, 0, data.Length);
         WaitUntil(() => CountReceived(received) == 1, "a command over the reconnected connection");
         lock (received) {

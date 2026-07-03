@@ -13,18 +13,19 @@ namespace MCEControl;
 /// (<see cref="SessionId"/>), a per-session artifact directory, and a memory of the most recent
 /// target/observation/action/error so a multi-step task is one durable, debuggable record.
 ///
-/// <para>Phase 2 (#86) introduces a single <b>ambient</b> session owned by
-/// <see cref="AgentRuntime.Session"/>; explicit <c>session/start|status|end</c> lifecycle tools and
-/// per-call session routing are Phase 3. The state recorded here is what feeds <c>sessionId</c> on
-/// every result, <c>error.lastObservation</c> on failures, and (later) #87's evidence bundle.</para>
+/// <para>Phase 2 (#86) introduced a single <b>ambient</b> session; Phase 3 adds explicit
+/// <c>session-start</c>/<c>session-status</c>/<c>session-end</c> lifecycle tools and per-call routing, so
+/// there can now be several addressable sessions alongside the implicit default (see
+/// <see cref="AgentRuntime.StartSession"/>/<see cref="AgentRuntime.TryResolveSession"/>). The state
+/// recorded here is what feeds <c>sessionId</c> on every result, <c>error.lastObservation</c> on
+/// failures, and (later) #87's evidence bundle.</para>
 ///
 /// All mutators are guarded by an internal lock because an <c>invoke</c> can finish on a background
 /// worker thread after the dispatching call has already returned.
 /// </summary>
 public sealed class AgentSession {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly string _artifactRoot;
-    private string? _artifactDir;
 
     private JsonObject? _activeTarget;
     private JsonObject? _lastObservation;
@@ -51,7 +52,7 @@ public sealed class AgentSession {
     public string SessionId { get; }
 
     /// <summary>When the session was created (UTC).</summary>
-    public DateTime StartedAtUtc { get; }
+    private DateTime StartedAtUtc { get; }
 
     /// <summary>The window the session is currently operating on, or null before the first target resolves.</summary>
     public JsonObject? ActiveTarget {
@@ -77,7 +78,7 @@ public sealed class AgentSession {
     public string ArtifactDir {
         get {
             lock (_gate) {
-                return _artifactDir ??= Path.Combine(
+                return field ??= Path.Combine(
                     _artifactRoot,
                     $"{StartedAtUtc.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture)}-{SessionId}");
             }
@@ -124,14 +125,14 @@ public sealed class AgentSession {
         // The compact fields the contract names: window descriptor, dimensions, blankCheck verdict,
         // byte count; plus the small metadata capture already reports (encoding, optional file/handle).
         foreach (string key in (string[])["window", "handle", "width", "height", "encoding", "bytes", "blankCheck", "file"]) {
-            if (observation[key] is JsonNode node) {
+            if (observation[key] is { } node) {
                 summary[key] = node.DeepClone();
             }
         }
         string extension = observation["encoding"] is JsonValue ev && ev.TryGetValue(out string? enc) && !string.IsNullOrEmpty(enc)
             ? enc.ToLowerInvariant()
             : "png";
-        if (TryWriteArtifact(base64, extension) is string artifact) {
+        if (TryWriteArtifact(base64, extension) is { } artifact) {
             summary["artifact"] = artifact;
         }
         else {
@@ -152,7 +153,7 @@ public sealed class AgentSession {
             byte[] bytes = Convert.FromBase64String(base64);
             string dir = EnsureArtifactDir();
             string name = string.Create(System.Globalization.CultureInfo.InvariantCulture,
-                $"capture-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{System.Threading.Interlocked.Increment(ref _artifactCounter)}.{extension}");
+                $"capture-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Interlocked.Increment(ref _artifactCounter)}.{extension}");
             string path = Path.Combine(dir, name);
             File.WriteAllBytes(path, bytes);
             return path;
@@ -224,7 +225,7 @@ public sealed class AgentSession {
         return dir;
     }
 
-    /// <summary>A debug/replay snapshot of the session's current state (the basis for <c>session/status</c>, Phase 3).</summary>
+    /// <summary>A debug/replay snapshot of the session's current state (the payload of the <c>session-status</c> tool, #86 Phase 3).</summary>
     public JsonObject ToStatusJson() {
         lock (_gate) {
             JsonObject obj = new() {

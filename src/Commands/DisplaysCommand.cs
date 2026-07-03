@@ -24,7 +24,7 @@ public class DisplaysCommand : AgentCommand {
         get => [new DisplaysCommand { Cmd = "displays" }];
     }
 
-    protected override string? AuditDetails() => "displays";
+    protected override string AuditDetails() => "displays";
 
     protected override CommandResult ExecuteCore() {
         JsonArray displays = [];

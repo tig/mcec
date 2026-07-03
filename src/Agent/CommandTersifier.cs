@@ -33,7 +33,7 @@ public static class CommandTersifier {
 
     /// <summary>Terse label for a raw <c>send_command</c> pass-through, e.g. <c>send winr</c> (long commands clipped).</summary>
     public static string ForRawCommand(string command) {
-        string c = (command ?? string.Empty).Trim();
+        string c = command.Trim();
         if (c.Length > 40) {
             c = c[..40] + "…";
         }

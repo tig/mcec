@@ -31,6 +31,7 @@ public class DefaultCommandsFileTests {
             // The full built-in catalog, with NOTHING enabled — the actuation surface must not
             // change just because the file now exists (the security model's default-deny).
             Assert.True(cmds.Count > 100, $"expected the built-in catalog, got {cmds.Count} commands");
+            Assert.NotNull(cmds.commandArray);
             Assert.All(cmds.commandArray, c => Assert.False(c.Enabled, $"'{c.Cmd}' must not be enabled in the default file"));
             Assert.Equal("3.0.0", cmds.Version);
 
@@ -64,6 +65,7 @@ public class DefaultCommandsFileTests {
 
             Assert.Equal(before, File.ReadAllBytes(path));
             Assert.Equal(1, cmds.Count);
+            Assert.NotNull(cmds.commandArray);
             Assert.Equal("userpause", cmds.commandArray[0].Cmd);
         }
         finally {

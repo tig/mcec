@@ -75,35 +75,36 @@ falling back to `category`.
 | `category`           | When it applies | Typical recovery for an agent |
 |----------------------|-----------------|-------------------------------|
 | `timeout`            | A wait/poll (e.g. `wait-for`) expired before its condition held. | Re-observe; extend the timeout; or abandon the step. |
-| `ambiguous-selector` | A selector matched more than one candidate and the tool refused to guess. | Add disambiguators (`processName`, `className`, `automationId`) and retry. |
+| `ambiguous-selector` | A selector matched more than one candidate and the tool refused to guess. | Narrow the element selector (prefer `automationId`, else `className` or a more specific name) and retry. |
 | `stale-element`      | A previously resolved element/handle is no longer valid (window closed, tree re-rendered). | Re-`query`/`find` to get a fresh reference, then retry. |
 | `no-target`          | A selector matched nothing (no window/element). | Broaden the selector, `query` to discover targets, or wait for the target to appear. |
 | `invalid-argument`   | The request itself is malformed or inapplicable (#191): a client-supplied argument is invalid (unknown action, oversized region, ill-formed endpoint) or cannot apply to the target (an element that lacks the pattern an action needs). | Fix the arguments and re-issue. Do **not** retry the same call, broaden a selector, or re-find the target; the request will keep failing until it changes. |
 | `capture-blank`      | A screenshot was produced but detected as black/blank (composited/occluded/locked-session). | Try foreground/region capture; restore/foreground the window; surface the limitation. The suspect image still rides in `error.partialResult`. |
-| `focus`              | An action required input focus that could not be set. | `invoke` `setfocus` first, or foreground the window, then retry. |
-| `elevation`          | The target runs at a higher integrity level (UAC) than MCEC and cannot be driven. | Surface to the operator; the action cannot proceed without elevation. |
-| `foreground`         | An action required the target to be foreground and it could not be brought forward. | Foreground the window (subject to OS foreground-lock rules), then retry. |
+| `focus`              | **Reserved** (#261): an action required input focus that could not be set. No code path produces it yet (`setfocus` dispatch is fire-and-forget); it stays in the closed set for wire compatibility and future detection. | Treat like `internal` until a producer exists. |
+| `elevation`          | The target runs at a higher integrity level (UAC) than MCEC and cannot be driven. Produced (#261) when a UIA attach/read/dispatch on a valid window fails with E_ACCESSDENIED (UIPI). | Surface to the operator; the action cannot proceed without elevation. |
+| `foreground`         | **Reserved** (#261): an action required the target to be foreground and it could not be brought forward. No agent command checks a SetForegroundWindow result yet; kept for wire compatibility and future detection. | Treat like `internal` until a producer exists. |
 | `internal`           | An unexpected MCEC-side fault (bug, unhandled exception). | Not agent-recoverable; report with `lastObservation` for a bug bundle (#87). |
 
 `focus`, `elevation`, and `foreground` are kept distinct (rather than one "input" bucket) because
 the recoveries differ: focus is retryable, foreground is OS-policy-constrained, and elevation is
-not recoverable by the agent at all.
+not recoverable by the agent at all. In-product guidance (`AgentInstructions.md`) documents recovery
+only for categories that can actually occur; reserved categories must not be taught to agents (#261).
 
 ### Example error codes per category
 
 `code` values are stable strings but the list is open; these are illustrative, not exhaustive:
 
 - `timeout` → `wait-condition-timeout`
-- `ambiguous-selector` → `selector-matched-N`
+- `ambiguous-selector` → `selector-matched-N` (N is the literal match count, e.g. `selector-matched-3`)
 - `stale-element` → `element-stale`, `window-closed`
 - `no-target` → `window-not-found`, `element-not-found`
 - `invalid-argument` → `region-too-large`, `action-unknown`, `pattern-unsupported`, `bad-arguments`,
   `launch-path-missing`, `recording-in-progress`, `no-recording`
 - `capture-blank` → `frame-all-black`, `frame-mostly-blank`
-- `focus` → `set-focus-failed`
+- `focus` → `set-focus-failed` (reserved; no producer yet)
 - `elevation` → `target-elevated`
-- `foreground` → `set-foreground-denied`
-- `internal` → `unhandled-exception`
+- `foreground` → `set-foreground-denied` (reserved; no producer yet)
+- `internal` → `unhandled-exception`, `uia-faulted`, `invoke-faulted`
 
 ## Warning model
 

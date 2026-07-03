@@ -4,6 +4,9 @@
 using System;
 using System.Runtime.InteropServices;
 
+// WM_SYSCOMMAND/SC_CLOSE mirror their winuser.h names; renaming would break the Win32 mapping.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl;
 
 /// <summary>

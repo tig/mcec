@@ -35,7 +35,7 @@ public static class ExtensionMethods {
 
         string msg = ex.Message.Replace(", see inner exception.", "").Trim();
         string? innerMsg = ex.InnerException?.FullMessage();
-        if (innerMsg is object && innerMsg != msg) {
+        if (innerMsg is not null && innerMsg != msg) {
             msg = $"{msg} \n[ {innerMsg} ]";
         }
 

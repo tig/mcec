@@ -19,7 +19,7 @@ namespace MCEControl;
 /// <summary>
 /// Implements the TCP/IP server using asynchronous sockets
 /// </summary>
-sealed public class SocketServer : ServiceBase, IDisposable {
+public sealed class SocketServer : ServiceBase, IDisposable {
     // An ConcurrentDictionary is used to keep track of worker sockets that are designed
     // to communicate with each connected client. For thread safety.
     private readonly ConcurrentDictionary<int, Socket> _clientList = new();
@@ -61,7 +61,6 @@ sealed public class SocketServer : ServiceBase, IDisposable {
         _disposed = true;
         Log4.Debug("SocketServer disposing...");
         CloseListenerAndClients();
-        GC.SuppressFinalize(this);
     }
     #endregion
 
@@ -108,7 +107,7 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     ///   bind must fail closed to the safe interface, never silently expose the port on all interfaces.</item>
     /// </list>
     /// Case-insensitive. Mirrors the agent HTTP floor's loopback handling
-    /// (<see cref="AgentServer.BindRequiresAuthToken"/>). Internal so it can be unit-tested without
+    /// (<see cref="McpHttpTransport.BindRequiresAuthToken"/>). Internal so it can be unit-tested without
     /// opening a live listener (InternalsVisibleTo).
     /// </summary>
     internal static IPAddress ResolveBindAddress(string? bindAddress) {
@@ -139,13 +138,13 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     /// (<c>0.0.0.0</c> / <c>::</c>) or any other non-loopback address exposes unauthenticated
     /// keyboard/mouse/process command injection to every host that can reach the port
     /// (LAN/VPN/port-forward). Unlike the MCP HTTP door; which <b>refuses</b> an exposed bind without a
-    /// token (<see cref="AgentServer.BindRequiresAuthToken"/>); the socket server keeps its long-standing
+    /// token (<see cref="McpHttpTransport.BindRequiresAuthToken"/>); the socket server keeps its long-standing
     /// all-interfaces default for backward compatibility, so the operator is loudly warned rather than
     /// blocked. <see cref="IPAddress.Any"/> and <see cref="IPAddress.IPv6Any"/> are non-loopback.
     /// Internal + static so it can be unit-tested against a resolved address without opening a listener.
     /// </summary>
     internal static void WarnIfBindAddressExposed(IPAddress bindTo) {
-        if (bindTo is null || IPAddress.IsLoopback(bindTo)) {
+        if (IPAddress.IsLoopback(bindTo)) {
             return;
         }
         Logger.Instance.Log4.Warn(
@@ -338,9 +337,6 @@ sealed public class SocketServer : ServiceBase, IDisposable {
     // Internal so tests can exercise the client-tracking logic (InternalsVisibleTo).
     internal void CloseSocket(ServerReplyContext serverReplyContext) {
         Log4.Debug("SocketServer CloseSocket");
-        if (serverReplyContext == null) {
-            return;
-        }
 
         // Remove the reference to the worker socket of the closed client
         // so that this object will get garbage collected

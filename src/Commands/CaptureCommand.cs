@@ -38,8 +38,6 @@ public class CaptureCommand : WindowTargetingAgentCommand {
         get => [new CaptureCommand { Cmd = "capture" }];
     }
 
-    public CaptureCommand() { }
-
     /// <summary>True when this is an explicit-region capture (region given, no window selector).</summary>
     private bool IsRegionCapture => Width > 0 && Height > 0 && !HasWindowTarget;
 
@@ -137,7 +135,7 @@ public class CaptureCommand : WindowTargetingAgentCommand {
     /// <summary>Serializes the blank-frame analysis so an agent can see why a capture was flagged.</summary>
     private static JsonObject BlankCheckJson(ImageStats stats) => new() {
         ["blank"] = stats.IsBlank,
-        ["dominantFraction"] = System.Math.Round(stats.DominantFraction, 4),
+        ["dominantFraction"] = Math.Round(stats.DominantFraction, 4),
         ["dominantIsDark"] = stats.DominantIsDark,
     };
 

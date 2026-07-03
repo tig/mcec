@@ -42,8 +42,14 @@ Engaging the stop (`EmergencyStop.Trigger`):
    runs on exit); no stuck drag or chord.
 4. **Loud feedback.** A persistent red `⛔ STOPPED by operator` banner on the overlay, an
    `AGENT-AUDIT:` log line, a status-bar message, and a stamp into the `AgentSession` record.
-5. **Latches until re-armed.** The operator clicks the **⛔ Re-arm (Emergency Stop)** menu item (visible
-   only while stopped); the latch is never cleared automatically.
+5. **Latches until re-armed.** Re-arming is always a deliberate operator action; the latch is never
+   cleared automatically, and it deliberately has no MCP surface (an agent that could re-arm itself
+   would defeat the human override). GUI host: the **⛔ Re-arm (Emergency Stop)** menu item (visible
+   only while stopped). Headless `--mcp`: a modal re-arm prompt (`EmergencyStopRearmDialog`) opens the
+   moment the stop engages; **Re-arm** resumes, **Leave stopped** (also Enter/Esc/close; the fail-safe
+   default) keeps the latch, and pressing the chord again reopens the prompt
+   (`EmergencyStop.Retriggered`). The prompt is safe as a re-arm surface because the latch refuses
+   every tool call while it is up, so only physical input can reach its buttons.
 
 Step 1 (the latch) is the only work performed inside the low-level hook callback; steps 2–4 run
 immediately after on a background thread. A slow log or serial write can therefore never stall the
@@ -71,18 +77,26 @@ override rather than something the agent could press or hold to defeat.
 | Actuation-gate refusal | `AgentServer.CallTool` (`emergency-stopped`) |
 | Cooperative drag abort | `MouseCommand.PerformDrag` |
 | Overlay banner | `CommandOverlayWindow` |
-| Re-arm affordance + host lifecycle | `MainWindow` (`Start`/`Stop`, `SetUpEmergencyStopUi`) |
+| Re-arm affordance + host lifecycle (GUI) | `MainWindow` (`Start`/`Stop`, `SetUpEmergencyStopUi`) |
+| Re-arm affordance + host lifecycle (headless) | [`HeadlessOperatorUi`](../src/Agent/HeadlessOperatorUi.cs) + [`EmergencyStopRearmDialog`](../src/Agent/EmergencyStopRearmDialog.cs) |
 
-Armed in the **GUI host** (the LL hook needs the message loop) whenever `EmergencyStopEnabled` and the
-agent front door could be driving (`McpServerEnabled || AgentCommandsEnabled`).
+The LL hook needs a message loop on its installing thread, so each host arms it where one pumps: the
+**GUI host** arms on the UI thread whenever `EmergencyStopEnabled` and the agent front door could be
+driving (`McpServerEnabled || AgentCommandsEnabled`); **headless `--mcp`** arms on
+`HeadlessOperatorUi`'s dedicated STA pump thread whenever `EmergencyStopEnabled` (the stdio transport
+is always a live front door, so there is no `McpServerEnabled` qualifier). That same headless pump
+thread hosts the command overlay, so a headless session narrates and shows the `⛔ STOPPED` banner
+exactly like the GUI host.
 
 ### Limitations / follow-ups
 
 - **Elevated targets / secure desktop (UIPI).** A non-elevated MCEC's LL hook won't receive keys while an
   **elevated** window is foreground, and never on the secure desktop (UAC/lock). If MCEC drives elevated
   apps, run MCEC elevated too. Documented, not solved here.
-- **Headless `--mcp`** has no message loop, so the in-process hotkey isn't armed there; the operator halts a
-  headless session via its parent process. A headless e-stop channel is a follow-up.
+- **Non-interactive headless launches.** If `--mcp` is started without an interactive desktop (a
+  service, a disconnected session), the hook and the windows are refused; `HeadlessOperatorUi` logs
+  each piece and skips it, and the protocol serves normally. That is also the configuration where no
+  actuation could reach a desktop anyway.
 
 ---
 
@@ -102,10 +116,19 @@ containing `mcec.exe` + dependencies and a **co-located, agent-ready config** (a
 **only** inside the copy). The agent runs from there and deletes it when done; so enabled state lives only
 in the throwaway copy, "cleanup" is `rm -rf <dir>`, and a crashed session leaves the real install untouched.
 
+The installed copy **enforces** its side of this: `mcec.exe` running from Program Files refuses
+`mcp`/`--mcp` and refuses to start the MCP/HTTP endpoint (`Program.IsProgramFilesInstall`), with an
+error pointing at provisioning or a manual writable copy. The operator's install cannot be turned into
+an agent server even by editing its settings.
+
 ### Flow
 
-1. Operator opts in once: `AppSettings.AllowSessionProvisioning = true` (the one thing that can't be
-   self-served, or the isolation is theater).
+1. Operator opts in once: the **Allow agents to provision disposable instances** checkbox on the
+   Settings dialog's **Agent** tab (`AppSettings.AllowSessionProvisioning`); the one thing that can't be
+   self-served, or the isolation is theater. This is the sole opt-in a non-technical operator performs
+   to let an agent drive MCEC; it grants access only to a disposable copy, never this installed instance.
+   The tab refuses to toggle it from inside a provisioned copy, so a driving agent can never widen its
+   own permissions.
 2. Agent calls `provision-session` (optional `mcpServer`, `commands`). MCEC
    ([`SessionProvisioner`](../src/Agent/SessionProvisioner.cs)):
    - creates `%LOCALAPPDATA%\MCEC\sessions\<id>`,
@@ -144,12 +167,16 @@ survives installed-instance restarts and is retired the moment the directory is 
 
 We copy the binaries into the session directory (rather than a `--config-dir` redirect of the installed
 exe). Because the copy runs from a non-`Program Files` location, `Program.ConfigPath` resolves to the
-session directory itself, so it reads its own co-located config with no launch flags. This matches the
-existing manual practice (`scripts/Run-Customer0Skeleton.ps1`) and is isolated by construction.
+session directory itself, so it reads its own co-located config with no launch flags. This is isolated by
+construction, and supersedes the earlier hand-rolled "copy the build and write a config" practice.
 
 ### Teardown & reaping
 
 - **Explicit:** `end-session` (or just deleting the directory).
+- **Operator:** the Settings dialog's **Agent** tab lists every provisioned instance (id, age, size,
+  running/stale) and offers per-row **Delete** and **Delete all**, so the operator can clean up copies an
+  agent left behind without hunting through `%LOCALAPPDATA%`. Deleting is the same directory removal
+  `end-session` and the reaper perform; a running instance is locked and skipped (stop it first).
 - **Belt-and-suspenders:** on every launch (`Program.Main`) and before each provision, MCEC reaps session
   directories older than `AgentServer.SessionReapAgeHours` (12h). A **running** session's files are locked,
   so a live session is never reaped; it's collected on a later launch after it exits.
@@ -161,7 +188,8 @@ existing manual practice (`scripts/Run-Customer0Skeleton.ps1`) and is isolated b
 | Provision / teardown / reap | [`SessionProvisioner`](../src/Agent/SessionProvisioner.cs) |
 | Handoff descriptor | [`ProvisionedSession`](../src/Agent/ProvisionedSession.cs) |
 | MCP tools + authorization gate | `AgentServer` (`provision-session`, `end-session`) |
-| Operator opt-in | `AppSettings.AllowSessionProvisioning` |
+| Operator opt-in + management UI | Settings dialog **Agent** tab ([`AgentSettingsTab`](../src/Dialogs/SettingsTabs/AgentSettingsTab.cs)) → `AppSettings.AllowSessionProvisioning` |
+| Session enumeration for the UI | `SessionProvisioner.ListSessions` |
 | Reap on launch | `Program.Main` |
 
 ### Limitations / follow-ups

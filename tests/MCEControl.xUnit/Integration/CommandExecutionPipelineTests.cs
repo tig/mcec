@@ -12,13 +12,13 @@ public class CommandExecutionPipelineTests
     [Fact]
     public void CommandInvoker_Enqueue_ParsesSimpleCommand()
     {
-        string tempFile = System.IO.Path.GetTempFileName();
-        System.IO.File.Delete(tempFile);
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
 
         var invoker = CommandInvoker.Create(tempFile, "1.0.0.0", false);
 
         // Enable the pause command for testing
-        if (invoker!["pause"] is PauseCommand pauseCmd)
+        if (invoker["pause"] is PauseCommand pauseCmd)
         {
             pauseCmd.Enabled = true;
         }
@@ -29,19 +29,19 @@ public class CommandExecutionPipelineTests
         var exception = Record.Exception(() => invoker.Enqueue(reply, "pause"));
         Assert.Null(exception);
 
-        System.IO.File.Delete(tempFile);
+        File.Delete(tempFile);
     }
 
     [Fact]
     public void CommandInvoker_WithColonCommand_ParsesCorrectly()
     {
-        string tempFile = System.IO.Path.GetTempFileName();
-        System.IO.File.Delete(tempFile);
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
 
         var invoker = CommandInvoker.Create(tempFile, "1.0.0.0", false);
 
         // Enable chars command
-        if (invoker!["chars:"] is CharsCommand charsCmd)
+        if (invoker["chars:"] is CharsCommand charsCmd)
         {
             charsCmd.Enabled = true;
         }
@@ -53,14 +53,14 @@ public class CommandExecutionPipelineTests
         var exception = Record.Exception(() => invoker.Enqueue(reply, "chars:hello"));
         Assert.Null(exception);
 
-        System.IO.File.Delete(tempFile);
+        File.Delete(tempFile);
     }
 
     [Fact]
     public void UnknownCommand_IsHandledGracefully()
     {
-        string tempFile = System.IO.Path.GetTempFileName();
-        System.IO.File.Delete(tempFile);
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
 
         var invoker = CommandInvoker.Create(tempFile, "1.0.0.0", false);
         var reply = new TestReply();
@@ -68,24 +68,24 @@ public class CommandExecutionPipelineTests
         // This should not throw
         var exception = Record.Exception(() =>
         {
-            invoker!.Enqueue(reply, "unknowncommand12345");
+            invoker.Enqueue(reply, "unknowncommand12345");
         });
 
         Assert.Null(exception);
 
-        System.IO.File.Delete(tempFile);
+        File.Delete(tempFile);
     }
 
     [Fact]
     public void SingleCharacter_TreatedAsCharsCommand()
     {
-        string tempFile = System.IO.Path.GetTempFileName();
-        System.IO.File.Delete(tempFile);
+        string tempFile = Path.GetTempFileName();
+        File.Delete(tempFile);
 
         var invoker = CommandInvoker.Create(tempFile, "1.0.0.0", false);
 
         // Enable chars command
-        if (invoker!["chars:"] is CharsCommand charsCmd)
+        if (invoker["chars:"] is CharsCommand charsCmd)
         {
             charsCmd.Enabled = true;
         }
@@ -100,6 +100,6 @@ public class CommandExecutionPipelineTests
 
         Assert.Null(exception);
 
-        System.IO.File.Delete(tempFile);
+        File.Delete(tempFile);
     }
 }

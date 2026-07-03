@@ -16,7 +16,7 @@ namespace MCEControl.xUnit;
 /// threads.
 /// </summary>
 internal static class AgentTestSupport {
-    private static readonly object _gate = new();
+    private static readonly Lock _gate = new();
     private static bool _started;
 
     /// <summary>
