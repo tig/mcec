@@ -11,79 +11,111 @@ narrates every command in burnt orange, all recorded by the agent
 The two oranges line up on purpose: the overlay's item background is the **About box's brand orange**,
 so the About dialog and the narration match.
 
-## The agent-driven flow
+## How it is made
 
-The hero is meant to be recreated the way any capable agent would do it: **from a natural-language brief,
-using MCEC's own tools, with the isolated subject supplied by
-[`provision-session`](safety-emergency-stop-and-provisioning.md)** rather than a hand-managed copy. There
-is exactly one human step, and it is a click, not a config file:
+An **agent drives MCEC over MCP** and does everything itself; there is no driver script to run or write.
+One MCEC is the **controller** the agent is connected to; the agent uses the controller's tools to
+[`provision-session`](safety-emergency-stop-and-provisioning.md) a disposable **subject** MCEC, `launch`
+it, tour it, and `record` the region while the controller's overlay narrates. The only scripted step is
+standing up that first controller, because an agent cannot bootstrap it over MCP (there is nothing to
+connect to yet).
 
-1. **Operator opts in.** In the controller MCEC, open **File ▸ Settings ▸ Agent** and check
-   **Allow agents to provision disposable instances**. This is the only authorization the agent cannot
-   self-serve; everything below is the agent's to do. (The controller must be a **non-installed** build:
-   the Program Files install refuses the MCP/HTTP front door by design. Run it from a **fresh copy** of
-   the build output rather than `src/bin/...` directly, so the controller writing its config never
-   mutates your build tree; both instances in the demo are then disposable copies, and cleanup is just
-   deleting the two directories.)
-2. **Give the agent the brief.** Connected to the controller over MCP, tell it:
+This page is written so a **fresh agent session can reproduce the hero by reading it and calling MCEC's
+MCP tools**, no scripting required beyond the one bootstrap command below.
 
-   > Record the MCEC hero. Provision a disposable MCEC instance for the subject, launch it, and record a
-   > short tour of its own window: open File ▸ Settings and visit every tab, close it, mouse-resize the
-   > window about 25% smaller by dragging its bottom-right sizing border, drag the title bar in a small
-   > circle, then open Help ▸ About and pause on it. Keep the overlay narrating on the left. Write the
-   > result to `docs/hero.gif`, then end the session.
+## Setup (the only script)
 
-3. **The agent executes it** with the tool sequence below, then calls `end-session` to delete the subject.
+[`scripts/Generate-HeroGif.ps1`](../scripts/Generate-HeroGif.ps1) builds MCEC and stands up an authorized,
+MCP-serving controller from a **disposable copy** of the build (so `src/bin` is never mutated), then
+prints its endpoint:
+
+```powershell
+pwsh -NoProfile -File scripts/Generate-HeroGif.ps1
+# ...
+#   MCP endpoint : http://127.0.0.1:5151/mcp
+#   Register it  : claude mcp add --transport http mcec http://127.0.0.1:5151/mcp
+```
+
+Register that endpoint so your agent has MCEC's tools (`provision-session`, `launch`, `query`, `click`,
+`drag`, `record`, `capture`, `displays`, `send_command`, `end-session`), then ask it to recreate the
+hero. The controller's config already sets the agent surface on, `AllowSessionProvisioning=true`, and the
+overlay on/docked Left. When finished, tear it all down:
+
+```powershell
+pwsh -NoProfile -File scripts/Generate-HeroGif.ps1 -Stop
+```
+
+The controller is a **non-installed** copy on purpose: the Program Files install refuses the MCP/HTTP
+front door by design (`Program.IsProgramFilesInstall`).
+
+## The playbook (the agent drives, all via MCP tools)
+
+Coordinates are absolute screen pixels (the space `query`/`displays` report). Compute them from the two
+observations below; do not hard-code them.
+
+1. **Screen size.** `displays` → take the primary monitor's width `SW` and height `SH`.
+2. **Provision the subject.** `provision-session { "mcpServer": false }` → keep `exePath`, `sessionId`,
+   `token`. This is the isolated copy being toured; it replaces any hand-managed subject directory.
+3. **Launch it.** `launch { "path": <exePath>, "timeout": 8000 }` → keep the returned window `handle`;
+   drive the subject by that handle from here on (the controller also owns an "MCEC" window, so a title
+   match is ambiguous). Wait ~1.5–2 s for the window and menu bar to build.
+4. **Read its bounds.** `query { "handle": <handle>, "maxDepth": 1 }` → the window rect `WX, WY, WW, WH`.
+   Derive everything below from these (nothing is pinned).
+5. **Clear any stray desktop popup BEFORE recording.** A leftover right-click context menu on the desktop
+   will otherwise sit in frame. Dismiss it with a click well OUTSIDE its bounds: the subject's lower-right
+   client area is safely clear of a top-left menu. `click { "at": { "x": WX+WW-60, "y": WY+WH-60 } }`,
+   then `send_command { "command": "key_esc" }` once or twice.
+6. **Start recording.** Record the left band, full height (so the overlay's narration column stays in
+   frame wherever the window sits) out to the window's right edge:
+   `record { "action": "start", "x": 0, "y": 0, "width": min(SW, WX+WW+12), "height": SH, "fps": 4, "maxWidth": 560 }`.
+   Then `capture { "handle": <handle> }` and dwell ~0.6 s so the opening frame settles.
+7. **Tour Settings, every tab (Agent is second).** `click { "handle": <handle>, "at": { "by": "name", "value": "File" } }`
+   → `send_command { "command": "key_s" }` (the mnemonic an open WinForms menu exposes only to the
+   keyboard). Then for each of **General, Agent, Client, Server, Serial Server, Activity Monitor**:
+   `click { "window": "Settings", "at": { "by": "name", "value": <tab> } }`, dwelling ~0.65 s. Close with
+   `send_command { "command": "key_esc" }`.
+8. **Resize ~25% smaller.** Drag the bottom-right sizing border inward:
+   `drag { "handle": <handle>, "from": { "x": WX+WW-2, "y": WY+WH-2 }, "to": { "x": WX+0.75*WW, "y": WY+0.75*WH } }`.
+9. **Move in a small circle.** Drag the title bar around a small circular `path` and back:
+   grab at `{ x: WX+0.375*WW, y: WY+12 }`, with `path` waypoints stepping around a ~55 px circle just
+   below the grab point, and `to` the last point.
+10. **Help ▸ About.** `click { "handle": <handle>, "at": { "by": "name", "value": "Help" } }` →
+    `send_command { "command": "key_a" }` → `capture { "window": "About" }`, then dwell ~1 s on it.
+11. **Stop and write the GIF.** `record { "action": "stop", "file": "docs/hero.gif" }`.
+12. **Tear down the subject.** `end-session { "sessionId": <sessionId>, "token": <token> }` (best effort;
+    if the subject's exe is still running the directory is locked and `removed` is false, and the reaper /
+    `Generate-HeroGif.ps1 -Stop` collect it). Then run `-Stop` to remove the controller copy.
 
 Because `provision-session` copies the **controller's own binaries** into the subject, the subject is
 stamped with the controller's build. GitVersion bakes the current branch name into that stamp, and it is
-visible in the hero (the subject's log window, status bar, and About box); any branch is fine, so just
-be aware of which build you are recording. Review the result, including the log window's contents
-frame-by-frame (it is part of the shot), and commit `docs/hero.gif` if it looks good.
+visible in the hero (the subject's log window, status bar, About box); any branch is fine, so just be
+aware of which build you are recording.
 
-## MCP tool sequence
+## Gotchas (learned recording it)
 
-Connect to the controller's HTTP floor (`POST :5151/mcp`), or drive it over stdio. Every step is a
-first-class tool call; there is no hand-rolled coordinate math or config-file editing.
+- **Emergency stop.** If any tool returns `error.code:emergency-stopped`, the operator hit the panic
+  hotkey (default `Ctrl+Alt+Shift+S`) and deliberately halted the session; a refused `record stop` will
+  not overwrite the committed GIF. Stop and tell the operator; do **not** retry until they re-arm.
+- **Clean backdrop.** The recorded band is mostly the subject window and the overlay, but the desktop
+  shows around it. Minimizing other windows for a clean backdrop is an operator step (there is no MCP tool
+  for it); the agent works with whatever desktop is present.
+- **Stray desktop menu.** A leftover right-click context menu on the desktop will sit in frame. Step 5
+  dismisses it; if a take still catches one, re-record.
+- **Modal-on-self.** Invoking a menu item that opens a modal can wedge later UIA queries of that dialog,
+  so open Settings/About with a keystroke (`key_s`/`key_a`) rather than `invoke`; the keystroke is a valid
+  creative composition.
+- **Overlay side.** The controller's overlay is docked Left so it lands in the recorded band; the subject
+  runs no commands of its own, so its overlay stays quiet.
 
-| Step | Tool call |
-|------|-----------|
-| Provision the subject | `provision-session { mcpServer: false }` → returns `{ exePath, sessionId, token, directory }`; a fresh, isolated instance with an agent-ready co-located config. Replaces the old hand-copied subject dir. |
-| Launch it | `launch { path: <exePath>, timeout: 8000 }` → returns the subject's `handle`; drive it by that handle thereafter (the controller also owns an "MCEC" window, so a title match is ambiguous). |
-| Observe where it landed | `query { handle: <handle>, maxDepth: 1 }` → the window bounds; derive the record region and drag points from these (nothing is pinned). |
-| Start recording | `record { action: "start", x, y, width, height, fps: 4, maxWidth: 560 }` (region = the subject's rect, out to its right edge, full height so the overlay's narration column stays in frame). |
-| Settings | `click { handle, at: { by: "name", value: "File" } }` → `send_command key_s` (the mnemonic an open WinForms menu exposes to the keyboard) → for each of General, Agent, Client, Server, Serial Server, Activity Monitor: `click { window: "Settings", at: { by: "name", value: <tab> } }` → `send_command key_esc`. |
-| Resize | `drag { handle, from: { bottom-right sizing corner }, to: { ~25% inward } }`. |
-| Move | `drag { handle, from: { title bar }, path: [ ...points around a small circle ], to: { start } }`. |
-| About | `click { handle, at: { by: "name", value: "Help" } }` → `send_command key_a` → `capture { window: "About" }` → pause. |
-| Stop | `record { action: "stop", file: "docs/hero.gif" }`. |
-| Tear down | `end-session { sessionId, token }` (after the subject's `mcec.exe` exits) → deletes the subject directory. |
+## Verify, then commit
 
-## Reducing the ceremony (`scripts/Generate-HeroGif.ps1`)
-
-The script is now a **thin helper**, not a 250-line driver: it builds the controller, prints its version
-stamp (which appears in the hero) for reference, and prints the brief above for an agent to execute. The
-tour itself is the agent's job, using the tools in the table; the script no longer hand-manages a subject
-copy or flips the controller's gates (`provision-session` and the Agent-tab opt-in do that now).
-
-```powershell
-pwsh -NoProfile -File scripts/Generate-HeroGif.ps1        # add -Config Release to use a Release build
-```
+The subject's log window is in frame (marketing surface) and the recording doubles as a bug-finding
+channel. Before committing, extract a few keyframes (System.Drawing `SelectActiveFrame`; read the old GIF
+via bash `git show HEAD:docs/hero.gif > f`, since PowerShell pipes mangle binary) and confirm the shot is
+clean (no stray menus, expected tabs, readable log). Commit `docs/hero.gif` on the operator's say-so.
 
 ## Tuning size
 
-The GIF encoder writes full (non-diffed) frames, so **file size ≈ frame count × frame area**. The deeper
-tour is tuned to ≈4 MB at 560 px wide, 4 fps. To shrink it, lower `fps`, lower `maxWidth`, or trim the
-per-step dwell; to make it richer, raise them.
-
-## Remaining rough edges
-
-- **Overlay side and the subject's own overlay.** The hero wants only the controller's overlay narrating,
-  docked Left. A provisioned subject enables its own overlay (auditability) docked Right by default;
-  overlay side/visibility are file-only settings not yet exposed to `provision-session`. Until they are,
-  a pixel-perfect hero either tolerates the subject's idle overlay or docks the controller's overlay Left
-  and records only the controller's narration column. Widening `provision-session` to accept overlay
-  options is the natural follow-up that removes the last reason to touch a config file.
-- **Modal-on-self.** Invoking a menu item that opens a **modal** can wedge later UIA queries of that
-  dialog, so the tour opens Settings/About with a keystroke (`key_s`/`key_a`) rather than `invoke`; the
-  keystroke *is* a valid creative composition.
+The GIF encoder writes full (non-diffed) frames, so **file size ≈ frame count × frame area**. The tour is
+tuned to ≈4 MB at 560 px wide, 4 fps. To shrink it, lower `fps`, lower `maxWidth`, or trim the per-step
+dwell; to make it richer, raise them.
