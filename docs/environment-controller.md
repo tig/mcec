@@ -247,7 +247,7 @@ tools:
 >
 > **Not the same as `provision-session`.** These sessions are in-process runtime state. A
 > [provisioned session](safety-emergency-stop-and-provisioning.md) is a whole disposable MCEC
-> *install* on disk (`#138`); a different concept with its own `sessionId`/`token`.
+> *install* on disk; a different concept with its own `sessionId`/`token`.
 >
 > **Tool names are hyphenated** (`session-start`, not `session/start`) because MCP/Anthropic tool
 > names must match `^[a-zA-Z0-9_-]{1,64}$`, and to match the existing `wait-for`/`end-session`

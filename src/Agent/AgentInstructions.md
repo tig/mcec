@@ -80,7 +80,9 @@ the element; `invalid-argument` means the REQUEST itself is wrong (unknown actio
 ill-formed endpoint, an action the element can't perform); fix the arguments, do NOT retry the same call
 or broaden a selector; `ambiguous-selector` means the element selector matched more than one element and
 the tool refused to guess (the match count rides in the code, `selector-matched-N`); NARROW the selector
-(prefer `automationId`, else `className` or a more specific name); retrying it unchanged cannot help;
+(prefer `automationId`, else `className` or a more specific name, or click the control's centre from its
+`query` bounds); a WinForms tab exposes its header AND its page under the same name, so drive tabs with
+`invoke`+`select` or an automationId rather than the shared name; retrying it unchanged cannot help;
 `stale-element` means the window/element went away mid-call (closed or re-rendered); re-`query`/`find`
 for a fresh handle, then retry; `elevation` means the target runs elevated (UAC) at a higher integrity
 level than MCEC and cannot be observed or driven; report it to the user, do not retry; `internal` is not
@@ -110,13 +112,18 @@ started is refused the same way. (Note the hyphen: the tools are `session-start`
 COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. When
 injected keystrokes must reach Start/search or the bare desktop, first show the desktop (Win+D) or `click` an
 open desktop pixel; IDE/terminal shells otherwise swallow them. Launch
-an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D. Use `invoke` with `action: "select"` for tabs/list items/radios. 
+an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D. To fire an app ACCELERATOR
+(Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+S), send a real VK+modifier command (the built-in `ctrl-x` is one; an operator
+can enable `ctrl-c`/`ctrl-v`/`ctrl-a`); do NOT approximate it with `shiftdown:ctrl` then `chars:c`, because
+`chars:` injects a character and never triggers the accelerator, so the copy/paste silently does nothing. Use
+the `clipboard` tool to read or write clipboard text directly; use Ctrl+C/Ctrl+V keystrokes only to move data
+through an app that owns the selection (copy a canvas, paste an image). Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region; use a **desktop region** when Start/search
 and system dialogs must stay visible. Repeatable demos that write a known output file: harness/operator
 prep deletes the prior file before the run; after opening it in a viewer, dismiss with Alt+F4 so the next
-run's delete succeeds (PDF viewers often keep the file locked). Customer 1 (WinPrint hero, issue #84):
-harness removes prior `winprintdemo.pdf` → disposable MCEC session (#138) → record region → Start Menu
+run's delete succeeds (PDF viewers often keep the file locked). The WinPrint hero:
+harness removes prior `winprintdemo.pdf` → disposable MCEC session → record region → Start Menu
 WinPrint → file tour → Print to PDF → open PDF → close viewer; see `docs/winprint-hero-gif.md`. Run from
 winprint repo; installed MCEC (`winget install Kindel.mcec`); operator ensures WinPrint is installed. Wait
 for a top-level window with `windows` (a `process`/`window` filter plus a `timeout`) rather than sleeping;
