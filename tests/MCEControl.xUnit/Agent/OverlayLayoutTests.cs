@@ -47,4 +47,32 @@ public class OverlayLayoutTests {
         Assert.True(OverlayLayout.ForSide(work, 5.0, OverlayPosition.Right, 0).Width <= work.Width);
         Assert.True(OverlayLayout.ForSide(work, 0.0, OverlayPosition.Right, 0).Width >= (int)(work.Width * 0.1) - 1);
     }
+
+    [Fact]
+    public void MaxLines_ScalesWithHeight_SoATallerScreenFillsMoreOfIt() {
+        // #119 fix: the feed cap must grow with the overlay height, otherwise a fixed small cap
+        // leaves a tall screen only partly filled (lines stacked from the bottom, empty at the top).
+        int shortScreen = OverlayLayout.MaxLines(500);
+        int tallScreen = OverlayLayout.MaxLines(1440);
+
+        Assert.True(tallScreen > shortScreen, "a taller overlay must hold more lines");
+        // A 1440px-tall overlay should hold roughly one line per ~28px, i.e. dozens, not 8.
+        Assert.True(tallScreen >= 40, $"expected the full height to hold many lines, got {tallScreen}");
+    }
+
+    [Fact]
+    public void MaxLines_HasASaneFloor_ForTinyOrDegenerateHeights() {
+        Assert.True(OverlayLayout.MaxLines(10) >= 8);
+        Assert.True(OverlayLayout.MaxLines(0) >= 8);
+        Assert.True(OverlayLayout.MaxLines(-100) >= 8);
+    }
+
+    [Fact]
+    public void MaxLines_ApproximatesHeightOverLineStride() {
+        // The cap tracks how many command boxes fit; allow generous slack (the on-screen geometry
+        // break is the true limiter, so the cap only needs to be in the right ballpark).
+        int lines = OverlayLayout.MaxLines(1080);
+
+        Assert.InRange(lines, 30, 60);
+    }
 }

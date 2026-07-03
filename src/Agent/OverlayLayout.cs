@@ -25,4 +25,24 @@ public static class OverlayLayout {
         rect.Inflate(-margin, -margin);
         return rect;
     }
+
+    /// <summary>
+    /// Approximate on-screen height of one command box (the 14pt bold line plus its padding and the
+    /// inter-box gap). Deliberately a slight under-estimate so <see cref="MaxLines"/> errs generous:
+    /// the real limiter is the geometric "ran out of room" break in the renderer, so the feed cap
+    /// only needs to be large enough not to trim before the screen edge does.
+    /// </summary>
+    internal const int ApproxLineStridePx = 28;
+
+    /// <summary>The smallest feed cap; keeps a usable history even on a very short overlay.</summary>
+    internal const int MinLines = 8;
+
+    /// <summary>
+    /// How many command lines the feed should retain to fill an overlay <paramref name="heightPx"/>
+    /// tall. The old fixed cap of 8 left tall screens mostly empty (lines stacked at the bottom); a
+    /// height-derived cap lets the feed scroll the full height. Floored at <see cref="MinLines"/> and
+    /// safe for zero/negative heights.
+    /// </summary>
+    public static int MaxLines(int heightPx) =>
+        Math.Max(MinLines, heightPx / ApproxLineStridePx);
 }
