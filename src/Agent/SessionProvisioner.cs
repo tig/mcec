@@ -185,6 +185,70 @@ public static class SessionProvisioner {
     }
 
     /// <summary>
+    /// Enumerates the session directories under <see cref="SessionsRoot"/> for the operator's
+    /// management surface (#259; the Settings dialog's Agent tab). Lists every directory (not just
+    /// well-formed ids), matching the reaper's scope, so a leftover the reaper would eventually
+    /// collect is visible too. Best-effort; never throws; a directory that cannot be stat'ed is
+    /// skipped with a warning. Ordered newest first.
+    /// </summary>
+    public static IReadOnlyList<ProvisionedSessionInfo> ListSessions() {
+        List<ProvisionedSessionInfo> sessions = [];
+        try {
+            if (!Directory.Exists(SessionsRoot)) {
+                return sessions;
+            }
+            foreach (string dir in Directory.GetDirectories(SessionsRoot)) {
+                try {
+                    sessions.Add(new ProvisionedSessionInfo {
+                        SessionId = Path.GetFileName(dir),
+                        Directory = dir,
+                        CreatedUtc = Directory.GetCreationTimeUtc(dir),
+                        SizeBytes = GetDirectorySize(dir),
+                        IsRunning = IsSessionRunning(dir),
+                    });
+                }
+                catch (Exception e) {
+                    Logger.Instance.Log4.Warn($"SessionProvisioner: could not stat '{dir}': {e.Message}");
+                }
+            }
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Warn($"SessionProvisioner: listing sessions failed: {e.Message}");
+        }
+        return [.. sessions.OrderByDescending(s => s.CreatedUtc)];
+    }
+
+    /// <summary>
+    /// Whether the session's <c>mcec.exe</c> is locked, i.e. the session is running. The loader holds
+    /// a running image open, so an open demanding exclusive access fails with a sharing violation;
+    /// that same lock is what makes <see cref="Teardown"/>/the reaper skip the directory.
+    /// </summary>
+    private static bool IsSessionRunning(string dir) {
+        string exe = Path.Combine(dir, "mcec.exe");
+        if (!File.Exists(exe)) {
+            return false;
+        }
+        try {
+            using FileStream _ = File.Open(exe, FileMode.Open, FileAccess.Read, FileShare.None);
+            return false;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+            return true;
+        }
+    }
+
+    /// <summary>Total size of the directory's files in bytes; best-effort (0 on failure).</summary>
+    private static long GetDirectorySize(string dir) {
+        try {
+            return new DirectoryInfo(dir).EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Warn($"SessionProvisioner: could not size '{dir}': {e.Message}");
+            return 0;
+        }
+    }
+
+    /// <summary>
     /// Belt-and-suspenders cleanup: deletes session directories older than <paramref name="maxAge"/> so a
     /// leaked/abandoned session never lingers. A running session's files are locked and are skipped (they'll
     /// be reaped on a later launch once the process exits). Best-effort; never throws. Returns the count

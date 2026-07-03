@@ -23,4 +23,7 @@ public enum SettingsTab {
 
     /// <summary>The Activity Monitor tab (user-activity detection).</summary>
     ActivityMonitor,
+
+    /// <summary>The Agent tab (session provisioning opt-in and provisioned-instance management).</summary>
+    Agent,
 }

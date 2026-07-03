@@ -11,88 +11,79 @@ narrates every command in burnt orange, all recorded by the agent
 The two oranges line up on purpose: the overlay's item background is the **About box's brand orange**,
 so the About dialog and the narration match.
 
-## One-shot regeneration
+## The agent-driven flow
 
-On an interactive Windows session you can leave alone for ~30 seconds (it drives the real mouse,
-keyboard, and launches an app):
+The hero is meant to be recreated the way any capable agent would do it: **from a natural-language brief,
+using MCEC's own tools, with the isolated subject supplied by
+[`provision-session`](safety-emergency-stop-and-provisioning.md)** rather than a hand-managed copy. There
+is exactly one human step, and it is a click, not a config file:
+
+1. **Operator opts in.** In the controller MCEC, open **File ▸ Settings ▸ Agent** and check
+   **Allow agents to provision disposable instances**. This is the only authorization the agent cannot
+   self-serve; everything below is the agent's to do. (The controller must be a **non-installed** build:
+   the Program Files install refuses the MCP/HTTP front door by design, so run the freshly built
+   `src/bin/<Config>/net10.0-windows/mcec.exe`, or a copy of the install, as the controller.)
+2. **Give the agent the brief.** Connected to the controller over MCP, tell it:
+
+   > Record the MCEC hero. Provision a disposable MCEC instance for the subject, launch it, and record a
+   > short tour of its own window: open File ▸ Settings and visit every tab, close it, mouse-resize the
+   > window about 25% smaller by dragging its bottom-right sizing border, drag the title bar in a small
+   > circle, then open Help ▸ About and pause on it. Keep the overlay narrating on the left. Write the
+   > result to `docs/hero.gif`, then end the session.
+
+3. **The agent executes it** with the tool sequence below, then calls `end-session` to delete the subject.
+
+Because `provision-session` copies the **controller's own binaries** into the subject, the subject is
+stamped with the controller's build. GitVersion bakes the branch name into that stamp, and the stamp is
+visible in the hero (the subject's log window, status bar, and About box), so **build the controller from
+`develop`** before recording (verify `(Get-Item mcec.exe).VersionInfo.ProductVersion` contains
+`Branch.develop`). Review the result, including the log window's contents frame-by-frame (it is part of
+the shot), and commit `docs/hero.gif` if it looks good.
+
+## MCP tool sequence
+
+Connect to the controller's HTTP floor (`POST :5151/mcp`), or drive it over stdio. Every step is a
+first-class tool call; there is no hand-rolled coordinate math or config-file editing.
+
+| Step | Tool call |
+|------|-----------|
+| Provision the subject | `provision-session { mcpServer: false }` → returns `{ exePath, sessionId, token, directory }`; a fresh, isolated instance with an agent-ready co-located config. Replaces the old hand-copied subject dir. |
+| Launch it | `launch { path: <exePath>, timeout: 8000 }` → returns the subject's `handle`; drive it by that handle thereafter (the controller also owns an "MCEC" window, so a title match is ambiguous). |
+| Observe where it landed | `query { handle: <handle>, maxDepth: 1 }` → the window bounds; derive the record region and drag points from these (nothing is pinned). |
+| Start recording | `record { action: "start", x, y, width, height, fps: 4, maxWidth: 560 }` (region = the subject's rect, out to its right edge, full height so the overlay's narration column stays in frame). |
+| Settings | `click { handle, at: { by: "name", value: "File" } }` → `send_command key_s` (the mnemonic an open WinForms menu exposes to the keyboard) → for each of General, Client, Server, Serial Server, Activity Monitor, Agent: `click { window: "Settings", at: { by: "name", value: <tab> } }` → `send_command key_esc`. |
+| Resize | `drag { handle, from: { bottom-right sizing corner }, to: { ~25% inward } }`. |
+| Move | `drag { handle, from: { title bar }, path: [ ...points around a small circle ], to: { start } }`. |
+| About | `click { handle, at: { by: "name", value: "Help" } }` → `send_command key_a` → `capture { window: "About" }` → pause. |
+| Stop | `record { action: "stop", file: "docs/hero.gif" }`. |
+| Tear down | `end-session { sessionId, token }` (after the subject's `mcec.exe` exits) → deletes the subject directory. |
+
+## Reducing the ceremony (`scripts/Generate-HeroGif.ps1`)
+
+The script is now a **thin helper**, not a 250-line driver: it builds the controller from `develop`,
+verifies the stamp (the one concern worth automating deterministically), and prints the brief above for
+an agent to execute. The tour itself is the agent's job, using the tools in the table; the script no
+longer hand-manages a subject copy or flips the controller's gates (`provision-session` and the Agent-tab
+opt-in do that now).
 
 ```powershell
 pwsh -NoProfile -File scripts/Generate-HeroGif.ps1        # add -Config Release to use a Release build
 ```
 
-The script rebuilds (so the version stamp matches the checkout), produces `docs/hero.gif`, and restores
-config afterward. Because the stamped version string appears in the recorded log window, status bar, and
-About box, the script refuses to record from any branch but `develop` (override with
-`-AllowNonDevelopBuild` when a branch build is deliberate). Review the result (including the log
-window's contents frame-by-frame; it is part of the shot) and if it looks good, commit `docs/hero.gif`.
-
-## What the script does (and why)
-
-It is the executable form of these decisions; replicate them if reproducing by hand:
-
-1. **GUI controller that renders the overlay, driven over HTTP.** A **GUI** MCEC serves the localhost
-   HTTP endpoint the driver POSTs to (a headless `--mcp` controller speaks stdio only) and paints the
-   overlay. The controller's co-located `mcec.settings`
-   sets `McpServerEnabled=true` (the localhost HTTP floor), `AgentCommandsEnabled=true`,
-   `CommandOverlayEnabled=true`, and `CommandOverlayPosition=Left`; the driver POSTs JSON-RPC tool calls
-   to `http://127.0.0.1:5151/mcp`.
-2. **Separate, isolated subject copy.** The controlled MCEC is a *copy* of the build in
-   `%TEMP%\mcec-hero-subject` so it reads its own co-located `mcec.settings` (`Program.ConfigPath` == the
-   exe's folder); isolated from the controller and your installed MCEC. Its config sets `ActAsServer=false`
-   (else it binds `IPAddress.Any:5150` and triggers the first-run Windows Firewall prompt that steals focus
-   and derails the tour), `DisableUpdatePopup=true`, turns its **own overlay off**
-   (`CommandOverlayEnabled=false`; only the controller narrates), and **pins** `WindowLocation`/`WindowSize`.
-3. **Launch it the way an agent would: using the direct `launch` tool (not `Start-Process` or Win+R).** The controller dogfoods the first-class gated launch: it calls `launch { "path": "<exe>", "timeout": 10000 }` which starts the process and returns the pid + primary window handle (when it appears). This is more reliable than the Run dialog. (The script falls back to the Win+R composition only if needed for other demos.) The freshly-launched window handle is used to target the subject thereafter (its "MCEC" title is ambiguous with the controller) and the modal dialogs by their unambiguous titles (`Settings`, `About`).
-4. **Overlay docked Left over a wide window → compact capture.** With the overlay on the left of the wide,
-   pinned, left-docked subject window, the recorded region is **just the window** (compact, no wallpaper)
-   yet still contains the narration. The Settings/About dialogs are `CenterParent`, so they sit to the
-   right of the left-hugging overlay. (Right is the product default; Left is chosen here only for the hero.)
-5. **Clean backdrop.** All windows are minimized (`Shell.Application.MinimizeAll()`); the overlay is an
-   independent top-most window and survives, so the controller's window stays minimized (out of frame)
-   while its overlay keeps narrating.
-6. **Record.** `record action:start` over the window region at a low fps, then drive the tour (Settings
-   tabs → resize-drag → title-bar circles → About), then `record action:stop file:docs/hero.gif`.
-
-## Manual MCP equivalent (no script)
-
-Connect to the GUI controller's HTTP floor (`POST :5151/mcp`) once the subject's window is up (drive it
-by its `handle`):
-
-| Step | Tool call |
-|------|-----------|
-| Launch | `launch { "path": "<exe path>", "timeout": 10000 }` (returns `handle` + `window` in result; preferred). Fallback composition: `send_command winr` → `send_command "chars:<path>"` ... → `query { foreground:true }`. |
-| Start | `record` `{ action:"start", x, y, width, height, fps:4, maxWidth:560 }` (region = the subject window's pinned rect) |
-| Settings | click **File** → send `S` → `query` the **Settings** window → click each tab header's rect (`mouse:mt,…` + `mouse:lbc`) in turn → `Esc` |
-| Resize | drag the bottom-right sizing border inward with one atomic `mouse:drag,x1,y1,…,xN,yN` (corner → a few waypoints inward) |
-| Move | drag the title bar in a circle with one atomic `mouse:drag,x1,y1,…` (title bar → points around a small circle → back) |
-| About | re-`query` the (moved) window by `handle` → click the **Help** menu item's rect → send `A` → `capture` `{ window:"About" }` |
-| Stop | pause on the About box → `record` `{ action:"stop", file:"docs/hero.gif" }` |
-
 ## Tuning size
 
 The GIF encoder writes full (non-diffed) frames, so **file size ≈ frame count × frame area**. The deeper
 tour is tuned to ≈4 MB at 560 px wide, 4 fps. To shrink it, lower `fps`, lower `maxWidth`, or trim the
-per-step dwell `Start-Sleep`s; to make it richer, raise them.
+per-step dwell; to make it richer, raise them.
 
-## Toward script-free recreation
+## Remaining rough edges
 
-A key aspect of MCEC is that a capable **agent composes the full command set creatively**; so the right
-question isn't "can an agent recreate the hero?" but "how *robustly*?" The honest answer: **an agent can
-already recreate almost all of this today with nothing but `mcec.exe`**, by combining existing primitives.
-The `.ps1` reaches outside MCEC mainly for **determinism and convenience**, not because MCEC can't express
-the step.
-
-Most of what the tour needs is now **first-class**: `launch` starts the subject and returns its pid +
-window handle; `displays` reports per-monitor pixel bounds and DPI so `query`'d bounds convert cleanly to
-clicks and drags; the `drag` tool (and raw `mouse:drag`) does atomic press → move-path → release in screen
-pixels; and `invoke` with `action: "select"` switches tabs/list items. What remains composition: wait for a
-window by polling `query`, and record a window by passing its `query`'d bounds as the `record` region.
-
-One caveat: invoking a menu item that opens a **modal** can wedge later UIA queries of that dialog, so the
-tour opens Settings with a keystroke (`key_s`) rather than `invoke`; the keystroke *is* a valid creative
-composition.
-
-Deliberately **out of scope** for the agent: provisioning the isolated subject (copy + config) and
-enabling the actuation gates (`AgentCommandsEnabled`, per-command `Enabled`, and the overlay settings). An
-agent enabling its own input would defeat the security model, so an operator does that first; the agent's
-recipe begins after.
+- **Overlay side and the subject's own overlay.** The hero wants only the controller's overlay narrating,
+  docked Left. A provisioned subject enables its own overlay (auditability) docked Right by default;
+  overlay side/visibility are file-only settings not yet exposed to `provision-session`. Until they are,
+  a pixel-perfect hero either tolerates the subject's idle overlay or docks the controller's overlay Left
+  and records only the controller's narration column. Widening `provision-session` to accept overlay
+  options is the natural follow-up that removes the last reason to touch a config file.
+- **Modal-on-self.** Invoking a menu item that opens a **modal** can wedge later UIA queries of that
+  dialog, so the tour opens Settings/About with a keystroke (`key_s`/`key_a`) rather than `invoke`; the
+  keystroke *is* a valid creative composition.

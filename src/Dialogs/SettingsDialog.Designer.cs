@@ -40,6 +40,8 @@ namespace MCEControl {
             this._tabSerial = new MCEControl.SerialSettingsTab();
             this._tabPageActivityMonitor = new System.Windows.Forms.TabPage();
             this._tabActivityMonitor = new MCEControl.ActivityMonitorSettingsTab();
+            this._tabPageAgent = new System.Windows.Forms.TabPage();
+            this._tabAgent = new MCEControl.AgentSettingsTab();
             this._eventLog = new System.Diagnostics.EventLog();
             this._tabcontrol.SuspendLayout();
             this._tabPageGeneral.SuspendLayout();
@@ -47,6 +49,7 @@ namespace MCEControl {
             this._tabPageServer.SuspendLayout();
             this._tabPageSerial.SuspendLayout();
             this._tabPageActivityMonitor.SuspendLayout();
+            this._tabPageAgent.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this._eventLog)).BeginInit();
             this.SuspendLayout();
             //
@@ -85,6 +88,7 @@ namespace MCEControl {
             this._tabcontrol.Controls.Add(this._tabPageServer);
             this._tabcontrol.Controls.Add(this._tabPageSerial);
             this._tabcontrol.Controls.Add(this._tabPageActivityMonitor);
+            this._tabcontrol.Controls.Add(this._tabPageAgent);
             this._tabcontrol.Location = new System.Drawing.Point(16, 16);
             this._tabcontrol.Margin = new System.Windows.Forms.Padding(1);
             this._tabcontrol.Name = "_tabcontrol";
@@ -188,6 +192,25 @@ namespace MCEControl {
             this._tabActivityMonitor.Size = new System.Drawing.Size(440, 238);
             this._tabActivityMonitor.TabIndex = 0;
             //
+            // _tabPageAgent
+            //
+            this._tabPageAgent.BackColor = System.Drawing.SystemColors.Window;
+            this._tabPageAgent.Controls.Add(this._tabAgent);
+            this._tabPageAgent.Location = new System.Drawing.Point(4, 22);
+            this._tabPageAgent.Margin = new System.Windows.Forms.Padding(1);
+            this._tabPageAgent.Name = "_tabPageAgent";
+            this._tabPageAgent.Size = new System.Drawing.Size(440, 238);
+            this._tabPageAgent.TabIndex = 5;
+            this._tabPageAgent.Text = "Agent";
+            //
+            // _tabAgent
+            //
+            this._tabAgent.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._tabAgent.Location = new System.Drawing.Point(0, 0);
+            this._tabAgent.Name = "_tabAgent";
+            this._tabAgent.Size = new System.Drawing.Size(440, 238);
+            this._tabAgent.TabIndex = 0;
+            //
             // _eventLog
             //
             this._eventLog.SynchronizingObject = this;
@@ -218,6 +241,7 @@ namespace MCEControl {
             this._tabPageServer.ResumeLayout(false);
             this._tabPageSerial.ResumeLayout(false);
             this._tabPageActivityMonitor.ResumeLayout(false);
+            this._tabPageAgent.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this._eventLog)).EndInit();
             this.ResumeLayout(false);
 
@@ -238,6 +262,8 @@ namespace MCEControl {
         private MCEControl.SerialSettingsTab _tabSerial;
         private System.Windows.Forms.TabPage _tabPageActivityMonitor;
         private MCEControl.ActivityMonitorSettingsTab _tabActivityMonitor;
+        private System.Windows.Forms.TabPage _tabPageAgent;
+        private MCEControl.AgentSettingsTab _tabAgent;
         private System.Diagnostics.EventLog _eventLog;
     }
 }

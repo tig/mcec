@@ -131,6 +131,14 @@ Restart MCEC after editing the settings file. Remember you must **also** enable 
 individual agent commands you intend to use (they ship `Enabled=false` like every other
 command).
 
+The recommended path, though, is **not** to open the agent front door on your installed
+copy at all: leave these gates off and instead let an agent request a disposable, isolated
+instance via [session provisioning](safety-emergency-stop-and-provisioning.md). That needs
+only one opt-in, the **Allow agents to provision disposable instances** checkbox on the
+Settings dialog's **Agent** tab, and the agent drives a throwaway copy (agent gates enabled
+only inside it) that is deleted on teardown; the same tab lists and deletes any copies left
+behind.
+
 ---
 
 ## The commands

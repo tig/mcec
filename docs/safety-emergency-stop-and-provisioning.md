@@ -123,8 +123,12 @@ an agent server even by editing its settings.
 
 ### Flow
 
-1. Operator opts in once: `AppSettings.AllowSessionProvisioning = true` (the one thing that can't be
-   self-served, or the isolation is theater).
+1. Operator opts in once: the **Allow agents to provision disposable instances** checkbox on the
+   Settings dialog's **Agent** tab (`AppSettings.AllowSessionProvisioning`); the one thing that can't be
+   self-served, or the isolation is theater. This is the sole opt-in a non-technical operator performs
+   to let an agent drive MCEC; it grants access only to a disposable copy, never this installed instance.
+   The tab refuses to toggle it from inside a provisioned copy, so a driving agent can never widen its
+   own permissions.
 2. Agent calls `provision-session` (optional `mcpServer`, `commands`). MCEC
    ([`SessionProvisioner`](../src/Agent/SessionProvisioner.cs)):
    - creates `%LOCALAPPDATA%\MCEC\sessions\<id>`,
@@ -169,6 +173,10 @@ existing manual practice (`scripts/Run-Customer0Skeleton.ps1`) and is isolated b
 ### Teardown & reaping
 
 - **Explicit:** `end-session` (or just deleting the directory).
+- **Operator:** the Settings dialog's **Agent** tab lists every provisioned instance (id, age, size,
+  running/stale) and offers per-row **Delete** and **Delete all**, so the operator can clean up copies an
+  agent left behind without hunting through `%LOCALAPPDATA%`. Deleting is the same directory removal
+  `end-session` and the reaper perform; a running instance is locked and skipped (stop it first).
 - **Belt-and-suspenders:** on every launch (`Program.Main`) and before each provision, MCEC reaps session
   directories older than `AgentServer.SessionReapAgeHours` (12h). A **running** session's files are locked,
   so a live session is never reaped; it's collected on a later launch after it exits.
@@ -180,7 +188,8 @@ existing manual practice (`scripts/Run-Customer0Skeleton.ps1`) and is isolated b
 | Provision / teardown / reap | [`SessionProvisioner`](../src/Agent/SessionProvisioner.cs) |
 | Handoff descriptor | [`ProvisionedSession`](../src/Agent/ProvisionedSession.cs) |
 | MCP tools + authorization gate | `AgentServer` (`provision-session`, `end-session`) |
-| Operator opt-in | `AppSettings.AllowSessionProvisioning` |
+| Operator opt-in + management UI | Settings dialog **Agent** tab ([`AgentSettingsTab`](../src/Dialogs/SettingsTabs/AgentSettingsTab.cs)) → `AppSettings.AllowSessionProvisioning` |
+| Session enumeration for the UI | `SessionProvisioner.ListSessions` |
 | Reap on launch | `Program.Main` |
 
 ### Limitations / follow-ups

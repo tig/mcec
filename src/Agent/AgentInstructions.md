@@ -129,8 +129,10 @@ directory, so a crash leaves the real install untouched. An `end-session` with a
 fails with `error.code:session-token-invalid`; a session you did not provision is not yours to tear
 down; orphaned sessions are reaped automatically. If `provision-session` returns
 `error.code:provisioning-not-authorized` (these feature-specific refusals ride in `error.code`, while
-`error.category` stays `internal`), the operator has not opted in (AllowSessionProvisioning); tell them,
-don't retry.
+`error.category` stays `internal`), the operator has not opted in; tell them to enable "Allow agents to
+provision disposable instances" on the Settings dialog's Agent tab (File > Settings > Agent), then retry;
+do not retry blindly before they do. That same Agent tab lists the provisioned instances and lets the
+operator delete any you leave behind, but you own teardown: `end-session` every instance you provision.
 
 EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
 session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category;

@@ -114,8 +114,8 @@ Use **File ▸ Exit** to shut down.
 
 Settings are stored as XML in `mcec.settings`, in the `%APPDATA%\Kindel\MCEC` directory (new installs;
 pre-3.0 used a `Kindel Systems\MCEC` subfolder, for which a compatibility fallback exists). Most settings
-are edited from the **File ▸ Settings…** dialog; the agent settings below are edited directly in
-`mcec.settings`.
+are edited from the **File ▸ Settings…** dialog; the agent gates (except the provisioning opt-in on the
+**Agent** tab, below) are edited directly in `mcec.settings`.
 
 The **General** tab:
 
@@ -127,6 +127,19 @@ The **General** tab:
 The **Client**, **Server**, **Serial Server**, and **Activity Monitor** tabs configure the classic
 remote-control transports and are documented in
 **[Home Automation & Remote Control](home-automation.md)**.
+
+The **Agent** tab is the operator's surface for [session provisioning](safety-emergency-stop-and-provisioning.md):
+
+* **Allow agents to provision disposable instances**: when checked, an agent connected to this MCEC may
+  call `provision-session` to receive a fresh, isolated copy of MCEC to drive; when unchecked, that request
+  is refused. This is the single opt-in a non-technical operator must perform to let an agent (a desktop
+  assistant, a computer-use agent) work with MCEC. It grants access only to a disposable copy that is
+  deleted on teardown; it does **not** enable agent commands in this installed copy. The other agent gates
+  stay file-only in `mcec.settings` by design.
+* **Provisioned instances**: lists the disposable copies under `%LOCALAPPDATA%\MCEC\sessions`, with each
+  one's age, size, and whether it is still running. **Delete** removes a copy an agent left behind (a
+  running one is skipped; stop it first), and **Delete all** clears them in one step. MCEC also reaps stale
+  copies automatically, so this is a convenience, not a requirement.
 
 ### Agent settings (in `mcec.settings`)
 

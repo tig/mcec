@@ -208,6 +208,54 @@ public class SessionProvisionerTests : IDisposable {
             "token validation must not create files in the session directory");
     }
 
+    // --- #259: ListSessions is the operator's management view (the Settings dialog's Agent tab).
+
+    [Fact]
+    public void ListSessions_MissingRoot_ReturnsEmpty() {
+        // The fixture points SessionsRoot at a directory Provision hasn't created yet.
+        Assert.Empty(SessionProvisioner.ListSessions());
+    }
+
+    [Fact]
+    public void ListSessions_ReturnsEachSession_WithSizeAndCreationTime() {
+        ProvisionedSession first = SessionProvisioner.Provision(mcpServerEnabled: false);
+        ProvisionedSession second = SessionProvisioner.Provision(mcpServerEnabled: false);
+        // Make the ordering deterministic (directory creation stamps can tie within a tick).
+        Directory.SetCreationTimeUtc(first.Directory, DateTime.UtcNow - TimeSpan.FromMinutes(5));
+
+        System.Collections.Generic.IReadOnlyList<ProvisionedSessionInfo> sessions =
+            SessionProvisioner.ListSessions();
+
+        Assert.Equal(2, sessions.Count);
+        // Newest first.
+        Assert.Equal(second.SessionId, sessions[0].SessionId);
+        Assert.Equal(first.SessionId, sessions[1].SessionId);
+        Assert.All(sessions, s => Assert.True(s.SizeBytes > 0, "a provisioned copy has files"));
+        Assert.All(sessions, s => Assert.False(s.IsRunning, "nothing launched these stubs"));
+        Assert.All(sessions, s => Assert.True(Directory.Exists(s.Directory)));
+    }
+
+    [Fact]
+    public void ListSessions_ReportsRunning_WhileTheExeIsLocked() {
+        ProvisionedSession session = SessionProvisioner.Provision(mcpServerEnabled: false);
+        string exe = Path.Combine(session.Directory, "mcec.exe");
+
+        // Simulate a running session: hold mcec.exe open exclusively (the loader's lock is what
+        // ListSessions probes and what makes Teardown/the reaper skip the directory).
+        using (FileStream _ = File.Open(exe, FileMode.Open, FileAccess.Read, FileShare.None)) {
+            ProvisionedSessionInfo info = Assert.Single(SessionProvisioner.ListSessions());
+            Assert.True(info.IsRunning);
+            Assert.False(SessionProvisioner.Teardown(session.SessionId),
+                "a locked session must be skipped, not force-deleted");
+            Assert.True(Directory.Exists(session.Directory));
+        }
+
+        // Once released ("process exited"), the same directory is stale and deletable.
+        ProvisionedSessionInfo released = Assert.Single(SessionProvisioner.ListSessions());
+        Assert.False(released.IsRunning);
+        Assert.True(SessionProvisioner.Teardown(session.SessionId));
+    }
+
     [Fact]
     public void ReapOrphans_RemovesOldDirs_KeepsFreshOnes() {
         ProvisionedSession stale = SessionProvisioner.Provision(mcpServerEnabled: false);
