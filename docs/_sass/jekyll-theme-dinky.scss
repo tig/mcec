@@ -221,7 +221,7 @@ header {
   width:170px;
   float:left;
   position:fixed;
-  max-height:calc(100vh - 150px);
+  max-height:calc(100vh - 60px);
   overflow-y:auto;
 	border: 1px solid #000;
 	-webkit-border-top-right-radius: 4px;
@@ -332,11 +332,10 @@ section {
 /* Footer */
 
 footer {
-  width:170px;
-  float:left;
-  position:fixed;
-  bottom:10px;
-	padding-left: 50px;
+  /* Flows at the bottom of the (scrollable) sidebar now, instead of a separate
+     position:fixed box that overlapped the bottom nav buttons. */
+  position:static;
+  margin-top: 18px;
 }
 
 @media print, screen and (max-width: 960px) {
