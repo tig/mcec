@@ -13,7 +13,7 @@ AI agents and scripts running on a Windows PC. It gives an agent three things:
 - **A front door**: query/find windows and UI elements, wait for conditions, and
   drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
 
-The agent surface is a set of new commands (`capture`, `query`, `displays`, `find`,
+The agent surface is a set of new commands (`capture`, `query`, `displays`, `windows`, `find`,
 `wait-for`, `invoke`, `record`, `launch`, `drag`, and `click`) exposed as **tools over MCP/HTTP**
 so an agent can call them directly. Each tool call returns a **structured JSON result
 envelope** (`{ ok, result, … }`) instead of free text, so an agent can reason about
@@ -152,6 +152,7 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 | `capture`  | Screenshot a window (`PrintWindow` + `PW_RENDERFULLCONTENT`, captures WinUI/WPF surfaces) or a screen region, returned as base64 PNG. Blank/black frames are detected and flagged (see [Observation hardening](#observation-hardening--known-limitations)). | window target, or region `x`/`y`/`width`/`height`; optional `file` |
 | `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6), `maxNodes` (default 1000) |
 | `displays` | Report **display geometry**; every monitor's pixel `bounds`, `workingArea`, `primary` flag, and `dpi`/`scale`, plus the union `virtualBounds`. Lets an agent interpret the absolute-pixel bounds `query`/`find` return and place pixel clicks/drags without measuring the screen itself. | *(none)* |
+| `windows`  | **Discover top-level windows**: list each window's `handle`, `title`, `className`, `processName`, `processId`, and `bounds`, so an agent can find and target a window instead of guessing. Optionally filtered; with a `timeout` it **waits** (polls) for a matching window to appear. No filter lists all; a `timeout` with no filter is refused (won't wait for an arbitrary window). | `window`/`process`/`className` filters (all optional), `timeout` (ms; wait for a match) |
 | `find`     | Find a **UI Automation element** by name / automation id / class.                 | window target, `by` (`name`\|`automationid`\|`classname`), `value`, `timeout` |
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
 | `invoke`   | Drive a UI Automation element pattern (incl. select for SelectionItem); far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`\|`expand`\|`collapse`\|`select`), `text` |
@@ -536,6 +537,7 @@ When connected, the server advertises these tools:
 | `capture`      | The `capture` command (window screenshot → base64 PNG).        |
 | `query`        | The `query` command (describe a window).                       |
 | `displays`     | The `displays` command (per-monitor bounds + DPI/scale, virtual bounds). |
+| `windows`      | The `windows` command (list/filter top-level windows for discovery; wait for one with a timeout). |
 | `find`         | The `find` command (match a UI element, one-shot).             |
 | `wait-for`     | The `wait-for` command (poll for a UI element until a timeout). |
 | `invoke`       | The `invoke` command (run an existing MCEC command, incl. select for tabs etc). |
@@ -557,7 +559,7 @@ argument (from `session-start`) to [route the call into that session](#agent-ses
 
 Agent tool calls follow a simple contract so one slow call never stalls the others:
 
-- **Observation runs concurrently.** `query`, `capture`, `find`, `wait-for`, and `record` take **no
+- **Observation runs concurrently.** `query`, `capture`, `windows`, `find`, `wait-for`, and `record` take **no
   shared lock**; a deep `query`, a large `capture`, or a long `wait-for` never blocks another tool call,
   even one from a different session. They snapshot state (each UIA read uses its own automation instance;
   screen capture is stateless) and don't mutate the desktop.
@@ -656,7 +658,7 @@ concurrently; past that the server answers `503` rather than queueing.
 
 ## Summary
 
-- New, opt-in agent surface: `capture`, `query`, `displays`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `record` (plus `send_command`, and `provision-session`/`end-session`).
+- New, opt-in agent surface: `capture`, `query`, `displays`, `windows`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `record` (plus `send_command`, and `provision-session`/`end-session`).
 - Structured `{ ok, result, error, … }` JSON result envelope; the commands are exposed as MCP/HTTP tools.
 - **No sandbox: an enabled agent can do everything a user can do.** The gates decide whether,
   not how much.

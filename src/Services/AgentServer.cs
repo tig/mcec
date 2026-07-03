@@ -25,7 +25,7 @@ namespace MCEControl;
 /// </list>
 ///
 /// SECURITY: the gated agent tools (the <see cref="ToolCatalog"/> set; capture, query, displays,
-/// find, wait-for, invoke, drag, click, record, launch) only run when
+/// windows, find, wait-for, invoke, drag, click, record, launch) only run when
 /// <see cref="AgentRuntime.AgentCommandsEnabled"/> is true; otherwise a tool call is reported as an
 /// error (enforced in <see cref="AgentToolExecutor"/>). Every tool call is loudly audit-logged.
 /// </summary>

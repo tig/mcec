@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
 
 namespace MCEControl;
 
@@ -67,21 +68,66 @@ public static class WindowResolver {
         }
 
         foreach (WindowInfo info in EnumerateTopLevel()) {
-            if (!string.IsNullOrEmpty(title) &&
-                info.Title.IndexOf(title, StringComparison.OrdinalIgnoreCase) < 0) {
-                continue;
+            if (Matches(info, title, processName, className)) {
+                return info;
             }
-            if (!string.IsNullOrEmpty(processName) &&
-                !info.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase)) {
-                continue;
-            }
-            if (!string.IsNullOrEmpty(className) &&
-                !info.ClassName.Equals(className, StringComparison.Ordinal)) {
-                continue;
-            }
-            return info;
         }
         return null;
+    }
+
+    /// <summary>
+    /// True when <paramref name="info"/> satisfies every non-empty filter, using the SAME rules
+    /// <see cref="Resolve"/> applies: title substring (case-insensitive), process name (exact, without
+    /// ".exe"), window class name (exact). An empty filter is not applied, so all-empty matches anything.
+    /// </summary>
+    public static bool Matches(WindowInfo info, string? title, string? processName, string? className) {
+        if (!string.IsNullOrEmpty(title) &&
+            info.Title.IndexOf(title, StringComparison.OrdinalIgnoreCase) < 0) {
+            return false;
+        }
+        if (!string.IsNullOrEmpty(processName) &&
+            !info.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        if (!string.IsNullOrEmpty(className) &&
+            !info.ClassName.Equals(className, StringComparison.Ordinal)) {
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Lists every visible, titled top-level window matching the given filters (all windows when no
+    /// filter is given). Unlike <see cref="Resolve"/> this returns the WHOLE matching set rather than the
+    /// first hit, so an agent can enumerate available targets and pick one; listing is not the
+    /// silent-arbitrary-selection hazard <see cref="Resolve"/> guards against.
+    /// </summary>
+    public static List<WindowInfo> ListTopLevel(string? title, string? processName, string? className) {
+        List<WindowInfo> matches = [];
+        foreach (WindowInfo info in EnumerateTopLevel()) {
+            if (Matches(info, title, processName, className)) {
+                matches.Add(info);
+            }
+        }
+        return matches;
+    }
+
+    /// <summary>
+    /// Polls <see cref="ListTopLevel"/> until at least one window matches or <paramref name="timeoutMs"/>
+    /// elapses, then returns whatever matched (empty on timeout). Lets an agent wait for a top-level
+    /// window (a launching app, a modal about to appear) without external sleeps. A zero timeout returns
+    /// the current matches after a single pass. The caller is responsible for requiring a filter; waiting
+    /// for "any window" is meaningless and callers (the <c>windows</c> tool) refuse it.
+    /// </summary>
+    public static List<WindowInfo> WaitForTopLevel(string? title, string? processName, string? className, int timeoutMs, int pollMs = 100) {
+        Stopwatch sw = Stopwatch.StartNew();
+        while (true) {
+            List<WindowInfo> matches = ListTopLevel(title, processName, className);
+            if (matches.Count > 0 || sw.ElapsedMilliseconds >= timeoutMs) {
+                return matches;
+            }
+            Thread.Sleep(Math.Min(pollMs, Math.Max(1, timeoutMs - (int)sw.ElapsedMilliseconds)));
+        }
     }
 
     /// <summary>Enumerates visible, titled top-level windows.</summary>
