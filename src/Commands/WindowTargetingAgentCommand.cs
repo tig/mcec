@@ -78,6 +78,43 @@ public abstract class WindowTargetingAgentCommand : AgentCommand {
     /// </summary>
     protected abstract CommandResult ExecuteCore(WindowInfo? target);
 
+    /// <summary>
+    /// Maps a non-miss <see cref="UiaFindOutcome"/> failure onto the ONE structured shape every
+    /// element-resolving command shares (#261): ambiguous selector, then the classified UIA faults
+    /// (<see cref="UiaFailureFor"/>). Returns null when the lookup did not fail this way (found, or a
+    /// clean miss); a miss stays per-command because the commands disagree about it (<c>find</c>
+    /// reports <c>found:false</c> success, <c>click</c>/<c>drag</c>/<c>invoke</c> fail with
+    /// <c>no-target</c>).
+    /// </summary>
+    protected static CommandResult? UiaFindFailureFor(string cmd, string by, string value, UiaFindOutcome outcome) =>
+        outcome.Ambiguous
+            ? CommandResult.Fail(cmd,
+                $"The selector ({by}='{value}') matched {outcome.MatchCount} elements; refusing to guess which one. " +
+                "Narrow it: prefer automationId, or add className or a more specific name.",
+                $"selector-matched-{outcome.MatchCount}", "ambiguous-selector")
+            : UiaFailureFor(cmd, outcome.Failure);
+
+    /// <summary>
+    /// Maps a classified UIA fault (#261) onto the shared structured failure: window gone maps to
+    /// <c>window-closed</c>/<c>stale-element</c>, access denied to <c>target-elevated</c>/<c>elevation</c>
+    /// (for a valid window, UIA's E_ACCESSDENIED means UIPI blocked a lower-integrity client), and
+    /// anything else to <c>uia-faulted</c>/<c>internal</c>. Null when there was no fault.
+    /// </summary>
+    protected static CommandResult? UiaFailureFor(string cmd, UiaFailureKind failure) => failure switch {
+        UiaFailureKind.WindowGone => CommandResult.Fail(cmd,
+            "The target window or element went away mid-call (closed or re-rendered). " +
+            "Re-query for a fresh window handle, then retry.",
+            "window-closed", "stale-element"),
+        UiaFailureKind.AccessDenied => CommandResult.Fail(cmd,
+            "UI Automation was denied access to the target; it runs at a higher integrity level (UAC) than MCEC " +
+            "and cannot be observed or driven. Surface this to the operator; do not retry.",
+            "target-elevated", "elevation"),
+        UiaFailureKind.Faulted => CommandResult.Fail(cmd,
+            "UI Automation faulted while attaching to or reading the target. Re-observe the window.",
+            "uia-faulted", "internal"),
+        _ => null,
+    };
+
     // No Clone override: the shared selectors are value/string-typed, so the base
     // MemberwiseClone-based Command.Clone (#207) copies them by construction.
 }
