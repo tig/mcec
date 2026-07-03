@@ -128,18 +128,14 @@ The **Client**, **Server**, **Serial Server**, and **Activity Monitor** tabs con
 remote-control transports and are documented in
 **[Home Automation & Remote Control](home-automation.md)**.
 
-The **Agent** tab is the operator's surface for [session provisioning](safety-emergency-stop-and-provisioning.md):
+The **Agent** tab is where you let an agent (a desktop assistant or computer-use tool) work with MCEC via
+[session provisioning](safety-emergency-stop-and-provisioning.md):
 
-* **Allow agents to provision disposable instances**: when checked, an agent connected to this MCEC may
-  call `provision-session` to receive a fresh, isolated copy of MCEC to drive; when unchecked, that request
-  is refused. This is the single opt-in a non-technical operator must perform to let an agent (a desktop
-  assistant, a computer-use agent) work with MCEC. It grants access only to a disposable copy that is
-  deleted on teardown; it does **not** enable agent commands in this installed copy. The other agent gates
-  stay file-only in `mcec.settings` by design.
-* **Provisioned instances**: lists the disposable copies under `%LOCALAPPDATA%\MCEC\sessions`, with each
-  one's age, size, and whether it is still running. **Delete** removes a copy an agent left behind (a
-  running one is skipped; stop it first), and **Delete all** clears them in one step. MCEC also reaps stale
-  copies automatically, so this is a convenience, not a requirement.
+* **Allow agents to provision disposable instances**: the one switch to turn on. A connected agent then
+  gets a fresh, throwaway copy of MCEC to drive, deleted when it finishes. It never opens up this installed
+  copy.
+* **Provisioned instances**: lists those copies (age, size, running or not), with **Delete** / **Delete
+  all** to clear any an agent left behind. MCEC also cleans up stale ones on its own.
 
 ### Agent settings (in `mcec.settings`)
 
