@@ -22,10 +22,11 @@
   (CommandOverlayEnabled / CommandOverlayPosition). The controlled subject is a SEPARATE COPY of the
   build in its own directory so it reads a co-located config (Program.ConfigPath == the exe's own
   folder); its config sets ActAsServer=false (so it never binds IPAddress.Any:5150 and triggers the
-  Windows Firewall prompt that would steal focus), turns its own overlay OFF (only the controller
-  narrates), and pins the window so the recorded region is deterministic. The subject is driven BY
-  HANDLE (the controller also owns an "MCEC" window, so a title match is ambiguous); the modal dialogs
-  (Settings/About) are unambiguous by title.
+  Windows Firewall prompt that would steal focus) and turns its own overlay OFF (only the controller
+  narrates). The subject window is NOT pinned; it opens at MCEC's default size and location, and the
+  script observes where it landed (one `query`) to derive the recorded region and every drag point. The
+  subject is driven BY HANDLE (the controller also owns an "MCEC" window, so a title match is
+  ambiguous); the modal dialogs (Settings/About) are unambiguous by title.
 
   This drives the REAL desktop (mouse, launching an app) for ~30s. Run it on an interactive session you
   can leave alone.
@@ -76,17 +77,22 @@ if (-not $AllowNonDevelopBuild -and $stamp -notlike '*Branch.develop.*') {
 }
 Write-Host "Recording from: $stamp"
 
-# Pinned subject window geometry: wide and left-docked so the controller's left overlay sits over it and
-# the recorded region is just the window (compact, no wallpaper) yet contains the narration.
-$winX = 12; $winY = 66; $winW = 1040; $winH = 560
-$rx = $winX - 6; $ry = $winY - 8; $rw = $winW + 12; $rh = $winH + 30
+# Physical screen size in the agent's coordinate space (absolute device pixels). The subject window is
+# NOT pinned; it opens at MCEC's default size/location and we observe where it lands (below), so the
+# recorded region and the drag points follow the real window rather than hard-coded numbers.
+Add-Type -Namespace Native -Name U32 -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern int GetSystemMetrics(int n);
+[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+'@
+[Native.U32]::SetProcessDPIAware() | Out-Null
+$sw = [Native.U32]::GetSystemMetrics(0); $sh = [Native.U32]::GetSystemMetrics(1)
 
 # ---- subject: a separate copy of the build with its own co-located config (overlay OFF) ----
 if (Test-Path $subjectDir) { Remove-Item $subjectDir -Recurse -Force }
 Copy-Item $ctrlDir $subjectDir -Recurse -Force
 $subjectExe = Join-Path $subjectDir 'mcec.exe'
 
-Set-Content -Encoding UTF8 -Path (Join-Path $subjectDir 'mcec.settings') -Value @"
+Set-Content -Encoding UTF8 -Path (Join-Path $subjectDir 'mcec.settings') -Value @'
 <?xml version="1.0" encoding="utf-8"?>
 <AppSettings>
   <ActAsServer>false</ActAsServer>
@@ -94,10 +100,8 @@ Set-Content -Encoding UTF8 -Path (Join-Path $subjectDir 'mcec.settings') -Value 
   <ActAsSerialServer>false</ActAsSerialServer>
   <DisableUpdatePopup>true</DisableUpdatePopup>
   <CommandOverlayEnabled>false</CommandOverlayEnabled>
-  <WindowLocation><X>$winX</X><Y>$winY</Y></WindowLocation>
-  <WindowSize><Width>$winW</Width><Height>$winH</Height></WindowSize>
 </AppSettings>
-"@
+'@
 
 # ---- controller: GUI MCEC with the agent surface + overlay (docked Left), driven over HTTP ----
 $ctrlSettings = Join-Path $ctrlDir 'mcec.settings'
@@ -126,6 +130,7 @@ Set-Content -Encoding UTF8 -Path $ctrlCommands -Value @'
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="3.0.0">
 <Commands xmlns="http://www.kindel.com/products/mcecontroller">
   <capture Cmd="capture" Enabled="true" />
+  <query   Cmd="query"   Enabled="true" />
   <record  Cmd="record"  Enabled="true" />
   <drag    Cmd="drag"    Enabled="true" />
   <launch  Cmd="launch"  Enabled="true" />
@@ -184,10 +189,19 @@ try {
   $hsub = if ($lr) { [long]($lr.handle) } else { 0 }
   if (-not $hsub) { throw 'launch did not return a subject window handle' }
   Write-Host "subject up (handle=0x$('{0:X}' -f $hsub))"
-  Start-Sleep -Milliseconds 1500   # let the menu bar finish building
+  Start-Sleep -Milliseconds 1500   # let the window settle and the menu bar build
 
-  # fps 4 + downscale keeps the hero compact (the encoder writes full frames, so frame count x width
-  # drive file size); the per-step dwells keep the tour short.
+  # Observe where the window actually landed (nothing is pinned; it opens at MCEC's default size and
+  # location). The record region and every drag point below are derived from these real bounds.
+  $w = (ResultOf (Tool 'query' @{ handle = $hsub; maxDepth = 1 })).window
+  if (-not $w) { throw 'could not read the subject window bounds' }
+  $wx = [int]$w.x; $wy = [int]$w.y; $ww = [int]$w.width; $wh = [int]$w.height
+  Write-Host "subject bounds: $wx,$wy ${ww}x${wh}"
+
+  # Record the left band of the screen: full height (so the top-most overlay's narration column is in
+  # frame wherever the window sits) and out to the window's right edge. fps 4 + downscale keep the hero
+  # compact (frame count x width drive file size).
+  $rx = 0; $ry = 0; $rw = [Math]::Min($sw, $wx + $ww + 12); $rh = $sh
   Tool 'record' @{ action = 'start'; x = $rx; y = $ry; width = $rw; height = $rh; fps = 4; maxWidth = 560 } | Out-Null
   Write-Host 'record start'
   Tool 'capture' @{ handle = $hsub } | Out-Null; Start-Sleep -Milliseconds 600
@@ -202,17 +216,17 @@ try {
   Key 'key_esc'; Start-Sleep -Milliseconds 600                         # close the modal Settings dialog
 
   # --- Resize ~25% smaller by dragging the bottom-right sizing border inward (a real pixel gesture). ---
-  $newW = [int]($winW * 0.75); $newH = [int]($winH * 0.75)
+  $newW = [int]($ww * 0.75); $newH = [int]($wh * 0.75)
   Tool 'drag' @{
     handle = $hsub
-    from   = @{ x = $winX + $winW - 2; y = $winY + $winH - 2 }
-    to     = @{ x = $winX + $newW;     y = $winY + $newH }
+    from   = @{ x = $wx + $ww - 2; y = $wy + $wh - 2 }
+    to     = @{ x = $wx + $newW;   y = $wy + $newH }
   } | Out-Null
   Start-Sleep -Milliseconds 500
 
-  # --- Move the window by dragging its title bar in a circle (drag tool with path waypoints). ---
-  $grabX = $winX + [int]($newW / 2); $grabY = $winY + 12
-  $ccx = $winX + 120 + ($grabX - $winX); $ccy = $winY + 70 + ($grabY - $winY); $r = 55
+  # --- Move the window by dragging its title bar in a small circle (drag tool with path waypoints). ---
+  $grabX = $wx + [int]($newW / 2); $grabY = $wy + 12
+  $ccx = $grabX; $ccy = $grabY + 55; $r = 55   # circle just below the grab point so the window wiggles in place
   $circle = @()
   for ($a = 0; $a -le 720; $a += 50) {
     $rad = [math]::PI * $a / 180.0
