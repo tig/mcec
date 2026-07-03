@@ -1,4 +1,4 @@
-By Tig Kindel ([@tigkindel on Twitter](https://twitter.com/tigkindel)) - Copyright © [Kindel](http://www.kindel.com), LLC.
+By [Tig Kindel](https://twitter.com/tigkindel) - Copyright © [Kindel](http://www.kindel.com), LLC.
 
 ![mcec](docs/hero.gif "MCEC: one agent driving another; launch, File ▸ Settings (every tab), mouse-resize, drag the title bar in circles, Help ▸ About; recorded with MCEC's own agent tools")
 
@@ -15,7 +15,7 @@ winget install Kindel.mcec
 or [download the installer](https://github.com/tig/mcec/releases).
 
 > [!CAUTION]
-> MCEC is powerful and off by default: once you enable it, an agent acts with your rights on whatever it targets. See [Agent Safety](docs/safety-emergency-stop-and-provisioning.md).
+> MCEC is powerful and off by default: once you enable it, an agent acts with your rights on whatever it targets. See [Agent Safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html).
 
 MCEC drives the Windows desktop with real user input. There is no sandbox, no permission model inside the session, and no way to give an agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent can do**: read whatever is on screen, type into any app, click anything, launch programs, open a browser logged in as you, delete files, send email. The gates decide *whether* an agent gets that power; they do not and cannot meter *how much*.
 
@@ -26,15 +26,15 @@ So the operator stays in control by construction:
 * **Stoppable.** A global emergency-stop hotkey (default `Ctrl+Alt+Shift+S`) halts a session instantly from any window; it reacts to physical input only, so an agent can never trip or defeat it.
 * **Disposable.** Rather than enabling your installed instance, an authorized agent gets a throwaway provisioned session; teardown is deleting a directory, and a crash leaves the real install untouched.
 
-Enable the agent surface only on a machine and session where you accept an agent acting as you. Details: [Environment Controller](docs/environment-controller.md) and [Agent safety](docs/safety-emergency-stop-and-provisioning.md).
+Enable the agent surface only on a machine and session where you accept an agent acting as you. Details: [Environment Controller](https://tig.github.io/mcec/environment-controller.md) and [Agent safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html).
 
 MCEC is also the same **battle-tested remote control for home-automation systems** it has always been. In its long-standing role it runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that can send text over TCP/IP or RS-232 ([Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/), [Crestron](http://www.crestron.com/), and others) can use MCEC to drive a Windows PC. The agent surface in 3.0 is **purely additive**: every existing home-automation feature is unchanged.
 
 * [Documentation](https://tig.github.io/mcec): start here
-* [Configuration](https://tig.github.io/mcec/configuration.md): configuring mcec
-* [Environment Controller](docs/environment-controller.md): the full agent/MCP tool reference and security model
-* [Agent safety](docs/safety-emergency-stop-and-provisioning.md): emergency stop + isolated session provisioning
-* [Home Automation & Remote Control](docs/home-automation.md): the classic TCP/serial command surface
+* [Configuration](https://tig.github.io/mcec/configuration.html): configuring mcec
+* [Environment Controller](https://tig.github.io/mcec/environment-controller.html): the full agent/MCP tool reference and security model
+* [Agent safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html): emergency stop + isolated session provisioning
+* [Home Automation & Remote Control](https://tig.github.io/mcec/home-automation.html): the classic TCP/serial command surface
 * [AGENTS.md](AGENTS.md): connect-time agent guidance + the dogfood recipe (MCEC driving MCEC)
 
 Links:
