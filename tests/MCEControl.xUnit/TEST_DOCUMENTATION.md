@@ -1,169 +1,13 @@
-# MCE Controller Unit Test Suite
+# MCEC Unit Test Suite
 
 ## Overview
 
-This document describes the comprehensive unit test suite for MCE Controller. Tests are organized from the bottom of the architecture up, following the dependency hierarchy.
-
-## Test Structure
-
-```
-MCEControl.xUnit/
-??? Win32/
-?   ??? Win32HelpersTests.cs          # Win32 utility functions
-??? Helpers/
-?   ??? LoggerTests.cs                # Logging singleton
-?   ??? CommandFileWatcherTests.cs    # File system monitoring
-??? Services/
-?   ??? ServiceBaseTests.cs           # Base service functionality
-?   ??? AppSettingsTests.cs           # Configuration management
-??? Commands/
-?   ??? CommandTests.cs               # Base command functionality
-?   ??? SerializedCommandsTests.cs    # Command serialization
-?   ??? PauseCommandTests.cs          # Pause/delay commands
-?   ??? CharsCommandTests.cs          # Character input
-?   ??? SendInputCommandTests.cs      # Keyboard simulation
-?   ??? MouseCommandTests.cs          # Mouse control
-?   ??? StartProcessCommandTests.cs   # Process launching
-?   ??? SendMessageCommandTests.cs    # Windows messages
-?   ??? ShutdownCommandTests.cs       # System power
-?   ??? McecCommandTests.cs           # Internal control
-?   ??? SetForegroundWindowCommandTests.cs  # Window focus
-?   ??? CommandInvokerTests.cs        # Command registry and execution
-??? WindowsInput/
-?   ??? InputBuilderTests.cs          # Input structure building
-?   ??? InputSimulatorTests.cs        # Input simulation facade
-??? Integration/
-    ??? CommandExecutionPipelineTests.cs  # End-to-end command flow
-```
-
-## Test Coverage by Layer
-
-### Layer 1: Win32 and Utilities (Foundation)
-
-#### Win32HelpersTests (6 tests)
-- **Purpose**: Test low-level Win32 utility functions
-- **Coverage**:
-  - LOWORD/HIWORD extraction
-  - Boundary conditions (0, max values)
-  - Bit manipulation correctness
-
-#### LoggerTests (4 tests)
-- **Purpose**: Test singleton logging infrastructure
-- **Coverage**:
-  - Singleton pattern
-  - Log file path management
-  - Log4net integration
-
-#### CommandFileWatcherTests (3 tests)
-- **Purpose**: Test file system monitoring for hot-reload
-- **Coverage**:
-  - Watcher creation
-  - File change detection
-  - Event firing
-
-### Layer 2: Services (Business Logic)
-
-#### ServiceBaseTests (6 tests)
-- **Purpose**: Test common service functionality
-- **Coverage**:
-  - Status management
-  - Notification pattern
-  - Event delegation
-  - Error handling
-
-#### AppSettingsTests (4 tests)
-- **Purpose**: Test application configuration
-- **Coverage**:
-  - Settings path resolution (Program Files vs. standalone)
-  - Serialization/deserialization
-  - Telemetry filtering
-  - Default settings creation
-
-### Layer 3: Command System (Core Domain)
-
-#### CommandTests (9 tests)
-- **Purpose**: Test base command functionality
-- **Coverage**:
-  - Command pattern implementation
-  - Enabled/disabled behavior
-  - Command cloning with reply context
-  - Embedded command support
-  - User-defined vs built-in commands
-  - Command type discovery
-
-#### SerializedCommandsTests (5 tests)
-- **Purpose**: Test command persistence
-- **Coverage**:
-  - XML serialization
-  - File I/O
-  - Round-trip data integrity
-  - Multiple command types
-  - Missing file handling
-
-#### Individual Command Tests (9 command type test files, ~40+ tests total)
-
-**Common test patterns for each command type:**
-1. Constructor initialization
-2. Built-in command definitions
-3. Clone functionality
-4. Disabled command behavior
-5. Property preservation
-6. ToString formatting
-7. Command-specific features
-
-**Command Types Covered:**
-- **PauseCommand** (7 tests): Timing, delay handling, invalid args
-- **CharsCommand** (6 tests): Text input, argument handling
-- **SendInputCommand** (8 tests): Keyboard simulation, modifier keys
-- **MouseCommand** (5 tests): Mouse actions, coordinate parsing
-- **StartProcessCommand** (8 tests): Process launching, embedded commands
-- **SendMessageCommand** (8 tests): Window messages, parameter passing
-- **ShutdownCommand** (6 tests): System power commands
-- **McecCommand** (6 tests): Internal control commands
-- **SetForegroundWindowCommand** (5 tests): Window focus management
-
-#### CommandInvokerTests (5 tests)
-- **Purpose**: Test command registry and execution engine
-- **Coverage**:
-  - Command creation from files
-  - Built-in command loading
-  - User-defined commands
-  - Command modification persistence
-  - Enabled/disabled filtering
-
-### Layer 4: Windows Input Simulation
-
-#### InputBuilderTests (18 tests)
-- **Purpose**: Test INPUT structure construction
-- **Coverage**:
-  - Keyboard input building
-  - Mouse input building
-  - Character sequences
-  - Modifier key combinations
-  - Absolute/relative positioning
-  - Wheel scrolling
-  - Method chaining
-
-#### InputSimulatorTests (21 tests across 3 test classes)
-- **Purpose**: Test facade for input simulation
-- **Coverage**:
-  - **InputSimulator**: Facade initialization and property access
-  - **KeyboardSimulator**: Key press/release, text entry, modified keystrokes
-  - **MouseSimulator**: Button clicks, movement, scrolling
-  - Fluent interface pattern
-
-### Layer 5: Integration Tests
-
-#### CommandExecutionPipelineTests (6 tests)
-- **Purpose**: Test end-to-end command execution flow
-- **Coverage**:
-  - Command parsing and enqueueing
-  - Command execution
-  - Reply context handling
-  - Embedded command sequences
-  - Unknown command handling
-  - Single character interpretation
-  - Colon-syntax command parsing
+This document describes the conventions and structure of MCEC's xUnit test suite, organized from the
+bottom of the architecture up, following the dependency hierarchy. It intentionally does **not** hardcode
+test counts or a full file inventory; those go stale the moment a test is added or renamed. For current
+numbers, run the suite (see below) or browse the test project directly; its directory structure
+(`Agent/`, `Commands/`, `Services/`, `Dialogs/`, `Helpers/`, `WindowsInput/`, `Integration/`) mirrors
+`src/`'s layout one-to-one.
 
 ## Test Patterns and Best Practices
 
@@ -175,10 +19,10 @@ public void Method_Scenario_ExpectedBehavior()
 {
     // Arrange: Set up test data
     var command = new TestCommand { Property = "value" };
-    
+
     // Act: Execute the method under test
     var result = command.Execute();
-    
+
     // Assert: Verify the expected outcome
     Assert.True(result);
 }
@@ -195,7 +39,9 @@ public void Method_Scenario_ExpectedBehavior()
 - Each test creates its own instances
 - Temporary files are cleaned up in IDisposable pattern
 - No shared state between tests
-- Tests can run in parallel
+- Tests can run in parallel, EXCEPT classes that touch process-global `AgentRuntime` state (emergency
+  stop, ambient session, settings/invoker): those carry `[Collection("AgentSerial")]`
+  (`Agent/AgentSerialCollection.cs`) so xUnit runs them sequentially and they don't stomp on each other
 
 ### 4. Mock Objects
 - Custom `TestReply` class for reply context testing
@@ -208,136 +54,57 @@ public void Method_Scenario_ExpectedBehavior()
 - Null/empty strings
 - Invalid input handling
 
-## Test Metrics
-
-### Current Coverage
-- **Total Test Files**: 21
-- **Total Tests**: ~120+
-- **Layers Covered**: 5/5 (100%)
-- **Core Components**: 100% (all major components have tests)
-
-### Coverage by Component Type
-| Component Type | Test Files | Approximate Tests |
-|----------------|------------|-------------------|
-| Win32 Utilities | 1 | 6 |
-| Helpers | 2 | 7 |
-| Services | 2 | 10 |
-| Commands | 11 | 65+ |
-| Windows Input | 2 | 39 |
-| Integration | 1 | 6 |
-
 ## Running the Tests
 
-### From Visual Studio
-1. Open Test Explorer (Test > Test Explorer)
-2. Click "Run All" or select specific tests
-3. View results inline with code coverage
-
-### From Command Line
 ```bash
-cd tests\MCEControl.xUnit
+cd tests/MCEControl.xUnit
 dotnet test
 ```
 
-### With Coverage
+With coverage:
 ```bash
-dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
-## What's NOT Tested (Intentional Gaps)
+Note: `ci.yml` already collects coverage this way but nothing currently reports or gates on the result.
 
-### 1. UI Components
-- WinForms controls (MainWindow, dialogs)
-- Reason: Requires UI automation framework
-- Mitigation: Manual testing, integration tests
+### Desktop end-to-end tests
 
-### 2. Network I/O
-- SocketServer/SocketClient actual connections
-- SerialServer hardware communication
-- Reason: Requires infrastructure/mocking complexity
-- Mitigation: ServiceBase abstraction is tested
+A handful of tests (`Integration/AgentDesktopE2ETests.cs`, `Integration/RecordDesktopTests.cs`, anything
+attributed `[DesktopInputFact]`) drive the real desktop (global keystrokes, mouse, launching apps) and are
+**skipped unless `MCEC_DESKTOP_E2E=1`** is set, so a normal `dotnet test`/CI run never touches your desktop:
 
-### 3. Win32 API Calls
-- Actual SendInput to OS
-- PostMessage/SendMessage to real windows
-- Process.Start execution
-- Reason: Side effects on test environment
-- Mitigation: Input structures validated, command logic tested
+```powershell
+$env:MCEC_DESKTOP_E2E=1 ; dotnet test --filter Category=DesktopE2E
+```
 
-### 4. File System Operations
-- Actual file watching (flaky in CI)
-- Registry access
-- Reason: Environmental dependencies
-- Mitigation: Abstraction layers tested
+`.github/workflows/real-windows.yml` is intended to run these on a self-hosted interactive runner, but as
+of this writing does not set `MCEC_DESKTOP_E2E=1` in its test step, and no such runner is registered
+(`INTERACTIVE_RUNNER_READY` repo variable is unset); see the workflow file for current status.
 
-### 5. External Dependencies
-- Azure Application Insights telemetry
-- GitHub API (UpdateService)
-- Reason: Network dependency, rate limits
-- Mitigation: Service initialization tested
+## What's NOT Tested (known, current gaps)
+
+- **`SerialServer`** (`src/Services/SerialServer.cs`): no tests at all.
+- **`MCEControl.Hooks`** (`src/Hooks/`, the global low-level keyboard/mouse hook layer): no direct tests;
+  only an indirect subscriber-count snapshot via `Services/HookSubscriberBaseline.cs`, used by
+  `UserActivityMonitorServiceTests`.
+- **Actual OS-level side effects**: real `SendInput` to the OS, real window messages to real windows,
+  real `Process.Start` are exercised only by the opt-in desktop E2E tests above, not the default suite.
+- **External dependencies**: Azure Application Insights telemetry and the GitHub Releases API
+  (`UpdateService`) are exercised via seams/fakes, not live network calls.
 
 ## Extending the Test Suite
 
-### Adding Tests for New Commands
+### Adding tests for a new Command type
 
-1. Create test file: `Commands\YourCommandTests.cs`
-2. Follow existing command test pattern:
+1. Create `Commands/YourCommandTests.cs`.
+2. Cover, at minimum: constructor defaults, `BuiltInCommands` contents, `Clone` independence,
+   disabled-command behavior (`Execute()` returns `false`), and any command-specific logic.
+3. If the command is agent-gated, add it to `CommandRegistryTests`/`AgentCommandStructuralGateTests`'
+   completeness checks rather than a bespoke test (see `src/ARCHITECTURE.md`'s Extensibility Points).
 
-```csharp
-public class YourCommandTests
-{
-    [Fact]
-    public void Constructor_SetsDefaultProperties() { }
-    
-    [Fact]
-    public void BuiltInCommands_ContainsYourCommands() { }
-    
-    [Fact]
-    public void Clone_CreatesIndependentCopy() { }
-    
-    [Fact]
-    public void Execute_WhenDisabled_ReturnsFalse() { }
-    
-    [Fact]
-    public void Execute_WithValidInput_ReturnsTrue() { }
-    
-    [Fact]
-    public void ToString_ReturnsFormattedString() { }
-}
-```
+### Adding integration tests
 
-### Adding Integration Tests
-
-1. Create test in `Integration\` folder
-2. Test complete workflows across multiple components
-3. Use minimal mocking
-4. Focus on happy path and error conditions
-
-### Adding Performance Tests
-
-Consider adding:
-- Command execution throughput tests
-- Input builder performance tests
-- Large command queue handling
-
-## Continuous Integration
-
-The test suite is designed to:
-- Run quickly (< 10 seconds for full suite)
-- Run in parallel (no shared state)
-- Run without admin privileges
-- Run without network access
-- Run on Windows only (.NET 10 Windows-specific APIs)
-
-## Future Enhancements
-
-1. **Code Coverage Analysis**: Integrate coverlet for detailed coverage reports
-2. **Mutation Testing**: Use Stryker.NET to validate test quality
-3. **Property-Based Testing**: Use FsCheck for command parsing edge cases
-4. **Performance Benchmarks**: Use BenchmarkDotNet for input simulation
-5. **Approval Tests**: For XML serialization round-trips
-6. **UI Automation**: Consider Appium/WinAppDriver for MainWindow tests
-
-## Conclusion
-
-This test suite provides comprehensive coverage of the MCE Controller architecture from the ground up. Tests are organized by architectural layer, following best practices for maintainability and reliability. The suite serves as both validation and documentation of the system's behavior.
+1. Create the test in `Integration/`.
+2. Test complete workflows across multiple components with minimal mocking.
+3. Focus on the happy path and the error conditions that matter.
