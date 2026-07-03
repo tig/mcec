@@ -29,7 +29,7 @@ public class InvokeCommand : WindowTargetingAgentCommand {
 
     protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr h = new IntPtr(target!.Handle);
-        UiaInvokeResult outcome = UiaService.Invoke(h, By, Value, Action, Text);
+        UiaInvokeResult outcome = UiaService.Invoke(h, By, Value, Action, Text, out int matchCount);
         if (outcome == UiaInvokeResult.Ok) {
             JsonObject data = new() {
                 ["invoked"] = true,
@@ -39,16 +39,18 @@ public class InvokeCommand : WindowTargetingAgentCommand {
             };
             return CommandResult.Ok(Cmd, data);
         }
-        return FailureFor(outcome);
+        return FailureFor(outcome, matchCount);
     }
 
     /// <summary>
-    /// Maps a failed <see cref="UiaInvokeResult"/> onto a distinct error code/category (#206). The
-    /// distinctions matter for recovery: <c>no-target</c> means wait/re-find; <c>invalid-argument</c>
-    /// means fix the call (re-finding a pattern-less element loops forever); <c>internal</c> means
-    /// report it. Internal so tests can pin the mapping without a live UIA tree.
+    /// Maps a failed <see cref="UiaInvokeResult"/> onto a distinct error code/category (#206, #261).
+    /// The distinctions matter for recovery: <c>no-target</c> means wait/re-find; <c>invalid-argument</c>
+    /// means fix the call (re-finding a pattern-less element loops forever); <c>ambiguous-selector</c>
+    /// means narrow the selector; <c>stale-element</c> means re-observe for a fresh target;
+    /// <c>elevation</c> and <c>internal</c> mean report it. Internal so tests can pin the mapping
+    /// without a live UIA tree.
     /// </summary>
-    internal CommandResult FailureFor(UiaInvokeResult outcome) => outcome switch {
+    internal CommandResult FailureFor(UiaInvokeResult outcome, int matchCount = 0) => outcome switch {
         UiaInvokeResult.ElementNotFound => CommandResult.Fail(Cmd,
             $"Element not found ({By}='{Value}') in the target window. invoke does not wait; find/wait-for the element first.",
             "element-not-found", "no-target"),
@@ -59,6 +61,18 @@ public class InvokeCommand : WindowTargetingAgentCommand {
         UiaInvokeResult.ActionUnknown => CommandResult.Fail(Cmd,
             $"Unknown action '{Action}'. Use invoke, toggle, setvalue, setfocus, expand, collapse, or select.",
             "action-unknown", "invalid-argument"),
+        UiaInvokeResult.ElementAmbiguous => CommandResult.Fail(Cmd,
+            $"The selector ({By}='{Value}') matched {matchCount} elements; refusing to guess which to act on. " +
+            "Narrow it: prefer automationId, or add className or a more specific name.",
+            $"selector-matched-{matchCount}", "ambiguous-selector"),
+        UiaInvokeResult.ElementStale => CommandResult.Fail(Cmd,
+            $"The element ({By}='{Value}') or its window went away mid-call (closed or re-rendered). " +
+            "Re-query/find for a fresh target, then retry.",
+            "element-stale", "stale-element"),
+        UiaInvokeResult.TargetElevated => CommandResult.Fail(Cmd,
+            "UI Automation was denied access to the target; it runs at a higher integrity level (UAC) than MCEC " +
+            "and cannot be driven. Surface this to the operator; do not retry.",
+            "target-elevated", "elevation"),
         _ => CommandResult.Fail(Cmd,
             "Invoke faulted: UI Automation threw while attaching to or driving the target (it may have closed mid-call). Re-observe the window.",
             "invoke-faulted", "internal"),

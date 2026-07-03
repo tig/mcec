@@ -9,8 +9,10 @@ namespace MCEControl;
 /// <summary>
 /// Agent observation command handling both <c>find</c> (one-shot) and <c>wait-for</c> (polls until a
 /// timeout). Resolves a target window, then locates a single UIA element by name/automationid/
-/// classname. Always replies success with a <c>found</c> flag (a miss is not an error). Gated by
-/// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited (structurally, via
+/// classname. A clean miss replies success with <c>found:false</c> (a miss is not an error;
+/// <see cref="AgentToolResult"/> reclassifies a <c>wait-for</c> miss as <c>timeout</c>); an ambiguous
+/// selector or a classified UIA fault (stale window, elevated target, #261) is a structured failure.
+/// Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited (structurally, via
 /// <see cref="AgentCommand"/>). Disabled by default (security).
 /// </summary>
 public class FindCommand : WindowTargetingAgentCommand {
@@ -34,11 +36,14 @@ public class FindCommand : WindowTargetingAgentCommand {
 
     protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr h = new IntPtr(target!.Handle);
-        UiaElementInfo? info = UiaService.Find(h, By, Value, EffectiveTimeout);
-        bool found = info is not null;
+        UiaFindOutcome outcome = UiaService.Find(h, By, Value, EffectiveTimeout);
+        if (UiaFindFailureFor(Cmd, By, Value, outcome) is { } failure) {
+            return failure;
+        }
+        bool found = outcome.Element is not null;
         JsonObject data = new() {
             ["found"] = found,
-            ["element"] = info?.ToJsonObject(),
+            ["element"] = outcome.Element?.ToJsonObject(),
             // Echo the resolved window so the session can record it as the active target (a find/wait-for
             // that establishes the current control feeds error.lastObservation for a later failing action).
             ["window"] = target.ToJsonObject(),

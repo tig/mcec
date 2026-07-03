@@ -171,7 +171,8 @@ Over MCP, the transport's `isError` flag mirrors the envelope (`isError = !ok`).
 
 On failure the `error` object carries a stable, fine-grained `code`, a coarse `category` from
 the closed taxonomy (`timeout`, `ambiguous-selector`, `stale-element`, `no-target`,
-`invalid-argument`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`), a
+`invalid-argument`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`; `focus`
+and `foreground` are reserved for future detection and are not currently produced), a
 human-readable `detail`, and (when available) a `lastObservation` (the last good state before
 the failure, so a failed call is debuggable without rerunning it) and a `partialResult` (the
 failing call's own partial payload, e.g. a blank capture's suspect PNG):
@@ -403,9 +404,10 @@ Known limits:
   the desktop cannot be rendered and captures are blank. This is detected (blank frame) but cannot
   be worked around from user space.
 - **Elevation (UAC):** MCEC running at medium integrity cannot read the UIA tree of, drive, or
-  reliably capture a window owned by an elevated (high-integrity) process. Such targets surface as
-  empty/failed observations; run MCEC elevated only if you explicitly need to automate elevated
-  apps, and understand the security trade-off.
+  reliably capture a window owned by an elevated (high-integrity) process. When UI Automation
+  reports access denied for such a target, the tool fails with `error.category: elevation`
+  (`code: target-elevated`) so an agent knows to stop rather than retry; run MCEC elevated only
+  if you explicitly need to automate elevated apps, and understand the security trade-off.
 
 ### UIA tree size & stability
 

@@ -47,8 +47,8 @@ public class ClickCommand : WindowTargetingAgentCommand {
     protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr hwnd = target is null ? IntPtr.Zero : new IntPtr(target.Handle);
 
-        if (!TryResolvePoint(hwnd, out (int X, int Y) point, out string? error)) {
-            return CommandResult.Fail(Cmd, error!, "element-not-found", "no-target");
+        if (!TryResolvePoint(hwnd, out (int X, int Y) point, out CommandResult? failure)) {
+            return failure!;
         }
 
         // Clamp to the {1,2} the contract exposes and normalize the button, then dispatch and echo the
@@ -70,21 +70,27 @@ public class ClickCommand : WindowTargetingAgentCommand {
     /// <summary>
     /// Resolves the click point to an absolute screen pixel: the centre of an element (<see cref="By"/>/
     /// <see cref="Value"/>) when <see cref="Value"/> is set, else the literal (<see cref="X"/>,
-    /// <see cref="Y"/>). Returns false with <paramref name="error"/> when the element can't be found.
+    /// <see cref="Y"/>). Returns false with a structured <paramref name="failure"/> when the element
+    /// can't be resolved (not found, ambiguous, stale window, elevated target; #261).
     /// </summary>
-    private bool TryResolvePoint(IntPtr hwnd, out (int X, int Y) point, out string? error) {
-        error = null;
+    private bool TryResolvePoint(IntPtr hwnd, out (int X, int Y) point, out CommandResult? failure) {
+        failure = null;
         if (string.IsNullOrEmpty(Value)) {
             point = (X, Y);
             return true;
         }
+        string by = string.IsNullOrEmpty(By) ? "name" : By;
         // hwnd is guaranteed non-zero here: the base resolves the window whenever Value is set.
-        UiaElementInfo? el = UiaService.Find(hwnd, string.IsNullOrEmpty(By) ? "name" : By, Value, FindTimeoutMs);
-        if (el is null) {
+        UiaFindOutcome outcome = UiaService.Find(hwnd, by, Value, FindTimeoutMs);
+        failure = UiaFindFailureFor(Cmd, by, Value, outcome);
+        if (failure is null && outcome.Element is null) {
+            failure = CommandResult.Fail(Cmd, $"element not found ({by}='{Value}')", "element-not-found", "no-target");
+        }
+        if (failure is not null) {
             point = default;
-            error = $"element not found ({(string.IsNullOrEmpty(By) ? "name" : By)}='{Value}')";
             return false;
         }
+        UiaElementInfo el = outcome.Element!;
         point = (el.X + (el.Width / 2), el.Y + (el.Height / 2));
         return true;
     }

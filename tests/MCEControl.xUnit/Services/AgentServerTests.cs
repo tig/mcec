@@ -389,9 +389,18 @@ public class AgentServerTests {
         // element lookup could take longer than the grace, an ordinary lookup miss (misspelled name, menu
         // not expanded) would be misreported as a pending modal success. The find must resolve within the
         // grace, so a worker still running afterward can only be a genuinely blocking action.
+        //
+        // #262 review (Codex P2): the invoke lookup enumerates matches (FindAllDescendants) to detect an
+        // ambiguous selector. The poll loop never STARTS an attempt past InvokeFindTimeoutMs, so the
+        // worst-case overshoot is a single in-flight scan; the grace must clear the find timeout by more
+        // than that scan can take, or a slow scan on a large tree gets misreported as a pending modal.
+        // Pin a minimum headroom so the two constants can never drift close together.
+        const int MinScanHeadroomMs = 200;
         Assert.True(
-            UiaService.InvokeFindTimeoutMs < AgentServer.InvokeModalGraceMs,
-            $"invoke find timeout ({UiaService.InvokeFindTimeoutMs}ms) must be < modal grace ({AgentServer.InvokeModalGraceMs}ms)");
+            AgentServer.InvokeModalGraceMs - UiaService.InvokeFindTimeoutMs >= MinScanHeadroomMs,
+            $"modal grace ({AgentServer.InvokeModalGraceMs}ms) must exceed the invoke find timeout " +
+            $"({UiaService.InvokeFindTimeoutMs}ms) by >= {MinScanHeadroomMs}ms so one in-flight " +
+            "FindAll scan cannot outlast the grace and be misreported as a pending modal (#262).");
     }
 
     // --- #74: MCP tools honor the per-command Enabled gate in mcec.commands (a SECOND gate, independent

@@ -42,6 +42,14 @@ public static class UiaService {
     /// missing element must fail fast (no-target) rather than be misreported as a pending modal (#107).
     /// Agents are instructed to <c>wait-for</c>/<c>find</c> a control before acting on it, so invoke does
     /// not need a long implicit wait of its own.
+    ///
+    /// <para>#262 review (Codex P2): the lookup enumerates matches with <c>FindAllDescendants</c> to
+    /// detect an ambiguous selector, so a found lookup no longer early-exits on the first match. The
+    /// exposure is bounded: the poll loop returns the instant a scan finds any match, so the found
+    /// (and found-ambiguous) case is a SINGLE scan; the not-found case polls, but <c>FindFirst</c>
+    /// already had to walk the whole subtree to conclude "none," so its worst-case latency is
+    /// unchanged. The grace must clear this timeout by more than one scan can take on a large tree;
+    /// the margin is pinned by <c>InvokeFindTimeout_StaysBelowModalGrace...</c>.</para>
     /// </summary>
     public const int InvokeFindTimeoutMs = 500;
 
@@ -82,29 +90,36 @@ public static class UiaService {
         }
         catch (Exception e) {
             // FromHandle/UIA can throw COMException or FlaUI-specific exceptions on a window that
-            // closes mid-call; never let it escape the command's Execute().
+            // closes mid-call; never let it escape the command's Execute(). Classify the fault (#261)
+            // so query reports stale-element/elevation instead of a healthy-looking empty tree.
             Logger.Instance.Log4.Error($"UiaService.DumpTree failed: {e.Message}");
-            return new UiaTreeResult(null, 0, false);
+            return new UiaTreeResult(null, 0, false, ClassifyUiaFailure(e));
         }
     }
 
     /// <summary>
-    /// Finds the first descendant of <paramref name="hwnd"/> matching <paramref name="value"/> by the
+    /// Finds the single descendant of <paramref name="hwnd"/> matching <paramref name="value"/> by the
     /// given strategy (<c>name</c>/<c>automationid</c>/<c>classname</c>, case-insensitive). When
-    /// <paramref name="timeoutMs"/> &gt; 0 it retries until found or the timeout elapses. Returns a
-    /// single node (no children) or null.
+    /// <paramref name="timeoutMs"/> &gt; 0 it retries until found or the timeout elapses. A selector
+    /// matching MORE than one element fails fast as ambiguous (#261; waiting cannot disambiguate, and
+    /// silently acting on "the first match" is the worst agent failure mode: it succeeds on the wrong
+    /// control); exceptional failures are classified (<see cref="UiaFailureKind"/>) rather than
+    /// collapsed into "not found".
     /// </summary>
-    public static UiaElementInfo? Find(IntPtr hwnd, string by, string value, int timeoutMs) {
+    public static UiaFindOutcome Find(IntPtr hwnd, string by, string value, int timeoutMs) {
         if (hwnd == IntPtr.Zero) {
-            return null;
+            return UiaFindOutcome.NotFound;
         }
         try {
-            AutomationElement? el = FindWithPolling(hwnd, by, value, timeoutMs);
-            return el is null ? null : RunOnWorker(_ => Describe(el));
+            (AutomationElement? el, int matchCount) = FindWithPolling(hwnd, by, value, timeoutMs);
+            if (matchCount > 1) {
+                return new UiaFindOutcome(null, matchCount, UiaFailureKind.None);
+            }
+            return el is null ? UiaFindOutcome.NotFound : new UiaFindOutcome(RunOnWorker(_ => Describe(el)), 1, UiaFailureKind.None);
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"UiaService.Find failed: {e.Message}");
-            return null;
+            return new UiaFindOutcome(null, 0, ClassifyUiaFailure(e));
         }
     }
 
@@ -118,7 +133,14 @@ public static class UiaService {
     /// a closed WinForms menu's sub-items are not in the UIA tree until the parent is opened. It uses
     /// the ExpandCollapse pattern, falling back to Invoke for WinForms menu items that lack it.
     /// </summary>
-    public static UiaInvokeResult Invoke(IntPtr hwnd, string by, string value, string action, string? text) {
+    public static UiaInvokeResult Invoke(IntPtr hwnd, string by, string value, string action, string? text) =>
+        Invoke(hwnd, by, value, action, text, out _);
+
+    /// <inheritdoc cref="Invoke(IntPtr, string, string, string, string?)"/>
+    /// <param name="matchCount">How many elements matched the selector; &gt; 1 accompanies
+    /// <see cref="UiaInvokeResult.ElementAmbiguous"/> so the failure can report the count.</param>
+    public static UiaInvokeResult Invoke(IntPtr hwnd, string by, string value, string action, string? text, out int matchCount) {
+        matchCount = 0;
         if (hwnd == IntPtr.Zero) {
             return UiaInvokeResult.ElementNotFound;
         }
@@ -130,7 +152,11 @@ public static class UiaService {
         }
         try {
             // The lookup runs (poll-by-poll) on the shared UIA worker like every other tree access...
-            AutomationElement? el = FindWithPolling(hwnd, by, value, InvokeFindTimeoutMs);
+            (AutomationElement? el, matchCount) = FindWithPolling(hwnd, by, value, InvokeFindTimeoutMs);
+            if (matchCount > 1) {
+                // Acting on "the first of N matches" silently drives the wrong control (#261).
+                return UiaInvokeResult.ElementAmbiguous;
+            }
             if (el is null) {
                 return UiaInvokeResult.ElementNotFound;
             }
@@ -156,8 +182,39 @@ public static class UiaService {
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"UiaService.Invoke failed: {e.Message}");
-            return UiaInvokeResult.Faulted;
+            // Classify the fault (#261): an element torn down between lookup and dispatch is the
+            // canonical stale-element; access denied on a valid window is the elevation (UIPI) case.
+            return ClassifyUiaFailure(e) switch {
+                UiaFailureKind.WindowGone => UiaInvokeResult.ElementStale,
+                UiaFailureKind.AccessDenied => UiaInvokeResult.TargetElevated,
+                _ => UiaInvokeResult.Faulted,
+            };
         }
+    }
+
+    /// <summary>UIA_E_ELEMENTNOTAVAILABLE: the element/window backing a UIA object is gone.</summary>
+    private const int UiaElementNotAvailableHResult = unchecked((int)0x80040201);
+
+    /// <summary>E_ACCESSDENIED: UIA refused access; for a valid window this is the UIPI/elevation case.</summary>
+    private const int AccessDeniedHResult = unchecked((int)0x80070005);
+
+    /// <summary>
+    /// Classifies a UIA exception into a <see cref="UiaFailureKind"/> (#261), walking inner exceptions
+    /// because FlaUI sometimes wraps the underlying COMException. Matched by HRESULT (and FlaUI's
+    /// typed ElementNotAvailableException) rather than by exception type alone, so both the raw COM
+    /// error and the wrapped form classify identically. Internal so tests can pin the mapping without
+    /// a live UIA tree.
+    /// </summary>
+    internal static UiaFailureKind ClassifyUiaFailure(Exception e) {
+        for (Exception? cur = e; cur is not null; cur = cur.InnerException) {
+            if (cur is FlaUI.Core.Exceptions.ElementNotAvailableException || cur.HResult == UiaElementNotAvailableHResult) {
+                return UiaFailureKind.WindowGone;
+            }
+            if (cur.HResult == AccessDeniedHResult) {
+                return UiaFailureKind.AccessDenied;
+            }
+        }
+        return UiaFailureKind.Faulted;
     }
 
     /// <summary>True if <paramref name="action"/> is one of the supported invoke actions
@@ -277,21 +334,26 @@ public static class UiaService {
     /// <see cref="FindPollIntervalMs"/>, sleeping on the CALLING thread between attempts so a long
     /// wait never monopolizes the worker. <paramref name="timeoutMs"/> &lt;= 0 means a single attempt.
     /// The root is re-resolved from <paramref name="hwnd"/> each attempt, so a window that re-renders
-    /// mid-wait cannot leave the poll holding a stale subtree.
+    /// mid-wait cannot leave the poll holding a stale subtree. Each attempt enumerates ALL matches
+    /// (FindAll, not FindFirst; the cost of ambiguity detection, #261; the scan is bounded by the
+    /// target window's own tree): more than one match returns immediately with the count and a null
+    /// element; waiting cannot disambiguate a selector, and returning "the first" acts on the wrong
+    /// control. Exceptions propagate to the caller for classification.
     /// </summary>
-    private static AutomationElement? FindWithPolling(IntPtr hwnd, string by, string value, int timeoutMs) {
+    private static (AutomationElement? Element, int MatchCount) FindWithPolling(IntPtr hwnd, string by, string value, int timeoutMs) {
         Stopwatch sw = Stopwatch.StartNew();
         while (true) {
-            AutomationElement? el = RunOnWorker(automation => {
+            (AutomationElement? el, int count) = RunOnWorker(automation => {
                 AutomationElement root = automation.FromHandle(hwnd);
-                return root.FindFirstDescendant(BuildCondition(by, value));
+                AutomationElement[] matches = root.FindAllDescendants(BuildCondition(by, value));
+                return (matches.Length == 1 ? matches[0] : null, matches.Length);
             });
-            if (el is not null || timeoutMs <= 0) {
-                return el;
+            if (count > 0 || timeoutMs <= 0) {
+                return (el, count);
             }
             long remaining = timeoutMs - sw.ElapsedMilliseconds;
             if (remaining <= 0) {
-                return null;
+                return (null, 0);
             }
             Thread.Sleep((int)Math.Min(FindPollIntervalMs, remaining));
         }

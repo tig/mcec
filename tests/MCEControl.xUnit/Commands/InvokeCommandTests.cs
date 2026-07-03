@@ -69,12 +69,15 @@ public class InvokeCommandTests {
     }
 
     [Theory]
-    // #206: each UiaInvokeResult failure maps to a DISTINCT code/category so agent recovery differs:
-    // no-target => wait/re-find; invalid-argument => fix the call (re-finding cannot help); internal
-    // => report. The old bare bool collapsed all four into one prose string.
+    // #206/#261: each UiaInvokeResult failure maps to a DISTINCT code/category so agent recovery
+    // differs: no-target => wait/re-find; invalid-argument => fix the call (re-finding cannot help);
+    // ambiguous-selector => narrow the selector; stale-element => re-observe; elevation/internal =>
+    // report. The old bare bool collapsed everything into one prose string.
     [InlineData(UiaInvokeResult.ElementNotFound, "element-not-found", "no-target")]
     [InlineData(UiaInvokeResult.PatternUnsupported, "pattern-unsupported", "invalid-argument")]
     [InlineData(UiaInvokeResult.ActionUnknown, "action-unknown", "invalid-argument")]
+    [InlineData(UiaInvokeResult.ElementStale, "element-stale", "stale-element")]
+    [InlineData(UiaInvokeResult.TargetElevated, "target-elevated", "elevation")]
     [InlineData(UiaInvokeResult.Faulted, "invoke-faulted", "internal")]
     public void FailureFor_MapsEachOutcomeToADistinctCodeAndCategory(UiaInvokeResult outcome, string code, string category) {
         InvokeCommand cmd = new() { Cmd = "invoke", By = "name", Value = "OK", Action = "toggle" };
@@ -85,6 +88,20 @@ public class InvokeCommandTests {
         Assert.Equal(code, result.ErrorCode);
         Assert.Equal(category, result.ErrorCategory);
         Assert.False(string.IsNullOrEmpty(result.Error));
+    }
+
+    [Fact]
+    public void FailureFor_AmbiguousSelector_CarriesTheMatchCountInTheCode() {
+        // #261: the contract's ambiguous-selector code is selector-matched-N with the literal count,
+        // so the agent (and the audit log) can see how bad the collision is.
+        InvokeCommand cmd = new() { Cmd = "invoke", By = "name", Value = "OK", Action = "invoke" };
+
+        CommandResult result = cmd.FailureFor(UiaInvokeResult.ElementAmbiguous, matchCount: 3);
+
+        Assert.False(result.Success);
+        Assert.Equal("selector-matched-3", result.ErrorCode);
+        Assert.Equal("ambiguous-selector", result.ErrorCategory);
+        Assert.Contains("3", result.Error);
     }
 
     [Fact]

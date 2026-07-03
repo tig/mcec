@@ -66,10 +66,15 @@ stale-element, no-target, invalid-argument, capture-blank, focus, elevation, for
 choose recovery; e.g. `no-target` means broaden the selector, `query` to discover targets, or `wait-for`
 the element; `invalid-argument` means the REQUEST itself is wrong (unknown action, oversized region,
 ill-formed endpoint, an action the element can't perform); fix the arguments, do NOT retry the same call
-or broaden a selector; `ambiguous-selector` means add `processName`/`className`/`automationId`;
-`stale-element` means re-`query`/`find` for a fresh handle; `internal` is not recoverable by you; report
-it. Branch on codes and categories, never on the wording of `error.detail` (it is human-readable and may
-change). `error.lastObservation`, when present, is the last good state before the failure, and
+or broaden a selector; `ambiguous-selector` means the element selector matched more than one element and
+the tool refused to guess (the match count rides in the code, `selector-matched-N`); NARROW the selector
+(prefer `automationId`, else `className` or a more specific name); retrying it unchanged cannot help;
+`stale-element` means the window/element went away mid-call (closed or re-rendered); re-`query`/`find`
+for a fresh handle, then retry; `elevation` means the target runs elevated (UAC) at a higher integrity
+level than MCEC and cannot be observed or driven; report it to the user, do not retry; `internal` is not
+recoverable by you; report it. `focus` and `foreground` are reserved for future detection and are never
+produced today; treat them like `internal` if one ever appears. Branch on codes and categories, never on
+the wording of `error.detail` (it is human-readable and may change). `error.lastObservation`, when present, is the last good state before the failure, and
 `error.partialResult` is the failing call's OWN partial payload (e.g. a blank capture's suspect PNG).
 When the last good observation was a `capture`, `lastObservation` is a compact summary; the window
 descriptor, dimensions, blankCheck verdict, and byte count, with `kind:"capture-summary"`; plus an
