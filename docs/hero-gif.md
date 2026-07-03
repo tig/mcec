@@ -32,19 +32,25 @@ prints its endpoint:
 ```powershell
 pwsh -NoProfile -File scripts/Generate-HeroGif.ps1
 # ...
-#   MCP endpoint : http://127.0.0.1:5151/mcp
-#   Register it  : claude mcp add --transport http mcec http://127.0.0.1:5151/mcp
+#   MCP endpoint : http://127.0.0.1:<free-port>/mcp   (a free port is chosen; -Port pins one)
+#   Register it  : claude mcp add --transport http mcec http://127.0.0.1:<free-port>/mcp
 ```
 
-Register that endpoint so your agent has MCEC's tools (`provision-session`, `launch`, `query`, `click`,
-`drag`, `record`, `capture`, `displays`, `send_command`, `end-session`), then ask it to recreate the
-hero. The controller's config already sets the agent surface on, `AllowSessionProvisioning=true`, the
-overlay on/docked Left, and enables the built-in keyboard primitives the tour sends (`chars:` for single
-characters, `shiftdown:`/`shiftup:` for modifier chords). When finished, tear it all down:
+Register the printed endpoint so your agent has MCEC's tools (`provision-session`, `launch`, `query`,
+`click`, `drag`, `record`, `capture`, `displays`, `send_command`, `end-session`), then ask it to recreate
+the hero. The controller's config enables everything the tour needs: the agent surface, per-command
+`Enabled` for the tools it calls (`query`/`click`/`drag`/`record`/`capture`/`launch`/`displays`; agent
+tools are gated by BOTH `AgentCommandsEnabled` and their own table entry), `AllowSessionProvisioning`, the
+overlay on/docked Left, and the built-in keyboard primitives (`chars:` for single characters,
+`shiftdown:`/`shiftup:` for modifier chords). Drive the whole tour promptly in one pass; the controller
+stays up while idle, but do not dawdle. When finished, tear it down:
 
 ```powershell
 pwsh -NoProfile -File scripts/Generate-HeroGif.ps1 -Stop
 ```
+
+`-Stop` only kills the hero controller(s) (mcec running from a `mcec-hero-controller-*` temp dir) and
+removes those copies; other MCEC instances (yours, or another agent's) are left running.
 
 The controller is a **non-installed** copy on purpose: the Program Files install refuses the MCP/HTTP
 front door by design (`Program.IsProgramFilesInstall`).

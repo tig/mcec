@@ -27,7 +27,7 @@
 [CmdletBinding()]
 param(
   [ValidateSet('Debug', 'Release')][string]$Config = 'Debug',
-  [int]$Port = 5151,
+  [int]$Port = 0,
   [switch]$Stop
 )
 
@@ -35,12 +35,30 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
 $copyGlob = 'mcec-hero-controller-*'
 
-if ($Stop) {
-  foreach ($p in Get-Process -Name mcec -ErrorAction SilentlyContinue) { try { $p.Kill($true) } catch {} }
+# Stop ONLY the hero controller(s): mcec processes whose exe lives under a mcec-hero-controller-* temp
+# dir. Never a blanket `Get-Process mcec | kill` (that would take the operator's real MCEC or another
+# agent's instance). Then remove the throwaway copies.
+function Stop-HeroControllers {
+  foreach ($p in Get-Process -Name mcec -ErrorAction SilentlyContinue) {
+    $path = try { $p.Path } catch { $null }
+    if ($path -and $path -like "*\$($copyGlob.TrimEnd('*'))*") { try { $p.Kill($true) } catch {} }
+  }
   Get-ChildItem $env:TEMP -Directory -Filter $copyGlob -ErrorAction SilentlyContinue |
     ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
-  Write-Host 'Stopped MCEC and removed the throwaway controller copy. Provisioned session dirs are reaped on the next MCEC launch.'
+}
+
+if ($Stop) {
+  Stop-HeroControllers
+  Write-Host 'Stopped the hero controller(s) and removed the throwaway copies. Other MCEC instances are left alone; provisioned session dirs are reaped on the next MCEC launch.'
   return
+}
+
+# A fresh bootstrap reclaims any prior hero controller first (a re-run should not leave orphans or fight
+# over a port), then picks a FREE localhost port so concurrent/leftover instances never collide.
+Stop-HeroControllers
+if ($Port -le 0) {
+  $l = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+  $l.Start(); $Port = ([System.Net.IPEndPoint]$l.LocalEndpoint).Port; $l.Stop()
 }
 
 $buildDir = Join-Path $repoRoot "src\bin\$Config\net10.0-windows"
@@ -68,18 +86,24 @@ Set-Content -Encoding UTF8 -Path (Join-Path $ctrlDir 'mcec.settings') -Value @"
 </AppSettings>
 "@
 
-# The agent tools (provision-session/launch/query/click/drag/record/capture/displays/end-session) are
-# gated by AgentCommandsEnabled and need no command-table entries. For keystrokes the agent sends via
-# send_command, enable MCEC's built-in keyboard PRIMITIVES rather than defining named commands: `chars:`
-# sends any single character (built-ins ship disabled, so enabling it here is the opt-in), and
-# `shiftdown:`/`shiftup:` hold/release modifiers. That is the whole keyboard surface the tour needs
-# (letters as chars; Win+D via shiftdown:lwin + d + shiftup:lwin); dialog buttons are clicked with the
-# invoke tool, so no VK_ESCAPE/F4 entries are needed.
+# Two security gates apply to every agent tool: the global AgentCommandsEnabled (above) AND the
+# per-command Enabled flag in this table (built-ins ship disabled). So the tour's tools must each be
+# enabled here. provision-session/end-session are the exception: they are dispatched before the
+# per-command gate and need no entry. Keystrokes go through the built-in keyboard PRIMITIVES rather than
+# named commands: `chars:` sends any single character, and `shiftdown:`/`shiftup:` hold/release modifiers
+# (letters as chars; Win+D via shiftdown:lwin + d + shiftup:lwin); dialog buttons are reached with click.
 Set-Content -Encoding UTF8 -Path (Join-Path $ctrlDir 'mcec.commands') -Value @'
 <?xml version="1.0" encoding="utf-8"?>
 <MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="3.0.0">
 <Commands xmlns="http://www.kindel.com/products/mcecontroller">
+  <displays  Cmd="displays"   Enabled="true" />
+  <query     Cmd="query"      Enabled="true" />
+  <capture   Cmd="capture"    Enabled="true" />
+  <launch    Cmd="launch"     Enabled="true" />
+  <click     Cmd="click"      Enabled="true" />
+  <drag      Cmd="drag"       Enabled="true" />
+  <record    Cmd="record"     Enabled="true" />
   <chars     Cmd="chars:"     Enabled="true" />
   <sendinput Cmd="shiftdown:" Enabled="true" />
   <sendinput Cmd="shiftup:"   Enabled="true" />
