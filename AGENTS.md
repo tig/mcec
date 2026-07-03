@@ -68,9 +68,10 @@ Two safety features layer on top (see [`docs/safety-emergency-stop-and-provision
   can never trip or defeat it. Do not weaken the injected-key filter or the latch.
 - **Isolated session provisioning**: agents must **not** enable/disable commands in the installed
   instance (a crash leaks enabled gates). Instead, `provision-session` (gated by the operator's
-  `AllowSessionProvisioning` opt-in) hands the agent a disposable directory with its own agent-ready config;
-  teardown is deleting the directory, and MCEC reaps orphaned session dirs on launch. The installed config is
-  never touched.
+  `AllowSessionProvisioning` opt-in, set from **File ▸ Settings ▸ Agent**) hands the agent a disposable
+  directory with its own agent-ready config; teardown is deleting the directory, and MCEC reaps orphaned
+  session dirs on launch. The installed config is never touched. That same Agent tab lists the provisioned
+  instances and lets the operator delete any an agent leaves behind.
 
 ## Dogfood: test MCEC using MCEC (mcec drives mcec)
 

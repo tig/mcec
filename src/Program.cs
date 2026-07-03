@@ -168,6 +168,31 @@ internal static class Program {
     }
 
     /// <summary>
+    /// Logs whether the agent front door is open and every provisioned instance that exists (#259).
+    /// Logged like any other setting: at startup AND whenever the settings are (re)applied (the GUI host
+    /// calls this from <c>ApplySettings</c>, which the dialog-OK path re-runs; the headless host calls it
+    /// once at startup, its only apply point). Makes plain, in the operator's log, whether agents can
+    /// drive this copy and what disposable copies exist (which the operator manages from the Agent tab).
+    /// </summary>
+    internal static void LogAgentState(AppSettings settings) {
+        Logger.Instance.Log4.Info(
+            $"MCEC: agent commands {(settings.AgentCommandsEnabled ? "ENABLED" : "disabled")} " +
+            $"(McpServerEnabled={settings.McpServerEnabled}, AllowSessionProvisioning={settings.AllowSessionProvisioning}).");
+
+        System.Collections.Generic.IReadOnlyList<ProvisionedSessionInfo> sessions = SessionProvisioner.ListSessions();
+        if (sessions.Count == 0) {
+            Logger.Instance.Log4.Info($"MCEC: no provisioned instances under {SessionProvisioner.SessionsRoot}.");
+            return;
+        }
+        Logger.Instance.Log4.Info($"MCEC: {sessions.Count} provisioned instance(s) under {SessionProvisioner.SessionsRoot}:");
+        foreach (ProvisionedSessionInfo s in sessions) {
+            Logger.Instance.Log4.Info(
+                $"  - {s.SessionId}  age={SessionDisplayFormat.Age(DateTime.UtcNow - s.CreatedUtc)}" +
+                $"  size={SessionDisplayFormat.Size(s.SizeBytes)}  {(s.IsRunning ? "running" : "stale")}");
+        }
+    }
+
+    /// <summary>
     ///     <c>mcp</c> as the first token (the Terminal.Gui.Cli-style spelling) or <c>--mcp</c> anywhere
     ///     (the v3.0 spelling existing MCP client configs use).
     /// </summary>
@@ -301,7 +326,8 @@ internal static class Program {
         // (bounded) for arming, so by the time the protocol serves, the hotkey is live.
         HeadlessOperatorUi.Start(settings);
 
-        Logger.Instance.Log4.Info($"MCEC: headless MCP mode (AgentCommandsEnabled={settings.AgentCommandsEnabled}).");
+        Logger.Instance.Log4.Info("MCEC: headless MCP mode.");
+        LogAgentState(settings);
 
         using Stream stdin = Console.OpenStandardInput();
         using Stream stdout = Console.OpenStandardOutput();
