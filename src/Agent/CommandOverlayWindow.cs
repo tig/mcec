@@ -25,11 +25,12 @@ namespace MCEControl;
 /// never sees or drives its own overlay, and it never takes focus or input (WS_EX_NOACTIVATE +
 /// WS_EX_TRANSPARENT).</para>
 ///
-/// <para>It covers the full screen (not just the working area) and re-asserts top-most Z-order on every
-/// paint (<see cref="PushLayered"/>), so a window created top-most AFTER the overlay cannot occlude it;
-/// a one-time WS_EX_TOPMOST would sink below any later top-most window. The feed cap scales with the
-/// screen height (<see cref="OverlayLayout.MaxLines"/>) so lines fill the whole height rather than only
-/// the bottom.</para>
+/// <para>It sizes itself from the full screen <see cref="Screen.Bounds"/> (not the working area, so it
+/// spans the taskbar's height too), inset by the layout margin, and re-asserts top-most Z-order on
+/// every paint (<see cref="PushLayered"/>), so a window created top-most AFTER the overlay cannot
+/// occlude it; a one-time WS_EX_TOPMOST would sink below any later top-most window. The feed cap scales
+/// with the screen height (<see cref="OverlayLayout.MaxLines"/>) so lines fill the whole height rather
+/// than only the bottom.</para>
 /// </summary>
 public sealed class CommandOverlayWindow : Form {
     private const int WS_EX_TRANSPARENT = 0x00000020;
