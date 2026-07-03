@@ -36,7 +36,13 @@ pwsh -NoProfile -File scripts/Generate-HeroGif.ps1
 # ...
 #   MCP endpoint : http://127.0.0.1:<free-port>/mcp   (a free port is chosen; -Port pins one)
 #   Register it  : claude mcp add --transport http mcec http://127.0.0.1:<free-port>/mcp
+#
+# HERO_MCP_URL=http://127.0.0.1:<free-port>/mcp        <- machine-readable; grep these, don't parse prose
+# HERO_MCP_PORT=<free-port>
+# HERO_MCP_PID=<pid>
 ```
+
+A driver reads the endpoint from the `HERO_MCP_URL=` line (e.g. `... | Select-String '^HERO_MCP_URL=(.+)$'`).
 
 Register the printed endpoint (or POST JSON-RPC to it directly, see the playbook note below) so your agent
 has MCEC's tools (`provision-session`, `launch`, `query`, `click`, `drag`, `record`, `capture`,
@@ -112,6 +118,8 @@ $env.result    # tool-specific payload; the field paths are named in each step
 6. **Start recording.** Record the left band, full height, out to the window's right edge so the overlay's
    narration column stays in frame:
    `record { "action": "start", "x": SX, "y": SY, "width": min(SW, WX+WW+12-SX), "height": SH, "fps": 4, "maxWidth": 560 }`.
+   On a primary at the origin `SX=SY=0`, so this is just `x:0, y:0`. Worked example: primary `1113×768` at
+   `0,0`, subject at `(52,52) 1024×640` → `x:0, y:0, width: min(1113, 52+1024+12) = 1088, height:768`.
    Then `capture { "handle": <handle> }` and dwell ~0.6 s so the opening frame settles.
 7. **Tour Settings, every tab (Agent is second).** `click { "handle": <handle>, "at": { "by": "name", "value": "File" } }`,
    wait ~0.3 s for the menu → `send_command { "command": "s" }` (the Settings mnemonic; a single char via
@@ -131,8 +139,14 @@ $env.result    # tool-specific payload; the field paths are named in each step
     `capture { "window": "About" }`, then dwell ~1 s on it.
 11. **Stop and write the GIF.** `record { "action": "stop", "file": "<repo>/docs/hero.gif" }` with the
     repo's **absolute** path (relative lands in the temp copy and is lost). It encodes and returns within a
-    few seconds (not a long-poll), so a normal request timeout is fine. Verify `result`: `ok:true`, `result.frames` (≈35–50),
-    `result.bytes` (≈3–4 MB), `result.file`.
+    few seconds (not a long-poll), so a normal request timeout is fine. The `result` looks like:
+    ```json
+    { "ok": true, "result": { "frames": 41, "durationMs": 12960, "fps": 4,
+      "width": 560, "height": 405, "bytes": 3725861, "file": "C:\\...\\docs\\hero.gif" } }
+    ```
+    Assert `frames` (≈35–50), `bytes` (≈3–4 MB), and that a file now exists at your absolute `file` path.
+    Diagnostic: if `bytes > 0` but nothing is at the repo path, you passed a relative path and it wrote
+    into the controller's temp copy.
 12. **Close the subject.** Close the About box:
     `click { "window": "About", "at": { "by": "name", "value": "OK" } }`. Close the subject via its menu:
     `click { "handle": <handle>, "at": { "by": "name", "value": "File" } }` → `send_command { "command": "x" }`
@@ -170,7 +184,11 @@ The tour drives in ~20 s (the GIF is written by then; longer runs are just idle 
 dwells beyond those noted). The result is ≈3–4 MB. The subject's log window is in frame (marketing
 surface) and the recording doubles as a bug-finding channel, so spot-check a few keyframes before
 committing. Confirm: the Settings strip shows **Agent as the second tab** (the feature this hero exists to
-show), no stray desktop menu is in frame, and the log window reads cleanly. Extract frames with:
+show), no stray desktop menu is in frame, and the log window reads cleanly. The tab STRIP (Agent second)
+is visible in any Settings frame, but the Agent tab is only SELECTED for a beat right after step 7's Agent
+click, so to see its content (the provisioning checkbox + session list) extract the frame just after that
+click, roughly frames 8–11 of a ~40-frame take, not just an every-12th sample (which tends to land on
+General). Extract frames with:
 
 ```powershell
 Add-Type -AssemblyName System.Drawing
@@ -192,3 +210,33 @@ pipes mangle binary.) Commit `docs/hero.gif` on the operator's say-so.
 The GIF encoder writes full (non-diffed) frames, so **file size ≈ frame count × frame area**. The tour is
 tuned to ≈4 MB at 560 px wide, 4 fps. To shrink it, lower `fps`, lower `maxWidth`, or trim the per-step
 dwell; to make it richer, raise them.
+
+## Appendix: minimal JSON-RPC driver (local, not committed)
+
+An agent without MCEC mounted as native tools writes a throwaway wrapper to POST to the controller. This
+is the whole boilerplate; do **not** add it to the repo (the tour logic is the agent's, per above). Paste
+it into a scratch file, set `$McpUrl` from the bootstrap's `HERO_MCP_URL=` line, and drive the numbered
+steps through `Invoke-McecRpc`:
+
+```powershell
+$McpUrl = 'http://127.0.0.1:<port>/mcp'          # from the HERO_MCP_URL= line
+$script:rpcId = 0
+function Invoke-McecRpc([string]$name, $arguments = @{}) {
+  $script:rpcId++
+  $body = @{ jsonrpc = '2.0'; id = $script:rpcId; method = 'tools/call'
+             params = @{ name = $name; arguments = $arguments } } | ConvertTo-Json -Depth 12 -Compress
+  $rpc  = Invoke-RestMethod -Uri $McpUrl -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 30
+  $env  = ($rpc.result.content | Where-Object type -eq 'text').text | ConvertFrom-Json  # unwrap the envelope
+  if (-not $env.ok) { throw "$name failed: $($env.error.code)" }
+  return $env.result                              # tool-specific payload
+}
+function Send-Cmd([string]$c) { $null = Invoke-McecRpc 'send_command' @{ command = $c } }
+function Dwell([int]$ms)      { Start-Sleep -Milliseconds $ms }
+
+# Steps 1-2:
+$prim = (Invoke-McecRpc 'displays').displays | Where-Object primary
+$ps   = Invoke-McecRpc 'provision-session' @{ mcpServer = $false }   # -> $ps.exePath / .sessionId / .token
+# Step 3: Send-Cmd 'shiftdown:lwin'; Send-Cmd 'd'; Send-Cmd 'shiftup:lwin'
+$h    = (Invoke-McecRpc 'launch' @{ path = $ps.exePath; timeout = 8000 }).handle
+# ...continue with query/record/click/drag/capture per the numbered steps, then end-session...
+```

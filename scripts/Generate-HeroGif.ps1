@@ -21,7 +21,7 @@
   did not end are reaped automatically on the next MCEC launch.
 
 .PARAMETER Config  Build configuration (Debug or Release). Default: Debug.
-.PARAMETER Port    Localhost MCP port for the controller. Default: 5151.
+.PARAMETER Port    Localhost MCP port for the controller. Default: 0 (auto-pick a free port; pass a value to pin one).
 .PARAMETER Stop    Tear down: kill MCEC and remove the throwaway controller copy.
 #>
 [CmdletBinding()]
@@ -144,3 +144,8 @@ Write-Host "  MCP endpoint : $url"
 Write-Host "  Register it  : claude mcp add --transport http mcec $url"
 Write-Host '  Then ask your agent to recreate the hero per docs/hero-gif.md (it drives entirely via MCP tools).'
 Write-Host '  When finished: pwsh -NoProfile -File scripts/Generate-HeroGif.ps1 -Stop'
+Write-Host ''
+# Machine-readable handoff: a driver can grep these instead of parsing the prose above.
+Write-Host "HERO_MCP_URL=$url"
+Write-Host "HERO_MCP_PORT=$Port"
+Write-Host "HERO_MCP_PID=$ctrlPid"
