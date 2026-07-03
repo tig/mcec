@@ -14,22 +14,17 @@
     2. An agent connected to that controller over MCP provisions a disposable subject, launches it, tours
        Settings (every tab) / resize / move / About, records the region, and calls end-session.
 
-  This script keeps only the one concern worth automating deterministically: the recording must come from
-  a develop-stamped build, because GitVersion bakes the branch name into the version string that appears
-  IN the hero (the subject's log window, status bar, and About box) -- and `provision-session` copies the
-  controller's binaries into the subject, so the controller's stamp is what lands in frame. It builds,
-  verifies the stamp, then prints the brief.
+  It builds the controller and prints the brief. GitVersion bakes the current branch name into the
+  version string that appears IN the hero (the subject's log window, status bar, and About box), and
+  `provision-session` copies the controller's binaries into the subject, so the controller's stamp is
+  what lands in frame; the stamp is printed for reference, but any branch is fine.
 
 .PARAMETER Config
   Build configuration to use (Debug or Release). Default: Debug.
-
-.PARAMETER AllowNonDevelopBuild
-  Skip the develop-branch/develop-stamp guard. Pass this only when a feature-branch hero is deliberate.
 #>
 [CmdletBinding()]
 param(
-  [ValidateSet('Debug', 'Release')][string]$Config = 'Debug',
-  [switch]$AllowNonDevelopBuild
+  [ValidateSet('Debug', 'Release')][string]$Config = 'Debug'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -37,26 +32,12 @@ $repoRoot = Split-Path $PSScriptRoot -Parent
 $ctrlDir = Join-Path $repoRoot "src\bin\$Config\net10.0-windows"
 $exe = Join-Path $ctrlDir 'mcec.exe'
 
-# GUARD: the recording must come from a develop-stamped build. GitVersion bakes the branch name into the
-# version string, which shows in the hero; a timestamp-fresh binary from whatever branch was built last
-# passes a naive "build if needed" check.
-$branch = (git -C $repoRoot rev-parse --abbrev-ref HEAD).Trim()
-if ($branch -ne 'develop' -and -not $AllowNonDevelopBuild) {
-  throw "Refusing to prepare the hero from branch '$branch' (the GitVersion stamp lands in the GIF). " +
-        'Switch to develop (git checkout develop && git pull), or pass -AllowNonDevelopBuild if a ' +
-        'branch build is deliberate.'
-}
-
 Write-Host "Building ($Config)..."
 dotnet build (Join-Path $repoRoot 'src\MCEControl.csproj') -c $Config | Out-Null
 if (-not (Test-Path $exe)) { throw "mcec.exe not found at $exe" }
 
 $stamp = (Get-Item $exe).VersionInfo.ProductVersion
-if (-not $AllowNonDevelopBuild -and $stamp -notlike '*Branch.develop.*') {
-  throw "mcec.exe is stamped '$stamp' after rebuilding; expected a Branch.develop stamp. " +
-        'Is the working tree in a detached/unexpected state?'
-}
-Write-Host "Controller build ready: $stamp"
+Write-Host "Controller build ready (version stamp appears in the hero): $stamp"
 Write-Host "  $exe"
 Write-Host ''
 Write-Host 'Next (see docs/hero-gif.md):'

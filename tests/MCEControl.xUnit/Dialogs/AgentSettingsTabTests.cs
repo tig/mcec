@@ -75,7 +75,7 @@ public class AgentSettingsTabTests : IDisposable {
     }
 
     [Fact]
-    public void AgentTab_ListsSessions_AndReportsEmptyWhenNoneExist() {
+    public void AgentTab_ListsSessions_WithIdAgeSizeAndStatus() {
         _ = CreateFakeSession("0123456789ab");
         _ = CreateFakeSession("ba9876543210");
 
@@ -126,6 +126,26 @@ public class AgentSettingsTabTests : IDisposable {
         Assert.False(Directory.Exists(dir2));
         Assert.Equal(0, FindControl<DataGridView>(tab, "_gridSessions").Rows.Count);
         Assert.False(FindControl<Button>(tab, "_buttonDeleteAll").Enabled);
+    }
+
+    [Fact]
+    public void AgentTab_DeletesStrayNonSessionIdDirectory() {
+        // ListSessions enumerates ALL directories under the sessions root, so a stray folder whose name
+        // is not a 12-hex session id can appear in the list. The operator must still be able to delete it
+        // (the MCP end-session id gate does not apply to this local management surface), and it must not
+        // be misreported as "running".
+        string stray = Path.Combine(_root, "not-a-session-id");
+        Directory.CreateDirectory(stray);
+        File.WriteAllText(Path.Combine(stray, "leftover.txt"), "stub");
+
+        using var tab = new AgentSettingsTab();
+        tab.Bind(new AppSettings());
+        Assert.Equal(1, FindControl<DataGridView>(tab, "_gridSessions").Rows.Count);
+
+        tab.DeleteSessions(["not-a-session-id"]);
+
+        Assert.False(Directory.Exists(stray));
+        Assert.Equal(0, FindControl<DataGridView>(tab, "_gridSessions").Rows.Count);
     }
 
     // --- The pure formatting helpers the list renders with.

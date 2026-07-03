@@ -249,6 +249,42 @@ public static class SessionProvisioner {
     }
 
     /// <summary>
+    /// Removes a directory that <see cref="ListSessions"/> reported, for the operator's management surface
+    /// (#259; the Agent tab's Delete). Unlike <see cref="Teardown"/> (the MCP <c>end-session</c> boundary,
+    /// which accepts only a well-formed 12-hex id because it serves untrusted callers), this deletes ANY
+    /// listed directory, matching the reaper's scope; so the operator can remove exactly what the tab
+    /// shows, including a stray non-session-id folder the reaper would eventually collect. The id here is a
+    /// directory name that came from <see cref="ListSessions"/> (never free-form input), but a single
+    /// path-containment check is kept as defense in depth so a delete can never escape the sessions root.
+    /// Returns true when the directory was removed (or was already gone); false when its files are locked
+    /// (a running session). Best-effort; never throws.
+    /// </summary>
+    public static bool RemoveListedSession(string sessionId) {
+        if (string.IsNullOrWhiteSpace(sessionId)) {
+            return false;
+        }
+        string name = sessionId.Trim();
+        if (name.Contains(Path.DirectorySeparatorChar) || name.Contains(Path.AltDirectorySeparatorChar)
+            || name is ".." or ".") {
+            AgentRuntime.Audit("delete-session", $"REJECTED; '{name}' is not a plain session directory name");
+            return false;
+        }
+        string dir = Path.Combine(SessionsRoot, name);
+        string fullRoot = Path.GetFullPath(SessionsRoot).TrimEnd(Path.DirectorySeparatorChar);
+        string fullDir = Path.GetFullPath(dir);
+        if (!fullDir.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) {
+            AgentRuntime.Audit("delete-session", $"REJECTED; '{name}' resolves outside the sessions root");
+            return false;
+        }
+        if (!Directory.Exists(dir)) {
+            return true; // already gone; idempotent
+        }
+        bool ok = TryDeleteDirectory(dir);
+        AgentRuntime.Audit("delete-session", ok ? $"{name}; removed by operator ({dir})" : $"{name}; could not delete (in use?) {dir}");
+        return ok;
+    }
+
+    /// <summary>
     /// Belt-and-suspenders cleanup: deletes session directories older than <paramref name="maxAge"/> so a
     /// leaked/abandoned session never lingers. A running session's files are locked and are skipped (they'll
     /// be reaped on a later launch once the process exits). Best-effort; never throws. Returns the count

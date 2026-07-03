@@ -84,11 +84,11 @@ namespace MCEControl {
             | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this._tabcontrol.Controls.Add(this._tabPageGeneral);
+            this._tabcontrol.Controls.Add(this._tabPageAgent);
             this._tabcontrol.Controls.Add(this._tabPageClient);
             this._tabcontrol.Controls.Add(this._tabPageServer);
             this._tabcontrol.Controls.Add(this._tabPageSerial);
             this._tabcontrol.Controls.Add(this._tabPageActivityMonitor);
-            this._tabcontrol.Controls.Add(this._tabPageAgent);
             this._tabcontrol.Location = new System.Drawing.Point(16, 16);
             this._tabcontrol.Margin = new System.Windows.Forms.Padding(1);
             this._tabcontrol.Name = "_tabcontrol";

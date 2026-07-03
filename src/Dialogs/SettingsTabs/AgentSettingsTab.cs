@@ -168,15 +168,16 @@ public partial class AgentSettingsTab : UserControl, ISettingsTab {
     }
 
     /// <summary>
-    /// Deletes the given sessions via <see cref="SessionProvisioner.Teardown"/> (the same teardown
-    /// end-session and the age-reaper perform), then refreshes. A running session's files are locked
-    /// and Teardown returns false; skip-with-message rather than failing, matching the reaper.
-    /// Internal so tests can drive the delete path headlessly (InternalsVisibleTo).
+    /// Deletes the given session directories via <see cref="SessionProvisioner.RemoveListedSession"/>
+    /// (the operator-facing, path-bounded delete that matches what the list shows and what the reaper
+    /// collects), then refreshes. The only failure is a running instance whose files are locked; those
+    /// are skipped with a message, matching the reaper. Internal so tests can drive the delete path
+    /// headlessly (InternalsVisibleTo).
     /// </summary>
     internal void DeleteSessions(IReadOnlyList<string> sessionIds) {
         List<string> skipped = [];
         foreach (string id in sessionIds) {
-            if (!SessionProvisioner.Teardown(id)) {
+            if (!SessionProvisioner.RemoveListedSession(id)) {
                 skipped.Add(id);
             }
         }

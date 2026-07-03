@@ -34,11 +34,10 @@ is exactly one human step, and it is a click, not a config file:
 3. **The agent executes it** with the tool sequence below, then calls `end-session` to delete the subject.
 
 Because `provision-session` copies the **controller's own binaries** into the subject, the subject is
-stamped with the controller's build. GitVersion bakes the branch name into that stamp, and the stamp is
-visible in the hero (the subject's log window, status bar, and About box), so **build the controller from
-`develop`** before recording (verify `(Get-Item mcec.exe).VersionInfo.ProductVersion` contains
-`Branch.develop`). Review the result, including the log window's contents frame-by-frame (it is part of
-the shot), and commit `docs/hero.gif` if it looks good.
+stamped with the controller's build. GitVersion bakes the current branch name into that stamp, and it is
+visible in the hero (the subject's log window, status bar, and About box); any branch is fine, so just
+be aware of which build you are recording. Review the result, including the log window's contents
+frame-by-frame (it is part of the shot), and commit `docs/hero.gif` if it looks good.
 
 ## MCP tool sequence
 
@@ -51,7 +50,7 @@ first-class tool call; there is no hand-rolled coordinate math or config-file ed
 | Launch it | `launch { path: <exePath>, timeout: 8000 }` → returns the subject's `handle`; drive it by that handle thereafter (the controller also owns an "MCEC" window, so a title match is ambiguous). |
 | Observe where it landed | `query { handle: <handle>, maxDepth: 1 }` → the window bounds; derive the record region and drag points from these (nothing is pinned). |
 | Start recording | `record { action: "start", x, y, width, height, fps: 4, maxWidth: 560 }` (region = the subject's rect, out to its right edge, full height so the overlay's narration column stays in frame). |
-| Settings | `click { handle, at: { by: "name", value: "File" } }` → `send_command key_s` (the mnemonic an open WinForms menu exposes to the keyboard) → for each of General, Client, Server, Serial Server, Activity Monitor, Agent: `click { window: "Settings", at: { by: "name", value: <tab> } }` → `send_command key_esc`. |
+| Settings | `click { handle, at: { by: "name", value: "File" } }` → `send_command key_s` (the mnemonic an open WinForms menu exposes to the keyboard) → for each of General, Agent, Client, Server, Serial Server, Activity Monitor: `click { window: "Settings", at: { by: "name", value: <tab> } }` → `send_command key_esc`. |
 | Resize | `drag { handle, from: { bottom-right sizing corner }, to: { ~25% inward } }`. |
 | Move | `drag { handle, from: { title bar }, path: [ ...points around a small circle ], to: { start } }`. |
 | About | `click { handle, at: { by: "name", value: "Help" } }` → `send_command key_a` → `capture { window: "About" }` → pause. |
@@ -60,11 +59,10 @@ first-class tool call; there is no hand-rolled coordinate math or config-file ed
 
 ## Reducing the ceremony (`scripts/Generate-HeroGif.ps1`)
 
-The script is now a **thin helper**, not a 250-line driver: it builds the controller from `develop`,
-verifies the stamp (the one concern worth automating deterministically), and prints the brief above for
-an agent to execute. The tour itself is the agent's job, using the tools in the table; the script no
-longer hand-manages a subject copy or flips the controller's gates (`provision-session` and the Agent-tab
-opt-in do that now).
+The script is now a **thin helper**, not a 250-line driver: it builds the controller, prints its version
+stamp (which appears in the hero) for reference, and prints the brief above for an agent to execute. The
+tour itself is the agent's job, using the tools in the table; the script no longer hand-manages a subject
+copy or flips the controller's gates (`provision-session` and the Agent-tab opt-in do that now).
 
 ```powershell
 pwsh -NoProfile -File scripts/Generate-HeroGif.ps1        # add -Config Release to use a Release build

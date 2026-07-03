@@ -257,6 +257,47 @@ public class SessionProvisionerTests : IDisposable {
     }
 
     [Fact]
+    public void RemoveListedSession_DeletesAStrayNonSessionIdDirectory() {
+        // The operator-facing delete matches ListSessions/the reaper scope: it removes ANY directory
+        // under the sessions root, not just well-formed 12-hex ids (unlike the MCP end-session Teardown).
+        string stray = Path.Combine(SessionProvisioner.SessionsRoot, "not-a-session-id");
+        Directory.CreateDirectory(stray);
+        File.WriteAllText(Path.Combine(stray, "x.txt"), "stub");
+
+        Assert.True(SessionProvisioner.RemoveListedSession("not-a-session-id"));
+        Assert.False(Directory.Exists(stray));
+    }
+
+    [Fact]
+    public void RemoveListedSession_GoneDirectory_ReturnsTrueIdempotently() {
+        Assert.True(SessionProvisioner.RemoveListedSession("never-existed"));
+    }
+
+    [Theory]
+    [InlineData("..")]
+    [InlineData("../..")]
+    [InlineData("a/b")]
+    [InlineData("a\\b")]
+    public void RemoveListedSession_RejectsTraversal_WithoutDeletingOutsideRoot(string id) {
+        string parent = Directory.GetParent(_root)!.FullName;
+        string sentinel = Path.Combine(parent, "install"); // created in the fixture
+        Assert.True(Directory.Exists(sentinel));
+
+        Assert.False(SessionProvisioner.RemoveListedSession(id));
+        Assert.True(Directory.Exists(sentinel), "operator delete must not escape the sessions root");
+    }
+
+    [Fact]
+    public void RemoveListedSession_LockedDirectory_ReturnsFalse() {
+        ProvisionedSession session = SessionProvisioner.Provision(mcpServerEnabled: false);
+        string exe = Path.Combine(session.Directory, "mcec.exe");
+        using FileStream _ = File.Open(exe, FileMode.Open, FileAccess.Read, FileShare.None);
+
+        Assert.False(SessionProvisioner.RemoveListedSession(session.SessionId));
+        Assert.True(Directory.Exists(session.Directory), "a locked (running) session is skipped, not force-deleted");
+    }
+
+    [Fact]
     public void ReapOrphans_RemovesOldDirs_KeepsFreshOnes() {
         ProvisionedSession stale = SessionProvisioner.Provision(mcpServerEnabled: false);
         ProvisionedSession fresh = SessionProvisioner.Provision(mcpServerEnabled: false);
