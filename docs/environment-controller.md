@@ -139,6 +139,8 @@ disposable instances** on the Settings dialog's **Agent** tab. The agent then dr
 copy (deleted when done) rather than this installed one, and the same tab cleans up any it leaves behind.
 See [session provisioning](safety-emergency-stop-and-provisioning.md).
 
+![Settings ▸ Agent](settings_agent.png "The Agent tab: the provisioning opt-in and the list of provisioned instances")
+
 ---
 
 ## The commands
@@ -658,8 +660,9 @@ concurrently; past that the server answers `503` rather than queueing.
 
 - New, opt-in agent surface: `capture`, `query`, `displays`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `record` (plus `send_command`, and `provision-session`/`end-session`).
 - Structured `{ ok, result, error, … }` JSON result envelope; the commands are exposed as MCP/HTTP tools.
-- **No sandbox: an enabled agent can do everything a user can do.** The gates decide whether,
-  not how much.
+- **No per-target sandbox:** an enabled command acts with your rights on whatever it targets. You control
+  the *capability surface* (which commands are enabled, so read-only observation is possible), not what an
+  enabled command may touch.
 - **Three independent off-by-default gates:** `AgentCommandsEnabled`, per-command
   `Enabled`, and `McpServerEnabled` (localhost-bound).
 - **HTTP front-door validation:** `POST /mcp` only, loopback `Host` and absent-or-loopback
@@ -668,19 +671,9 @@ concurrently; past that the server answers `503` rather than queueing.
   logging for every agent action.
 - Fully additive; nothing about the existing HTPC behavior changes.
 
-## Agent safety features
+## Agent safety
 
-Two operator-safety features build on the gates above; see
-[`safety-emergency-stop-and-provisioning.md`](safety-emergency-stop-and-provisioning.md):
-
-- **Emergency stop:** a global panic hotkey (default `Ctrl+Alt+Shift+S`, set via
-  `EmergencyStopHotkey`) that instantly halts a session from any window; latching the actuation gate
-  (`emergency-stopped` refusals until re-armed), aborting in-flight actuation, and releasing held input. It
-  reacts to physical input only, so the agent can never trip or defeat it. The operator re-arms via the
-  **⛔ Re-arm** menu item (GUI) or the modal prompt that opens when the stop engages (headless `--mcp`).
-- **Isolated session provisioning:** `provision-session` (gated by `AllowSessionProvisioning`) hands
-  an agent a disposable, isolated MCEC directory instead of it mutating the installed config, plus a
-  session `token` that is both the instance's `McpAuthToken` (HTTP requests to the session's endpoint
-  must send `Authorization: Bearer <token>`) and the teardown credential; `end-session` requires the
-  sessionId **and** token (`session-token-invalid` otherwise), and launch-time reaping collects
-  orphans.
+Two operator-safety features build on the gates above: a global **emergency stop** hotkey that halts a
+session instantly from any window, and disposable **isolated session provisioning** so an agent drives a
+throwaway copy instead of your installed instance. Both are covered in
+**[Agent Safety](safety-emergency-stop-and-provisioning.md)**.

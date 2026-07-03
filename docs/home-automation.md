@@ -22,8 +22,8 @@ whole-house A/V system, but it is general enough for any control system that can
 port or serial port.
 
 > **Looking for the agent/AI side?** MCEC 3.0 is also an opt-in automation server for AI agents over the
-> **Model Context Protocol (MCP)**: see the [Agent Server user guide](environment-controller.md) and the
-> [main documentation](configuration.md). This page covers the classic remote-control features, which are
+> **Model Context Protocol (MCP)**: see the [Environment Controller](environment-controller.md) and
+> [Configuration](configuration.md) chapters. This page covers the classic remote-control features, which are
 > unchanged and remain the default behavior.
 
 For example:
