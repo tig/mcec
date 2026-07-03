@@ -86,7 +86,7 @@ observations below, do not hard-code them, and **send integers** (a tool expecti
 
 ```powershell
 $body = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"displays","arguments":{}}}'
-$rpc  = Invoke-RestMethod -Uri $McpUrl -Method Post -Body $body -ContentType 'application/json'
+$rpc  = Invoke-RestMethod -Uri $McpUrl -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 30
 $env  = ($rpc.result.content | Where-Object type -eq 'text').text | ConvertFrom-Json  # { ok, result, error }
 if (-not $env.ok) { throw $env.error.code }
 $env.result    # tool-specific payload; the field paths are named in each step
@@ -130,8 +130,8 @@ $env.result    # tool-specific payload; the field paths are named in each step
     → `send_command { "command": "a" }` (the About mnemonic), wait ~0.8 s for the dialog →
     `capture { "window": "About" }`, then dwell ~1 s on it.
 11. **Stop and write the GIF.** `record { "action": "stop", "file": "<repo>/docs/hero.gif" }` with the
-    repo's **absolute** path (relative lands in the temp copy and is lost). Encoding takes a few seconds,
-    so give the HTTP call a generous timeout. Verify `result`: `ok:true`, `result.frames` (≈35–50),
+    repo's **absolute** path (relative lands in the temp copy and is lost). It encodes and returns within a
+    few seconds (not a long-poll), so a normal request timeout is fine. Verify `result`: `ok:true`, `result.frames` (≈35–50),
     `result.bytes` (≈3–4 MB), `result.file`.
 12. **Close the subject.** Close the About box:
     `click { "window": "About", "at": { "by": "name", "value": "OK" } }`. Close the subject via its menu:
@@ -169,8 +169,8 @@ aware of which build you are recording.
 The tour drives in ~20 s (the GIF is written by then; longer runs are just idle time, so don't pad with
 dwells beyond those noted). The result is ≈3–4 MB. The subject's log window is in frame (marketing
 surface) and the recording doubles as a bug-finding channel, so spot-check a few keyframes before
-committing. Confirm: the Settings strip shows **Agent as the second tab** (the #259 feature this hero
-exists to show), no stray desktop menu is in frame, and the log window reads cleanly. Extract frames with:
+committing. Confirm: the Settings strip shows **Agent as the second tab** (the feature this hero exists to
+show), no stray desktop menu is in frame, and the log window reads cleanly. Extract frames with:
 
 ```powershell
 Add-Type -AssemblyName System.Drawing
