@@ -16,9 +16,10 @@ namespace MCEControl;
 /// <c>process</c> name (exact, without .exe), <c>classname</c> (exact). With a <c>timeout</c> it WAITS,
 /// polling until a matching top-level window appears or the timeout elapses.
 ///
-/// Returns <c>{ count, windows:[ handle, title, className, processName, processId, x/y/width/height ] }</c>
-/// (the <see cref="WindowInfo"/> shape the other tools echo), so a listed handle can be reused directly on
-/// a follow-up <c>query</c>/<c>capture</c>/<c>invoke</c>.
+/// Returns <c>{ count, windows: [ { handle, title, className, processName, processId, x, y, width, height }, … ] }</c>;
+/// each array element is a full window OBJECT (the <see cref="WindowInfo"/> shape the other tools echo,
+/// via <see cref="WindowInfo.ToJsonObject"/>), so a listed handle can be reused directly on a follow-up
+/// <c>query</c>/<c>capture</c>/<c>invoke</c>.
 ///
 /// SAFETY: a bare list (no filter, no timeout) enumerates ALL windows; that is discovery, not the
 /// silent-arbitrary-target hazard <see cref="WindowResolver.Resolve"/> guards against (it never picks one
