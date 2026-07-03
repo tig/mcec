@@ -221,8 +221,7 @@ header {
   width:170px;
   float:left;
   position:fixed;
-  box-sizing:border-box;
-  max-height:calc(100vh - 96px);
+  max-height:calc(100vh - 150px);
   overflow-y:auto;
 	border: 1px solid #000;
 	-webkit-border-top-right-radius: 4px;
