@@ -81,7 +81,7 @@ internal static class Program {
         "'provision-session' MCP tool (requires AllowSessionProvisioning=true in Settings) to get a " +
         "disposable, isolated copy to drive, or (2) copy the MCEC install directory somewhere " +
         "writable and run it from there; a non-installed copy reads its own co-located mcec.settings. " +
-        "See the Agent Server documentation (docs/agent-server.md).";
+        "See the Environment Controller documentation (docs/environment-controller.md).";
 
     /// <summary>
     ///     Safely launches a URL, file, or folder using the shell (UseShellExecute).

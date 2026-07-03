@@ -25,7 +25,7 @@ mcec.exe --mcp        # run headless as an MCP stdio server an agent can mount
 
 **Where to go next**
 
-* **[Agent Server user guide](agent-server.md)**: the full agent/MCP reference: the tools, the result
+* **[Agent Server user guide](environment-controller.md)**: the full agent/MCP reference: the tools, the result
   envelope, observation hardening, running as an MCP server, and the security gates. Start here for AI/agent
   use.
 * **[Agent safety](safety-emergency-stop-and-provisioning.md)**: the emergency-stop hotkey and isolated
@@ -52,7 +52,7 @@ An AI agent runs a loop: **observe → target → act → observe**. MCEC gives 
 Understand the trade before enabling any of it: MCEC drives the desktop with real user input, so
 **everything a user can do, an agent can do**; the gates decide *whether* an agent gets that power,
 not *how much*. Every capability is off by default, localhost-bound, narrated by an on-by-default
-on-screen overlay, and loudly audit-logged. See the **[Agent Server user guide](agent-server.md)**
+on-screen overlay, and loudly audit-logged. See the **[Agent Server user guide](environment-controller.md)**
 for the complete tool reference and the security model.
 
 For the classic remote-control role (driving a Windows PC from a home-automation controller over TCP/IP or
@@ -134,7 +134,7 @@ The **Agent** tab is where you let an agent (a desktop assistant or computer-use
 ### Agent settings (in `mcec.settings`)
 
 The agent surface is configured by these keys. All are off/safe by default; see the
-**[Agent Server user guide](agent-server.md)** for the full security model.
+**[Agent Server user guide](environment-controller.md)** for the full security model.
 
 | Setting | Default | Meaning |
 |---------|---------|---------|

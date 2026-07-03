@@ -28,7 +28,7 @@ public class StartProcessCommand : Command {
               new StartProcessCommand() { Cmd = "term", File=@"shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" },
               new StartProcessCommand() { Cmd = "netflix", File=@"shell:AppsFolder\4DF9E0F8.Netflix_mcm4njqhnhss8!Netflix.App"  },
 
-              // Exmaple showing nested commands taken from documentation.md:
+              // Exmaple showing nested commands taken from configuration.md:
               //<StartProcess Cmd = "notepad" File="notepad.exe" >
               //    <Pause Args = "100" />
               //    <Chars Cmd="test" Args="this is a test." />
