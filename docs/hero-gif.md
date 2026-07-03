@@ -21,8 +21,10 @@ is exactly one human step, and it is a click, not a config file:
 1. **Operator opts in.** In the controller MCEC, open **File ▸ Settings ▸ Agent** and check
    **Allow agents to provision disposable instances**. This is the only authorization the agent cannot
    self-serve; everything below is the agent's to do. (The controller must be a **non-installed** build:
-   the Program Files install refuses the MCP/HTTP front door by design, so run the freshly built
-   `src/bin/<Config>/net10.0-windows/mcec.exe`, or a copy of the install, as the controller.)
+   the Program Files install refuses the MCP/HTTP front door by design. Run it from a **fresh copy** of
+   the build output rather than `src/bin/...` directly, so the controller writing its config never
+   mutates your build tree; both instances in the demo are then disposable copies, and cleanup is just
+   deleting the two directories.)
 2. **Give the agent the brief.** Connected to the controller over MCP, tell it:
 
    > Record the MCEC hero. Provision a disposable MCEC instance for the subject, launch it, and record a

@@ -160,13 +160,13 @@ public class AgentSettingsTabTests : IDisposable {
     [InlineData(24 * 60 * 60, "1 d")]
     [InlineData(72 * 60 * 60, "3 d")]
     public void FormatAge_FormatsCompactly(int seconds, string expected) {
-        Assert.Equal(expected, AgentSettingsTab.FormatAge(TimeSpan.FromSeconds(seconds)));
+        Assert.Equal(expected, SessionDisplayFormat.Age(TimeSpan.FromSeconds(seconds)));
     }
 
     [Fact]
     public void FormatAge_ClampsNegativeToJustNow() {
         // A directory created "in the future" (clock skew) must not render a negative age.
-        Assert.Equal("just now", AgentSettingsTab.FormatAge(TimeSpan.FromSeconds(-30)));
+        Assert.Equal("just now", SessionDisplayFormat.Age(TimeSpan.FromSeconds(-30)));
     }
 
     [Theory]
@@ -177,6 +177,6 @@ public class AgentSettingsTabTests : IDisposable {
     [InlineData(1024 * 1024, "1 MB")]
     [InlineData(126257725, "120.4 MB")]
     public void FormatSize_FormatsCompactly(long bytes, string expected) {
-        Assert.Equal(expected, AgentSettingsTab.FormatSize(bytes));
+        Assert.Equal(expected, SessionDisplayFormat.Size(bytes));
     }
 }

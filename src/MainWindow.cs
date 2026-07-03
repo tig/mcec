@@ -900,6 +900,11 @@ public partial class MainWindow : Form, IAppHost {
         else {
             Logger.Instance.TextBoxThreshold = threshold;
         }
+
+        // #259: log the agent surface state and provisioned instances like any other setting; here (the
+        // dialog-OK path re-runs ApplySettings) it fires on change, and OnLoad's ApplySettings fires it
+        // at startup.
+        Program.LogAgentState(settings);
     }
 
     /// <summary>

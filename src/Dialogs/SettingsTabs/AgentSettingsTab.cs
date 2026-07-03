@@ -69,47 +69,13 @@ public partial class AgentSettingsTab : UserControl, ISettingsTab {
         foreach (ProvisionedSessionInfo session in sessions) {
             _ = _gridSessions.Rows.Add(
                 session.SessionId,
-                FormatAge(DateTime.UtcNow - session.CreatedUtc),
-                FormatSize(session.SizeBytes),
+                SessionDisplayFormat.Age(DateTime.UtcNow - session.CreatedUtc),
+                SessionDisplayFormat.Size(session.SizeBytes),
                 session.IsRunning ? "Running" : "Stale",
                 "Delete");
         }
         _buttonDeleteAll.Enabled = sessions.Count > 0;
         _labelNoSessions.Visible = sessions.Count == 0;
-    }
-
-    /// <summary>
-    /// Formats a session age compactly for the list ("just now", "5 min", "3 h", "2 d").
-    /// Pure (headlessly testable).
-    /// </summary>
-    internal static string FormatAge(TimeSpan age) {
-        if (age < TimeSpan.Zero) {
-            age = TimeSpan.Zero;
-        }
-        if (age.TotalMinutes < 1) {
-            return "just now";
-        }
-        if (age.TotalHours < 1) {
-            return $"{(int)age.TotalMinutes} min";
-        }
-        if (age.TotalDays < 1) {
-            return $"{(int)age.TotalHours} h";
-        }
-        return $"{(int)age.TotalDays} d";
-    }
-
-    /// <summary>
-    /// Formats a byte count compactly for the list ("512 B", "34 KB", "120.4 MB").
-    /// Pure (headlessly testable).
-    /// </summary>
-    internal static string FormatSize(long bytes) {
-        if (bytes < 1024) {
-            return $"{bytes} B";
-        }
-        if (bytes < 1024 * 1024) {
-            return $"{bytes / 1024} KB";
-        }
-        return $"{bytes / (1024.0 * 1024.0):0.#} MB";
     }
 
     private static bool IsRunningFromSessionsRoot() {
