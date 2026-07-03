@@ -76,6 +76,20 @@ descriptor, dimensions, blankCheck verdict, and byte count, with `kind:"capture-
 `artifact` path where the PNG was saved on the host; it never carries the image bytes inline, so
 re-`capture` if you need to SEE the prior state rather than reason about its metadata.
 
+SESSIONS: every result carries a `sessionId`; the session it ran in. A session is the runtime's memory of
+one task: its active target window, last observation, last action, last error, and a per-session artifact
+directory (where a `capture`'s bytes are spilled). You do NOT need to manage sessions for a single linear
+task: omit `sessionId` and every call shares one implicit default session, so state just accumulates. To
+run INDEPENDENT tasks that must not share state, call `session-start` to get a fresh `sessionId`, then pass
+that `sessionId` on each call to route it into that session; two sessions keep separate targets and
+histories. `session-status` (optional `sessionId`, else the default) returns a session's remembered state
+for debugging or replay; `session-end` (required `sessionId`) frees a session's state. After you end a
+session, a call that still echoes its id is refused with `error.code:unknown-session` (category
+`invalid-argument`); start a new one or omit `sessionId` to fall back to the default. An id you never
+started is refused the same way. (Note the hyphen: the tools are `session-start`/`session-status`/
+`session-end`.) This is separate from `provision-session`, which hands you a whole disposable MCEC INSTALL
+(see PROVISION), not an in-process session.
+
 COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. Launch
 an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
@@ -137,7 +151,8 @@ session from any window. If ANY tool returns `error.code:emergency-stopped` (the
 `error.category` stays `internal`), the operator has engaged it and deliberately halted you; STOP
 immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
-SECURITY: the agent tools (capture/query/displays/find/wait-for/invoke/record/launch/drag/click) only work when the operator has set
+SECURITY: the agent tools (capture/query/displays/find/wait-for/invoke/record/launch/drag/click, and the
+session-start/session-status/session-end lifecycle) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error; surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is
 refused with `error.code:agent-commands-disabled` if the agent surface is not opted in); over the local

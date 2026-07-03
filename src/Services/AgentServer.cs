@@ -45,7 +45,9 @@ public static class AgentServer {
     private static readonly AgentToolExecutor _executor = new(
         () => AgentRuntime.Settings,
         () => AgentRuntime.Invoker,
-        () => AgentRuntime.Session);
+        sessionId => AgentRuntime.TryResolveSession(sessionId, out AgentSession s) ? s : null,
+        () => AgentRuntime.StartSession(),
+        id => AgentRuntime.EndSession(id));
 
     /// <summary>The production protocol layer, serving the embedded <see cref="Instructions"/>.</summary>
     private static readonly JsonRpcDispatcher _dispatcher = new(_executor, () => Instructions);
@@ -104,8 +106,8 @@ public static class AgentServer {
     /// <summary>See <see cref="AgentToolExecutor.BuildCommand"/> (#201/#205). Kept for tests (InternalsVisibleTo).</summary>
     internal static Command? BuildCommand(string name, JsonObject args) => AgentToolExecutor.BuildCommand(name, args);
 
-    /// <summary>See <see cref="AgentToolExecutor.RunAgentCommand"/>. Kept for tests (InternalsVisibleTo).</summary>
-    internal static JsonObject RunAgentCommand(string name, JsonObject args) => _executor.RunAgentCommand(name, args);
+    /// <summary>See <see cref="AgentToolExecutor.RunAgentCommand"/>. Kept for tests (InternalsVisibleTo); runs in the default session.</summary>
+    internal static JsonObject RunAgentCommand(string name, JsonObject args) => _executor.RunAgentCommand(name, args, AgentRuntime.Session);
 
     /// <summary>
     /// Built-in guidance handed to an agent at connect time (the MCP client shows this to the model). It

@@ -21,8 +21,10 @@ public class ToolCatalogTests {
         "capture", "query", "displays", "find", "wait-for", "invoke", "drag", "click", "record", "launch",
     ];
 
-    /// <summary>The meta-tools that are deliberately NOT in the catalog (no 1:1 Command mapping).</summary>
-    private static readonly string[] _metaToolNames = ["send_command", "provision-session", "end-session"];
+    /// <summary>The meta-tools that are deliberately NOT in the catalog (no 1:1 Command mapping), in tools/list order.</summary>
+    private static readonly string[] _metaToolNames = [
+        "send_command", "session-start", "session-status", "session-end", "provision-session", "end-session",
+    ];
 
     [Fact]
     public void Catalog_ContainsExactlyTheGatedAgentTools_InToolsListOrder() {

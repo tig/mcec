@@ -39,16 +39,38 @@ public sealed class AgentToolExecutor {
 
     private readonly Func<AppSettings?> _settings;
     private readonly Func<CommandInvoker?> _invoker;
-    private readonly Func<AgentSession> _session;
+    private readonly Func<string?, AgentSession?> _resolveSession;
+    private readonly Func<AgentSession> _startSession;
+    private readonly Func<string, bool> _endSession;
 
     /// <param name="settings">Accessor for the live settings (gates + provisioning opt-in).</param>
     /// <param name="invoker">Accessor for the loaded command table/engine.</param>
-    /// <param name="session">Accessor for the ambient agent session (#86).</param>
-    public AgentToolExecutor(Func<AppSettings?> settings, Func<CommandInvoker?> invoker, Func<AgentSession> session) {
+    /// <param name="resolveSession">Routes a call to its session (#86 Phase 3): returns the session named
+    /// by the id, the implicit default when the id is null/empty, or null when a non-empty id names no
+    /// live session.</param>
+    /// <param name="startSession">Creates and registers a fresh addressable session (<c>session-start</c>).</param>
+    /// <param name="endSession">Ends a session by id (<c>session-end</c>); returns whether it existed.</param>
+    public AgentToolExecutor(
+        Func<AppSettings?> settings,
+        Func<CommandInvoker?> invoker,
+        Func<string?, AgentSession?> resolveSession,
+        Func<AgentSession> startSession,
+        Func<string, bool> endSession) {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
-        _session = session ?? throw new ArgumentNullException(nameof(session));
+        _resolveSession = resolveSession ?? throw new ArgumentNullException(nameof(resolveSession));
+        _startSession = startSession ?? throw new ArgumentNullException(nameof(startSession));
+        _endSession = endSession ?? throw new ArgumentNullException(nameof(endSession));
     }
+
+    /// <summary>Routes a call to its session; false with <paramref name="session"/> null when a non-empty id names no live session.</summary>
+    private bool TryResolveRoutedSession(string? sessionId, out AgentSession session) {
+        session = _resolveSession(sessionId)!;
+        return session is not null;
+    }
+
+    /// <summary>The implicit default session's id, for stamping an envelope on a call that has no routed session of its own (a refusal, or a global meta-op).</summary>
+    private string DefaultSessionId() => _resolveSession(null)!.SessionId;
 
     /// <summary>The agent observation/actuation opt-in (#74) as seen through the injected settings.</summary>
     private bool AgentCommandsEnabled => _settings()?.AgentCommandsEnabled ?? false;
@@ -85,7 +107,47 @@ public sealed class AgentToolExecutor {
             AgentRuntime.Audit(name, "BLOCKED; emergency stop engaged; operator must re-arm");
             return ToolError(
                 "Emergency stop is engaged; the operator halted this session. All tool calls are refused until they re-arm. Stop and tell the user; do not retry.",
-                "emergency-stopped");
+                "emergency-stopped", AgentErrorCategory.Internal, DefaultSessionId());
+        }
+
+        // Session lifecycle (#86 Phase 3): session-start/status/end. These read `sessionId` as an explicit
+        // TARGET (which session to start/inspect/end), not as call routing, so they're handled before the
+        // generic routing refusal below. They are part of the agent surface, so they honor the same
+        // AgentCommandsEnabled opt-in as every other tool.
+        if (name is "session-start" or "session-status" or "session-end") {
+            if (!AgentCommandsEnabled) {
+                AgentRuntime.Audit(name, "BLOCKED; agent commands disabled");
+                return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled", AgentErrorCategory.Internal, DefaultSessionId());
+            }
+            return name switch {
+                "session-start" => RunSessionStart(),
+                "session-status" => RunSessionStatus(Str(args, "sessionId")),
+                _ => RunSessionEnd(Str(args, "sessionId")),
+            };
+        }
+
+        // Isolated-INSTALL lifecycle (#138): provision-session / end-session. Their `sessionId` names a
+        // provisioned MCEC *install* on disk, NOT an in-process agent session, so they must NOT be routed
+        // through the resolver below; they carry their own gates (provisioning opt-in / teardown token) and
+        // just stamp the default session id onto their envelope.
+        if (name == "provision-session") {
+            return RunProvisionSession(args, _resolveSession(null)!);
+        }
+        if (name == "end-session") {
+            return RunEndSession(args, _resolveSession(null)!);
+        }
+
+        // Route this call to its session (#86 Phase 3, decision 1): an explicit sessionId (from
+        // session-start) runs the call in that session and is echoed on the result; absent, the implicit
+        // default session is used so the single-agent / stdio case just works. A non-empty id that names
+        // no live session is refused rather than silently spawning a new one, so a stale id can't fork
+        // state unnoticed. Every branch below stamps the resolved session's id onto its envelope.
+        string? routeId = Str(args, "sessionId");
+        if (!TryResolveRoutedSession(routeId, out AgentSession session)) {
+            AgentRuntime.Audit(name, $"BLOCKED; unknown sessionId '{routeId}'");
+            return ToolError(
+                $"Unknown sessionId '{routeId}'. It was never started or has ended. Call session-start to get a fresh sessionId, or omit sessionId to use the default session.",
+                "unknown-session", AgentErrorCategory.InvalidArgument, DefaultSessionId());
         }
 
         if (name == "send_command") {
@@ -99,38 +161,82 @@ public sealed class AgentToolExecutor {
                 AgentRuntime.Audit("send_command", "BLOCKED; agent commands disabled; send_command over HTTP requires AgentCommandsEnabled");
                 return ToolError(
                     "send_command over HTTP requires AgentCommandsEnabled=true. Enable the agent surface to opt in, or drive send_command over the local stdio transport (mcec.exe --mcp).",
-                    "agent-commands-disabled");
+                    "agent-commands-disabled", AgentErrorCategory.Internal, session.SessionId);
             }
-            return RunSendCommand(args);
-        }
-
-        if (name == "provision-session") {
-            return RunProvisionSession(args);
-        }
-
-        if (name == "end-session") {
-            return RunEndSession(args);
+            return RunSendCommand(args, session);
         }
 
         // The gated agent tools are exactly the ToolCatalog membership (#205); no hand-synced whitelist.
         if (ToolCatalog.Contains(name)) {
             if (!AgentCommandsEnabled) {
                 AgentRuntime.Audit(name, "BLOCKED; agent commands disabled");
-                return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled");
+                return ToolError("Agent commands are disabled. Set AgentCommandsEnabled=true to opt in.", "agent-commands-disabled", AgentErrorCategory.Internal, session.SessionId);
             }
             // `drag`/`click` generate real mouse input from their endpoints, and a missing pixel field would
             // otherwise default to 0 and actuate at a bogus coordinate. Reject an ill-formed endpoint up
             // front rather than actuating it.
             if (name == "drag" && DragArgsError(args) is { } dragError) {
-                return ToolError(dragError, "bad-arguments", AgentErrorCategory.InvalidArgument);
+                return ToolError(dragError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
             }
             if (name == "click" && ClickArgsError(args) is { } clickError) {
-                return ToolError(clickError, "bad-arguments", AgentErrorCategory.InvalidArgument);
+                return ToolError(clickError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
             }
-            return RunAgentCommand(name, args);
+            return RunAgentCommand(name, args, session);
         }
 
-        return ToolError($"Unknown tool: {name}", "unknown-tool");
+        return ToolError($"Unknown tool: {name}", "unknown-tool", AgentErrorCategory.Internal, session.SessionId);
+    }
+
+    // -------------------------------------------------------------------------------------------
+    // Session lifecycle tools (#86 Phase 3)
+    // -------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// <c>session-start</c>: creates a fresh addressable session and returns its status. The agent routes
+    /// later calls to it by echoing the returned <c>sessionId</c>; a call that omits <c>sessionId</c> keeps
+    /// using the implicit default session, which this never becomes.
+    /// </summary>
+    private JsonObject RunSessionStart() {
+        AgentSession session = _startSession();
+        AgentRuntime.Audit("session-start", session.SessionId);
+        return McpResult(AgentToolResult.Success(session.ToStatusJson(), session.SessionId));
+    }
+
+    /// <summary>
+    /// <c>session-status</c>: returns the debug/replay snapshot (active target, last observation/action/
+    /// error, artifact dir) of the session named by <paramref name="sessionId"/>, or the default session
+    /// when it is omitted. An id that names no live session is refused with <c>unknown-session</c>.
+    /// </summary>
+    private JsonObject RunSessionStatus(string? sessionId) {
+        if (!TryResolveRoutedSession(sessionId, out AgentSession session)) {
+            return ToolError(
+                $"Unknown sessionId '{sessionId}'. It was never started or has ended. Call session-start, or omit sessionId for the default session.",
+                "unknown-session", AgentErrorCategory.InvalidArgument, DefaultSessionId());
+        }
+        AgentRuntime.Audit("session-status", session.SessionId);
+        return McpResult(AgentToolResult.Success(session.ToStatusJson(), session.SessionId));
+    }
+
+    /// <summary>
+    /// <c>session-end</c>: ends the session named by <paramref name="sessionId"/> (required). Idempotent;
+    /// ending an id that is already gone returns <c>ended:false</c> rather than an error, so a retry is
+    /// safe. The envelope is stamped with the default session's id (the ended session no longer exists).
+    /// </summary>
+    private JsonObject RunSessionEnd(string? sessionId) {
+        if (string.IsNullOrWhiteSpace(sessionId)) {
+            return ToolError("session-end requires a non-empty 'sessionId' argument (the session to end).", "bad-arguments", AgentErrorCategory.InvalidArgument, DefaultSessionId());
+        }
+        string id = sessionId.Trim();
+        bool ended = _endSession(id);
+        AgentRuntime.Audit("session-end", $"{id}; ended={ended}");
+        JsonObject result = new() {
+            ["sessionId"] = id,
+            ["ended"] = ended,
+        };
+        if (!ended) {
+            result["note"] = "No live session had that id (already ended or never started); nothing to do.";
+        }
+        return McpResult(AgentToolResult.Success(result, DefaultSessionId()));
     }
 
     /// <summary>
@@ -173,14 +279,14 @@ public sealed class AgentToolExecutor {
 
     // Internal so tests can exercise the unknown-tool refusal for a name that passed the
     // tools/call gate but has no argument mapping (InternalsVisibleTo). See #201.
-    internal JsonObject RunAgentCommand(string name, JsonObject args) {
+    internal JsonObject RunAgentCommand(string name, JsonObject args, AgentSession session) {
         // #201: if a name passes the gate but has no command mapping, refuse with a structured error
         //; the old default arm silently mapped unknown names onto InvokeCommand (an ACTUATION) with
         // garbage selector args. Since #205 the gate and the mapping are the SAME ToolCatalog, so
         // this can only trip for a caller that bypassed the gate (tests exercise it directly).
         if (BuildCommand(name, args) is not { } cmd) {
             AgentRuntime.Audit(name, "BLOCKED; tool has no argument mapping; refusing to run it as another command");
-            return ToolError($"Unknown tool: {name}", "unknown-tool");
+            return ToolError($"Unknown tool: {name}", "unknown-tool", AgentErrorCategory.Internal, session.SessionId);
         }
 
         // Honor the per-command Enabled flag; the documented second security gate. The MCP tool only
@@ -188,7 +294,7 @@ public sealed class AgentToolExecutor {
         // the operator opts in per-command via mcec.commands). Fail closed if the table/command is missing.
         if ((_invoker()?[name] as Command)?.Enabled != true) {
             AgentRuntime.Audit(name, "BLOCKED; command is disabled in mcec.commands");
-            return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").", "command-disabled");
+            return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").", "command-disabled", AgentErrorCategory.Internal, session.SessionId);
         }
 
         CapturingReply reply = new();
@@ -198,10 +304,9 @@ public sealed class AgentToolExecutor {
 
         AgentRuntime.Audit(name, args.ToJsonString(AgentJson.Options));
 
-        // The ambient session (#86) carries sessionId onto this result and remembers the target/
+        // The routed session (#86) carries sessionId onto this result and remembers the target/
         // observation/action/error. Snapshot the prior observation now, before this call records its own,
         // so a failure can carry the last good state into error.lastObservation.
-        AgentSession session = _session();
         JsonObject? priorObservation = session.LastObservation;
         session.RecordAction(name);
 
@@ -298,15 +403,15 @@ public sealed class AgentToolExecutor {
         return worker.Join(InvokeModalGraceMs);
     }
 
-    private JsonObject RunSendCommand(JsonObject args) {
+    private JsonObject RunSendCommand(JsonObject args, AgentSession session) {
         string command = args["command"]?.GetValue<string>() ?? "";
         if (string.IsNullOrWhiteSpace(command)) {
-            return ToolError("send_command requires a non-empty 'command' argument.", "bad-arguments", AgentErrorCategory.InvalidArgument);
+            return ToolError("send_command requires a non-empty 'command' argument.", "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
         }
 
         CommandInvoker? invoker = _invoker();
         if (invoker is null) {
-            return ToolError("Command engine is not available.", "engine-unavailable");
+            return ToolError("Command engine is not available.", "engine-unavailable", AgentErrorCategory.Internal, session.SessionId);
         }
 
         AgentRuntime.Audit("send_command", command);
@@ -321,33 +426,32 @@ public sealed class AgentToolExecutor {
         CapturingReply reply = new();
         CommandEnqueueResult enqueued = invoker.TryEnqueueWithCompletion(reply, command, out Task<bool>? completion);
 
-        AgentSession session = _session();
         session.RecordAction("send_command");
 
         if (enqueued == CommandEnqueueResult.UnknownCommand) {
             return ToolError(
                 $"Unknown command: '{command}' is not in the loaded command table. Nothing was executed.",
-                "unknown-command");
+                "unknown-command", AgentErrorCategory.Internal, session.SessionId);
         }
         if (enqueued != CommandEnqueueResult.Enqueued || completion is null) {
             return ToolError(
                 $"The command '{command}' was dropped whole and never executed: it exceeds the queue bounds " +
                 "(over the embedded-expansion limit, or the execute queue is full) or the command engine is shutting down. " +
                 "Send less at once and let the queue drain before retrying.",
-                "command-dropped");
+                "command-dropped", AgentErrorCategory.Internal, session.SessionId);
         }
 
         if (!completion.Wait(SendCommandCompletionTimeoutMs)) {
             return ToolError(
                 $"send_command timed out after {SendCommandCompletionTimeoutMs / 1000}s waiting for '{command}' to execute. " +
                 "The command queue is still draining it (a long macro, pause, or a hung command); it was not cancelled.",
-                "send-command-timeout");
+                "send-command-timeout", AgentErrorCategory.Internal, session.SessionId);
         }
         if (!completion.Result) {
             return ToolError(
                 "The queue was dropped before this command finished (emergency stop engaged or the command engine shut down). " +
                 "It may have PARTIALLY executed; verify the desktop state with query/capture before assuming nothing ran.",
-                "emergency-stopped");
+                "emergency-stopped", AgentErrorCategory.Internal, session.SessionId);
         }
 
         // The legacy command path returns opaque text, not a CommandResult; carry it forward as the
@@ -364,12 +468,12 @@ public sealed class AgentToolExecutor {
     /// the operator's <see cref="AppSettings.AllowSessionProvisioning"/> opt-in; the one thing that cannot
     /// be self-served; and never touches the installed config. Also reaps stale session dirs opportunistically.
     /// </summary>
-    private JsonObject RunProvisionSession(JsonObject args) {
+    private JsonObject RunProvisionSession(JsonObject args, AgentSession session) {
         if (_settings()?.AllowSessionProvisioning != true) {
             AgentRuntime.Audit("provision-session", "BLOCKED; session provisioning is not authorized");
             return ToolError(
                 "Session provisioning is not authorized. The operator must enable AllowSessionProvisioning to opt in; it cannot be self-served.",
-                "provisioning-not-authorized");
+                "provisioning-not-authorized", AgentErrorCategory.Internal, session.SessionId);
         }
 
         bool mcpServer = args["mcpServer"] is not JsonValue mv || !mv.TryGetValue(out bool m) || m; // default true
@@ -377,12 +481,12 @@ public sealed class AgentToolExecutor {
 
         try {
             SessionProvisioner.ReapOrphans(TimeSpan.FromHours(SessionReapAgeHours));
-            ProvisionedSession session = SessionProvisioner.Provision(mcpServer, commands);
-            return McpResult(AgentToolResult.Success(session.ToJsonObject(), _session().SessionId));
+            ProvisionedSession provisioned = SessionProvisioner.Provision(mcpServer, commands);
+            return McpResult(AgentToolResult.Success(provisioned.ToJsonObject(), session.SessionId));
         }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"AgentServer: provision-session failed: {e.Message}");
-            return ToolError($"Failed to provision a session: {e.Message}", "provisioning-failed");
+            return ToolError($"Failed to provision a session: {e.Message}", "provisioning-failed", AgentErrorCategory.Internal, session.SessionId);
         }
     }
 
@@ -393,16 +497,16 @@ public sealed class AgentToolExecutor {
     /// authorization gate (teardown must always be possible), so before the token this tool let any
     /// MCP caller delete any session it could name; now only the token holder can.
     /// </summary>
-    private JsonObject RunEndSession(JsonObject args) {
+    private JsonObject RunEndSession(JsonObject args, AgentSession session) {
         string? sessionId = Str(args, "sessionId");
         if (string.IsNullOrWhiteSpace(sessionId)) {
-            return ToolError("end-session requires a non-empty 'sessionId' argument.", "bad-arguments", AgentErrorCategory.InvalidArgument);
+            return ToolError("end-session requires a non-empty 'sessionId' argument.", "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
         }
         string? token = Str(args, "token");
         if (string.IsNullOrWhiteSpace(token)) {
             return ToolError(
                 "end-session requires the session 'token' returned by provision-session (the teardown credential).",
-                "bad-arguments", AgentErrorCategory.InvalidArgument);
+                "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
         }
         switch (SessionProvisioner.ValidateTeardownToken(sessionId, token)) {
             case SessionTokenValidation.TokenMismatch:
@@ -411,7 +515,7 @@ public sealed class AgentToolExecutor {
                     "The token does not match this session (or the session's config could not be verified). " +
                     "Use the exact token provision-session returned; a session you did not provision is not yours to tear down. " +
                     "Orphaned sessions are reaped automatically.",
-                    "session-token-invalid");
+                    "session-token-invalid", AgentErrorCategory.Internal, session.SessionId);
             case SessionTokenValidation.InvalidId:
             case SessionTokenValidation.SessionGone:
             case SessionTokenValidation.Valid:
@@ -426,7 +530,7 @@ public sealed class AgentToolExecutor {
         if (!removed) {
             result["note"] = "The session directory could not be deleted; its mcec.exe may still be running. Stop it and retry, or MCEC will reap it on a later launch.";
         }
-        return McpResult(AgentToolResult.Success(result, _session().SessionId));
+        return McpResult(AgentToolResult.Success(result, session.SessionId));
     }
 
     /// <summary>Reads a JSON array of strings into a list, or null when the node is absent/empty.</summary>
@@ -478,14 +582,14 @@ public sealed class AgentToolExecutor {
 
     /// <summary>
     /// A tool-level failure (a security gate or a bad request) reported as the #101 envelope. Security/
-    /// policy refusals the agent cannot recover from on its own map to the default <c>internal</c>
-    /// category; argument-validation refusals pass <see cref="AgentErrorCategory.InvalidArgument"/>
-    /// (#191; the recovery is to fix the request, not report a bug). <paramref name="code"/>
-    /// distinguishes the specific cause. The ambient session's id is attached so even a refused call
-    /// tells the agent which session it belonged to.
+    /// policy refusals the agent cannot recover from on its own map to the <c>internal</c> category;
+    /// argument-validation refusals pass <see cref="AgentErrorCategory.InvalidArgument"/> (#191; the
+    /// recovery is to fix the request, not report a bug). <paramref name="code"/> distinguishes the
+    /// specific cause. <paramref name="sessionId"/> (the routed session, or the default when the call
+    /// never resolved one) is attached so even a refused call tells the agent which session it belonged to.
     /// </summary>
-    private JsonObject ToolError(string message, string code = "internal-error", AgentErrorCategory category = AgentErrorCategory.Internal) =>
-        McpResult(AgentToolResult.Failure(new AgentError(code, category, message), _session().SessionId));
+    private static JsonObject ToolError(string message, string code, AgentErrorCategory category, string sessionId) =>
+        McpResult(AgentToolResult.Failure(new AgentError(code, category, message), sessionId));
 
     private static JsonObject TextContent(string text) => new() {
         ["type"] = "text",

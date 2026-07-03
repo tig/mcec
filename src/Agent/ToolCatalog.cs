@@ -332,6 +332,16 @@ public static class ToolCatalog {
     internal static JsonObject PropSchema(string type, string description) =>
         new() { ["type"] = type, ["description"] = description };
 
+    /// <summary>
+    /// The optional per-call session-routing argument (#86 Phase 3). Every observation/actuation tool and
+    /// <c>send_command</c> accepts it: echo the <c>sessionId</c> that <c>session-start</c> returned to run
+    /// the call in that session, or omit it to use the implicit default session. Advertised on those tools'
+    /// schemas (injected in <see cref="JsonRpcDispatcher"/>) so a schema-validating client keeps it. The
+    /// session-lifecycle tools read <c>sessionId</c> as a TARGET, not routing, and carry their own copy.
+    /// </summary>
+    internal static JsonObject SessionArgProp() =>
+        PropSchema("string", "Optional session id (from session-start) to run this call in; omit to use the default session (#86).");
+
     /// <summary>Schema for a drag/click endpoint: either an element ({ by, value }) or a pixel ({ x, y }).</summary>
     private static JsonObject EndpointSchema(string description) => new() {
         ["type"] = "object",
