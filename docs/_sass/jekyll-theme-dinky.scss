@@ -266,8 +266,9 @@ header ul {
 
 header li {
 	list-style-type: none;
-  width:132px;
+  width:160px;
   height:15px;
+  white-space:nowrap;
 	margin-bottom: 12px;
 	line-height: 1em;
 	padding: 6px 6px 6px 7px;
