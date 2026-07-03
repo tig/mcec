@@ -53,6 +53,10 @@ Everything below is common to every example; individual pages assume it and don'
     **center pixel** from `query` bounds. Unique window titles (`window:"Settings"`) are safe.
   - **`PrintWindow` captures the Win11 invisible frame as black.** A `capture` of a window includes the
     ~8px invisible resize-border on the left/right/bottom as a black band; crop it (or capture a region).
+  - **Ctrl+key needs a real accelerator, not `chars:`.** A held `shiftdown:ctrl` plus `chars:c` injects a
+    *character*, which does not reliably trigger an app's Ctrl+key accelerator (so Ctrl+A/Ctrl+C/Ctrl+V can
+    silently do nothing). Send VK+modifier SendInput commands instead (the built-in `ctrl-x`, or define
+    `ctrl-a`/`ctrl-c`/`ctrl-v`). Menu mnemonics via `chars:` are fine because those are plain characters.
 
 ## Adding an example
 
