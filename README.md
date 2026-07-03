@@ -26,7 +26,7 @@ So the operator stays in control by construction:
 * **Stoppable.** A global emergency-stop hotkey (default `Ctrl+Alt+Shift+S`) halts a session instantly from any window; it reacts to physical input only, so an agent can never trip or defeat it.
 * **Disposable.** Rather than enabling your installed instance, an authorized agent gets a throwaway provisioned session; teardown is deleting a directory, and a crash leaves the real install untouched.
 
-Enable the agent surface only on a machine and session where you accept an agent acting as you. Details: [Environment Controller](https://tig.github.io/mcec/environment-controller.md) and [Agent safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html).
+Enable the agent surface only on a machine and session where you accept an agent acting as you. See [Agent safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html) for more details.
 
 MCEC is also the same **battle-tested remote control for home-automation systems** it has always been. In its long-standing role it runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that can send text over TCP/IP or RS-232 ([Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/), [Crestron](http://www.crestron.com/), and others) can use MCEC to drive a Windows PC. The agent surface in 3.0 is **purely additive**: every existing home-automation feature is unchanged.
 
