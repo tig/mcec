@@ -27,7 +27,7 @@ public partial class TelemetryService {
     public static TelemetryService Instance => _lazy.Value;
 
     public bool TelemetryEnabled { get; set; }
-    public Stopwatch? RunTime { get; set; }
+    public Stopwatch? RunTime { get; private set; }
 
     // Internal (not public) so no caller outside this class can send telemetry with the raw
     // client, bypassing the TelemetryEnabled opt-in gate (#199). Production code must go through
@@ -40,7 +40,7 @@ public partial class TelemetryService {
         RunTime = Stopwatch.StartNew();
 
         object? val = MachinePolicy.GetRegistryValue("Telemetry", 0);
-        TelemetryEnabled = val != null && val.ToString() == "1" ? true : false;
+        TelemetryEnabled = val != null && val.ToString() == "1";
 
         // Setup telemetry via Azure Application Insights.
 
@@ -75,12 +75,10 @@ public partial class TelemetryService {
         // what: application properties
         // why: to track versions in use, OS support, and .NET versions
         // how is PII protected: none of this is PII
-        if (startProperties == null) {
-            startProperties = new Dictionary<string, string>();
-        }
+        startProperties ??= new Dictionary<string, string>();
 
         // Merged passed in properites
-        startProperties.Concat(new Dictionary<string, string> {
+        startProperties = startProperties.Concat(new Dictionary<string, string> {
             ["app"] = appName,
             ["version"] = TelemetryClient.Context.Component.Version!,
             ["os"] = Environment.OSVersion.ToString(),
@@ -127,11 +125,11 @@ public partial class TelemetryService {
     }
 
     public void TrackException(Exception ex, bool log = false) {
-        if (ex != null && log is true) {
+        if (log) {
             Logger.Instance.Log4.Debug($"Exception: {ex.Message}");
         }
 
-        if (TelemetryClient != null && ex != null && TelemetryEnabled) {
+        if (TelemetryClient != null && TelemetryEnabled) {
             // TELEMETRY:
             // what: exception type, scrubbed message, and scrubbed stack
             // why: to diagnose crashes and failures in the field

@@ -9,23 +9,16 @@ namespace MCEControl;
 /// hook chosen for the overlay so it gets purpose-built terse text and fields (outcome, session) rather
 /// than re-parsing the GUI log view.
 /// </summary>
-public sealed class CommandEvent {
-    public CommandEvent(string command, string terseText, CommandOutcome outcome, string? sessionId = null) {
-        Command = command;
-        TerseText = terseText;
-        Outcome = outcome;
-        SessionId = sessionId;
-    }
-
+public sealed class CommandEvent(string command, string terseText, CommandOutcome outcome, string? sessionId = null) {
     /// <summary>The command/tool name (e.g. <c>capture</c>, <c>invoke</c>, <c>send_command</c>).</summary>
-    public string Command { get; }
+    public string Command { get; } = command;
 
     /// <summary>The condensed one-line label the overlay shows (e.g. <c>invoke expand "Help"</c>).</summary>
-    public string TerseText { get; }
+    public string TerseText { get; } = terseText;
 
     /// <summary>Whether the command succeeded, failed, is pending, or is informational.</summary>
-    public CommandOutcome Outcome { get; }
+    public CommandOutcome Outcome { get; } = outcome;
 
     /// <summary>The owning agent session id (#86), or null for a non-session command.</summary>
-    public string? SessionId { get; }
+    public string? SessionId { get; } = sessionId;
 }

@@ -51,7 +51,9 @@ public static class CommandRegistry {
         new("launch", typeof(LaunchCommand), () => LaunchCommand.BuiltInCommands),
         new("click", typeof(ClickCommand), () => ClickCommand.BuiltInCommands),
         new("displays", typeof(DisplaysCommand), () => DisplaysCommand.BuiltInCommands),
+        new("clipboard", typeof(ClipboardCommand), () => ClipboardCommand.BuiltInCommands),
         new("record", typeof(RecordCommand), () => RecordCommand.BuiltInCommands),
+        new("windows", typeof(WindowsCommand), () => WindowsCommand.BuiltInCommands),
     ];
 
     /// <summary>
@@ -65,7 +67,7 @@ public static class CommandRegistry {
     /// CRITICAL (caller contract): an <see cref="XmlSerializer"/> constructed WITH overrides is NOT
     /// cached by the runtime; each construction emits a new dynamic assembly that is never
     /// unloaded. The ONLY consumer must be a cached static serializer
-    /// (<c>SerializedCommands.Serializer</c>); never call this per-serialize.
+    /// (<c>SerializedCommands._serializer</c>); never call this per-serialize.
     /// </summary>
     internal static XmlAttributeOverrides CreateXmlOverrides() {
         XmlAttributes embedded = new();
@@ -96,9 +98,9 @@ public static class CommandRegistry {
     [Conditional("DEBUG")]
     internal static void DebugAssertComplete() {
         List<Type> concrete = [.. typeof(Command).Assembly.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(Command)))];
+            .Where(t => t is { IsClass: true, IsAbstract: false } && t.IsSubclassOf(typeof(Command)))];
         List<string> missing = [.. concrete
-            .Where(t => !Entries.Any(e => e.CommandType == t))
+            .Where(t => Entries.All(e => e.CommandType != t))
             .Select(t => t.Name)];
         List<string> duplicates = [.. Entries
             .GroupBy(e => e.CommandType)

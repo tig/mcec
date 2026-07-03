@@ -22,12 +22,18 @@ public class QueryCommand : WindowTargetingAgentCommand {
         get => [new QueryCommand { Cmd = "query" }];
     }
 
-    protected override string? AuditDetails() =>
+    protected override string AuditDetails() =>
         $"query window handle={Handle} title='{Window}' process='{Process}' class='{ClassName}' fg={Foreground} maxDepth={MaxDepth} maxNodes={MaxNodes}";
 
     protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr h = new IntPtr(target!.Handle);
         UiaTreeResult tree = UiaService.DumpTree(h, MaxDepth, MaxNodes);
+        // An attach-level fault is a classified failure (#261: window-closed/stale-element,
+        // target-elevated/elevation, uia-faulted/internal), not an ok result with a null tree an
+        // agent would read as a healthy-but-empty window.
+        if (UiaFailureFor(Cmd, tree.Failure) is { } failure) {
+            return failure;
+        }
         JsonObject data = new() {
             ["window"] = target.ToJsonObject(),
             ["nodeCount"] = tree.NodeCount,

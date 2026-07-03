@@ -25,7 +25,7 @@ namespace MCEControl.xUnit.Commands;
 [Collection("AgentSerial")]
 public class CommandInvokerDispatcherTests {
     /// <summary>Generous bound for awaiting the dispatcher; a healthy drain takes milliseconds.</summary>
-    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan _wait = TimeSpan.FromSeconds(15);
 
     [Fact]
     public async Task Dispatcher_ExecutesInOrder_OnItsOwnSingleThread() {
@@ -47,7 +47,7 @@ public class CommandInvokerDispatcherTests {
             invoker.EnqueueCommand(Make("second"));
             invoker.EnqueueCommand(Make("third"));
 
-            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
+            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(_wait));
 
             Assert.Equal(["first", "second", "third"], order);
             int dispatcherThreadId = Assert.Single(threadIds.Distinct());
@@ -72,7 +72,7 @@ public class CommandInvokerDispatcherTests {
             invoker.EnqueueCommand(thrower);
             invoker.EnqueueCommand(after);
 
-            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(Wait),
+            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(_wait),
                 "dispatcher did not survive the throwing command");
 
             Assert.Equal(1, thrower.ExecuteCount);
@@ -94,9 +94,14 @@ public class CommandInvokerDispatcherTests {
         CommandInvoker invoker = [];
         DelegateTestCommand echoPrototype = new() {
             Cmd = "echo",
-            OnExecute = c => c.Reply.WriteLine(expectedOutput),
+            OnExecute = c => {
+                // The dispatcher clones the prototype with a live reply context; assert that
+                // contract instead of assuming it.
+                Assert.NotNull(c.Reply);
+                c.Reply.WriteLine(expectedOutput);
+            },
         };
-        invoker.Add("echo", (ICommand)echoPrototype);
+        invoker.Add("echo", echoPrototype);
 
         AgentRuntime.Settings = new AppSettings(); // CommandPacing = 0; stdio send_command is ungated
         AgentRuntime.Invoker = invoker;
@@ -111,7 +116,7 @@ public class CommandInvokerDispatcherTests {
                     ["name"] = "send_command",
                     ["arguments"] = new JsonObject { ["command"] = "echo" },
                 },
-            })!).WaitAsync(Wait);
+            })!).WaitAsync(_wait);
 
             JsonObject toolResult = resp["result"]!.AsObject();
             Assert.False(toolResult["isError"]!.GetValue<bool>());
@@ -139,7 +144,7 @@ public class CommandInvokerDispatcherTests {
                 Cmd = "blocker",
                 OnExecute = _ => {
                     firstStarted.Set();
-                    Assert.True(releaseFirst.Wait(Wait), "test never released the blocking command");
+                    Assert.True(releaseFirst.Wait(_wait), "test never released the blocking command");
                 },
             };
             DelegateTestCommand second = new() { Cmd = "second" };
@@ -151,11 +156,11 @@ public class CommandInvokerDispatcherTests {
             // Engage the stop while the first command is mid-Execute; when it finishes, the
             // dispatcher must drop everything still queued (the second command AND the pending
             // completion marker; the awaiter fails instead of timing out).
-            Assert.True(firstStarted.Wait(Wait), "dispatcher never started the first command");
+            Assert.True(firstStarted.Wait(_wait), "dispatcher never started the first command");
             AgentRuntime.SetEmergencyStopped(true);
             releaseFirst.Set();
 
-            Assert.False(await drained.WaitAsync(Wait),
+            Assert.False(await drained.WaitAsync(_wait),
                 "the pending completion must be signalled as dropped, not executed");
             Assert.Equal(1, first.ExecuteCount);
             Assert.Equal(0, second.ExecuteCount);
@@ -186,12 +191,12 @@ public class CommandInvokerDispatcherTests {
                 t.Start();
             }
             foreach (Thread t in threads) {
-                Assert.True(t.Join(Wait), "producer thread did not finish");
+                Assert.True(t.Join(_wait), "producer thread did not finish");
             }
 
             // The marker is enqueued after every producer finished, so it completes only after all
             // 100 commands have executed.
-            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
+            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(_wait));
 
             Assert.All(commands, c => Assert.Equal(1, c.ExecuteCount));
         }
@@ -218,7 +223,7 @@ public class CommandInvokerDispatcherTests {
             Assert.Equal(1, releaseCalls); // a real command was dropped → input released, exactly once
 
             // A completion requested after shutdown must fail fast, not hang its awaiter.
-            Assert.False(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
+            Assert.False(await invoker.SignalWhenQueueDrained().WaitAsync(_wait));
 
             // Nothing queued before shutdown executes, even if someone pumps.
             invoker.PumpQueueForTests();
@@ -244,7 +249,7 @@ public class CommandInvokerDispatcherTests {
                 Cmd = "long-runner",
                 OnExecute = _ => {
                     firstStarted.Set();
-                    Assert.True(releaseFirst.Wait(Wait), "test never released the blocking command");
+                    Assert.True(releaseFirst.Wait(_wait), "test never released the blocking command");
                 },
             };
             DelegateTestCommand tail = new() { Cmd = "tail" };
@@ -252,16 +257,16 @@ public class CommandInvokerDispatcherTests {
             invoker.EnqueueCommand(tail);
             Task<bool> pending = invoker.SignalWhenQueueDrained();
 
-            Assert.True(firstStarted.Wait(Wait), "dispatcher never started the first command");
+            Assert.True(firstStarted.Wait(_wait), "dispatcher never started the first command");
             invoker.Shutdown(); // no join: must not block on the still-running command
 
             // #195 review: the pending completion is failed IMMEDIATELY from Shutdown; it must not
             // wait behind the in-flight command (which is still blocked right now).
-            Assert.False(await pending.WaitAsync(Wait));
+            Assert.False(await pending.WaitAsync(_wait));
 
             releaseFirst.Set(); // let the in-flight command finish; the dispatcher then drops the tail
 
-            SpinWait.SpinUntil(() => Volatile.Read(ref releaseCalls) > 0, Wait);
+            SpinWait.SpinUntil(() => Volatile.Read(ref releaseCalls) > 0, _wait);
             Assert.Equal(1, releaseCalls); // the dropped tail triggered exactly one input release
             Assert.Equal(1, first.ExecuteCount);
             Assert.Equal(0, tail.ExecuteCount);
@@ -286,14 +291,14 @@ public class CommandInvokerDispatcherTests {
                 SynthesizesInputForTest = false,
                 OnExecute = _ => {
                     commandStarted.Set();
-                    Assert.True(releaseCommand.Wait(Wait), "test never released the pause-like command");
+                    Assert.True(releaseCommand.Wait(_wait), "test never released the pause-like command");
                 },
             };
             invoker.EnqueueCommand(pauseLike);
-            Assert.True(commandStarted.Wait(Wait), "dispatcher never started the pause-like command");
+            Assert.True(commandStarted.Wait(_wait), "dispatcher never started the pause-like command");
             Assert.True(TryProbeInputGate(), "InputGate must NOT be held while a non-input command executes");
             releaseCommand.Set();
-            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
+            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(_wait));
 
             // An input-synthesizing command (the conservative default) blocking mid-Execute: the
             // gate must be HELD; that is the #113 no-interleaving invariant.
@@ -303,14 +308,14 @@ public class CommandInvokerDispatcherTests {
                 Cmd = "input-like",
                 OnExecute = _ => {
                     commandStarted.Set();
-                    Assert.True(releaseCommand.Wait(Wait), "test never released the input-like command");
+                    Assert.True(releaseCommand.Wait(_wait), "test never released the input-like command");
                 },
             };
             invoker.EnqueueCommand(inputLike);
-            Assert.True(commandStarted.Wait(Wait), "dispatcher never started the input-like command");
+            Assert.True(commandStarted.Wait(_wait), "dispatcher never started the input-like command");
             Assert.False(TryProbeInputGate(), "InputGate MUST be held while an input-synthesizing command executes");
             releaseCommand.Set();
-            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(Wait));
+            Assert.True(await invoker.SignalWhenQueueDrained().WaitAsync(_wait));
         }
         finally {
             releaseCommand.Set();
@@ -355,7 +360,7 @@ public class CommandInvokerDispatcherTests {
                     ["name"] = "send_command",
                     ["arguments"] = new JsonObject { ["command"] = "no-such-command" },
                 },
-            })!).WaitAsync(Wait);
+            })!).WaitAsync(_wait);
 
             JsonObject toolResult = resp["result"]!.AsObject();
             Assert.True(toolResult["isError"]!.GetValue<bool>());
@@ -377,7 +382,7 @@ public class CommandInvokerDispatcherTests {
         // silent success. Suppressed dispatcher keeps the queue full for the whole test.
         CommandInvoker invoker = new() { SuppressDispatcherForTests = true };
         DelegateTestCommand echo = new() { Cmd = "echo" };
-        invoker.Add("echo", (ICommand)echo);
+        invoker.Add("echo", echo);
         for (int i = 0; i < CommandInvoker.MaxQueueDepth; i++) {
             invoker.EnqueueCommand(new DelegateTestCommand { Cmd = $"fill{i}" });
         }

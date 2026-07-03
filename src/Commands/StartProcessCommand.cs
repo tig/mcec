@@ -16,12 +16,10 @@ namespace MCEControl;
 /// Summary description for StartProcessCommands.
 /// </summary>
 public class StartProcessCommand : Command {
-    private String file = null!;
-    [XmlAttribute("file")] public string File { get => file; set => file = value; }
-    private String arguments = null!;
-    [XmlAttribute("arguments")] public string Arguments { get => arguments; set => arguments = value; }
-    private String verb = null!;
-    [XmlAttribute("verb")] public string Verb { get => verb; set => verb = value; }
+    // Genuinely absent (null) when the XML attribute is omitted; nullable models that honestly.
+    [XmlAttribute("file")] public string? File { get; set; }
+    [XmlAttribute("arguments")] public string Arguments { get; set; } = null!;
+    [XmlAttribute("verb")] public string Verb { get; set; } = null!;
 
     public static List<Command> BuiltInCommands {
         get => [
@@ -30,7 +28,7 @@ public class StartProcessCommand : Command {
               new StartProcessCommand() { Cmd = "term", File=@"shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App" },
               new StartProcessCommand() { Cmd = "netflix", File=@"shell:AppsFolder\4DF9E0F8.Netflix_mcm4njqhnhss8!Netflix.App"  },
 
-              // Exmaple showing nested commands taken from documentation.md:
+              // Exmaple showing nested commands taken from configuration.md:
               //<StartProcess Cmd = "notepad" File="notepad.exe" >
               //    <Pause Args = "100" />
               //    <Chars Cmd="test" Args="this is a test." />
@@ -76,9 +74,6 @@ public class StartProcessCommand : Command {
         ];
     }
 
-    public StartProcessCommand() {
-    }
-
     //// Deal with ensuring NextCommand has the right reply context
     //public override Reply Reply {
     //    get => base.Reply; set {
@@ -117,11 +112,11 @@ public class StartProcessCommand : Command {
 
             // TODO: Make delay smarter
             p.Start();
-            if (EmbeddedCommands != null && EmbeddedCommands.Count > 0) {
+            if (EmbeddedCommands is { Count: > 0 }) {
                 try {
                     p.WaitForInputIdle(1000); // TODO: Make this settable
                 }
-                catch (System.InvalidOperationException e) {
+                catch (InvalidOperationException e) {
                     Logger.Instance.Log4.Error($"{this.GetType().Name}: {e.Message}");
                     return false;
                 }

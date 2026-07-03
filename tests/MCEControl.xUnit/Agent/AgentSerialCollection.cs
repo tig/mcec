@@ -12,5 +12,4 @@ namespace MCEControl.xUnit;
 /// collection merely removes the cross-class race that parallel execution of a shared static creates.
 /// </summary>
 [CollectionDefinition("AgentSerial")]
-public class AgentSerialCollection {
-}
+public class AgentSerialCollection;

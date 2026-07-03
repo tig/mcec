@@ -22,8 +22,8 @@ whole-house A/V system, but it is general enough for any control system that can
 port or serial port.
 
 > **Looking for the agent/AI side?** MCEC 3.0 is also an opt-in automation server for AI agents over the
-> **Model Context Protocol (MCP)**: see the [Agent Server user guide](agent-server.md) and the
-> [main documentation](documentation.md). This page covers the classic remote-control features, which are
+> **Model Context Protocol (MCP)**: see the [Environment Controller](environment-controller.md) and
+> [Configuration](configuration.md) chapters. This page covers the classic remote-control features, which are
 > unchanged and remain the default behavior.
 
 For example:
@@ -54,7 +54,7 @@ engine can:
 
 > **Same vocabulary, two front doors.** This command language is shared. A home-automation system sends
 > these commands over TCP/serial; an AI agent can send the very same raw command strings through the MCP
-> [`send_command`](agent-server.md) tool. Everything on this page applies to both.
+> [`send_command`](environment-controller.md) tool. Everything on this page applies to both.
 
 ## Transports: Client, Server, and Serial
 
@@ -155,8 +155,9 @@ By default **all** commands are disabled, to reduce the surface area MCEC expose
 
 ![Commands](commands_enable.png "Commands")
 
-Clicking **Save mcec.commands file** saves changes immediately. The `.commands` file is also saved
-automatically whenever MCEC exits.
+Clicking **Save mcec.commands file** saves changes immediately. The `.commands` file is **not** saved
+automatically on exit; MCEC only writes it in response to that explicit action, so a crash or power loss
+can never corrupt it mid-write on the way out.
 
 ## Testing MCEC
 
@@ -247,6 +248,11 @@ VK_F1
 A full list of virtual key codes is on
 [this MSDN page](http://msdn.microsoft.com/en-us/library/dd375731.aspx).
 
+> Since Windows 10, `VK_MEDIA_*` keys (play/pause, next/prev track, volume) are only delivered to the
+> **foreground** application; this is a Windows platform behavior, not something MCEC controls. If a media
+> key seems to do nothing, bring the target app to the foreground first (e.g. with `SetForegroundWindow` or
+> a launch sequence), then send the key.
+
 Sending `chars:` plus text simulates typing that text. `chars:3` types `3`; `chars:Hello` types the
 letters H-e-l-l-o (including the shift for the capital). The text after `chars:` can include *character
 escapes* for unprintable/Unicode characters: `chars:\\` sends `\`, `chars:☺` sends `☺`, and
@@ -304,7 +310,7 @@ The general format is:
 | `mtp,x,y` | Move to an absolute **screen pixel**; the same coordinate space the agent `query`/`find`/`displays` tools use. Takes real pixels and normalizes across the virtual desktop, so negative or secondary-monitor coordinates land correctly (`mouse:mtp,812,562`). |
 | `hs,n` | Horizontal scroll *n* clicks (positive = right) |
 | `vs,n` | Vertical scroll *n* clicks (positive = forward/away) |
-| `drag,x1,y1,x2,y2[,x3,y3,…]` | Press at the first point, move through every subsequent point with the button held, and release at the last; a full press → move-path → release gesture dispatched **atomically** (nothing else interleaves). Coordinates are absolute screen pixels (normalized across the virtual desktop internally). Use it to resize a window by its border, move one by its title bar, drag a slider, marquee-select, or reorder (`mouse:drag,400,300,700,500`). Agents get a higher-level [`drag`](agent-server.md) tool that also accepts UI Automation elements as endpoints. |
+| `drag,x1,y1,x2,y2[,x3,y3,…]` | Press at the first point, move through every subsequent point with the button held, and release at the last; a full press → move-path → release gesture dispatched **atomically** (nothing else interleaves). Coordinates are absolute screen pixels (normalized across the virtual desktop internally). Use it to resize a window by its border, move one by its title bar, drag a slider, marquee-select, or reorder (`mouse:drag,400,300,700,500`). Agents get a higher-level [`drag`](environment-controller.md) tool that also accepts UI Automation elements as endpoints. |
 
 When sending mouse movements it helps to hide the MCEC window; the live log display consumes resources and
 can make motion jerky.

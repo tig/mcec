@@ -22,7 +22,7 @@ public class CaptureContentTests {
         JsonObject? block = CaptureContent.TryBuildImageBlock(result);
 
         Assert.NotNull(block);
-        Assert.Equal("image", block!["type"]!.GetValue<string>());
+        Assert.Equal("image", block["type"]!.GetValue<string>());
         Assert.Equal("QUJD", block["data"]!.GetValue<string>());
         Assert.Equal("image/png", block["mimeType"]!.GetValue<string>());
 

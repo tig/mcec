@@ -39,6 +39,9 @@ public partial class SettingsDialog : Form {
         // Required for Windows Form Designer support
         //
         // https://www.sgrottel.de/?p=1581&lang=en
+        // Deliberate WinForms per-monitor-DPI pattern (see the reference above): the Font must be
+        // assigned before handle creation, and Form.Font is virtual.
+        // ReSharper disable once VirtualMemberCallInConstructor
         Font = SystemFonts.DefaultFont;
         InitializeComponent();
 
@@ -46,14 +49,17 @@ public partial class SettingsDialog : Form {
         Settings = (AppSettings)settings.Clone();
 
         // SECURITY (#213): the MCEC 3.0 agent/safety gates; McpServerEnabled,
-        // AgentCommandsEnabled, EmergencyStopEnabled/EmergencyStopHotkey, CommandOverlayEnabled,
-        // and AllowSessionProvisioning; deliberately have NO tab here. They are file-only
+        // AgentCommandsEnabled, EmergencyStopEnabled/EmergencyStopHotkey, and
+        // CommandOverlayEnabled; deliberately have NO tab here. They are file-only
         // (mcec.settings) by design: opening the agent front door is a considered, out-of-band
         // act by the operator, not a checkbox to be toggled (or social-engineered) mid-session,
         // and an agent driving this very dialog must never be able to widen its own permissions.
-        // See docs/agent-server.md and docs/safety-emergency-stop-and-provisioning.md before
-        // "helpfully" adding checkboxes for them.
-        _tabs = [_tabGeneral, _tabClient, _tabServer, _tabSerial, _tabActivityMonitor];
+        // See docs/environment-controller.md and docs/safety-emergency-stop-and-provisioning.md before
+        // "helpfully" adding checkboxes for them. The ONE deliberate exception (#259) is
+        // AllowSessionProvisioning on the Agent tab: it grants access only to a disposable,
+        // isolated copy (never this instance), it is the sole opt-in a non-technical operator
+        // must perform, and the tab refuses to widen it from inside a provisioned copy.
+        _tabs = [_tabGeneral, _tabClient, _tabServer, _tabSerial, _tabActivityMonitor, _tabAgent];
         foreach (ISettingsTab tab in _tabs) {
             tab.Bind(Settings);
         }
@@ -92,6 +98,7 @@ public partial class SettingsDialog : Form {
             SettingsTab.Server => _tabPageServer,
             SettingsTab.Serial => _tabPageSerial,
             SettingsTab.ActivityMonitor => _tabPageActivityMonitor,
+            SettingsTab.Agent => _tabPageAgent,
             // SettingsTab.General and anything unexpected land on the first tab.
             _ => _tabPageGeneral,
         };

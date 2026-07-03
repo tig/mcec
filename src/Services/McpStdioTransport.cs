@@ -53,7 +53,8 @@ public sealed class McpStdioTransport {
     /// </summary>
     public void Run(Stream input, Stream output) {
         using StreamReader reader = new(input, new UTF8Encoding(false));
-        using StreamWriter writer = new(output, new UTF8Encoding(false)) { AutoFlush = true };
+        using StreamWriter writer = new(output, new UTF8Encoding(false));
+        writer.AutoFlush = true;
         Logger.Instance.Log4.Info("AgentServer: MCP stdio transport started.");
         Run(reader, writer);
         Logger.Instance.Log4.Info("AgentServer: MCP stdio transport ended (EOF).");
@@ -66,8 +67,7 @@ public sealed class McpStdioTransport {
     public void Run(TextReader reader, TextWriter writer) {
         object writeLock = new();
         List<Task> pending = [];
-        string? line;
-        while ((line = reader.ReadLine()) is not null) {
+        while (reader.ReadLine() is { } line) {
             if (line.Length == 0) {
                 continue;
             }

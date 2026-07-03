@@ -38,19 +38,19 @@ public class CommandInvoker : Hashtable {
 #pragma warning restore CA1710 // Identifiers should have correct suffix
 #pragma warning restore CA1010 // Collections should implement generic interface
     // The execute queue. Producers Add; ONLY the dispatcher thread consumes (#195).
-    private readonly BlockingCollection<ICommand> executeQueue = new(new ConcurrentQueue<ICommand>());
+    private readonly BlockingCollection<ICommand> _executeQueue = new(new ConcurrentQueue<ICommand>());
 
-    private readonly object dispatcherGate = new();
-    private Thread? dispatcherThread;
-    private volatile bool shutdown;
+    private readonly Lock _dispatcherGate = new();
+    private Thread? _dispatcherThread;
+    private volatile bool _shutdown;
 
     // PRODUCER-side gate making the #154 bounds check + enqueue atomic: with genuinely concurrent
     // producers (socket/serial threads, MCP workers) an unlocked check-then-act could admit N trees
     // that each saw room, overshooting MaxQueueDepth. LOCK ORDERING: held only across the depth
     // check and the queue Adds; the DISPATCHER never takes it, and nothing is acquired while holding
-    // it (EnsureDispatcherStarted/dispatcherGate happen outside), so it can never interact with
-    // InputGate or dispatcherGate.
-    private readonly object enqueueGate = new();
+    // it (EnsureDispatcherStarted/_dispatcherGate happen outside), so it can never interact with
+    // InputGate or _dispatcherGate.
+    private readonly object _enqueueGate = new();
 
     /// <summary>
     /// TEST SEAM (#195): what the shutdown drop runs to release possibly-held input. A Shutdown that
@@ -83,7 +83,7 @@ public class CommandInvoker : Hashtable {
     /// <summary>
     /// Current number of commands waiting to be executed. Exposed for tests.
     /// </summary>
-    internal int QueuedCommandCount => executeQueue.Count;
+    internal int QueuedCommandCount => _executeQueue.Count;
 
     /// <summary>
     /// Creaates a `Commands` instance of default & built-in commands. 
@@ -116,18 +116,15 @@ public class CommandInvoker : Hashtable {
     /// Creaates a `Commands` instance from a combination of an external .commands file and the built-in commands.
     /// </summary>
     /// <param name="userCommandsFile">Path to mcec.commands file.</param>
+    /// <param name="currentVersion">Version of the running app; used to upgrade older .commands files.</param>
     /// <param name="disableInternalCommands">If true, internal commands will not be added to created instance.</param>
     /// <returns></returns>
     public static CommandInvoker Create(string userCommandsFile, string currentVersion, bool disableInternalCommands) {
-        CommandInvoker commands = null!;
-        SerializedCommands serializedCmds;
+        CommandInvoker commands = CreateBuiltIns(disableInternalCommands);
 
-        commands = CreateBuiltIns(disableInternalCommands);
-        int nBuiltIn = commands.Count;
-
-        // Load external .commands file. 
-        serializedCmds = SerializedCommands.LoadCommands(userCommandsFile, currentVersion);
-        if (serializedCmds != null && serializedCmds.commandArray != null) {
+        // Load external .commands file.
+        SerializedCommands serializedCmds = SerializedCommands.LoadCommands(userCommandsFile, currentVersion);
+        if (serializedCmds is { commandArray: not null }) {
             foreach (Command cmd in serializedCmds.commandArray) {
                 if (!string.IsNullOrWhiteSpace(cmd.Cmd)) {
                     // TELEMETRY: Mark user defined commands as such so they don't get collected
@@ -136,6 +133,8 @@ public class CommandInvoker : Hashtable {
                     }
 
                     if (cmd.Enabled) {
+                        // The branches differ under #if DEBUG; a ternary transform would be lossy.
+                        // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
                         if (cmd.UserDefined) {
 #if DEBUG
                             Logger.Instance.Log4.Debug($"{commands.GetType().Name}: User defined command enabled: '{cmd}'");
@@ -185,7 +184,7 @@ public class CommandInvoker : Hashtable {
             if (this.ContainsKey(cmd.Cmd.ToLowerInvariant())) {
                 this.Remove(cmd.Cmd.ToLowerInvariant());
             }
-            this.Add(cmd.Cmd.ToLowerInvariant(), (ICommand)cmd);
+            this.Add(cmd.Cmd.ToLowerInvariant(), cmd);
             if (log) {
                 Logger.Instance.Log4.Info($"{this.GetType().Name}: Command added: {cmd.Cmd}");
             }
@@ -230,7 +229,7 @@ public class CommandInvoker : Hashtable {
         // #203: `this["chars:"]` is null when built-ins are disabled (DisableInternalCommands)
         // or a user .commands file omits it; pattern-match instead of casting so a missing
         // "chars:" falls through to normal unknown-command handling rather than throwing.
-        if (cmdString.Length == 1 && this["chars:"] is Command charsCommand && charsCommand.Enabled) {
+        if (cmdString.Length == 1 && this["chars:"] is Command { Enabled: true }) {
             // Sending a single character is equivalent to a single key press of a key on the keyboard. 
             // For example sending a will result in the A key being pressed. 
             // 1 will result in the 1 key being pressed. There is no difference between sending a and A. 
@@ -267,7 +266,7 @@ public class CommandInvoker : Hashtable {
     /// the ENTIRE tree is dropped with a warning and nothing is enqueued. A partial enqueue must
     /// never happen: it could split paired input commands (e.g. shiftdown:/shiftup:) and leave a
     /// modifier key latched host-wide. The depth check and the Adds happen atomically under the
-    /// producer-side <see cref="enqueueGate"/> (#195): concurrent producers must not each pass the
+    /// producer-side <see cref="_enqueueGate"/> (#195): concurrent producers must not each pass the
     /// check and jointly overshoot the cap. (The dispatcher draining concurrently only FREES
     /// capacity, so the check remains conservative.)
     /// </summary>
@@ -280,15 +279,15 @@ public class CommandInvoker : Hashtable {
             return false;
         }
 
-        lock (enqueueGate) {
-            if (executeQueue.Count + treeSize > MaxQueueDepth) {
-                Logger.Instance.Log4.Warn($"{GetType().Name}: execute queue cannot hold {treeSize} more command(s) ({executeQueue.Count}/{MaxQueueDepth} queued); whole command dropped (nothing enqueued): {((Command)cmd).Cmd}");
+        lock (_enqueueGate) {
+            if (_executeQueue.Count + treeSize > MaxQueueDepth) {
+                Logger.Instance.Log4.Warn($"{GetType().Name}: execute queue cannot hold {treeSize} more command(s) ({_executeQueue.Count}/{MaxQueueDepth} queued); whole command dropped (nothing enqueued): {((Command)cmd).Cmd}");
                 return false;
             }
 
             EnqueueCommandTree(cmd);
         }
-        if (shutdown) {
+        if (_shutdown) {
             // Lost the race with Shutdown; AddToQueue already dropped/logged whatever didn't make it.
             return false;
         }
@@ -299,11 +298,11 @@ public class CommandInvoker : Hashtable {
     // Counts a command's whole tree: itself plus all recursively embedded commands.
     private static int CountCommandTree(ICommand cmd) {
         int count = 1;
-        if (((Command)cmd).EmbeddedCommands is null) {
+        if (((Command)cmd).EmbeddedCommands is not { } embeddedCommands) {
             return count;
         }
 
-        foreach (Command embedded in ((Command)cmd).EmbeddedCommands) {
+        foreach (Command embedded in embeddedCommands) {
             count += CountCommandTree(embedded);
         }
         return count;
@@ -340,9 +339,9 @@ public class CommandInvoker : Hashtable {
     /// completion marker is signalled so no awaiter hangs.
     /// </summary>
     private void AddToQueue(ICommand cmd) {
-        if (!shutdown) {
+        if (!_shutdown) {
             try {
-                executeQueue.Add(cmd);
+                _executeQueue.Add(cmd);
                 return;
             }
             catch (InvalidOperationException) {
@@ -371,18 +370,18 @@ public class CommandInvoker : Hashtable {
     /// thread so it can never keep the process alive after the host exits.
     /// </summary>
     private void EnsureDispatcherStarted() {
-        if (SuppressDispatcherForTests || dispatcherThread is not null) {
+        if (SuppressDispatcherForTests || _dispatcherThread is not null) {
             return;
         }
-        lock (dispatcherGate) {
-            if (dispatcherThread is not null || shutdown) {
+        lock (_dispatcherGate) {
+            if (_dispatcherThread is not null || _shutdown) {
                 return;
             }
-            dispatcherThread = new Thread(DispatcherLoop) {
+            _dispatcherThread = new Thread(DispatcherLoop) {
                 IsBackground = true,
                 Name = "MCEC-CommandDispatcher",
             };
-            dispatcherThread.Start();
+            _dispatcherThread.Start();
         }
     }
 
@@ -401,22 +400,22 @@ public class CommandInvoker : Hashtable {
     /// is background either way, so it can never keep the process alive.
     /// </param>
     internal void Shutdown(int joinTimeoutMs = 0) {
-        lock (dispatcherGate) {
-            if (shutdown) {
+        lock (_dispatcherGate) {
+            if (_shutdown) {
                 return;
             }
-            shutdown = true;
-            executeQueue.CompleteAdding();
+            _shutdown = true;
+            _executeQueue.CompleteAdding();
         }
 
         // Fail every pending completion marker NOW (#195 review): the dispatcher may be mid-Execute
         // of a long command; awaiters must not wait behind it. The dispatcher's own later
         // SignalDropped/SignalExecuted on the same marker is a no-op (TrySetResult).
-        foreach (ICommand icmd in executeQueue.ToArray()) {
+        foreach (ICommand icmd in _executeQueue.ToArray()) {
             (icmd as CommandDispatchCompletion)?.SignalDropped();
         }
 
-        if (dispatcherThread is Thread dispatcher) {
+        if (_dispatcherThread is { } dispatcher) {
             if (joinTimeoutMs > 0 && dispatcher != Thread.CurrentThread) {
                 dispatcher.Join(joinTimeoutMs);
             }
@@ -434,7 +433,7 @@ public class CommandInvoker : Hashtable {
             // GetConsumingEnumerable blocks until an item arrives and ends after Shutdown's
             // CompleteAdding once the queue is empty (DispatchOne drops rather than executes
             // anything consumed after shutdown).
-            foreach (ICommand icmd in executeQueue.GetConsumingEnumerable()) {
+            foreach (ICommand icmd in _executeQueue.GetConsumingEnumerable()) {
                 DispatchOne(icmd);
             }
         }
@@ -457,7 +456,7 @@ public class CommandInvoker : Hashtable {
         // command tree whose head already executed (shiftdown: ran, shiftup: dropped), so when any
         // real command is discarded, release held input; the same compensation the emergency stop
         // performs (see ReleaseHeldInputOnDrop).
-        if (shutdown) {
+        if (_shutdown) {
             int dropped = 0;
             if (icmd is CommandDispatchCompletion first) {
                 first.SignalDropped();
@@ -465,7 +464,7 @@ public class CommandInvoker : Hashtable {
             else {
                 dropped = 1;
             }
-            while (executeQueue.TryTake(out ICommand? leftover)) {
+            while (_executeQueue.TryTake(out ICommand? leftover)) {
                 if (leftover is CommandDispatchCompletion completion) {
                     completion.SignalDropped();
                 }
@@ -494,7 +493,7 @@ public class CommandInvoker : Hashtable {
             else {
                 dropped = 1; // the command we just dequeued and are NOT running
             }
-            while (executeQueue.TryTake(out ICommand? leftover)) {
+            while (_executeQueue.TryTake(out ICommand? leftover)) {
                 if (leftover is CommandDispatchCompletion completion) {
                     completion.SignalDropped();
                 }
@@ -583,10 +582,10 @@ public class CommandInvoker : Hashtable {
     /// live dispatcher this would be a second concurrent drain, the exact #195 hazard, so it throws.
     /// </summary>
     internal void PumpQueueForTests() {
-        if (dispatcherThread is not null) {
+        if (_dispatcherThread is not null) {
             throw new InvalidOperationException("PumpQueueForTests requires that no dispatcher thread was started (set SuppressDispatcherForTests before the first enqueue); a second drain beside the live dispatcher is the #195 bug.");
         }
-        while (executeQueue.TryTake(out ICommand? icmd)) {
+        while (_executeQueue.TryTake(out ICommand? icmd)) {
             DispatchOne(icmd);
         }
     }
@@ -596,7 +595,7 @@ public class CommandInvoker : Hashtable {
     // so any real drop also releases held input.
     private void DropRemainingQueue(string reason) {
         int dropped = 0;
-        while (executeQueue.TryTake(out ICommand? leftover)) {
+        while (_executeQueue.TryTake(out ICommand? leftover)) {
             if (leftover is CommandDispatchCompletion completion) {
                 completion.SignalDropped();
             }

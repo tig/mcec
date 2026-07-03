@@ -18,11 +18,11 @@ public static partial class HookManager {
     /// set, so install/uninstall state stays observable without a real hook. A real
     /// SetWindowsHookEx handle is never -1. (IntPtr since #210; hook handles are pointer-sized.)
     /// </summary>
-    private static readonly IntPtr FakeHookHandle = new(-1);
+    private static readonly IntPtr _fakeHookHandle = new(-1);
 
     /// <summary>
     /// When true, the real SetWindowsHookEx/UnhookWindowsHookEx calls are skipped while ALL of the
-    /// subscribe/unsubscribe bookkeeping still runs (handle fields get <see cref="FakeHookHandle"/>).
+    /// subscribe/unsubscribe bookkeeping still runs (handle fields get <see cref="_fakeHookHandle"/>).
     /// For tests only; never set in production code.
     /// </summary>
     internal static bool SuppressRealHooksForTesting { get; set; }

@@ -19,7 +19,7 @@ namespace MCEControl;
 /// Commands that control MCE Controller, or get information about it
 /// </summary>
 public class McecCommand : Command {
-    public const string CmdPrefix = "mcec:";
+    private const string CmdPrefix = "mcec:";
     public static List<Command> BuiltInCommands {
         get => [
         new McecCommand { Cmd = $"{CmdPrefix}" },   // Commands that use form of "cmd:" must define a blank version
@@ -28,9 +28,6 @@ public class McecCommand : Command {
         new McecCommand { Cmd = $"{CmdPrefix }cmds" },
         new McecCommand { Cmd = $"{CmdPrefix }time" }
         ];
-    }
-
-    public McecCommand() {
     }
 
     /// <summary>
@@ -82,7 +79,7 @@ public class McecCommand : Command {
                 // #195: read the command table via the UI-agnostic AgentRuntime seam (populated by
                 // both the GUI and headless hosts) instead of MainWindow.Instance; this runs on the
                 // dispatcher thread and must not touch (or lazily construct) the Form.
-                if (AgentRuntime.Invoker is not CommandInvoker invoker) {
+                if (AgentRuntime.Invoker is not { } invoker) {
                     Logger.Instance.Log4.Error($"{this.GetType().Name}: ({Cmd}:{Args}) command table is not available");
                     return false;
                 }
@@ -96,21 +93,20 @@ public class McecCommand : Command {
                     }
                 }
                 catch (Exception e) {
-                    Logger.Instance.Log4.Error($"{this.GetType().Name}: ({Cmd}:{Args}) <{match!.Groups[1].Value} {cmd.ToString()}/> - {e.Message}");
+                    Logger.Instance.Log4.Error($"{this.GetType().Name}: ({Cmd}:{Args}) <{match!.Groups[1].Value} {cmd}/> - {e.Message}");
                     return false;
                 }
                 break;
 
             // Return the current date/time of the PC
             case "time":
-                DateTime dt = DateTime.Now;
                 replyBuilder.AppendFormat("{0}", DateTime.Now);
                 break;
         }
 
         // Reply.  
         replyBuilder.Insert(0, $"{Args}=");
-        Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending reply: {replyBuilder.ToString()}");
+        Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending reply: {replyBuilder}");
         Reply.WriteLine(replyBuilder.ToString());
         return true;
     }

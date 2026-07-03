@@ -27,7 +27,22 @@ public enum UiaInvokeResult {
     /// <c>set-value</c>). Nothing was looked up or dispatched. Recovery: fix the argument.</summary>
     ActionUnknown,
 
-    /// <summary>UIA threw while attaching, finding, or dispatching (window closed mid-call, COM
-    /// fault). Not agent-recoverable beyond re-observing the target.</summary>
+    /// <summary>The selector matched MORE than one element and the lookup refused to guess (#261).
+    /// Nothing was dispatched. Recovery: narrow the selector (automationId/className or a more
+    /// specific name); retrying the same selector cannot help.</summary>
+    ElementAmbiguous,
+
+    /// <summary>The element or its window went away between lookup and dispatch, or the window handle
+    /// no longer resolves (UIA_E_ELEMENTNOTAVAILABLE, #261). Recovery: re-<c>query</c>/<c>find</c> for
+    /// a fresh target, then retry.</summary>
+    ElementStale,
+
+    /// <summary>UIA was denied access to the target (E_ACCESSDENIED, #261): for a valid window this
+    /// means the target runs at a higher integrity level (UAC) than MCEC and cannot be driven.
+    /// Not agent-recoverable; surface it to the operator.</summary>
+    TargetElevated,
+
+    /// <summary>UIA threw while attaching, finding, or dispatching (COM fault not classified as stale
+    /// or elevation). Not agent-recoverable beyond re-observing the target.</summary>
     Faulted,
 }

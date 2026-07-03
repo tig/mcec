@@ -98,6 +98,8 @@ public class UserActivityMonitorServiceTests {
         monitor.DebounceTime = 60;
 
         int dispatched = 0;
+        // Asserting the dispatched delegate IS the point; the seam signature is fixed.
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         monitor.DispatchForTesting = work => {
             Assert.NotNull(work);
             dispatched++; // capture, do NOT run; asserts the handler doesn't need the work executed
@@ -160,7 +162,7 @@ public class UserActivityMonitorServiceTests {
     public void HookManager_UninstallsHook_WhenLastSubscriberRemoved() {
         HookManager.SuppressRealHooksForTesting = true;
         HookSubscriberBaseline baseline = HookSubscriberBaseline.Capture();
-        KeyEventHandler handler = (sender, e) => { };
+        KeyEventHandler handler = (_, _) => { };
 
         HookManager.KeyDown += handler;
         try {

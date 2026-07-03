@@ -13,33 +13,25 @@ namespace MCEControl;
 /// optional <see cref="LastObservation"/> (the last good state before the failure, for debugging and
 /// #87's failure-summary). See <c>docs/design/agent-tool-result-contract.md</c> (#101).
 /// </summary>
-public sealed class AgentError {
-    public AgentError(string code, AgentErrorCategory category, string detail, JsonObject? lastObservation = null, JsonObject? partialResult = null) {
-        Code = code;
-        Category = category;
-        Detail = detail;
-        LastObservation = lastObservation;
-        PartialResult = partialResult;
-    }
-
+public sealed class AgentError(string code, AgentErrorCategory category, string detail, JsonObject? lastObservation = null, JsonObject? partialResult = null) {
     /// <summary>Stable, fine-grained machine code (kebab-case); narrows <see cref="Category"/>.</summary>
-    public string Code { get; }
+    private string Code { get; } = code;
 
     /// <summary>Coarse failure class from the closed taxonomy.</summary>
-    public AgentErrorCategory Category { get; }
+    private AgentErrorCategory Category { get; } = category;
 
     /// <summary>Human-readable explanation of what failed and, where possible, how to recover.</summary>
-    public string Detail { get; }
+    private string Detail { get; } = detail;
 
     /// <summary>The last good observation captured before the failure, or null when none exists.</summary>
-    public JsonObject? LastObservation { get; }
+    private JsonObject? LastObservation { get; } = lastObservation;
 
     /// <summary>
     /// The failing call's OWN partial payload, when the command deliberately kept one; e.g. a blank
     /// <c>capture</c> still carries the (suspect) PNG it grabbed so the evidence is not lost (#206).
     /// Distinct from <see cref="LastObservation"/>, which is the last GOOD state from a prior call.
     /// </summary>
-    public JsonObject? PartialResult { get; }
+    private JsonObject? PartialResult { get; } = partialResult;
 
     /// <summary>The kebab-case wire string for <see cref="Category"/> that goes into <c>error.category</c>.</summary>
     public string CategoryWire => Category switch {
@@ -52,7 +44,6 @@ public sealed class AgentError {
         AgentErrorCategory.Focus => "focus",
         AgentErrorCategory.Elevation => "elevation",
         AgentErrorCategory.Foreground => "foreground",
-        AgentErrorCategory.Internal => "internal",
         _ => "internal",
     };
 

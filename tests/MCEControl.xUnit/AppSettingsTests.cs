@@ -14,7 +14,7 @@ public class AppSettingsTests
     public void GetTelemetryDictionary_Test()
     {
         AppSettings appSettings = new AppSettings();
-        IDictionary<string, string>? dict = appSettings.GetTelemetryDictionary();
+        IDictionary<string, string> dict = appSettings.GetTelemetryDictionary();
 
         Assert.True(dict.ContainsKey("AutoStart"));
 

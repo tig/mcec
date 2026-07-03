@@ -1,319 +1,151 @@
 #requires -version 7
 <#
 .SYNOPSIS
-  Regenerates the MCEC hero GIF (docs/hero.gif): one MCEC drives a SECOND MCEC through a guided tour;
-  launch -> File > Settings (visit every tab) -> mouse-resize the window ~25% smaller -> drag the title
-  bar in small circles -> Help > About -> pause; while the on-screen command overlay (#119) narrates
-  every command, and records it all with the agent `record` tool (#80).
+  Minimal support for the agent-driven hero recording (see docs/hero-gif.md): builds MCEC and stands up
+  an authorized, MCP-serving CONTROLLER from a disposable copy for an agent to drive. It does NOT drive
+  the tour or record anything; the agent does that over MCP, following docs/hero-gif.md. This is the only
+  script in the flow, and it exists solely because an agent cannot bootstrap the first controller over
+  MCP (there is nothing to connect to yet).
 
 .DESCRIPTION
-  Dogfoods the agent stack end to end and exercises the atomic `mouse:drag` input path (#123; one
-  command does press, the whole move path, and release) for both a sizing-border resize and a title-bar
-  move. The controller is a
-  GUI MCEC (not headless `--mcp`, so it renders the overlay) with the localhost MCP HTTP floor on
-  (McpServerEnabled), the agent commands enabled (AgentCommandsEnabled), and the overlay on and docked
-  Left (CommandOverlayEnabled / CommandOverlayPosition). The *controlled* subject is a SEPARATE COPY of
-  the build in its own directory so it reads a co-located config (Program.ConfigPath == the exe's own
-  folder); its config sets ActAsServer=false (so it never binds IPAddress.Any:5150 and triggers the
-  Windows Firewall prompt that would steal focus), turns its own overlay OFF (only the controller
-  narrates), and pins the window so the recorded region is deterministic.
+  Default (stand up the controller):
+    - builds MCEC,
+    - copies the build to a throwaway dir (so src\bin is NEVER mutated),
+    - writes that copy's agent-ready config (MCP on 127.0.0.1:<Port>, agent commands + session
+      provisioning authorized, overlay on and docked Left, window hidden),
+    - launches it and waits for the MCP endpoint,
+    - prints how to register the endpoint and hands off to the agent.
+  The controller keeps running so the agent can drive it. Tear it down with -Stop when finished.
 
-  The driver (this script) connects to the controller over HTTP and uses the agent tools to drive the
-  subject by HANDLE (the controller now also has an "MCEC" window, so a title match is ambiguous): it
-  `query`s the UIA tree to locate menu items/tabs, clicks/drags with real mouse input, and `capture`s
-  the dialogs. As each tool runs, the controller's overlay paints a terse, burnt-orange, alpha-blended
-  line over the LEFT of the (wide, left-docked) subject window; so the recorded region is just the
-  window (compact, no wallpaper) yet still contains the narration. The two oranges match: the overlay
-  item background IS the About box's brand orange.
+  -Stop: kills MCEC and deletes the throwaway controller copy(ies). Provisioned session dirs the agent
+  did not end are reaped automatically on the next MCEC launch.
 
-  This drives the REAL desktop (mouse, keystrokes, launching an app) for ~30s. Run it on an interactive
-  session you can leave alone.
-
-.PARAMETER Config
-  Build configuration to use (Debug or Release). Default: Debug.
-
-.PARAMETER AllowNonDevelopBuild
-  Skip the develop-branch/develop-stamp guard. The GitVersion-stamped version string is baked into the
-  binary and appears IN the hero (the subject's log window, status bar, and About box), so by default
-  the script refuses to record from anything but a develop-stamped build. Pass this only when a
-  feature-branch hero is deliberate.
+.PARAMETER Config  Build configuration (Debug or Release). Default: Debug.
+.PARAMETER Port    Localhost MCP port for the controller. Default: 0 (auto-pick a free port; pass a value to pin one).
+.PARAMETER Stop    Tear down: kill MCEC and remove the throwaway controller copy.
 #>
 [CmdletBinding()]
 param(
   [ValidateSet('Debug', 'Release')][string]$Config = 'Debug',
-  [switch]$AllowNonDevelopBuild
+  [int]$Port = 0,
+  [switch]$Stop
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
-$ctrlDir = Join-Path $repoRoot "src\bin\$Config\net10.0-windows"
-$exe = Join-Path $ctrlDir 'mcec.exe'
-$outGif = Join-Path $repoRoot 'docs\hero.gif'
-$subjectDir = Join-Path $env:TEMP 'mcec-hero-subject'
-$url = 'http://127.0.0.1:5151/mcp'
+$copyGlob = 'mcec-hero-controller-*'
 
-# GUARD: the recording must come from a develop-stamped build. GitVersion bakes the branch name into
-# the version string, which shows in the hero's log window, status bar, and About box; a
-# timestamp-fresh binary from whatever branch was built last passes a naive "build if needed" check.
-# (Both the first 2026-07 regen and the previously committed hero shipped with feature-branch stamps.)
-$branch = (git -C $repoRoot rev-parse --abbrev-ref HEAD).Trim()
-if ($branch -ne 'develop' -and -not $AllowNonDevelopBuild) {
-  throw "Refusing to record the hero from branch '$branch' (the GitVersion stamp lands in the GIF). " +
-        'Switch to develop (git checkout develop && git pull), or pass -AllowNonDevelopBuild if a ' +
-        'branch build is deliberate.'
+# Stop ONLY the hero controller(s): mcec processes whose exe lives under a mcec-hero-controller-* temp
+# dir. Never a blanket `Get-Process mcec | kill` (that would take the operator's real MCEC or another
+# agent's instance). Then remove the throwaway copies.
+function Stop-HeroControllers {
+  foreach ($p in Get-Process -Name mcec -ErrorAction SilentlyContinue) {
+    $path = try { $p.Path } catch { $null }
+    if ($path -and $path -like "*\$($copyGlob.TrimEnd('*'))*") { try { $p.Kill($true) } catch {} }
+  }
+  Get-ChildItem $env:TEMP -Directory -Filter $copyGlob -ErrorAction SilentlyContinue |
+    ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
-# Always build: incremental is a fast no-op when nothing changed, and GitVersion re-stamps the binary
-# whenever HEAD moved; the stamp always reflects the checkout being recorded, never a stale build.
+if ($Stop) {
+  Stop-HeroControllers
+  Write-Host 'Stopped the hero controller(s) and removed the throwaway copies. Other MCEC instances are left alone; provisioned session dirs are reaped on the next MCEC launch.'
+  return
+}
+
+# A fresh bootstrap reclaims any prior hero controller first (a re-run should not leave orphans or fight
+# over a port), then picks a FREE localhost port so concurrent/leftover instances never collide.
+Stop-HeroControllers
+if ($Port -le 0) {
+  $l = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+  $l.Start(); $Port = ([System.Net.IPEndPoint]$l.LocalEndpoint).Port; $l.Stop()
+}
+
+$buildDir = Join-Path $repoRoot "src\bin\$Config\net10.0-windows"
 Write-Host "Building ($Config)..."
 dotnet build (Join-Path $repoRoot 'src\MCEControl.csproj') -c $Config | Out-Null
-if (-not (Test-Path $exe)) { throw "mcec.exe not found at $exe" }
+if (-not (Test-Path (Join-Path $buildDir 'mcec.exe'))) { throw "mcec.exe not found in $buildDir" }
 
-$stamp = (Get-Item $exe).VersionInfo.ProductVersion
-if (-not $AllowNonDevelopBuild -and $stamp -notlike '*Branch.develop.*') {
-  throw "mcec.exe is stamped '$stamp' after rebuilding; expected a Branch.develop stamp. " +
-        'Is the working tree in a detached/unexpected state?'
-}
-Write-Host "Recording from: $stamp"
+# Run the controller from a fresh disposable COPY so the build tree is never mutated; the subject the
+# agent provisions is a fresh copy too. The whole copy is removed by -Stop.
+$ctrlDir = Join-Path $env:TEMP ("mcec-hero-controller-" + [System.IO.Path]::GetRandomFileName())
+Copy-Item $buildDir $ctrlDir -Recurse -Force
 
-Add-Type -Namespace Native -Name U32 -MemberDefinition @'
-[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern int GetSystemMetrics(int n);
-[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
-'@
-[Native.U32]::SetProcessDPIAware() | Out-Null
-$sw = [Native.U32]::GetSystemMetrics(0); $sh = [Native.U32]::GetSystemMetrics(1)
-
-# Pinned subject window geometry: wide and left-docked so the controller's left overlay sits over it and
-# the recorded region is just the window (compact, no wallpaper) yet contains the narration. The resize
-# shrinks the window toward its top-left corner and the title-bar move keeps it inside the recorded rect.
-$winX = 12; $winY = 66; $winW = 1040; $winH = 560
-$rx = $winX - 6; $ry = $winY - 8; $rw = $winW + 12; $rh = $winH + 30
-
-# ---- subject: a separate copy of the build with its own co-located config (overlay OFF) ----
-if (Test-Path $subjectDir) { Remove-Item $subjectDir -Recurse -Force }
-Copy-Item $ctrlDir $subjectDir -Recurse -Force
-$subjectExe = Join-Path $subjectDir 'mcec.exe'
-
-Set-Content -Encoding UTF8 -Path (Join-Path $subjectDir 'mcec.settings') -Value @"
-<?xml version="1.0" encoding="utf-8"?>
-<AppSettings>
-  <ActAsServer>false</ActAsServer>
-  <ActAsClient>false</ActAsClient>
-  <ActAsSerialServer>false</ActAsSerialServer>
-  <DisableUpdatePopup>true</DisableUpdatePopup>
-  <CommandOverlayEnabled>false</CommandOverlayEnabled>
-  <WindowLocation><X>$winX</X><Y>$winY</Y></WindowLocation>
-  <WindowSize><Width>$winW</Width><Height>$winH</Height></WindowSize>
-</AppSettings>
-"@
-
-# ---- controller: GUI MCEC with the agent surface + overlay (docked Left), driven over HTTP ----
-$ctrlSettings = Join-Path $ctrlDir 'mcec.settings'
-$ctrlCommands = Join-Path $ctrlDir 'mcec.commands'
-$savedSettings = if (Test-Path $ctrlSettings) { Get-Content -Raw $ctrlSettings } else { $null }
-$savedCommands = if (Test-Path $ctrlCommands) { Get-Content -Raw $ctrlCommands } else { $null }
-
-Set-Content -Encoding UTF8 -Path $ctrlSettings -Value @'
+Set-Content -Encoding UTF8 -Path (Join-Path $ctrlDir 'mcec.settings') -Value @"
 <?xml version="1.0" encoding="utf-8"?>
 <AppSettings>
   <AgentCommandsEnabled>true</AgentCommandsEnabled>
   <McpServerEnabled>true</McpServerEnabled>
+  <McpBindAddress>127.0.0.1</McpBindAddress>
+  <McpHttpPort>$Port</McpHttpPort>
+  <AllowSessionProvisioning>true</AllowSessionProvisioning>
   <CommandOverlayEnabled>true</CommandOverlayEnabled>
   <CommandOverlayPosition>Left</CommandOverlayPosition>
   <HideOnStartup>true</HideOnStartup>
   <ActAsServer>false</ActAsServer>
 </AppSettings>
-'@
+"@
 
-Set-Content -Encoding UTF8 -Path $ctrlCommands -Value @'
+# Two security gates apply to every agent tool: the global AgentCommandsEnabled (above) AND the
+# per-command Enabled flag in this table (built-ins ship disabled). So the tour's tools must each be
+# enabled here. provision-session/end-session are the exception: they are dispatched before the
+# per-command gate and need no entry. Keystrokes go through the built-in keyboard PRIMITIVES rather than
+# named commands: `chars:` sends any single character, and `shiftdown:`/`shiftup:` hold/release modifiers
+# (letters as chars; Win+D via shiftdown:lwin + d + shiftup:lwin); dialog buttons are reached with click.
+Set-Content -Encoding UTF8 -Path (Join-Path $ctrlDir 'mcec.commands') -Value @'
 <?xml version="1.0" encoding="utf-8"?>
 <MCEController xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="3.0.0">
 <Commands xmlns="http://www.kindel.com/products/mcecontroller">
-  <capture Cmd="capture" Enabled="true" />
-  <query   Cmd="query"   Enabled="true" />
-  <find    Cmd="find"    Enabled="true" />
-  <record  Cmd="record"  Enabled="true" />
-  <mouse   Cmd="mouse:"  Enabled="true" />
-  <drag    Cmd="drag"    Enabled="true" />
-  <launch  Cmd="launch"  Enabled="true" />
-  <invoke  Cmd="invoke"  Enabled="true" />
-  <sendinput Cmd="key_a" Vk="a" Enabled="true" />
-  <sendinput Cmd="key_s" Vk="s" Enabled="true" />
-  <sendinput Cmd="key_esc" Vk="VK_ESCAPE" Enabled="true" />
-  <sendinput Cmd="enter" Vk="VK_RETURN" Enabled="true" />
-  <sendinput Cmd="winr" Vk="r" Win="true" Enabled="true" />
-  <chars   Cmd="chars:" Enabled="true" />
+  <displays  Cmd="displays"   Enabled="true" />
+  <query     Cmd="query"      Enabled="true" />
+  <capture   Cmd="capture"    Enabled="true" />
+  <launch    Cmd="launch"     Enabled="true" />
+  <click     Cmd="click"      Enabled="true" />
+  <drag      Cmd="drag"       Enabled="true" />
+  <record    Cmd="record"     Enabled="true" />
+  <chars     Cmd="chars:"     Enabled="true" />
+  <sendinput Cmd="shiftdown:" Enabled="true" />
+  <sendinput Cmd="shiftup:"   Enabled="true" />
 </Commands>
 </MCEController>
 '@
 
-$ctrl = $null; $subject = $null
-$script:id = 0
-function Rpc([string]$method, $prms) {
-  $script:id++
-  $body = @{ jsonrpc = '2.0'; id = $script:id; method = $method; params = $prms } | ConvertTo-Json -Depth 8 -Compress
-  return Invoke-RestMethod -Uri $url -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 30
+# Launch DETACHED so the controller outlives THIS script. Start-Process leaves the child in this
+# process's Windows Job Object, so an agent runner that kills the job when the command returns takes the
+# controller down with it (observed: "the process dies when the bootstrap script exits"). Creating it via
+# WMI parents the new process to the WMI host, OUTSIDE our job, so it survives the launcher's exit.
+$exe = Join-Path $ctrlDir 'mcec.exe'
+$create = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
+  CommandLine      = "`"$exe`""
+  CurrentDirectory = $ctrlDir
 }
-function Tool([string]$name, $toolArgs) { Rpc 'tools/call' @{ name = $name; arguments = $toolArgs } }
-function Cmd([string]$command) { Tool 'send_command' @{ command = $command } | Out-Null }
-function MoveAbs([int]$cx, [int]$cy) {
-  Cmd ("mouse:mt,{0},{1}" -f [int][math]::Round($cx * 65535.0 / ($sw - 1)), [int][math]::Round($cy * 65535.0 / ($sh - 1)))
+if ($create.ReturnValue -ne 0) {
+  throw "Failed to launch the controller detached (Win32_Process.Create returned $($create.ReturnValue))."
 }
-function ClickAbs([int]$cx, [int]$cy) { MoveAbs $cx $cy; Cmd 'mouse:lbc' }
-# Drag with the left button held down through a path of absolute screen points, as ONE atomic MCEC
-# command (issue #123). `mouse:drag` takes pixels and normalizes across the virtual desktop itself and
-# smooths the motion between waypoints, so a single `send_command` replaces the old button-down /
-# stream-of-moves / button-up choreography; and, being atomic, it can't interleave with anything else.
-# Used for both the sizing-border resize and the title-bar move.
-function Drag($points) {
-  $coords = ($points | ForEach-Object { '{0},{1}' -f [int]$_[0], [int]$_[1] }) -join ','
-  Cmd "mouse:drag,$coords"
-}
-function Find($node, [scriptblock]$pred) {
-  if (& $pred $node) { return $node }
-  if ($node.children) { foreach ($c in $node.children) { $r = Find $c $pred; if ($r) { return $r } } }
-  return $null
-}
-# The MCP text block holds the agent envelope { ok, sessionId, result:{ window, tree, ... } }; the UIA
-# snapshot is at result.tree. Query the subject by HANDLE (its "MCEC" title is now ambiguous with the
-# controller); dialogs (Settings/About) are unambiguous by title.
-function TreeOf($resp) {
-  foreach ($b in $resp.result.content) { if ($b.type -eq 'text') { try { return ($b.text | ConvertFrom-Json).result.tree } catch { return $null } } }
-  return $null
-}
-function WindowOf($resp) {
-  foreach ($b in $resp.result.content) { if ($b.type -eq 'text') { try { return ($b.text | ConvertFrom-Json).result.window } catch { return $null } } }
-  return $null
-}
-function QueryH([long]$handle, [int]$depth = 5) { TreeOf (Tool 'query' @{ handle = $handle; maxDepth = $depth }) }
-function QueryW([string]$window, [int]$depth = 5) { TreeOf (Tool 'query' @{ window = $window; maxDepth = $depth }) }
-
-try {
-  # Controller first: launch the GUI, wait for its HTTP floor, then minimize every window for a clean
-  # backdrop. The overlay is an independent top-most window and survives MinimizeAll, so the controller's
-  # main window stays minimized (out of frame) while its overlay keeps narrating.
-  $ctrl = Start-Process -FilePath $exe -WorkingDirectory $ctrlDir -PassThru
-  $up = $false
-  for ($i = 0; $i -lt 40; $i++) {
-    Start-Sleep -Milliseconds 600
-    try { if ((Rpc 'initialize' @{}).result.serverInfo.name -eq 'MCEC') { $up = $true; break } } catch {}
-  }
-  if (-not $up) { throw 'controller HTTP did not come up' }
-  Write-Host 'controller up'
-  (New-Object -ComObject Shell.Application).MinimizeAll()
-  Start-Sleep -Milliseconds 800
-
-  # Subject: launch the isolated copy using the direct gated `launch` tool (see docs/hero-gif.md and #126).
-  # Falls back to the Win+R composition (send_command winr + chars + enter) if launch returns no handle.
-  # NOT raw Start-Process in the agent path (dogfooding the robust primitive).
-  $hsub = 0
+$ctrlPid = $create.ProcessId
+$url = "http://127.0.0.1:$Port/mcp"
+$up = $false
+for ($i = 0; $i -lt 40; $i++) {
+  Start-Sleep -Milliseconds 600
   try {
-    $lr = Tool 'launch' @{ path = $subjectExe; timeout = 8000 }
-    foreach ($b in $lr.result.content) {
-      if ($b.type -eq 'text') {
-        try {
-          $ldata = ($b.text | ConvertFrom-Json).result
-          if ($ldata -and $ldata.handle) { $hsub = [long]$ldata.handle; break }
-          # also check nested window.handle from data shape
-          if ($ldata -and $ldata.data -and $ldata.data.handle) { $hsub = [long]$ldata.data.handle; break }
-        } catch {}
-      }
-    }
-  } catch {}
-  if ($hsub -eq 0) {
-    # Fallback composition (still useful to exercise send_command path)
-    Cmd 'winr';                                       Start-Sleep -Milliseconds 1300
-    Cmd ("chars:" + $subjectExe.Replace('\', '\\'));  Start-Sleep -Milliseconds 900
-    Cmd 'enter'
-    for ($i = 0; $i -lt 30; $i++) {
-      Start-Sleep -Milliseconds 600
-      $w = WindowOf (Tool 'query' @{ foreground = $true; maxDepth = 1 })
-      if ($w -and $w.title -eq 'MCEC' -and $w.handle) { $hsub = [long]$w.handle; break }
+    $body = @{ jsonrpc = '2.0'; id = 1; method = 'initialize'; params = @{} } | ConvertTo-Json -Compress
+    if ((Invoke-RestMethod -Uri $url -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 5).result.serverInfo.name -eq 'MCEC') {
+      $up = $true; break
     }
   }
-  if ($hsub -eq 0) { throw 'subject MCEC window never appeared after launch (or Win+R fallback)' }
-  $tree = $null
-  for ($i = 0; $i -lt 25; $i++) { Start-Sleep -Milliseconds 500; $tree = QueryH $hsub 5; if ($tree) { break } }
-  if (-not $tree) { throw 'subject UIA tree never came up' }
-  Write-Host 'subject window up'
-  Start-Sleep -Milliseconds 1200   # extra dwell after direct launch to ensure menus are ready and window foregrounded
-  $tree = QueryH $hsub 5    # re-query so the menu bar is fully built before we locate it
-
-  $isMenu = { param($n) ($n.controlType -match 'MenuItem') }
-  $file = Find $tree { param($n) (& $isMenu $n) -and $n.name -eq 'File' }
-  if (-not $file) { throw 'File menu item not found' }
-
-  # fps 4 + downscale keeps the hero compact (the encoder writes full frames, so frame count x width
-  # drive file size; the per-step dwells below are tuned to keep the tour short).
-  $rec = Tool 'record' @{ action = 'start'; x = $rx; y = $ry; width = $rw; height = $rh; fps = 4; maxWidth = 560 }
-  Write-Host "record start ok=$(-not $rec.result.isError)"
-  Start-Sleep -Milliseconds 400
-
-  # A couple of observation calls so the overlay opens with query/capture lines.
-  Tool 'query'   @{ handle = $hsub } | Out-Null;  Start-Sleep -Milliseconds 600
-  Tool 'capture' @{ handle = $hsub } | Out-Null;  Start-Sleep -Milliseconds 600
-
-  # --- File > Settings, then tour every tab (click each header in order) ---
-  ClickAbs ([int]($file.x + $file.width / 2)) ([int]($file.y + $file.height / 2))
-  Start-Sleep -Milliseconds 900; Cmd 'key_s'      # 'S'ettings mnemonic on the open File menu; longer pause after direct launch
-
-  $stree = $null
-  for ($i = 0; $i -lt 25; $i++) { Start-Sleep -Milliseconds 400; $stree = QueryW 'Settings' 8; if ($stree) { break } }
-  if (-not $stree) { throw 'Settings dialog never appeared' }
-  Write-Host 'settings dialog up'
-  foreach ($tn in @('General', 'Client', 'Server', 'Serial Server', 'Activity Monitor')) {
-    $tab = Find $stree { param($n) $n.name -eq $tn -and $n.controlType -match 'TabItem' }
-    if ($tab) {
-      ClickAbs ([int]($tab.x + $tab.width / 2)) ([int]($tab.y + $tab.height / 2))
-      Write-Host "  tab: $tn"; Start-Sleep -Milliseconds 550
-    }
-    else { Write-Host "  (tab '$tn' not found in tree)" }
-  }
-  Cmd 'key_esc'; Start-Sleep -Milliseconds 500    # close Settings (modal) before touching the main window
-
-  # --- Resize the main window ~25% smaller by dragging the bottom-right sizing border inward. ---
-  $newW = [int]($winW * 0.75); $newH = [int]($winH * 0.75)
-  $corner0X = $winX + $winW - 2; $corner0Y = $winY + $winH - 2
-  $corner1X = $winX + $newW;     $corner1Y = $winY + $newH
-  Drag @(
-    , @($corner0X, $corner0Y)
-    , @([int](($corner0X + $corner1X) / 2), [int](($corner0Y + $corner1Y) / 2))
-    , @($corner1X, $corner1Y)
-  )
-  Start-Sleep -Milliseconds 500
-
-  # --- Move the window by dragging its title bar in small circles (stays inside the recorded region). ---
-  $grabX = $winX + [int]($newW / 2); $grabY = $winY + 12
-  $offX = $grabX - $winX; $offY = $grabY - $winY
-  $ccx = $winX + 120 + $offX; $ccy = $winY + 70 + $offY; $r = 55
-  $path = @(, @($grabX, $grabY))
-  for ($a = 0; $a -le 720; $a += 50) {
-    $rad = [math]::PI * $a / 180.0
-    $path += , @([int]($ccx + $r * [math]::Cos($rad)), [int]($ccy + $r * [math]::Sin($rad)))
-  }
-  Drag $path
-  Start-Sleep -Milliseconds 500
-
-  # --- Help > About (re-query by handle: the window moved, so the menu bar is at fresh coordinates). ---
-  $tree = QueryH $hsub 5
-  $help = Find $tree { param($n) (& $isMenu $n) -and $n.name -eq 'Help' }
-  if (-not $help) { throw 'Help menu item not found after move' }
-  ClickAbs ([int]($help.x + $help.width / 2)) ([int]($help.y + $help.height / 2))
-  Start-Sleep -Milliseconds 500; Cmd 'key_a'; Start-Sleep -Milliseconds 1000
-  Tool 'capture' @{ window = 'About' } | Out-Null
-
-  # --- Pause on the About box, then stop. ---
-  Start-Sleep -Milliseconds 1100
-
-  $stop = Tool 'record' @{ action = 'stop'; file = $outGif }
-  Write-Host "record stop: $(($stop.result.content | Where-Object type -eq text).text)"
+  catch {}
 }
-finally {
-  foreach ($p in @($ctrl, $subject)) { if ($p -and -not $p.HasExited) { try { $p.Kill($true) } catch {} } }
-  foreach ($p in Get-Process -Name mcec -ErrorAction SilentlyContinue) { try { $p.Kill($true) } catch {} }
-  if ($null -ne $savedSettings) { Set-Content -Path $ctrlSettings -Value $savedSettings -Encoding UTF8 } else { Remove-Item $ctrlSettings -ErrorAction SilentlyContinue }
-  if ($null -ne $savedCommands) { Set-Content -Path $ctrlCommands -Value $savedCommands -Encoding UTF8 } else { Remove-Item $ctrlCommands -ErrorAction SilentlyContinue }
-  Remove-Item $subjectDir -Recurse -Force -ErrorAction SilentlyContinue
-}
-Write-Host "Wrote $outGif"
+if (-not $up) { throw "controller MCP endpoint did not come up at $url" }
+
+Write-Host ''
+Write-Host "Controller is up (pid=$ctrlPid, detached; survives this script exiting); agent commands and session provisioning are authorized."
+Write-Host "  MCP endpoint : $url"
+Write-Host "  Register it  : claude mcp add --transport http mcec $url"
+Write-Host '  Then ask your agent to recreate the hero per docs/hero-gif.md (it drives entirely via MCP tools).'
+Write-Host '  When finished: pwsh -NoProfile -File scripts/Generate-HeroGif.ps1 -Stop'
+Write-Host ''
+# Machine-readable handoff: a driver can grep these instead of parsing the prose above.
+Write-Host "HERO_MCP_URL=$url"
+Write-Host "HERO_MCP_PORT=$Port"
+Write-Host "HERO_MCP_PID=$ctrlPid"

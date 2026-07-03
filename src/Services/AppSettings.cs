@@ -21,33 +21,35 @@ namespace MCEControl;
 public class AppSettings : ICloneable {
     // Machine policy (HKLM registry override; see MachinePolicy). Not serialized; populated by
     // SettingsStore.Load on every load, regardless of how (or whether) the file loaded.
+    // Public field name is part of the AppSettings surface used across the codebase; not renamed.
+    // ReSharper disable once InconsistentNaming
     [XmlIgnore] public bool DisableInternalCommands;
 
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool AutoStart { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool HideOnStartup { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public string TextBoxLogThreshold { get; set; } = "INFO";
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool ActAsClient { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool ActAsServer { get; set; } = true;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int ClientDelayTime { get; set; } = 30000;
-    [SafeForTelemetryAttribute]
-    public int CommandPacing { get; set; } = 0;
+    [SafeForTelemetry]
+    public int CommandPacing { get; set; }
 
-    // [SafeForTelemetryAttribute]
+    // [SafeForTelemetry]
     // TELEMETRY: Client host may contain PII, so it is not collected
     public string ClientHost { get; set; } = "localhost";
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int ClientPort { get; set; } = 5150;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public string ClosingCommand { get; set; } = null!;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int Opacity { get; set; } = 100;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int ServerPort { get; set; } = 5150;
 
     // SECURITY (issue #149): which interface the TCP/IP command server binds to. The command server
@@ -62,51 +64,51 @@ public class AppSettings : ICloneable {
     // TELEMETRY: A bind address is PII-adjacent, so it is not collected (mirrors McpBindAddress).
     public string SocketServerBindAddress { get; set; } = "0.0.0.0";
 
-    // [SafeForTelemetryAttribute]
+    // [SafeForTelemetry]
     // TELEMETRY: WakeupCommand can be set by user and thus may contain PII, so it is not collected
     public string WakeupCommand { get; set; } = null!;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool WakeupEnabled { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public string WakeupHost { get; set; } = null!;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int WakeupPort { get; set; }
-    [SafeForTelemetryAttribute]
-    public bool ActAsSerialServer { get; set; } = false;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
+    public bool ActAsSerialServer { get; set; }
+    [SafeForTelemetry]
     public string SerialServerPortName { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int SerialServerBaudRate { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public Parity SerialServerParity { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int SerialServerDataBits { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public StopBits SerialServerStopBits { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public Handshake SerialServerHandshake { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public Point WindowLocation { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public Size WindowSize { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool ShowCommandWindow { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool ActivityMonitorEnabled { get; set; }
 
-    // [SafeForTelemetryAttribute]
+    // [SafeForTelemetry]
     // TELEMETRY: Activity Montior command can be changed by user, and thus may contain PII, so it is not collected
     public string ActivityMonitorCommand { get; set; } = "activity";
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int ActivityMonitorDebounceTime { get; set; } = 10;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool UnlockDetection { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool InputDetection { get; set; }
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool UserPresenceDetection { get; set; }
 
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool DisableUpdatePopup { get; set; }
 
     // TELEMETRY: NOT SAFE FOR PII - MUST DEFAULT TO FALSE
@@ -116,19 +118,19 @@ public class AppSettings : ICloneable {
     // SECURITY: The observation/targeting commands (capture/query/find/invoke) ship DISABLED by
     // default and require their OWN explicit opt-in, separate from the actuation enable. Enabling
     // "press keys" must not silently enable "screenshot my screen".
-    [SafeForTelemetryAttribute]
-    public bool AgentCommandsEnabled { get; set; } = false;
+    [SafeForTelemetry]
+    public bool AgentCommandsEnabled { get; set; }
 
     // The MCP/HTTP façade is off by default and binds to localhost only unless deliberately changed.
-    [SafeForTelemetryAttribute]
-    public bool McpServerEnabled { get; set; } = false;
+    [SafeForTelemetry]
+    public bool McpServerEnabled { get; set; }
 
     // --- Emergency stop (issue #135) ---
     // SAFETY: a global "dead man's switch" hotkey the operator can hit from ANY window to instantly halt
     // an agent session. On by default whenever the agent front door is used; reacts to physical input only
     // (the agent can never trip or defeat it). The default chord is one no app uses and the agent never
     // synthesizes. See EmergencyStopHotkey for the accepted spec format.
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool EmergencyStopEnabled { get; set; } = true;
 
     // TELEMETRY: a rebound hotkey is a benign UI preference, but keep it out of telemetry for simplicity.
@@ -138,12 +140,12 @@ public class AppSettings : ICloneable {
     // SECURITY: an agent asks MCEC to hand it a fresh, disposable instance dir (agent commands enabled only
     // inside the copy) instead of mutating the installed config. Provisioning is the ONE thing that cannot
     // be self-served; it must be an explicit operator opt-in or the isolation is theater. Off by default.
-    [SafeForTelemetryAttribute]
-    public bool AllowSessionProvisioning { get; set; } = false;
+    [SafeForTelemetry]
+    public bool AllowSessionProvisioning { get; set; }
 
     // TELEMETRY: A bind address is PII-adjacent, so it is not collected.
     public string McpBindAddress { get; set; } = "127.0.0.1";
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int McpHttpPort { get; set; } = 5151;
 
     // SECURITY (#143): defense-in-depth bearer token for the HTTP front door. The HTTP handler ALWAYS
@@ -159,23 +161,23 @@ public class AppSettings : ICloneable {
     // ON by default: the overlay shows each command as it executes so anyone watching can see that MCEC
     // is driving the machine (auditability), which also makes demos self-documenting. A settings file
     // without this element deserializes to the initialized default (true).
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public bool CommandOverlayEnabled { get; set; } = true;
 
     // Which side of the primary screen the overlay docks to. Default Right.
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public OverlayPosition CommandOverlayPosition { get; set; } = OverlayPosition.Right;
 
     // --- GIF recording limits (issue #80) ---
     // SECURITY/SAFETY: the agent `record` command is bounded by these so it cannot accidentally create
     // an unbounded file. Requests above a limit are CLAMPED (not failed) and the clamp is audited.
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int AgentRecordMaxFps { get; set; } = 30;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int AgentRecordMaxDurationMs { get; set; } = 60000;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int AgentRecordMaxFrames { get; set; } = 600;
-    [SafeForTelemetryAttribute]
+    [SafeForTelemetry]
     public int AgentRecordMaxWidth { get; set; } = 1280;
 
     #region ICloneable Members

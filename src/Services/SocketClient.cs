@@ -46,14 +46,14 @@ namespace MCEControl;
 /// threadsafe.
 /// </summary>
 public sealed class SocketClient : ServiceBase, IDisposable {
-    private readonly string _host = "";
+    private readonly string _host;
     private readonly int _port;
     private readonly int _clientDelayTime;
 
     // Guards the current-run fields below. A run's CTS is installed under this lock in
     // Start() and detached under it in RunAsync's finally, so Stop()'s Cancel() can
     // never race the run's Dispose() of the same CTS.
-    private readonly object _runLock = new();
+    private readonly Lock _runLock = new();
     private CancellationTokenSource? _cts;
     private Task? _runTask;
 
@@ -89,7 +89,6 @@ public sealed class SocketClient : ServiceBase, IDisposable {
     // cancels the run; the run closes its own TcpClient and disposes its own CTS.
     public void Dispose() {
         Cancel();
-        GC.SuppressFinalize(this);
     }
     #endregion
 
@@ -335,12 +334,9 @@ public sealed class SocketClient : ServiceBase, IDisposable {
 
             default:
                 string? s = Resources.ResourceManager.GetString($"WSA_{e.ErrorCode}", System.Globalization.CultureInfo.InvariantCulture);
-                if (s == null) {
-                    Error(ServiceError.FromSocketException($"{e.Message} ({e.ErrorCode})", e));
-                }
-                else {
-                    Error(ServiceError.FromSocketException($"{e.Message}. {s} ({e.ErrorCode})", e));
-                }
+                Error(s == null
+                    ? ServiceError.FromSocketException($"{e.Message} ({e.ErrorCode})", e)
+                    : ServiceError.FromSocketException($"{e.Message}. {s} ({e.ErrorCode})", e));
                 break;
         }
     }

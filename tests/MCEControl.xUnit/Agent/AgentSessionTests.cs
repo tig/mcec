@@ -133,7 +133,7 @@ public class AgentSessionTests {
             ["height"] = 600,
             ["encoding"] = "png",
             ["bytes"] = pngBytes.Length,
-            ["base64"] = System.Convert.ToBase64String(pngBytes),
+            ["base64"] = Convert.ToBase64String(pngBytes),
             ["window"] = new JsonObject { ["handle"] = 42, ["title"] = "App" },
             ["blankCheck"] = new JsonObject { ["blank"] = false, ["dominantFraction"] = 0.1 },
         };

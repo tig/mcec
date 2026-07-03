@@ -7,6 +7,10 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Windows.Forms;
 
+// The WS_EX_* constants below mirror the Win32 extended-window-style names; renaming them would break
+// the 1:1 mapping to the Windows SDK headers.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl;
 
 /// <summary>
@@ -20,6 +24,13 @@ namespace MCEControl;
 /// fully opaque and readable. It registers its own handle with <see cref="WindowResolver"/> so an agent
 /// never sees or drives its own overlay, and it never takes focus or input (WS_EX_NOACTIVATE +
 /// WS_EX_TRANSPARENT).</para>
+///
+/// <para>It sizes itself from the full screen <see cref="Screen.Bounds"/> (not the working area, so it
+/// spans the taskbar's height too), inset by the layout margin, and re-asserts top-most Z-order on
+/// every paint (<see cref="PushLayered"/>), so a window created top-most AFTER the overlay cannot
+/// occlude it; a one-time WS_EX_TOPMOST would sink below any later top-most window. The feed cap scales
+/// with the screen height (<see cref="OverlayLayout.MaxLines"/>) so lines fill the whole height rather
+/// than only the bottom.</para>
 /// </summary>
 public sealed class CommandOverlayWindow : Form {
     private const int WS_EX_TRANSPARENT = 0x00000020;
@@ -29,13 +40,13 @@ public sealed class CommandOverlayWindow : Form {
     private const int WS_EX_TOPMOST = 0x00000008;
 
     // The About box's brand orange (Color.FromArgb(192, 90, 36)) as the item background at ~30% alpha.
-    private static readonly Color ItemBackground = Color.FromArgb(77, 192, 90, 36);
+    private static readonly Color _itemBackground = Color.FromArgb(77, 192, 90, 36);
 
     // Emergency stop (#135): a solid, high-contrast red for the persistent STOPPED banner (mostly opaque
     // so it reads as an alarm, not a fading log line).
-    private static readonly Color StoppedBackground = Color.FromArgb(235, 176, 0, 0);
+    private static readonly Color _stoppedBackground = Color.FromArgb(235, 176, 0, 0);
 
-    private readonly OverlayFeed _feed = new(maxLines: 8, lifetime: TimeSpan.FromSeconds(8));
+    private readonly OverlayFeed _feed;
     private readonly Action<CommandEvent> _onEvent;
     private readonly Action<bool> _onEmergencyStop;
     private readonly System.Windows.Forms.Timer _ageTimer;
@@ -55,7 +66,13 @@ public sealed class CommandOverlayWindow : Form {
         StartPosition = FormStartPosition.Manual;
         Text = string.Empty;
         _side = AgentRuntime.Settings?.CommandOverlayPosition ?? OverlayPosition.Right;
-        Bounds = OverlayLayout.ForSide(Screen.PrimaryScreen!.WorkingArea, 0.30, _side);
+        // Full screen bounds, not WorkingArea: the overlay is meant to sit above everything (including
+        // over the taskbar), and using the full height is what lets the feed scroll top to bottom.
+        Rectangle bounds = OverlayLayout.ForSide(Screen.PrimaryScreen!.Bounds, 0.30, _side);
+        Bounds = bounds;
+        // Cap the feed to fill the actual overlay height (the old fixed 8 left tall screens empty above
+        // the last few lines); the renderer's geometric break still trims anything past the top edge.
+        _feed = new OverlayFeed(maxLines: OverlayLayout.MaxLines(bounds.Height), lifetime: TimeSpan.FromSeconds(8));
 
         _onEvent = OnCommandEvent;
         CommandEventHub.Subscribe(_onEvent);
@@ -163,7 +180,7 @@ public sealed class CommandOverlayWindow : Form {
     }
 
     private void DrawFeed(Graphics g, int width, int height) {
-        System.Collections.Generic.IReadOnlyList<CommandEvent> lines = _feed.Visible(DateTime.UtcNow);
+        IReadOnlyList<CommandEvent> lines = _feed.Visible(DateTime.UtcNow);
         if (lines.Count == 0) {
             return;
         }
@@ -185,7 +202,7 @@ public sealed class CommandOverlayWindow : Form {
                 break;
             }
 
-            using (SolidBrush scrim = new(ItemBackground))
+            using (SolidBrush scrim = new(_itemBackground))
             using (GraphicsPath path = RoundedRect(new RectangleF(boxX, boxY, boxW, boxH), 6f)) {
                 g.FillPath(scrim, path);
             }
@@ -218,7 +235,7 @@ public sealed class CommandOverlayWindow : Form {
         const string text = "⛔ STOPPED by operator; Re-arm to resume";
         SizeF size = g.MeasureString(text, font, width - pad * 2);
         float boxH = size.Height + pad * 1.5f;
-        using (SolidBrush bg = new(StoppedBackground))
+        using (SolidBrush bg = new(_stoppedBackground))
         using (GraphicsPath path = RoundedRect(new RectangleF(0, 0, width, boxH), 6f)) {
             g.FillPath(bg, path);
         }
@@ -250,6 +267,14 @@ public sealed class CommandOverlayWindow : Form {
                 AlphaFormat = AgentNativeMethods.AC_SRC_ALPHA,
             };
             AgentNativeMethods.UpdateLayeredWindow(Handle, screenDc, ref dst, ref size, memDc, ref src, 0, ref blend, AgentNativeMethods.ULW_ALPHA);
+
+            // Re-assert top-most on every paint. WS_EX_TOPMOST only puts the window in the always-on-top
+            // band at creation; any window that goes top-most LATER lands above it. Bumping to
+            // HWND_TOPMOST here (driven by the 300ms age timer) keeps the overlay at the top of that band
+            // so it is not occluded. NOMOVE|NOSIZE preserve the layered geometry; NOACTIVATE keeps it
+            // click-through and never steals focus from the app being driven.
+            AgentNativeMethods.SetWindowPos(Handle, AgentNativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+                AgentNativeMethods.SWP_NOMOVE | AgentNativeMethods.SWP_NOSIZE | AgentNativeMethods.SWP_NOACTIVATE);
         }
         finally {
             if (oldBmp != IntPtr.Zero) {
@@ -278,7 +303,7 @@ public sealed class CommandOverlayWindow : Form {
         if (disposing) {
             CommandEventHub.Unsubscribe(_onEvent);
             EmergencyStop.StateChanged -= _onEmergencyStop;
-            _ageTimer?.Dispose();
+            _ageTimer.Dispose();
             // OnHandleDestroyed normally clears the registration; unregister defensively in case the
             // window is disposed without a handle-destroyed notification.
             if (_registeredHandle != 0) {

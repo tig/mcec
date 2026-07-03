@@ -1,3 +1,6 @@
+// Member names mirror the RFC 854 Telnet command names.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl;
 
 enum TelnetVerbs {

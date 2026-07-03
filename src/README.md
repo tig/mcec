@@ -19,10 +19,7 @@ Or open `src/MCEControl.sln` in Visual Studio 2022 and build from there.
 
 ## Versions & Updates
 
-Upon build
-
-* the build (major.minor.rev.build) in `Installer/version.txt` is bumped.
-* `src/AssemblyFileVersion.tt` is processed by the T4 compiler. This generates `src/AssemblyFileVersion.cs` and updates `Installer/version.txt`.
+Dev/CI builds are versioned by [GitVersion](https://gitversion.net/) (`GitVersion.yml`, mode `ContinuousDelivery`) via the `GitVersion.MsBuild` package: it derives a version from the nearest tag plus branch/commit info and stamps the assembly automatically. A release build (`Release.ps1`) instead passes `-p:DisableGitVersionTask=true -p:Version=<tag>` to get a clean, deterministic version with no git suffix. There is no build-time file bump and no T4 template involved.
 
 Releases are published at https://github.com/tig/mcec/releases
 
@@ -31,36 +28,21 @@ Debug builds check for pre-releases and there should ALWAYS be a fake, NEWER pre
 ## Installer
 
 * `Installer\mcec.Setup.exe`
-* Built using NSIS. A post-build event runs `makensis.exe` against `Installer/Installer.nsi`
+* Built using NSIS. `Release.ps1` runs `makensis.exe` against `Installer/MCEController.nsi`.
 
 ## How to Release a new version
 
-1. Rebuild All for Release
-1. `cat Installer/version.txt`
-    * E.g. `2.2.10.2`
-1. `git tag -a -m "Release v2.2.10" v2.2.10.2`
-1. `git add .`
-1. `git commit -n "Release v2.2.10"`
-1. `git push --tags`
-1. `git push --all`
-1. On [Releases page](https://github.com/tig/mcec/releases) "Draft New Release"
-  * Title of form "MCEC Version 2.2.10"
-  * Auto generate release notes and edit as needed.
-  * Add the following to end:
+Releases are cut by pushing a `v<major>.<minor>.<patch>` tag; **do not** hand-build or hand-upload the installer, since that bypasses the release pipeline's Authenticode signing (see [`docs/code-signing.md`](../docs/code-signing.md)).
 
-````
-To install, copy and paste the following command into a PowerShell command window.
+1. Bump `next-version` in `GitVersion.yml` on `develop` (`release: set GitVersion next-version to vX.Y.Z ...`) and merge/fast-forward it to `main`.
+2. `git tag -a vX.Y.Z <commit> -m "MCEC vX.Y.Z"` on that commit, then `git push origin vX.Y.Z`.
+3. Pushing the tag triggers [`.github/workflows/release.yml`](../.github/workflows/release.yml): it builds via `Release.ps1`, signs `mcec.Setup.exe` with Azure Trusted Signing (a hard gate: the job fails rather than publish an unsigned installer if signing fails or can't be verified), and publishes the GitHub Release with the signed installer attached.
+4. On a stable (non-prerelease) tag, a follow-up job attempts to submit the new version to `winget-pkgs`.
 
-
-```powershell
-$mcecv="v2.2.10.2"; $mcec="mcec.Setup.exe"; iwr https://github.com/tig/mcec/releases/download/$mcecv/$mcec -outfile "$env:temp\$mcec"; start "$env:temp\$mcec"
-```
-````
-   * Drag & Drop `Installer/mcec.Setup.exe` to "Attach binaries..." 
-   * Click Publish Release
+To build a local, **unsigned** installer for testing only: `pwsh ./Release.ps1 -Version X.Y.Z` (produces `src/bin/mcec.Setup.exe`; Windows SmartScreen will warn on it).
 
 ## Unit Tests
 
-* uses xUnit
+* uses xUnit; run with `dotnet test tests/MCEControl.xUnit/MCEControl.xUnit.csproj`
 
 

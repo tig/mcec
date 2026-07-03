@@ -33,7 +33,7 @@ public static class CommandTersifier {
 
     /// <summary>Terse label for a raw <c>send_command</c> pass-through, e.g. <c>send winr</c> (long commands clipped).</summary>
     public static string ForRawCommand(string command) {
-        string c = (command ?? string.Empty).Trim();
+        string c = command.Trim();
         if (c.Length > 40) {
             c = c[..40] + "…";
         }
@@ -66,6 +66,26 @@ public static class CommandTersifier {
             return $"class=\"{className}\"";
         }
         return "?";
+    }
+
+    /// <summary>
+    /// The discovery filter label for the <c>windows</c> tool: the first non-empty of window/process/
+    /// className, or <c>all</c> when no filter is given (a bare list of every window).
+    /// </summary>
+    internal static string WindowFilter(JsonObject args) {
+        string? window = Arg(args, "window");
+        if (window is not null) {
+            return $"window=\"{window}\"";
+        }
+        string? process = Arg(args, "process");
+        if (process is not null) {
+            return $"process=\"{process}\"";
+        }
+        string? className = Arg(args, "className");
+        if (className is not null) {
+            return $"class=\"{className}\"";
+        }
+        return "all";
     }
 
     /// <summary>The element selector for find/wait-for/invoke: a bare quoted value for <c>by=name</c>, else <c>by="value"</c>.</summary>

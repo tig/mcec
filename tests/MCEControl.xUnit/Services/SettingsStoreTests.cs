@@ -208,7 +208,7 @@ public class SettingsStoreTests
             List<PropertyInfo> props = [];
             foreach (PropertyInfo prop in typeof(AppSettings).GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                if (prop.CanRead && prop.CanWrite)
+                if (prop is { CanRead: true, CanWrite: true })
                 {
                     props.Add(prop);
                     prop.SetValue(original, ProbeValueFor(prop, prop.GetValue(original)));

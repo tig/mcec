@@ -16,17 +16,19 @@ namespace MCEControl.xUnit.Agent;
 /// </summary>
 [Collection("AgentSerial")]
 public class ToolCatalogTests {
-    /// <summary>The ten gated agent tools, in the order tools/list advertises them. Pinned by name.</summary>
-    private static readonly string[] CatalogNames = [
-        "capture", "query", "displays", "find", "wait-for", "invoke", "drag", "click", "record", "launch",
+    /// <summary>The twelve gated agent tools, in the order tools/list advertises them. Pinned by name.</summary>
+    private static readonly string[] _catalogNames = [
+        "capture", "query", "displays", "windows", "find", "wait-for", "invoke", "drag", "click", "clipboard", "record", "launch",
     ];
 
-    /// <summary>The meta-tools that are deliberately NOT in the catalog (no 1:1 Command mapping).</summary>
-    private static readonly string[] MetaToolNames = ["send_command", "provision-session", "end-session"];
+    /// <summary>The meta-tools that are deliberately NOT in the catalog (no 1:1 Command mapping), in tools/list order.</summary>
+    private static readonly string[] _metaToolNames = [
+        "send_command", "session-start", "session-status", "session-end", "provision-session", "end-session",
+    ];
 
     [Fact]
     public void Catalog_ContainsExactlyTheGatedAgentTools_InToolsListOrder() {
-        Assert.Equal(CatalogNames, ToolCatalog.All.Select(d => d.Name));
+        Assert.Equal(_catalogNames, ToolCatalog.All.Select(d => d.Name));
     }
 
     [Fact]
@@ -50,7 +52,7 @@ public class ToolCatalogTests {
             // this registry fixed (#205).
             string label = d.Tersify([]);
             Assert.False(string.IsNullOrWhiteSpace(label));
-            Assert.StartsWith(d.Name, label, System.StringComparison.Ordinal);
+            Assert.StartsWith(d.Name, label, StringComparison.Ordinal);
             if (d.Name != "displays") {
                 Assert.NotEqual(d.Name, label);
             }
@@ -72,17 +74,17 @@ public class ToolCatalogTests {
 
         // Exact, ordered pin: dropping a tool from the catalog (or a meta-tool from BuildToolsList)
         // must fail this test, not silently shrink the advertised surface.
-        Assert.Equal([.. CatalogNames, .. MetaToolNames], names);
+        Assert.Equal([.. _catalogNames, .. _metaToolNames], names);
     }
 
     [Fact]
     public void GateMembership_IsCatalogMembership() {
-        foreach (string name in CatalogNames) {
+        foreach (string name in _catalogNames) {
             Assert.True(ToolCatalog.Contains(name), $"'{name}' must be in the catalog (tools/call gate).");
         }
         // Meta-tools are dispatched by their own special cases BEFORE the catalog gate; they must not
         // also be catalog members, or they'd be double-dispatched as agent commands.
-        foreach (string name in MetaToolNames) {
+        foreach (string name in _metaToolNames) {
             Assert.False(ToolCatalog.Contains(name), $"meta-tool '{name}' must NOT be in the catalog.");
         }
         Assert.False(ToolCatalog.Contains("hover"));
@@ -115,21 +117,23 @@ public class ToolCatalogTests {
         }
         // SessionProvisioner.DefaultCommands is derived from the catalog; pin the exact historical set.
         Assert.Equal(
-            ["capture", "query", "displays", "find", "wait-for", "invoke", "drag", "click", "record"],
+            ["capture", "query", "displays", "windows", "find", "wait-for", "invoke", "drag", "click", "clipboard", "record"],
             SessionProvisioner.DefaultCommands);
     }
 
     [Fact]
     public void BuildCommand_EveryTool_ProducesItsCommandType() {
-        Dictionary<string, System.Type> expected = new() {
+        Dictionary<string, Type> expected = new() {
             ["capture"] = typeof(CaptureCommand),
             ["query"] = typeof(QueryCommand),
             ["displays"] = typeof(DisplaysCommand),
+            ["windows"] = typeof(WindowsCommand),
             ["find"] = typeof(FindCommand),
             ["wait-for"] = typeof(FindCommand),
             ["invoke"] = typeof(InvokeCommand),
             ["drag"] = typeof(DragCommand),
             ["click"] = typeof(ClickCommand),
+            ["clipboard"] = typeof(ClipboardCommand),
             ["record"] = typeof(RecordCommand),
             ["launch"] = typeof(LaunchCommand),
         };

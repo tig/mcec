@@ -38,17 +38,15 @@ public static class SessionProvisioner {
     // ONLY this shape so a caller can never pass a path/traversal token (e.g. ".." or "a/b") that would make
     // Teardown delete something outside the sessions root. end-session is exposed over MCP and is not behind
     // the provisioning-authorization gate, so this validation is the security boundary.
-    private static readonly Regex SessionIdPattern = new("^[0-9a-f]{12}$", RegexOptions.Compiled);
-
-    private static string? _sessionsRoot;
+    private static readonly Regex _sessionIdPattern = new("^[0-9a-f]{12}$", RegexOptions.Compiled);
 
     /// <summary>
     /// Root under which each session gets its own directory. Defaults to
     /// <c>%LOCALAPPDATA%\MCEC\sessions</c> (temp fallback if that can't be resolved). Settable by tests.
     /// </summary>
     public static string SessionsRoot {
-        get => _sessionsRoot ??= DefaultSessionsRoot();
-        set => _sessionsRoot = value;
+        get => field ??= DefaultSessionsRoot();
+        set;
     }
 
     /// <summary>The directory the running mcec.exe (and its dependencies) live in; the copy source.</summary>
@@ -76,7 +74,7 @@ public static class SessionProvisioner {
     public static ProvisionedSession Provision(bool mcpServerEnabled = true, IEnumerable<string>? commands = null) {
         string sessionId = Guid.NewGuid().ToString("N")[..12];
         string dir = Path.Combine(SessionsRoot, sessionId);
-        string version = System.Windows.Forms.Application.ProductVersion;
+        string version = Application.ProductVersion;
         int port = mcpServerEnabled ? FindFreeLoopbackPort() : 0;
         // The session credential (#215): written into the co-located config as the provisioned
         // instance's McpAuthToken (so every HTTP request to the session's MCP endpoint must carry
@@ -127,7 +125,7 @@ public static class SessionProvisioner {
     /// </summary>
     public static SessionTokenValidation ValidateTeardownToken(string? sessionId, string? token) {
         string id = sessionId?.Trim() ?? "";
-        if (!SessionIdPattern.IsMatch(id)) {
+        if (!_sessionIdPattern.IsMatch(id)) {
             return SessionTokenValidation.InvalidId;
         }
         string dir = Path.Combine(SessionsRoot, id);
@@ -165,7 +163,7 @@ public static class SessionProvisioner {
         // Guard against path traversal: only a well-formed session id (bare 12-hex token) is accepted, so a
         // caller can never point Teardown at a directory outside the sessions root (e.g. "..", "a/b", rooted paths).
         string id = sessionId.Trim();
-        if (!SessionIdPattern.IsMatch(id)) {
+        if (!_sessionIdPattern.IsMatch(id)) {
             AgentRuntime.Audit("end-session", $"REJECTED; '{id}' is not a valid session id (expected 12 hex chars)");
             return false;
         }
@@ -183,6 +181,106 @@ public static class SessionProvisioner {
         }
         bool ok = TryDeleteDirectory(dir);
         AgentRuntime.Audit("end-session", ok ? $"{id}; torn down ({dir})" : $"{id}; could not delete (in use?) {dir}");
+        return ok;
+    }
+
+    /// <summary>
+    /// Enumerates the session directories under <see cref="SessionsRoot"/> for the operator's
+    /// management surface (#259; the Settings dialog's Agent tab). Lists every directory (not just
+    /// well-formed ids), matching the reaper's scope, so a leftover the reaper would eventually
+    /// collect is visible too. Best-effort; never throws; a directory that cannot be stat'ed is
+    /// skipped with a warning. Ordered newest first.
+    /// </summary>
+    public static IReadOnlyList<ProvisionedSessionInfo> ListSessions() {
+        List<ProvisionedSessionInfo> sessions = [];
+        try {
+            if (!Directory.Exists(SessionsRoot)) {
+                return sessions;
+            }
+            foreach (string dir in Directory.GetDirectories(SessionsRoot)) {
+                try {
+                    sessions.Add(new ProvisionedSessionInfo {
+                        SessionId = Path.GetFileName(dir),
+                        Directory = dir,
+                        CreatedUtc = Directory.GetCreationTimeUtc(dir),
+                        SizeBytes = GetDirectorySize(dir),
+                        IsRunning = IsSessionRunning(dir),
+                    });
+                }
+                catch (Exception e) {
+                    Logger.Instance.Log4.Warn($"SessionProvisioner: could not stat '{dir}': {e.Message}");
+                }
+            }
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Warn($"SessionProvisioner: listing sessions failed: {e.Message}");
+        }
+        return [.. sessions.OrderByDescending(s => s.CreatedUtc)];
+    }
+
+    /// <summary>
+    /// Whether the session's <c>mcec.exe</c> is locked, i.e. the session is running. The loader holds
+    /// a running image open, so an open demanding exclusive access fails with a sharing violation;
+    /// that same lock is what makes <see cref="Teardown"/>/the reaper skip the directory.
+    /// </summary>
+    private static bool IsSessionRunning(string dir) {
+        string exe = Path.Combine(dir, "mcec.exe");
+        if (!File.Exists(exe)) {
+            return false;
+        }
+        try {
+            using FileStream _ = File.Open(exe, FileMode.Open, FileAccess.Read, FileShare.None);
+            return false;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+            return true;
+        }
+    }
+
+    /// <summary>Total size of the directory's files in bytes; best-effort (0 on failure).</summary>
+    private static long GetDirectorySize(string dir) {
+        try {
+            return new DirectoryInfo(dir).EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Warn($"SessionProvisioner: could not size '{dir}': {e.Message}");
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Removes a directory that <see cref="ListSessions"/> reported, for the operator's management surface
+    /// (#259; the Agent tab's Delete). Unlike <see cref="Teardown"/> (the MCP <c>end-session</c> boundary,
+    /// which accepts only a well-formed 12-hex id because it serves untrusted callers), this deletes ANY
+    /// listed directory, matching the reaper's scope; so the operator can remove exactly what the tab
+    /// shows, including a stray non-session-id folder the reaper would eventually collect. The id here is a
+    /// directory name that came from <see cref="ListSessions"/> (never free-form input), but a single
+    /// path-containment check is kept as defense in depth so a delete can never escape the sessions root.
+    /// Returns true when the directory was removed (or was already gone); false when its files are locked
+    /// (a running session). Best-effort; never throws.
+    /// </summary>
+    public static bool RemoveListedSession(string sessionId) {
+        if (string.IsNullOrWhiteSpace(sessionId)) {
+            return false;
+        }
+        string name = sessionId.Trim();
+        if (name.Contains(Path.DirectorySeparatorChar) || name.Contains(Path.AltDirectorySeparatorChar)
+            || name is ".." or ".") {
+            AgentRuntime.Audit("delete-session", $"REJECTED; '{name}' is not a plain session directory name");
+            return false;
+        }
+        string dir = Path.Combine(SessionsRoot, name);
+        string fullRoot = Path.GetFullPath(SessionsRoot).TrimEnd(Path.DirectorySeparatorChar);
+        string fullDir = Path.GetFullPath(dir);
+        if (!fullDir.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) {
+            AgentRuntime.Audit("delete-session", $"REJECTED; '{name}' resolves outside the sessions root");
+            return false;
+        }
+        if (!Directory.Exists(dir)) {
+            return true; // already gone; idempotent
+        }
+        bool ok = TryDeleteDirectory(dir);
+        AgentRuntime.Audit("delete-session", ok ? $"{name}; removed by operator ({dir})" : $"{name}; could not delete (in use?) {dir}");
         return ok;
     }
 

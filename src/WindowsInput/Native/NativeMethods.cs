@@ -10,7 +10,7 @@ public static class NativeMethods {
     /// <summary>
     /// The GetAsyncKeyState function determines whether a key is up or down at the time the function is called, and whether the key was pressed after a previous call to GetAsyncKeyState. (See: http://msdn.microsoft.com/en-us/library/ms646293(VS.85).aspx)
     /// </summary>
-    /// <param name="VK">Specifies one of 256 possible virtual-key codes. For more information, see Virtual Key Codes. Windows NT/2000/XP: You can use left- and right-distinguishing constants to specify certain keys. See the Remarks section for further information.</param>
+    /// <param name="vk">Specifies one of 256 possible virtual-key codes. For more information, see Virtual Key Codes. Windows NT/2000/XP: You can use left- and right-distinguishing constants to specify certain keys. See the Remarks section for further information.</param>
     /// <returns>
     /// If the function succeeds, the return value specifies whether the key was pressed since the last call to GetAsyncKeyState, and whether the key is currently up or down. If the most significant bit is set, the key is down, and if the least significant bit is set, the key was pressed after the previous call to GetAsyncKeyState. However, you should not rely on this last behavior; for more information, see the Remarks. 
     /// 
@@ -43,12 +43,12 @@ public static class NativeMethods {
     /// These left- and right-distinguishing constants are only available when you call the GetKeyboardState, SetKeyboardState, GetAsyncKeyState, GetKeyState, and MapVirtualKey functions. 
     /// </remarks>
     [DllImport("user32.dll", SetLastError = true)]
-    internal static extern Int16 GetAsyncKeyState(UInt16 VK);
+    internal static extern Int16 GetAsyncKeyState(UInt16 vk);
 
     /// <summary>
     /// The GetKeyState function retrieves the status of the specified virtual key. The status specifies whether the key is up, down, or toggled (on, off alternating each time the key is pressed). (See: http://msdn.microsoft.com/en-us/library/ms646301(VS.85).aspx)
     /// </summary>
-    /// <param name="VK">
+    /// <param name="vk">
     /// Specifies a virtual key. If the desired virtual key is a letter or digit (A through Z, a through z, or 0 through 9), nVirtKey must be set to the ASCII value of that character. For other keys, it must be a virtual-key code. 
     /// If a non-English keyboard layout is used, virtual keys with values in the range ASCII A through Z and 0 through 9 are used to specify most of the character keys. For example, for the German keyboard layout, the virtual key of value ASCII O (0x4F) refers to the "o" key, whereas VK_OEM_1 refers to the "o with umlaut" key.
     /// </param>
@@ -72,7 +72,7 @@ public static class NativeMethods {
     /// These left- and right-distinguishing constants are available to an application only through the GetKeyboardState, SetKeyboardState, GetAsyncKeyState, GetKeyState, and MapVirtualKey functions. 
     /// </remarks>
     [DllImport("user32.dll", SetLastError = true)]
-    internal static extern Int16 GetKeyState(UInt16 VK);
+    internal static extern Int16 GetKeyState(UInt16 vk);
 
     /// <summary>
     /// The SendInput function synthesizes keystrokes, mouse motions, and button clicks.
@@ -101,7 +101,7 @@ public static class NativeMethods {
     /// Retrieves the name of the class to which the specified window belongs.
     /// </summary>
     /// <param name="hWnd">A handle to the window and, indirectly, the class to which the window belongs.</param>
-    /// <param name="lpClassName">The class name string.</param>
+    /// <param name="buf">The buffer that receives the class name string.</param>
     /// <param name="nMaxCount">The length of the lpClassName buffer, in characters. The buffer must be large enough to include the terminating null character; otherwise, the class name string is truncated to nMaxCount-1 characters.</param>
     /// <returns>If the function succeeds, the return value is the number of characters copied to the buffer, not including the terminating null character. If the function fails, the return value is zero. To get extended error information, call GetLastError function.</returns>
     // #210: returns int (the copied character count), not IntPtr; the old IntPtr declaration was
@@ -113,7 +113,7 @@ public static class NativeMethods {
     ///     Retrieves a handle to the top-level window whose class name and window name match the specified strings. This
     ///     function does not search child windows. This function does not perform a case-sensitive search. To search child
     ///     windows, beginning with a specified child window, use the
-    ///     <see cref="!:https://msdn.microsoft.com/en-us/library/windows/desktop/ms633500%28v=vs.85%29.aspx">FindWindowEx</see>
+    ///     <see href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms633500%28v=vs.85%29.aspx">FindWindowEx</see>
     ///     function.
     ///     <para>
     ///     Go to https://msdn.microsoft.com/en-us/library/windows/desktop/ms633499%28v=vs.85%29.aspx for FindWindow
@@ -141,14 +141,14 @@ public static class NativeMethods {
     ///     <para>To get extended error information, call GetLastError.</para>
     /// </returns>
     /// <remarks>
-    ///     If the lpWindowName parameter is not NULL, FindWindow calls the <see cref="M:GetWindowText" /> function to
+    ///     If the lpWindowName parameter is not NULL, FindWindow calls the <c>GetWindowText</c> function to
     ///     retrieve the window name for comparison. For a description of a potential problem that can arise, see the Remarks
-    ///     for <see cref="M:GetWindowText" />.
+    ///     for <c>GetWindowText</c>.
     /// </remarks>
     // #210: explicit CharSet.Unicode; the previous declaration defaulted to ANSI marshaling, so
     // window-title matching went through the lossy A entry point.
+    // lpClassName is nullable at the Win32 level (NULL matches any class), so the declaration
+    // says so; callers pass null instead of null!.
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    internal static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-    // You can also call FindWindow(default(string), lpWindowName) or FindWindow((string)null, lpWindowName)
+    internal static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
 }

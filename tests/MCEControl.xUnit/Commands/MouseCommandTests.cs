@@ -11,6 +11,8 @@ public class MouseCommandTests
     [Fact]
     public void BuiltInCommands_ContainsDrag()
     {
+        // Asserting the callback parameter IS the point; the delegate signature is fixed (both sites).
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         Assert.Contains(MouseCommand.BuiltInCommands, c => c.Cmd == "mouse:drag,x1,y1,x2,y2");
     }
 
@@ -18,6 +20,7 @@ public class MouseCommandTests
     public void BuiltInCommands_ContainsPixelMove()
     {
         // mtp is the absolute-screen-pixel move added for the agent's observe->act loop (#122).
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         Assert.Contains(MouseCommand.BuiltInCommands, c => c.Cmd == "mouse:mtp,x,y");
     }
 
@@ -44,7 +47,7 @@ public class MouseCommandTests
         List<(int X, int Y)>? points = MouseCommand.ParseCoordinatePairs(param, 1);
 
         Assert.NotNull(points);
-        Assert.Equal(expectedCount, points!.Count);
+        Assert.Equal(expectedCount, points.Count);
     }
 
     [Fact]

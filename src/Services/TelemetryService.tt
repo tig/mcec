@@ -11,6 +11,6 @@
 // 
 namespace MCEControl {
     public partial class TelemetryService {
-        public const string Key = "<#= id #>";
+        private const string Key = "<#= id #>";
    }
 }

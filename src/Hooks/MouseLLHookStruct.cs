@@ -3,6 +3,9 @@
 
 using System.Runtime.InteropServices;
 
+// "LL" mirrors the Win32 MSLLHOOKSTRUCT/WH_MOUSE_LL naming this struct is the managed projection of.
+// ReSharper disable InconsistentNaming
+
 namespace MCEControl.Hooks;
 
 /// <summary>

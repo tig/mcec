@@ -84,7 +84,7 @@ public class GifRecorderTests {
             // The failure reason must still be fetchable by a later stop; and fetching releases it.
             RecordingResult? result = GifRecorder.Stop();
             Assert.NotNull(result);
-            Assert.Contains("boom-grab", result!.Error);
+            Assert.Contains("boom-grab", result.Error);
             Assert.False(GifRecorder.HasCompletedRecording);
         }
         finally {
@@ -126,7 +126,7 @@ public class GifRecorderTests {
 
             RecordingResult? result = GifRecorder.Stop();
             Assert.NotNull(result);
-            Assert.Equal(3, result!.Frames);
+            Assert.Equal(3, result.Frames);
             Assert.NotEmpty(result.Gif);
             Assert.True(result.DurationMs <= completedAtMs + 250,
                 $"DurationMs {result.DurationMs} kept counting after auto-stop (completed at ~{completedAtMs} ms)");
@@ -156,7 +156,7 @@ public class GifRecorderTests {
             // Stop returns the NEW recording; the discarded one is gone (only one fetch total).
             RecordingResult? result = GifRecorder.Stop();
             Assert.NotNull(result);
-            Assert.Equal("second", result!.Target?["tag"]?.GetValue<string>());
+            Assert.Equal("second", result.Target?["tag"]?.GetValue<string>());
             Assert.Null(GifRecorder.Stop());
         }
         finally {

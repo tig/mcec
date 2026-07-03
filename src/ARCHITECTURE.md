@@ -8,53 +8,39 @@ MCEC is a Windows desktop application built on .NET 10 (WinForms) that enables r
 
 ## High-Level Architecture
 
-```
-???????????????????????????????????????????????????????????????????
-?                         MainWindow (UI)                         ?
-?                     (Singleton, WinForms)                       ?
-???????????????????????????????????????????????????????????????????
-            ?                                     ?
-            ?? Settings (AppSettings)            ?
-            ?? Logging (Logger)                  ?
-            ?? Telemetry (TelemetryService)      ?
-            ?? Updates (UpdateService)            ?
-                                                  ?
-    ?????????????????????????????????????????????????????????????????
-    ?         Communication Services            ?    Command Engine ?
-    ?????????????????????????????????????????????????????????????????
-            ?                                             ?
-    ?????????????????????????????????????????   ???????????????????
-    ?              ?          ?             ?   ?                 ?
-??????????  ???????????  ????????????  ??????????????  ???????????????????
-? Socket ?  ? Socket  ?  ?  Serial  ?  ?  Activity  ?  ?  CommandInvoker ?
-? Server ?  ? Client  ?  ?  Server  ?  ?  Monitor   ?  ?   (Hashtable)   ?
-??????????  ???????????  ????????????  ??????????????  ???????????????????
-    ?            ?             ?              ?                  ?
-    ?            ?             ?              ?         ???????????????????
-    ?????????????????????????????????????????????????????  Command Queue  ?
-                                               ?         ? (Concurrent)    ?
-                  Receives Command Strings     ?         ???????????????????
-                                               ?                  ?
-                                               ?         ???????????????????
-                                               ?         ?   ICommand      ?
-                                               ?         ?  Execution      ?
-                                               ?         ???????????????????
-                                               ?                  ?
-                   ????????????????????????????????????????????????
-                   ?                           ?
-        ?????????????????????         ?????????????????????
-        ?  Windows Input    ?         ?  Command Types    ?
-        ?   Simulation      ?         ?????????????????????
-        ?????????????????????                  ?
-                 ?                    ?????????????????????????
-        ???????????????????          ?                       ?
-        ?  WindowsInput   ?    SendInputCommand      StartProcessCommand
-        ?   Library       ?    SendMessageCommand    MouseCommand
-        ?                 ?    CharsCommand          ShutdownCommand
-        ? - Keyboard      ?    PauseCommand          McecCommand
-        ? - Mouse         ?    SetForegroundWindow   (user-defined)
-        ? - InputBuilder  ?
-        ???????????????????
+```mermaid
+flowchart TB
+    MW["MainWindow (UI)<br/>Singleton, WinForms"]
+    MW --> Settings["Settings (AppSettings)"]
+    MW --> Logging["Logging (Logger)"]
+    MW --> Telemetry["Telemetry (TelemetryService)"]
+    MW --> Updates["Updates (UpdateService)"]
+
+    MW --> CommServices["Communication Services"]
+    MW --> CmdEngine["Command Engine"]
+
+    CommServices --> SockServer["SocketServer"]
+    CommServices --> SockClient["SocketClient"]
+    CommServices --> SerialServer["SerialServer"]
+    CommServices --> ActivityMonitor["UserActivityMonitorService"]
+
+    SockServer -- "receives command strings" --> Invoker
+    SockClient -- "receives command strings" --> Invoker
+    SerialServer -- "receives command strings" --> Invoker
+    ActivityMonitor -- "receives command strings" --> Invoker
+
+    CmdEngine --> Invoker["CommandInvoker<br/>(command table + dispatcher thread)"]
+    Invoker --> Queue["Execute Queue<br/>(single dispatcher thread, #195)"]
+    Queue --> ICommandExec["ICommand.Execute()"]
+
+    ICommandExec --> CommandTypes["Command Types"]
+    ICommandExec --> WinInput["Windows Input Simulation"]
+
+    CommandTypes --> C1["SendInputCommand / CharsCommand / MouseCommand"]
+    CommandTypes --> C2["StartProcessCommand / SendMessageCommand"]
+    CommandTypes --> C3["ShutdownCommand / McecCommand / (user-defined)"]
+
+    WinInput --> InputSim["InputSimulator (WindowsInput library)"]
 ```
 
 ## Core Components
@@ -94,7 +80,7 @@ All services inherit from `ServiceBase` which provides:
 - Supports multiple concurrent clients
 - Each client gets a unique ServerReplyContext
 - Optional "wakeup" command broadcasting on startup/shutdown
-- Thread-per-client model for handling connections
+- Asynchronous (APM) accept/receive: `BeginAccept`/`BeginReceive` callbacks, not a thread per client
 
 #### 2.2 SocketClient
 **Location**: `Services\SocketClient.cs`
@@ -199,7 +185,7 @@ All commands are located in the `Commands\` directory:
 > (`AppSettings.AgentCommandsEnabled`, separate from the actuation enable), bind to localhost
 > only, and loudly audit-log every action. The engine reaches settings/invoker through the
 > UI-agnostic `AgentRuntime` seam so it runs headless (no `MainWindow`). See
-> [`docs/agent-server.md`](../docs/agent-server.md) (users) and
+> [`docs/environment-controller.md`](../docs/environment-controller.md) (users) and
 > [`docs/agent-server-architecture.md`](../docs/agent-server-architecture.md) (devs).
 
 **Nested Commands**:
@@ -219,16 +205,12 @@ Commands can contain embedded commands that execute after the parent completes. 
 **Purpose**: Low-level keyboard and mouse input simulation using Win32 SendInput API
 
 **Architecture**:
-```
-InputSimulator (facade)
-    ??? KeyboardSimulator
-    ??? MouseSimulator
-    ??? InputBuilder
-            ??? Native Win32 Interop
-                ??? INPUT structures
-                ??? KEYBDINPUT
-                ??? MOUSEINPUT
-                ??? SendInput() API
+```mermaid
+flowchart LR
+    IS["InputSimulator (facade)"] --> KS["KeyboardSimulator"]
+    IS --> MS["MouseSimulator"]
+    IS --> IB["InputBuilder"]
+    IB --> NI["Native Win32 Interop<br/>INPUT / KEYBDINPUT / MOUSEINPUT / SendInput()"]
 ```
 
 **Key Components**:
@@ -338,67 +320,18 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
 
 ### Incoming Command Flow
 
-```
-1. Network/Serial Input
-   ?? SocketServer receives text
-   ?? SocketClient receives text
-   ?? SerialServer receives text
-         ?
-         ?
-2. MainWindow.ReceivedData(Reply, String)
-   - Producer-only: enqueues on the transport's thread (no UI marshaling)
-         ?
-         ?
-3. CommandInvoker.Enqueue(Reply, String)
-   - Parses command string
-   - Looks up Command in hashtable
-   - Clones Command with Reply context
-   - Enqueues to the dispatcher's queue
-   - Recursively enqueues embedded commands
-         ?
-         ?
-4. CommandInvoker dispatcher thread (#195)
-   - The ONLY consumer of the queue (one long-running background thread per invoker)
-   - Calls Command.Execute() under AgentRuntime.InputGate (no interleaving with agent drag)
-   - Per-command try/catch (a throwing command can't strand the queue)
-   - Drops the queue when the emergency stop (#135) is engaged
-   - Applies command pacing (Thread.Sleep on the dispatcher thread)
-         ?
-         ?
-5. Command.Execute() Implementation
-   - Checks Enabled flag
-   - Tracks telemetry
-   - Performs command-specific action
-   - Uses Reply context for responses
-         ?
-         ?
-6. Windows API / Process Execution
-   - SendInput() for keyboard/mouse
-   - PostMessage() for window messages
-   - Process.Start() for applications
-   - System shutdown APIs
-```
+1. **Network/Serial Input**: SocketServer, SocketClient, or SerialServer receives text.
+2. **`MainWindow.ReceivedData(Reply, String)`**: producer-only, enqueues on the transport's own thread (no UI marshaling).
+3. **`CommandInvoker.Enqueue(Reply, String)`**: parses the command string, looks up the `Command` in the hashtable, clones it with the `Reply` context, enqueues it to the dispatcher's queue, and recursively enqueues any embedded commands.
+4. **`CommandInvoker` dispatcher thread (#195)**: the ONLY consumer of the queue (one long-running background thread per invoker). Calls `Command.Execute()` under `AgentRuntime.InputGate` (so it never interleaves with an agent `drag`), wraps each command in a per-command try/catch (a throwing command can't strand the queue), drops the queue when the emergency stop (#135) is engaged, and applies command pacing (`Thread.Sleep` on the dispatcher thread, not the UI thread).
+5. **`Command.Execute()`**: checks the `Enabled` flag, tracks telemetry, performs the command-specific action, and uses the `Reply` context for responses.
+6. **Windows API / Process Execution**: `SendInput()` for keyboard/mouse, `PostMessage()` for window messages, `Process.Start()` for applications, or a system shutdown API.
 
 ### Activity Monitoring Flow
 
-```
-1. MCEControl.Hooks.HookManager (Global Hooks)
-   - Mouse/keyboard events
-   - Session change events
-   - Power management events
-         ?
-         ?
-2. UserActivityMonitorService
-   - Debounces events
-   - Generates activity command string
-         ?
-         ?
-3. MainWindow.ReceivedData()
-   - Routes to CommandInvoker
-         ?
-         ?
-4. [Same as Incoming Command Flow from step 3]
-```
+1. **`MCEControl.Hooks.HookManager`** (global hooks): mouse/keyboard events, session change events, power management events.
+2. **`UserActivityMonitorService`**: debounces events and generates the configured activity command string.
+3. **`MainWindow.ReceivedData()`**: routes it to `CommandInvoker`, same as step 3 of the Incoming Command Flow above.
 
 ## Configuration Files
 
@@ -407,7 +340,6 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
 | `mcec.settings` | XML | Application settings (serialized AppSettings) |
 | `mcec.commands` | XML | User-defined and enabled built-in commands |
 | `mcec.log` | Text | Log4net output |
-| `version.txt` | Text | Build version (incremented by T4 template) |
 | `app.manifest` | XML | Windows UAC and compatibility settings |
 
 **File Locations**:
@@ -426,7 +358,7 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
 ## Threading Model
 
 - **UI Thread**: MainWindow, all WinForms controls
-- **Worker Threads**: Each SocketServer client connection, SocketClient connection
+- **SocketServer/SocketClient**: no thread per connection. `SocketServer` uses APM callbacks (`BeginAccept`/`BeginReceive`, thread-pool-dispatched); `SocketClient` runs one `async Task RunAsync` per `Start()` (#212).
 - **Command Execution (#195)**: on the CommandInvoker's own long-running dispatcher thread; the ONLY consumer of the execute queue. All producers (TCP/serial/client via `MainWindow.ReceivedData`, the agent's `send_command`, activity monitoring) enqueue only; nothing else dequeues. The dispatcher wraps each `Execute()` in try/catch, honors the emergency-stop latch between commands, sleeps `CommandPacing` on its own thread (a paced macro no longer freezes the UI), and starts lazily on the first enqueue / stops via `Shutdown()` (settings reload, app exit). Commands that must touch UI marshal internally (e.g. `MainWindow.ShutDown()` BeginInvokes itself); SendInput/PostMessage/Process.Start are thread-agnostic.
 - **Input serialization (#113/#195)**: `AgentRuntime.InputGate` is the single gate over the one physical input stream. The dispatcher holds it around each queued command's `Execute`; the agent's `drag` tool holds it while actuating a gesture on an MCP worker; so queue-driven synthetic input and drag gestures never interleave. It is a leaf lock: never acquire another lock or wait on the queue while holding it.
 - **Activity Hooks**: WH_KEYBOARD_LL/WH_MOUSE_LL hooks (HookManager) install on the UI thread; there is no dedicated pump thread. Hook callbacks are enqueue-and-return (#198): only debounce/latch logic runs in the hook proc; heavy work (logging, telemetry, socket/serial sends) is posted off the callback path so the proc can never exceed `LowLevelHooksTimeout` (which would get the hook silently evicted)
@@ -437,8 +369,8 @@ CodeProject sample) because it is load-bearing for the emergency stop; only the 
 - **Target**: .NET 10 (net10.0-windows)
 - **UI Framework**: Windows Forms
 - **Project Type**: WinExe
-- **T4 Templates**: 
-  - `AssemblyFileVersion.tt` - Auto-increments build number in `version.txt`
+- **Versioning**: [GitVersion](https://gitversion.net/) (`GitVersion.yml`) stamps dev/CI builds from the nearest tag; `Release.ps1` stamps release builds from the pushed tag directly (see `src/README.md`)
+- **T4 Templates**:
   - `TelemetryService.tt` - Generates Application Insights key placeholder
 - **Installer**: NSIS (Nullsoft Scriptable Install System)
 - **Unit Tests**: xUnit framework in `MCEControl.xUnit` project
