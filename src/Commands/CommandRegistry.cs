@@ -51,6 +51,7 @@ public static class CommandRegistry {
         new("launch", typeof(LaunchCommand), () => LaunchCommand.BuiltInCommands),
         new("click", typeof(ClickCommand), () => ClickCommand.BuiltInCommands),
         new("displays", typeof(DisplaysCommand), () => DisplaysCommand.BuiltInCommands),
+        new("clipboard", typeof(ClipboardCommand), () => ClipboardCommand.BuiltInCommands),
         new("record", typeof(RecordCommand), () => RecordCommand.BuiltInCommands),
     ];
 

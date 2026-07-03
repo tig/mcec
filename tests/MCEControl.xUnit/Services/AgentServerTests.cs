@@ -135,6 +135,7 @@ public class AgentServerTests {
         Assert.Contains("record", names);
         Assert.Contains("drag", names);
         Assert.Contains("click", names);
+        Assert.Contains("clipboard", names);
         Assert.Contains("send_command", names);
     }
 

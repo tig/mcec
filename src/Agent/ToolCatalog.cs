@@ -154,6 +154,17 @@ public static class ToolCatalog {
             Tersify = args => $"click {CommandTersifier.Endpoint(args, "at")}",
             ProvisionedByDefault = true,
         },
+        new ToolDescriptor {
+            Name = "clipboard",
+            BuildSchema = BuildClipboardSchema,
+            BuildCommand = args => new ClipboardCommand {
+                Action = Str(args, "action")!,
+                Text = Str(args, "text")!,
+            },
+            CreateCommandInstance = () => new ClipboardCommand(),
+            Tersify = args => $"clipboard {CommandTersifier.Arg(args, "action") ?? "?"}",
+            ProvisionedByDefault = true,
+        },
         new() {
             Name = "record",
             BuildSchema = BuildRecordSchema,
@@ -285,6 +296,16 @@ public static class ToolCatalog {
         return Tool("click",
             "Click at a point; an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
             clickProps, ["at"]);
+    }
+
+    private static JsonObject BuildClipboardSchema() {
+        JsonObject clipboardProps = new() {
+            ["action"] = PropSchema("string", "set | get"),
+            ["text"] = PropSchema("string", "Text to set (required for action=set)"),
+        };
+        return Tool("clipboard",
+            "Read or write the system text clipboard. Use set before pasting a path into a system file dialog filename field (Ctrl+V).",
+            clipboardProps, ["action"]);
     }
 
     private static JsonObject BuildRecordSchema() {

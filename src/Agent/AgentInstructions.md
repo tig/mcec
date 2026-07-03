@@ -54,9 +54,16 @@ bounds. To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map
 pixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
 absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and `count`
 (2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items;
-it doesn't depend on the control being on-screen and unobscured. `send_command` sends any other raw MCEC
-command (keystrokes, single mouse actions, launch); the raw `mouse:drag,x1,y1,x2,y2[,...]` is the same
-atomic drag in pixels and `mouse:mtp,x,y` moves the pointer to an absolute screen pixel.
+it doesn't depend on the control being on-screen and unobscured. System file dialogs (Open, Save Print
+Output As) are separate windows; `wait-for`/`query` by title, reuse the returned `handle`, and act on that
+target (don't assume the dialog shares the app's process). They often have no UIA-settable filename field;
+`clipboard { action:set, text:… }` then Ctrl+V and Enter, or `send_command chars:<path>` with every Windows
+backslash doubled (`C:\\folder\\file.ext`). Click the filename field first when paste fails. `send_command`
+sends any other raw MCEC command (keystrokes, single mouse actions, launch); the raw
+`mouse:drag,x1,y1,x2,y2[,...]` is the same atomic drag in pixels and `mouse:mtp,x,y` moves the pointer to
+an absolute screen pixel. If `invoke`/`click` by name returns `no-target`, `query` the tree: WinUI/MAUI
+labels often include emoji and ellipsis; click a control's bounds centre from `query` instead of guessing a
+plain name.
 
 4. VERIFY with another `query` or `capture`; always confirm the act had the intended effect.
 
@@ -95,11 +102,19 @@ started is refused the same way. (Note the hyphen: the tools are `session-start`
 `session-end`.) This is separate from `provision-session`, which hands you a whole disposable MCEC INSTALL
 (see PROVISION), not an in-process session.
 
-COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. Launch
-an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter` (the new window is foreground: `query {foreground}` for its handle). Use `invoke` with `action: "select"` for tabs/list items/radios. 
+COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. When
+injected keystrokes must reach Start/search or the bare desktop, first show the desktop (Win+D) or `click` an
+open desktop pixel; IDE/terminal shells otherwise swallow them. Launch
+an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D. Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
-`query`ing its bounds and passing them as the `record` region. Wait for a window by polling `query` until
-it appears. Reach for a raw `send_command` before giving up.
+`query`ing its bounds and passing them as the `record` region; use a **desktop region** when Start/search
+and system dialogs must stay visible. Repeatable demos that write a known output file: harness/operator
+prep deletes the prior file before the run; after opening it in a viewer, dismiss with Alt+F4 so the next
+run's delete succeeds (PDF viewers often keep the file locked). Customer 1 (WinPrint hero, issue #84):
+harness removes prior `winprintdemo.pdf` → disposable MCEC session (#138) → record region → Start Menu
+WinPrint → file tour → Print to PDF → open PDF → close viewer; see `docs/winprint-hero-gif.md`. Run from
+winprint repo; installed MCEC (`winget install Kindel.mcec`); operator ensures WinPrint is installed. Wait
+for a window by polling `query` until it appears. Reach for a raw `send_command` before giving up.
 
 CONCURRENCY: observation (`query`/`capture`/`find`/`wait-for`/`record`) runs concurrently and never blocks
 another call; a long `wait-for` won't stall a `capture`, and `invoke` returns promptly even if it opens a
@@ -158,7 +173,7 @@ session from any window. If ANY tool returns `error.code:emergency-stopped` (the
 `error.category` stays `internal`), the operator has engaged it and deliberately halted you; STOP
 immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
-SECURITY: the agent tools (capture/query/displays/find/wait-for/invoke/record/launch/drag/click, and the
+SECURITY: the agent tools (capture/query/displays/find/wait-for/invoke/record/launch/drag/click/clipboard, and the
 session-start/session-status/session-end lifecycle) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error; surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is

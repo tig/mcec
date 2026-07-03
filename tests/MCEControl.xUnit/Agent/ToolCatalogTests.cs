@@ -16,9 +16,9 @@ namespace MCEControl.xUnit.Agent;
 /// </summary>
 [Collection("AgentSerial")]
 public class ToolCatalogTests {
-    /// <summary>The ten gated agent tools, in the order tools/list advertises them. Pinned by name.</summary>
+    /// <summary>The eleven gated agent tools, in the order tools/list advertises them. Pinned by name.</summary>
     private static readonly string[] _catalogNames = [
-        "capture", "query", "displays", "find", "wait-for", "invoke", "drag", "click", "record", "launch",
+        "capture", "query", "displays", "find", "wait-for", "invoke", "drag", "click", "clipboard", "record", "launch",
     ];
 
     /// <summary>The meta-tools that are deliberately NOT in the catalog (no 1:1 Command mapping), in tools/list order.</summary>
@@ -117,7 +117,7 @@ public class ToolCatalogTests {
         }
         // SessionProvisioner.DefaultCommands is derived from the catalog; pin the exact historical set.
         Assert.Equal(
-            ["capture", "query", "displays", "find", "wait-for", "invoke", "drag", "click", "record"],
+            ["capture", "query", "displays", "find", "wait-for", "invoke", "drag", "click", "clipboard", "record"],
             SessionProvisioner.DefaultCommands);
     }
 
@@ -132,6 +132,7 @@ public class ToolCatalogTests {
             ["invoke"] = typeof(InvokeCommand),
             ["drag"] = typeof(DragCommand),
             ["click"] = typeof(ClickCommand),
+            ["clipboard"] = typeof(ClipboardCommand),
             ["record"] = typeof(RecordCommand),
             ["launch"] = typeof(LaunchCommand),
         };
