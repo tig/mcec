@@ -66,4 +66,41 @@ public class DragCommandTests {
             AgentRuntime.Settings = null;
         }
     }
+
+    // #262 review (Copilot): a two-endpoint drag must name WHICH end failed in the detail for EVERY
+    // failure category, not only the not-found path. Before the fix, ambiguous/stale/elevation
+    // failures came straight from the shared UiaFindFailureFor mapper with no "Drag start"/"Drag end"
+    // prefix, contradicting TryResolvePoint's doc comment. LabelEndpoint is the shared prefixing step.
+
+    [Theory]
+    [InlineData("Drag start")]
+    [InlineData("Drag end")]
+    public void LabelEndpoint_PrefixesDetail_WhilePreservingCodeAndCategory(string endpoint) {
+        CommandResult raw = CommandResult.Fail(
+            "drag", "The selector (name='OK') matched 3 elements; refusing to guess which one.",
+            "selector-matched-3", "ambiguous-selector");
+
+        CommandResult labeled = DragCommand.LabelEndpoint(endpoint, raw);
+
+        Assert.False(labeled.Success);
+        Assert.StartsWith(endpoint + ":", labeled.Error);
+        Assert.Contains("matched 3 elements", labeled.Error);      // original detail retained
+        Assert.Equal("selector-matched-3", labeled.ErrorCode);     // code/category untouched
+        Assert.Equal("ambiguous-selector", labeled.ErrorCategory);
+    }
+
+    [Theory]
+    // Every classified endpoint failure keeps its taxonomy AND gains the endpoint label.
+    [InlineData("window-closed", "stale-element")]
+    [InlineData("target-elevated", "elevation")]
+    [InlineData("element-not-found", "no-target")]
+    public void LabelEndpoint_AppliesToEveryCategory(string code, string category) {
+        CommandResult raw = CommandResult.Fail("drag", "detail text", code, category);
+
+        CommandResult labeled = DragCommand.LabelEndpoint("Drag end", raw);
+
+        Assert.StartsWith("Drag end:", labeled.Error);
+        Assert.Equal(code, labeled.ErrorCode);
+        Assert.Equal(category, labeled.ErrorCategory);
+    }
 }

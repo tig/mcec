@@ -81,7 +81,9 @@ public class DragCommand : WindowTargetingAgentCommand {
     /// bounds) when <paramref name="value"/> is set, else the literal (<paramref name="x"/>,
     /// <paramref name="y"/>). Returns false with a structured <paramref name="failure"/> when an
     /// element endpoint has no window or can't be resolved (not found, ambiguous, stale window,
-    /// elevated target; #261); <paramref name="endpoint"/> names which end failed in the detail.
+    /// elevated target; #261). <paramref name="endpoint"/> ("Drag start"/"Drag end") is prefixed onto
+    /// the detail of EVERY failure category (via <see cref="LabelEndpoint"/>) so a two-endpoint drag
+    /// always says which end failed (#262 review).
     /// </summary>
     private static bool TryResolvePoint(IntPtr hwnd, string by, string value, int x, int y, string endpoint, string cmd, out (int X, int Y) point, out CommandResult? failure) {
         failure = null;
@@ -91,23 +93,34 @@ public class DragCommand : WindowTargetingAgentCommand {
         }
         if (hwnd == IntPtr.Zero) {
             point = default;
-            failure = CommandResult.Fail(cmd, $"{endpoint}: element endpoint requires a target window", "element-not-found", "no-target");
+            failure = LabelEndpoint(endpoint, CommandResult.Fail(cmd, "element endpoint requires a target window", "element-not-found", "no-target"));
             return false;
         }
         string effectiveBy = string.IsNullOrEmpty(by) ? "name" : by;
         UiaFindOutcome outcome = UiaService.Find(hwnd, effectiveBy, value, FindTimeoutMs);
-        failure = UiaFindFailureFor(cmd, effectiveBy, value, outcome);
-        if (failure is null && outcome.Element is null) {
-            failure = CommandResult.Fail(cmd, $"{endpoint}: element not found ({effectiveBy}='{value}')", "element-not-found", "no-target");
-        }
-        if (failure is not null) {
+        CommandResult? raw = UiaFindFailureFor(cmd, effectiveBy, value, outcome)
+            ?? (outcome.Element is null
+                ? CommandResult.Fail(cmd, $"element not found ({effectiveBy}='{value}')", "element-not-found", "no-target")
+                : null);
+        if (raw is not null) {
             point = default;
+            failure = LabelEndpoint(endpoint, raw);
             return false;
         }
         UiaElementInfo el = outcome.Element!;
         point = (el.X + (el.Width / 2), el.Y + (el.Height / 2));
         return true;
     }
+
+    /// <summary>
+    /// Prefixes an endpoint label ("Drag start"/"Drag end") onto a resolution failure's detail so a
+    /// two-endpoint drag reports WHICH end failed, uniformly across every failure category (#262
+    /// review). Rebuilds the result because <see cref="CommandResult.Error"/> is init-only; code,
+    /// category, and any carried data are preserved. Internal so the mapping is unit-testable without
+    /// a live UIA tree.
+    /// </summary>
+    internal static CommandResult LabelEndpoint(string endpoint, CommandResult failure) =>
+        CommandResult.Fail(failure.Command!, $"{endpoint}: {failure.Error}", failure.ErrorCode!, failure.ErrorCategory!, failure.Data);
 
     /// <summary>Parses <c>x,y;x,y;...</c> intermediate waypoints; skips malformed pairs.</summary>
     private static List<(int X, int Y)> ParsePath(string? spec) {

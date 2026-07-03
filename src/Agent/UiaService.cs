@@ -42,6 +42,14 @@ public static class UiaService {
     /// missing element must fail fast (no-target) rather than be misreported as a pending modal (#107).
     /// Agents are instructed to <c>wait-for</c>/<c>find</c> a control before acting on it, so invoke does
     /// not need a long implicit wait of its own.
+    ///
+    /// <para>#262 review (Codex P2): the lookup enumerates matches with <c>FindAllDescendants</c> to
+    /// detect an ambiguous selector, so a found lookup no longer early-exits on the first match. The
+    /// exposure is bounded: the poll loop returns the instant a scan finds any match, so the found
+    /// (and found-ambiguous) case is a SINGLE scan; the not-found case polls, but <c>FindFirst</c>
+    /// already had to walk the whole subtree to conclude "none," so its worst-case latency is
+    /// unchanged. The grace must clear this timeout by more than one scan can take on a large tree;
+    /// the margin is pinned by <c>InvokeFindTimeout_StaysBelowModalGrace...</c>.</para>
     /// </summary>
     public const int InvokeFindTimeoutMs = 500;
 
