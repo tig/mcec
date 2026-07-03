@@ -2,42 +2,52 @@
 <html lang="{{ site.lang | default: "en-US" }}">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 {% seo %}
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
-    <script src="{{ '/assets/js/scale.fix.js' | relative_url }}"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="{{ '/assets/favicon.png' | relative_url }}" />
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <link rel="icon" type="image/png" href="{{ '/assets/favicon.png' | relative_url }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400&display=swap">
   </head>
   <body>
-    <div class="wrapper">
-      <header>
-        <img height="128" width="128" src="Guillen256x256.png">
-        <h1 class="header">{{ site.title | default: site.github.repository_name }}</h1>
-        <p class="header">{{ site.description | default: site.github.project_tagline }}</p>
+    <a class="skip-link" href="#content">Skip to content</a>
+    <div class="page">
+      <aside class="sidebar">
+        <a class="brand" href="{{ '/' | relative_url }}">
+          <img class="logo" src="{{ '/Guillen256x256.png' | relative_url }}" alt="" width="112" height="112">
+          <span class="title">{{ site.title | default: site.github.repository_name }}</span>
+        </a>
+        <p class="tagline">{{ site.description | default: site.github.project_tagline }}</p>
 
-        <ul>
-          {% for item in site.data.nav %}
-          <li class="{{ item.class }}"><a class="buttons {{ item.class }}" href="{{ item.url }}">{{ item.title }}</a></li>
-          {% endfor %}
-        </ul>
-        <p class="header">By <a class="header name" href="{{ site.github.owner_url }}">Tigger Kindel</a><br>
-          <a class="header name" href="https://twitter.com/tigkindel">@tigkindel on Twitter</a></p>
-        <footer>
-           <p><small><a href="http://www.kindel.com">Copyright © Kindel, LLC</a></small></p>
-           <p><small><a href="https://github.com/tig/mcec/blob/master/license.md">Licensed under the MIT License</a></small></p>
+        <nav aria-label="Documentation">
+          <ul>
+            {% assign here = page.url | remove_first: '/' %}
+            {% for item in site.data.nav %}
+            {% assign external = item.url | slice: 0, 4 %}
+            <li>
+              <a href="{{ item.url }}"
+                {%- if external != "http" and here == item.url %} class="btn is-active" aria-current="page"
+                {%- elsif here == "" and item.url == "index.html" %} class="btn is-active" aria-current="page"
+                {%- else %} class="btn"{% endif %}>{{ item.title }}{% if external == "http" %}<span class="ext" aria-hidden="true">&#8599;</span>{% endif %}</a>
+            </li>
+            {% endfor %}
+          </ul>
+        </nav>
+
+        <p class="byline">By <a href="{{ site.github.owner_url }}">Tigger Kindel</a><br>
+          <a href="https://twitter.com/tigkindel">@tigkindel</a></p>
+        <footer class="site-footer">
+          <a href="http://www.kindel.com">&copy; Kindel, LLC</a> &middot;
+          <a href="https://github.com/tig/mcec/blob/master/license.md">MIT License</a>
         </footer>
-      </header>
+      </aside>
 
-      <section>
+      <main class="content" id="content">
         {{ content }}
-      </section>
+      </main>
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+
     {% if site.google_analytics %}
       <script>
         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

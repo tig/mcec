@@ -1,125 +1,231 @@
 ---
 ---
 
-@import "{{ site.theme }}";
+@import "rouge-github";
 
-.svg-icon {
-    width: 16px;
-    height: 16px;
-    display: inline-block;
-    fill: currentColor;
-    padding: 5px 3px 2px 5px;
-    vertical-align: middle;
-  }
+/* ============================================================================
+   MCEC docs theme. A clean, responsive replacement for the 2009 Dinky theme;
+   same brand palette and fonts, modern layout (CSS grid, no fixed/overflow
+   hacks). Desktop: sidebar + content. Narrow: sidebar stacks on top and the
+   nav wraps. Nothing is ever clipped or overlapped.
+   ========================================================================== */
 
-body{
-    background-color: #fff7ed;
-    font-size: 11pt;
+:root {
+  --bg:            #fff7ed;   /* warm cream content background */
+  --text:          #232323;
+  --muted:         #5b5147;
+  --link:          #da4e00;   /* brand orange */
+  --link-hover:    #a83b00;
+  --rule:          #ffd1b4;
+
+  --sidebar-bg:    #c05a24;   /* burnt orange */
+  --sidebar-edge:  #943a08;
+  --sidebar-text:  #fdfdfb;
+
+  --btn-top:       #4a4a4a;
+  --btn-bottom:    #232323;
+  --btn-top-hover: #5c5c5c;
+  --btn-bottom-hover:#333;
+
+  --code-bg:       #ffe8d1;
+  --code-edge:     #ffd1b4;
+
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-head: "Arvo", Georgia, "Times New Roman", serif;
+  --font-mono: "Cascadia Code", ui-monospace, SFMono-Regular, Consolas, "Lucida Console", monospace;
+
+  --sidebar-w: 260px;
+  --content-w: 760px;
 }
 
-pre {
-    border: 1px solid #ffd1b4;
-    padding: 4px 12px;
-    border-radius: 4px;
-    overflow: auto;
-    overflow-y: hidden;
-    margin-bottom: 20px;
-    line-height: 1.5em;
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
 }
 
+a { color: var(--link); text-decoration: none; }
+a:hover { color: var(--link-hover); text-decoration: underline; }
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: #fff;
+  padding: .5rem 1rem;
+  border-radius: 0 0 4px 0;
+  z-index: 10;
+}
+.skip-link:focus { left: 0; }
+
+/* ---- Layout ---- */
+.page {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  gap: 2.5rem;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 1.75rem;
+  align-items: start;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+  background: var(--sidebar-bg);
+  border: 1px solid var(--sidebar-edge);
+  border-radius: 8px;
+  color: var(--sidebar-text);
+  padding: 1.5rem 1.25rem 1.25rem;
+  position: sticky;
+  top: 1.75rem;
+}
+.sidebar .brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+  color: #fff;
+  text-decoration: none;
+}
+.sidebar .brand:hover { text-decoration: none; }
+.sidebar .logo { width: 112px; height: auto; }
+.sidebar .title {
+  font-family: var(--font-head);
+  font-weight: 400;
+  font-size: 1.9rem;
+  line-height: 1.1;
+}
+.sidebar .tagline {
+  margin: .75rem 0 1.25rem;
+  font-size: .92rem;
+  line-height: 1.45;
+  color: #fff;
+  text-align: center;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: .5rem;
+}
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .4rem;
+  padding: .55rem .8rem;
+  border-radius: 5px;
+  background: linear-gradient(to top, var(--btn-bottom), var(--btn-top));
+  color: #fff;
+  font-size: .95rem;
+  text-decoration: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10);
+  border: 1px solid #0d0d0d;
+  transition: background .12s ease, transform .05s ease;
+}
+.btn:hover {
+  background: linear-gradient(to top, var(--btn-bottom-hover), var(--btn-top-hover));
+  color: #fff;
+  text-decoration: none;
+}
+.btn.is-active {
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.55);
+}
+.btn .ext { font-size: .8em; opacity: .8; }
+
+.sidebar .byline {
+  margin: 1.25rem 0 0;
+  font-size: .85rem;
+  color: #fff;
+}
+.sidebar .byline a { color: #fff; text-decoration: underline; }
+.site-footer {
+  margin-top: 1rem;
+  padding-top: .75rem;
+  border-top: 1px solid rgba(255,255,255,.25);
+  font-size: .78rem;
+}
+.site-footer a { color: #fff; text-decoration: underline; }
+
+/* ---- Content ---- */
+.content { min-width: 0; }
+.content > * { max-width: var(--content-w); }
+
+.content h1, .content h2, .content h3, .content h4, .content h5 {
+  font-family: var(--font-head);
+  line-height: 1.25;
+  margin: 2rem 0 .6rem;
+}
+.content h1 { font-weight: 400; font-size: 2rem; margin-top: .25rem; border-bottom: 1px solid var(--rule); padding-bottom: .3rem; }
+.content h2 { font-weight: 700; font-size: 1.5rem; border-bottom: 1px solid var(--rule); padding-bottom: .2rem; }
+.content h3 { font-weight: 700; font-size: 1.2rem; }
+.content p, .content ul, .content ol { margin: 0 0 1rem; }
+.content img { max-width: 100%; height: auto; }
+.content hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+.content blockquote {
+  margin: 1rem 0;
+  padding: .3rem 1rem;
+  border-left: 4px solid var(--sidebar-bg);
+  background: #fff;
+  color: var(--muted);
+}
+
+/* Tables scroll rather than overflow the column */
+.content table {
+  border-collapse: collapse;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0 0 1.25rem;
+}
+.content th, .content td { border: 1px solid var(--rule); padding: 6px 12px; text-align: left; }
+.content th { background: var(--code-bg); }
+
+/* Code */
 code {
-    font-family: "Cascadia Code", "Lucida Console", Terminal, monospace;
-    font-size: 10pt;
-    color: #000;
-    background: #ffe8d1;
-    border: 1px solid #ffd1b4;
-    border-radius: 2px;
-    padding: 0px 2px;
+  font-family: var(--font-mono);
+  font-size: .875em;
+  background: var(--code-bg);
+  border: 1px solid var(--code-edge);
+  border-radius: 3px;
+  padding: .1em .3em;
 }
-
-pre code {
-    border: unset;
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--code-edge);
+  border-radius: 6px;
+  padding: .85rem 1rem;
+  overflow-x: auto;
+  line-height: 1.5;
+  max-width: var(--content-w);
 }
+pre code { background: none; border: 0; padding: 0; font-size: .84rem; }
+.highlight { background: var(--code-bg); }
 
-.highlight {
-    background: #ffe8d1;
-}
-
-a{
-    color: #da4e00;
-}
-
-a.document {
-    background: url(../images/document.png) no-repeat 1px;
-}
-
-header {
-    background-color: #c05a24;
-    border: 1px solid #943a08;
-}
-
-header li {
-    border: unset;
-    background: linear-gradient(to top, #444 0%, #232323 100%);
-    box-shadow: inset 0px 1px 1px 0 #444;
-}
-
-header img{
-   border: none;
-}
-
-/* ----------------------------------------------------------------------------
-   Responsive doc menu. Layout only; colors, fonts, and content styling are
-   untouched. Desktop (>960px) keeps the fixed Dinky sidebar exactly as-is
-   (just allowed to scroll if the menu outgrows a short viewport). Below 960px
-   the header becomes a normal top block and the buttons flow as a wrapping
-   row; nothing is absolutely positioned and nothing is ever hidden.
----------------------------------------------------------------------------- */
-
-@media screen and (min-width: 961px) {
-  header {
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
+/* ---- Responsive: stack the sidebar on top, wrap the nav ---- */
+@media (max-width: 820px) {
+  .page {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding: 1rem;
   }
+  .sidebar { position: static; padding: 1.25rem; }
+  .sidebar .brand { flex-direction: row; justify-content: flex-start; }
+  .sidebar .logo { width: 56px; }
+  .sidebar .tagline { text-align: left; }
+  .sidebar nav ul {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  .content > * { max-width: none; }
+  pre { max-width: none; }
 }
-
-@media print, screen and (max-width: 960px) {
-  header {
-    position: static;
-    float: none;
-    width: auto;
-    margin: 0;
-    padding: 20px 30px;
-    border-radius: 0 0 4px 4px;
-  }
-
-  header ul {
-    position: static;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 12px 0 0;
-  }
-
-  header li {
-    width: auto;
-    height: auto;
-    margin-bottom: 0;
-  }
-
-  header li a.buttons {
-    white-space: nowrap;
-  }
-}
-
-@media print, screen and (max-width: 480px) {
-  /* The stock theme hides the Install button here; keep it visible. */
-  header ul li.download {
-    display: list-item;
-  }
-}
-
-
-
-
-
