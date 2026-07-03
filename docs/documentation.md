@@ -67,17 +67,16 @@ support for another version.
 
 If **Collect Telemetry** is checked during setup, anonymous usage information is sent to help improve MCEC.
 Telemetry is controlled via the `HKEY_LOCAL_MACHINE\SOFTWARE\Kindel\MCE Controller` `Telemetry` DWORD
-registry value (`1` enables, `0` disables). (The "MCE Controller" registry name and `Kindel Systems`
-fallback are kept for back-compat even though the product is now branded MCEC.) See the
-[telemetry page](telemetry.md) for details.
+registry value (`1` enables, `0` disables). See the [telemetry page](telemetry.md) for details.
 
 Uninstall MCEC via Add/Remove Programs.
 
 ## Running
 
-MCEC runs as a normal windowed app that can minimize to a taskbar (tray) icon. Closing the main window
-minimizes it to the tray; double-click the tray icon to show it again, or right-click for a menu. To start
-hidden, check **Hide Window at Startup** in **Settings**.
+Setup installs MCEC under Program Files and adds it to the **Start Menu**; after installation, launch it
+from there. MCEC runs as a normal windowed app that can minimize to a taskbar (tray) icon. Closing the
+main window minimizes it to the tray; double-click the tray icon to show it again, or right-click for a
+menu. To start hidden, check **Hide Window at Startup** in **Settings**.
 
 To run headless as an **MCP server** (no main window, no tray icon; the command overlay and the
 emergency-stop hotkey still work), launch it with `mcp` (or the equivalent `--mcp`); an MCP client can
@@ -98,10 +97,6 @@ command metadata for tools and agents), and `agent-guide` (prints the same agent
 hands connecting clients). Run these from a terminal; with no arguments `mcec.exe` starts the GUI as
 always.
 
-To have MCEC start automatically, create a shortcut to `mcec.exe` (installed to `C:\Program
-Files\Kindel\MCEC` by default; pre-3.0 installs used `Kindel Systems\MCEC`) and put it in the Windows
-Startup folder (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`).
-
 Run multiple instances by copying the installation directory elsewhere; each copy gets its own independent
 `.settings`, `.commands`, and `.log` files. (This directory-per-instance isolation is exactly what the
 agent [session-provisioning](safety-emergency-stop-and-provisioning.md) feature automates.)
@@ -112,8 +107,7 @@ Use **File ▸ Exit** to shut down.
 
 ![Settings](settings_general.png "Settings")
 
-Settings are stored as XML in `mcec.settings`, in the `%APPDATA%\Kindel\MCEC` directory (new installs;
-pre-3.0 used a `Kindel Systems\MCEC` subfolder, for which a compatibility fallback exists). Most settings
+Settings are stored as XML in `mcec.settings`, in the `%APPDATA%\Kindel\MCEC` directory. Most settings
 are edited from the **File ▸ Settings…** dialog; the agent gates (except the provisioning opt-in on the
 **Agent** tab, below) are edited directly in `mcec.settings`.
 
@@ -187,7 +181,7 @@ meter that down. So beyond the off-by-default gates, two operator-safety feature
 ## Logging
 
 Informational, debug, and diagnostic events are logged to `mcec.log` and shown in the main window. Installs
-under Program Files write the log to `%APPDATA%\Kindel\MCEC\mcec.log` (mirroring the install subfolder;
-legacy installs used `Kindel Systems`). Otherwise the log is written to the directory MCEC is started from.
+under Program Files write the log to `%APPDATA%\Kindel\MCEC\mcec.log`. Otherwise the log is written to the
+directory MCEC is started from.
 Every agent action is additionally logged with a loud `AGENT-AUDIT:` line so agent activity is impossible
 to miss.
