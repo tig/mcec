@@ -102,6 +102,21 @@ public static class ToolCatalog {
             ProvisionedByDefault = true,
         },
         new() {
+            Name = "windows",
+            BuildSchema = BuildWindowsSchema,
+            BuildCommand = args => new WindowsCommand {
+                Window = Str(args, "window")!,
+                Process = Str(args, "process")!,
+                ClassName = Str(args, "className")!,
+                Timeout = Int(args, "timeout"),
+            },
+            CreateCommandInstance = () => new WindowsCommand(),
+            Tersify = args => $"windows {CommandTersifier.WindowFilter(args)}",
+            // NOT IsObservation: it returns a SET of windows, not a single active target the session
+            // should record as LastObservation (that stays query/capture/find/wait-for).
+            ProvisionedByDefault = true,
+        },
+        new() {
             Name = "find",
             BuildSchema = BuildFindSchema,
             BuildCommand = BuildFindCommand,
@@ -236,6 +251,18 @@ public static class ToolCatalog {
     private static JsonObject BuildDisplaysSchema() => Tool("displays",
         "Report display geometry: every monitor's pixel bounds, working area, primary flag, and DPI/scale, plus the union virtualBounds. Use it to interpret the absolute-pixel bounds query/find return and to place pixel clicks/drags; no arguments.",
         [], []);
+
+    private static JsonObject BuildWindowsSchema() {
+        JsonObject props = new() {
+            ["window"] = PropSchema("string", "Filter by window title substring (case-insensitive)"),
+            ["process"] = PropSchema("string", "Filter by process name (without .exe)"),
+            ["className"] = PropSchema("string", "Filter by window class name (exact)"),
+            ["timeout"] = PropSchema("integer", "Milliseconds to WAIT for a matching top-level window to appear (0 = list now, no wait); requires at least one filter"),
+        };
+        return Tool("windows",
+            "Discover top-level windows: returns each window's handle, title, className, processName, processId, and bounds so you can find and target a window instead of guessing. Optionally filter by title substring / process / class. With a timeout it WAITS, polling until a matching window appears (or the timeout, returning count:0). No filter lists every window; a timeout with no filter is refused (it won't wait for an arbitrary window). Reuse a returned handle directly on query/capture/invoke.",
+            props, []);
+    }
 
     private static JsonObject BuildFindSchema() {
         JsonObject findProps = WindowTargetProps();

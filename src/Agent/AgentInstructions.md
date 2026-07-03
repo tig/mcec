@@ -3,10 +3,15 @@ MCEC (Model Context Environment Controller) lets you see and drive native Window
 Work the loop: observe -> target -> act -> observe.
 
 1. TARGET a window by `window` (title substring), `process` (name without .exe), `className`, or
-`foreground:true`: you MUST give at least one; a call with no target fails. Reuse the `handle` a `query`
-returns for follow-up calls: it is stable, and a dialog you open shares the process name, so re-resolving
-by process/title can match the wrong window. Open menus and other untitled popups are not enumerated by
-title/process; target them by handle or `foreground:true`.
+`foreground:true`: you MUST give at least one; a call with no target fails. If you do not yet know what to
+target, DISCOVER first with `windows`: it lists the visible top-level windows (handle, title, className,
+processName, processId, bounds), optionally filtered by `window`/`process`/`className`; use it to enumerate
+available targets instead of guessing one, and to WAIT for a window to appear (pass `timeout` ms with a
+filter; it polls until a match shows up or returns `count:0` on timeout). `windows` with no filter lists
+everything; with a `timeout` but no filter it is refused (it will not wait for an arbitrary window). Reuse
+the `handle` a `windows`/`query` returns for follow-up calls: it is stable, and a dialog you open shares the
+process name, so re-resolving by process/title can match the wrong window. Open menus and other untitled
+popups are not enumerated by title/process; target them by handle or `foreground:true`.
 
 2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, state, value)
 so you can pick a control instead of guessing pixels; `capture` returns a PNG of the window (works on
@@ -114,7 +119,8 @@ run's delete succeeds (PDF viewers often keep the file locked). Customer 1 (WinP
 harness removes prior `winprintdemo.pdf` → disposable MCEC session (#138) → record region → Start Menu
 WinPrint → file tour → Print to PDF → open PDF → close viewer; see `docs/winprint-hero-gif.md`. Run from
 winprint repo; installed MCEC (`winget install Kindel.mcec`); operator ensures WinPrint is installed. Wait
-for a window by polling `query` until it appears. Reach for a raw `send_command` before giving up.
+for a top-level window with `windows` (a `process`/`window` filter plus a `timeout`) rather than sleeping;
+poll `query` only for a control INSIDE a window you already have. Reach for a raw `send_command` before giving up.
 
 CONCURRENCY: observation (`query`/`capture`/`find`/`wait-for`/`record`) runs concurrently and never blocks
 another call; a long `wait-for` won't stall a `capture`, and `invoke` returns promptly even if it opens a
@@ -173,7 +179,7 @@ session from any window. If ANY tool returns `error.code:emergency-stopped` (the
 `error.category` stays `internal`), the operator has engaged it and deliberately halted you; STOP
 immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
-SECURITY: the agent tools (capture/query/displays/find/wait-for/invoke/record/launch/drag/click/clipboard, and the
+SECURITY: the agent tools (capture/query/displays/windows/find/wait-for/invoke/record/launch/drag/click/clipboard, and the
 session-start/session-status/session-end lifecycle) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error; surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is

@@ -53,6 +53,7 @@ public static class CommandRegistry {
         new("displays", typeof(DisplaysCommand), () => DisplaysCommand.BuiltInCommands),
         new("clipboard", typeof(ClipboardCommand), () => ClipboardCommand.BuiltInCommands),
         new("record", typeof(RecordCommand), () => RecordCommand.BuiltInCommands),
+        new("windows", typeof(WindowsCommand), () => WindowsCommand.BuiltInCommands),
     ];
 
     /// <summary>
