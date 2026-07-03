@@ -111,7 +111,19 @@ Set-Content -Encoding UTF8 -Path (Join-Path $ctrlDir 'mcec.commands') -Value @'
 </MCEController>
 '@
 
-Start-Process -FilePath (Join-Path $ctrlDir 'mcec.exe') -WorkingDirectory $ctrlDir | Out-Null
+# Launch DETACHED so the controller outlives THIS script. Start-Process leaves the child in this
+# process's Windows Job Object, so an agent runner that kills the job when the command returns takes the
+# controller down with it (observed: "the process dies when the bootstrap script exits"). Creating it via
+# WMI parents the new process to the WMI host, OUTSIDE our job, so it survives the launcher's exit.
+$exe = Join-Path $ctrlDir 'mcec.exe'
+$create = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
+  CommandLine      = "`"$exe`""
+  CurrentDirectory = $ctrlDir
+}
+if ($create.ReturnValue -ne 0) {
+  throw "Failed to launch the controller detached (Win32_Process.Create returned $($create.ReturnValue))."
+}
+$ctrlPid = $create.ProcessId
 $url = "http://127.0.0.1:$Port/mcp"
 $up = $false
 for ($i = 0; $i -lt 40; $i++) {
@@ -127,7 +139,7 @@ for ($i = 0; $i -lt 40; $i++) {
 if (-not $up) { throw "controller MCP endpoint did not come up at $url" }
 
 Write-Host ''
-Write-Host 'Controller is up; agent commands and session provisioning are authorized.'
+Write-Host "Controller is up (pid=$ctrlPid, detached; survives this script exiting); agent commands and session provisioning are authorized."
 Write-Host "  MCP endpoint : $url"
 Write-Host "  Register it  : claude mcp add --transport http mcec $url"
 Write-Host '  Then ask your agent to recreate the hero per docs/hero-gif.md (it drives entirely via MCP tools).'
