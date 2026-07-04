@@ -1,0 +1,39 @@
+name: CodeQL
+
+# Static analysis (code scanning) for the C# codebase. MCEC is Windows-only (WinForms / net10.0-windows),
+# so we analyze in build-mode "none" (source-based, no compile) on a Linux runner; this avoids needing a
+# Windows build just to scan, and still covers the C# sources.
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  schedule:
+    - cron: '27 3 * * 1' # weekly, Monday 03:27 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze C#
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # upload results to code scanning
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+          build-mode: none
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:csharp"
