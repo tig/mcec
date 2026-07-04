@@ -19,9 +19,9 @@ on:
         description: 'Version to build (e.g. 2.5.0, no v prefix)'
         required: true
 
+# Least-privilege floor for the whole workflow; each job escalates only what it needs (below).
 permissions:
-  contents: write   # create the GitHub Release
-  id-token: write   # Azure OIDC federation (no client secret)
+  contents: read
 
 env:
   SIGN: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' && secrets.AZURE_SIGNING_ACCOUNT != '' && secrets.AZURE_SIGNING_PROFILE != '' && secrets.AZURE_SIGNING_ENDPOINT != '' }}
@@ -31,6 +31,9 @@ jobs:
   release:
     name: Build, sign, and publish installer
     runs-on: windows-latest
+    permissions:
+      contents: write   # create the GitHub Release
+      id-token: write   # Azure OIDC federation (no client secret)
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -150,6 +153,8 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' && !contains(github.ref_name, '-') }}
+    permissions:
+      contents: read   # only needs its own WINGET_TOKEN; no repo write or OIDC
     steps:
       - name: Derive version (strip leading v)
         id: ver
