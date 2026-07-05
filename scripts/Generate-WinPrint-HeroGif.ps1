@@ -29,7 +29,12 @@ param(
     [string]$WinPrintRoot = (Get-Location).Path,
     [string]$McecInstallDir = '',
     [string]$PdfPath = (Join-Path $env:USERPROFILE 'Documents\winprintdemo.pdf'),
-    [string]$ArtifactRoot = ''
+    [string]$ArtifactRoot = '',
+    # GIF size knobs. The tour runs ~40 s, so frame count = ~40 x Fps; file size ~= frames x
+    # frame area. Defaults target ~3-4 MB, matching the mcec hero. Raise for a smoother/larger
+    # GIF, lower to shrink. See docs/winprint-hero-gif.md "Tuning size".
+    [int]$Fps = 2,
+    [int]$MaxWidth = 560
 )
 
 $ErrorActionPreference = 'Stop'
@@ -209,7 +214,7 @@ try {
     Step 'controller' 'pass' 'disposable MCEC session up'
 
     Invoke-McecTool 'record' @{
-        action = 'start'; x = $rx; y = $ry; width = $rw; height = $rh; fps = 4; maxWidth = 880
+        action = 'start'; x = $rx; y = $ry; width = $rw; height = $rh; fps = $Fps; maxWidth = $MaxWidth
     } -Session $session | Out-Null
     Step 'record-start' 'pass' 'region record started'
     Start-Sleep -Milliseconds 500
