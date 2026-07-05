@@ -496,7 +496,10 @@ public static class ToolCatalog {
     private static FocusCommand BuildFocusCommand(JsonObject args) {
         JsonObject at = args["at"] as JsonObject ?? [];
         bool hasElement = !string.IsNullOrEmpty(Str(at, "value"));
-        bool hasPixel = !hasElement && (at.ContainsKey("x") || at.ContainsKey("y"));
+        // Require BOTH coordinates for a pixel endpoint. The executor's FocusArgsError already rejects a
+        // partial pixel with invalid-argument; this is defense-in-depth for a direct build (tests), so a
+        // half-specified endpoint degrades to a bare window focus rather than a click at (x, 0).
+        bool hasPixel = !hasElement && at.ContainsKey("x") && at.ContainsKey("y");
         return new FocusCommand {
             Window = Str(args, "window")!,
             Handle = Long(args, "handle"),

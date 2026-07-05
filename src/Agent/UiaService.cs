@@ -124,6 +124,41 @@ public static class UiaService {
     }
 
     /// <summary>
+    /// Whether the single element matching the selector currently holds KEYBOARD FOCUS (#272 CR), read
+    /// from UIA's <c>HasKeyboardFocus</c> so it is precise even for windowless (WinUI/MAUI) controls that
+    /// a native focus HWND cannot distinguish (they are all the one top-level window). Polls briefly
+    /// because focus lands asynchronously. Returns <see langword="true"/>/<see langword="false"/> when the
+    /// element is found and the property is readable, or <see langword="null"/> ("unknown") when the
+    /// selector matches none or many, the property is unavailable, or UIA faults. A caller treats null as
+    /// "can't tell" (fall back to a window-level check), never as a confirmation; this is what lets the
+    /// <c>focus</c> tool verify the REQUESTED control took focus rather than a sibling that merely shares
+    /// its top-level window.
+    /// </summary>
+    public static bool? ElementHasKeyboardFocus(IntPtr hwnd, string by, string value) {
+        if (hwnd == IntPtr.Zero) {
+            return null;
+        }
+        try {
+            Stopwatch sw = Stopwatch.StartNew();
+            while (true) {
+                bool? has = RunOnWorker(automation => {
+                    AutomationElement root = automation.FromHandle(hwnd);
+                    AutomationElement[] matches = root.FindAllDescendants(BuildCondition(by, value));
+                    return matches.Length == 1 ? TryReadHasKeyboardFocus(matches[0]) : null;
+                });
+                if (has == true || sw.ElapsedMilliseconds >= FocusConfirmTimeoutMs) {
+                    return has;
+                }
+                Thread.Sleep(FocusConfirmPollMs);
+            }
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Error($"UiaService.ElementHasKeyboardFocus failed: {e.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Finds an element (a short <see cref="InvokeFindTimeoutMs"/> lookup; invoke fast-fails rather
     /// than waiting; see that constant) and dispatches <paramref name="action"/>
     /// (<c>invoke</c>/<c>toggle</c>/<c>setvalue</c>/<c>setfocus</c>/<c>expand</c>/<c>collapse</c>/<c>select</c>).

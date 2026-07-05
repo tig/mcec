@@ -185,6 +185,9 @@ public sealed class AgentToolExecutor {
             if (name == "click" && ClickArgsError(args) is { } clickError) {
                 return ToolError(clickError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
             }
+            if (name == "focus" && FocusArgsError(args) is { } focusError) {
+                return ToolError(focusError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
+            }
             return RunAgentCommand(name, args, session);
         }
 
@@ -280,6 +283,37 @@ public sealed class AgentToolExecutor {
         bool hasY = at["y"] is JsonValue vy && vy.TryGetValue(out int _);
         if (!hasElement && !(hasX && hasY)) {
             return "click 'at' needs an element 'value' or both 'x' and 'y' pixel coordinates.";
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Validates the <c>focus</c> tool's optional <c>at</c> argument (#272 CR). Unlike <c>click</c>, focus
+    /// allows NO endpoint (a bare window focus). But a PRESENT endpoint must be well-formed: an element
+    /// (<c>value</c> set) OR a full pixel (<c>x</c> and <c>y</c> both present AND integer). A partial pixel
+    /// (`{ x: 400 }`) or a non-integer coordinate would otherwise default the missing field to 0 and
+    /// synthesize a real click at a bogus point. Returns a human-readable error, or <c>null</c> when the
+    /// arguments are acceptable. Mirrors <see cref="ClickArgsError"/>.
+    /// </summary>
+    private static string? FocusArgsError(JsonObject args) {
+        if (!args.ContainsKey("at") || args["at"] is null) {
+            return null; // no endpoint: a valid window-only focus (foreground + confirm).
+        }
+        if (args["at"] is not JsonObject at) {
+            return "focus 'at' must be an object: an element { by?, value } or a pixel { x, y }; omit 'at' to focus just the window.";
+        }
+        bool hasElement = !string.IsNullOrEmpty(Str(at, "value"));
+        if (hasElement) {
+            return null;
+        }
+        bool mentionsPixel = at.ContainsKey("x") || at.ContainsKey("y");
+        bool hasX = at["x"] is JsonValue vx && vx.TryGetValue(out int _);
+        bool hasY = at["y"] is JsonValue vy && vy.TryGetValue(out int _);
+        if (mentionsPixel && !(hasX && hasY)) {
+            return "focus 'at' pixel endpoint needs both integer 'x' and 'y' (or an element 'value', or omit 'at' to focus just the window).";
+        }
+        if (!mentionsPixel) {
+            return "focus 'at' must be an element { by?, value } or a pixel { x, y }; omit 'at' to focus just the window.";
         }
         return null;
     }

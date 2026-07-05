@@ -19,8 +19,11 @@ namespace MCEControl;
 /// <c>foreground</c> and <c>focus</c> categories real producers (#91):
 /// <list type="number">
 ///   <item>bring the window to the foreground and confirm it (<see cref="FocusService.BringToForeground"/>) — else <c>foreground</c>;</item>
-///   <item>when an endpoint is given, click it (a real WM_LBUTTONDOWN/UP) to place focus on the control under the point, then reinforce with a UIA <c>SetFocus</c>;</item>
-///   <item>confirm keyboard focus actually landed in the target window (<see cref="FocusService.IsFocusInWindow"/>) — else <c>focus</c>.</item>
+///   <item>when an endpoint is given, click it (a real WM_LBUTTONDOWN/UP) to place focus on the control under the point;</item>
+///   <item>confirm focus landed WHERE ASKED — for an element endpoint the resolved element must hold
+///   <c>HasKeyboardFocus</c> (reinforced with a UIA <c>SetFocus</c> only if the click did not focus it,
+///   so a good click-focus is not misrouted to a sibling); for a pixel/window focus, that focus is
+///   somewhere in the window (<see cref="FocusService.IsFocusInWindow"/>) — else <c>focus</c>.</item>
 /// </list>
 /// Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited (structurally, via
 /// <see cref="AgentCommand"/>). Disabled by default (security).
@@ -61,18 +64,19 @@ public class FocusCommand : WindowTargetingAgentCommand {
         }
 
         // 3. Click to place focus on the control under the point (a real click focuses a surface a bare
-        // UIA SetFocus can miss or misroute; #270), then reinforce with UIA SetFocus when we have an
-        // element. The SetFocus is best-effort: a graphics view may take focus from the click yet expose
-        // no focusable UIA pattern, so its outcome does not gate success; step 4 is the real check.
+        // UIA SetFocus can miss or misroute; #270).
         if (point is { } p) {
             MouseCommand.PerformClick(p, "left", 1);
-            if (element is not null) {
-                UiaService.Invoke(hwnd, EffectiveBy, Value, "setfocus", null);
-            }
         }
 
-        // 4. Confirm keyboard focus actually landed in the target window.
-        if (!FocusService.ConfirmFocusInWindow(hwnd)) {
+        // 4. Confirm focus landed WHERE IT WAS ASKED TO. For an element endpoint that means the RESOLVED
+        // element must hold keyboard focus (#272 CR): confirming only that focus is somewhere in the
+        // top-level window would pass even if it stayed on a sibling. For a pixel/window focus no specific
+        // control was named, so a window-level confirmation is all we can honestly check.
+        bool confirmed = element is not null
+            ? ConfirmElementFocus(hwnd)
+            : FocusService.ConfirmFocusInWindow(hwnd);
+        if (!confirmed) {
             return FocusFailure(target);
         }
 
@@ -80,6 +84,23 @@ public class FocusCommand : WindowTargetingAgentCommand {
     }
 
     private string EffectiveBy => string.IsNullOrEmpty(By) ? "name" : By;
+
+    /// <summary>
+    /// Confirms the resolved element holds keyboard focus, reinforcing with a UIA <c>SetFocus</c> only if
+    /// the click did not already focus it; so a good click-focus is never disturbed by a SetFocus that
+    /// could misroute to a sibling (#270/#272). When UIA cannot read focus at all (windowless/unreadable,
+    /// <see langword="null"/>), falls back to the window-level native check rather than manufacturing a
+    /// failure; a definitive "not focused" (<see langword="false"/>) is a real <c>focus</c> failure.
+    /// </summary>
+    private bool ConfirmElementFocus(IntPtr hwnd) {
+        if (UiaService.ElementHasKeyboardFocus(hwnd, EffectiveBy, Value) == true) {
+            return true;
+        }
+        // The click did not focus it (or focus was unreadable); reinforce with UIA SetFocus, then re-check.
+        UiaService.Invoke(hwnd, EffectiveBy, Value, "setfocus", null);
+        bool? has = UiaService.ElementHasKeyboardFocus(hwnd, EffectiveBy, Value);
+        return has == true || (has is null && FocusService.IsFocusInWindow(hwnd));
+    }
 
     /// <summary>
     /// Resolves the optional endpoint: an element (<see cref="Value"/>, clicked at its centre), an
