@@ -88,6 +88,45 @@ public class LaunchCommandTests {
         }
     }
 
+    [Fact]
+    public void Launch_ToolMapping_PreservesPathWithSpacesAndParens() {
+        // #271: a rooted path with spaces AND parentheses (e.g. under "Program Files (x86)") must
+        // survive the tool -> command mapping intact; it must never be tokenized on whitespace.
+        const string path = @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe";
+        const string arguments = "--new-window https://example.com/a b";
+        JsonObject args = new() { ["path"] = path, ["arguments"] = arguments };
+
+        LaunchCommand cmd = Assert.IsType<LaunchCommand>(AgentServer.BuildCommand("launch", args));
+
+        Assert.Equal(path, cmd.Path);
+        Assert.Equal(arguments, cmd.Arguments);
+    }
+
+    [Fact]
+    public void Execute_PathWithSpacesAndParens_NotRejectedAsMissing() {
+        // #271: a present path containing spaces/parens must not be seen as an empty/missing path.
+        // The target does not exist, so nothing launches; the failure must be the launch itself,
+        // NOT the "requires a non-empty 'path'" rejection.
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        try {
+            CapturingReply reply = new();
+            LaunchCommand cmd = new() {
+                Cmd = "launch", Enabled = true, Reply = reply,
+                Path = @"C:\Program Files (x86)\No Such MCEC App (test)\nope.exe",
+            };
+
+            cmd.Execute();
+
+            JsonObject json = JsonNode.Parse(reply.Captured.Trim())!.AsObject();
+            string error = json["error"]?.GetValue<string>() ?? "";
+            Assert.DoesNotContain("non-empty 'path'", error);
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
     // Test-first for Codex CR feedback (P2 on shell:.lnk null Process):
     // We expect that even if internal Process.Start returns null (common for shell targets),
     // the command should still succeed (return ok=true) and attempt to surface window info
