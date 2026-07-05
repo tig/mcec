@@ -6,9 +6,12 @@ Work the loop: observe -> target -> act -> observe.
 `foreground:true`: you MUST give at least one; a call with no target fails. If you do not yet know what to
 target, DISCOVER first with `windows`: it lists the visible top-level windows (handle, title, className,
 processName, processId, bounds), optionally filtered by `window`/`process`/`className`; use it to enumerate
-available targets instead of guessing one, and to WAIT for a window to appear (pass `timeout` ms with a
-filter; it polls until a match shows up or returns `count:0` on timeout). `windows` with no filter lists
-everything; with a `timeout` but no filter it is refused (it will not wait for an arbitrary window). Reuse
+available targets instead of guessing one, and to WAIT on window state (pass `timeout` ms + a filter and a
+`condition`): `appears` (default; poll until a match exists, `count:0` on timeout), `disappears` (until no
+window matches, e.g. a modal you opened has closed), or `foreground` (until a match is the foreground
+window, e.g. a launched app took focus). A wait that times out carries `waitedFor` + `lastObservedWindows`,
+so you can triage without a second observation. `windows` with no filter lists
+everything; a wait (or `disappears`/`foreground`) with no filter is refused (it will not wait for an arbitrary window). Reuse
 the `handle` a `windows`/`query` returns for follow-up calls: it is stable, and a dialog you open shares the
 process name, so re-resolving by process/title can match the wrong window. Open menus and other untitled
 popups are not enumerated by title/process; target them by handle or `foreground:true`.
@@ -18,10 +21,10 @@ so you can pick a control instead of guessing pixels; `capture` returns a PNG of
 composited WinUI/WPF surfaces). Use `capture` for a single state check; use `record` ONLY to show CHANGE
 over time; a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
-whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture` and `record` are size-capped: max
-16384 px per side and 64000000 px total; an oversized region fails fast with `errorCode:region-too-large`
-(category `invalid-argument`; the detail states the limit); request a smaller region or a window target
-(windows are bounded by their own size). An open `start` auto-stops at the operator's limits (default 60 s / 600 frames); `stop`
+whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture` and `record` are size-capped: an oversized region
+fails fast with `errorCode:region-too-large` (category `invalid-argument`; the detail states the limit), so
+request a smaller region or a window target (windows are bounded by their own size). An open `start`
+auto-stops at the operator's limits; `stop`
 still returns that buffered GIF (exactly once), and after an auto-stop a new recording (`start` or a
 one-shot) is allowed: it discards the unfetched GIF, carrying an `unfetched-recording-discarded` warning
 on its result, so `stop` promptly to collect your output. Check results for trouble: a `capture` with errorCategory `capture-blank` is a black/empty
@@ -62,13 +65,21 @@ absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and
 it doesn't depend on the control being on-screen and unobscured. System file dialogs (Open, Save Print
 Output As) are separate windows; `wait-for`/`query` by title, reuse the returned `handle`, and act on that
 target (don't assume the dialog shares the app's process). They often have no UIA-settable filename field;
-`clipboard { action:set, text:… }` then Ctrl+V and Enter, or `send_command chars:<path>` with every Windows
-backslash doubled (`C:\\folder\\file.ext`). Click the filename field first when paste fails. `send_command`
+`clipboard { action:set, text:… }` then Ctrl+V and Enter, or `send_command chars:<path>` (chars: types the
+path LITERALLY; a single backslash is a backslash, `C:\folder\file.ext`, no doubling). Click the filename
+field first when paste fails. `send_command`
 sends any other raw MCEC command (keystrokes, single mouse actions, launch); the raw
 `mouse:drag,x1,y1,x2,y2[,...]` is the same atomic drag in pixels and `mouse:mtp,x,y` moves the pointer to
 an absolute screen pixel. If `invoke`/`click` by name returns `no-target`, `query` the tree: WinUI/MAUI
 labels often include emoji and ellipsis; click a control's bounds centre from `query` instead of guessing a
-plain name.
+plain name. Before you send an app's own keyboard SHORTCUT to a specific control (e.g. a MAUI GraphicsView
+that zooms on `+`/`-`, a canvas, a game surface), `focus` it first: keystrokes only reach the foreground
+window's focused control, and a bare `click` or `invoke setfocus` does not reliably focus a custom-drawn
+surface. The `focus` tool foregrounds the window, clicks the control (a real click focuses what SetFocus
+misses), and verifies; give `at` an element `{ by, value }` or pixel `{ x, y }`, or omit `at` to just
+foreground a window and confirm focus. It fails `foreground` if the window won't activate, `focus` if no
+control took focus. `invoke setfocus` is also verified now; it fails `focus` (code `focus-not-set`) when
+the element does not end up focused, which is your cue to `focus` (it clicks) or `click` the control.
 
 4. VERIFY with another `query` or `capture`; always confirm the act had the intended effect.
 
@@ -81,19 +92,22 @@ ill-formed endpoint, an action the element can't perform); fix the arguments, do
 or broaden a selector; `ambiguous-selector` means the element selector matched more than one element and
 the tool refused to guess (the match count rides in the code, `selector-matched-N`); NARROW the selector
 (prefer `automationId`, else `className` or a more specific name, or click the control's centre from its
-`query` bounds); a WinForms tab exposes its header AND its page under the same name, so drive tabs with
-`invoke`+`select` or an automationId rather than the shared name; retrying it unchanged cannot help;
+`query` bounds); a tab's header and its page can carry the same name, so drive tabs with `invoke`+`select`
+or an automationId rather than the shared name; retrying it unchanged cannot help;
 `stale-element` means the window/element went away mid-call (closed or re-rendered); re-`query`/`find`
 for a fresh handle, then retry; `elevation` means the target runs elevated (UAC) at a higher integrity
 level than MCEC and cannot be observed or driven; report it to the user, do not retry; `internal` is not
-recoverable by you; report it. `focus` and `foreground` are reserved for future detection and are never
-produced today; treat them like `internal` if one ever appears. Branch on codes and categories, never on
+recoverable by you; report it. `foreground` means Windows refused to bring the target to the foreground
+(a foreground lock, a modal on another app, or a full-screen exclusive window is holding it), so keystrokes
+would not reach it; retry the `focus` tool after whatever holds the foreground is gone, or ask the operator
+to click the target. `focus` means the window is foreground but no control took keyboard focus (it went
+nowhere, or to a sibling); `click` the exact control, or drive it with `invoke` instead of keystrokes.
+Branch on codes and categories, never on
 the wording of `error.detail` (it is human-readable and may change). `error.lastObservation`, when present, is the last good state before the failure, and
 `error.partialResult` is the failing call's OWN partial payload (e.g. a blank capture's suspect PNG).
-When the last good observation was a `capture`, `lastObservation` is a compact summary; the window
-descriptor, dimensions, blankCheck verdict, and byte count, with `kind:"capture-summary"`; plus an
-`artifact` path where the PNG was saved on the host; it never carries the image bytes inline, so
-re-`capture` if you need to SEE the prior state rather than reason about its metadata.
+For a `capture`, `lastObservation` is a compact summary plus an `artifact` path where the PNG was saved; it
+never carries the image bytes inline, so re-`capture` if you need to SEE the prior state rather than reason
+about its metadata.
 
 SESSIONS: every result carries a `sessionId`; the session it ran in. A session is the runtime's memory of
 one task: its active target window, last observation, last action, last error, and a per-session artifact
@@ -112,22 +126,23 @@ started is refused the same way. (Note the hyphen: the tools are `session-start`
 COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. When
 injected keystrokes must reach Start/search or the bare desktop, first show the desktop (Win+D) or `click` an
 open desktop pixel; IDE/terminal shells otherwise swallow them. Launch
-an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D. To fire an app ACCELERATOR
-(Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+S), send a real VK+modifier command (the built-in `ctrl-x` is one; an operator
-can enable `ctrl-c`/`ctrl-v`/`ctrl-a`); do NOT approximate it with `shiftdown:ctrl` then `chars:c`, because
-`chars:` injects a character and never triggers the accelerator, so the copy/paste silently does nothing. Use
-the `clipboard` tool to read or write clipboard text directly; use Ctrl+C/Ctrl+V keystrokes only to move data
+an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D.
+KEYSTROKES split two ways, and confusing them silently does nothing. To fire an app SHORTCUT or press a
+navigation/editing key; a Ctrl/Alt/Win chord (Ctrl+C/V/A/S), a lone shortcut key (zoom `+`/`-`/`=`), or an
+arrow/function/Enter/Esc/Tab; send a real KEYDOWN via `send_command`: a `VK_` name (`VK_OEM_PLUS` is `=`/`+`),
+a named key (`enter`, `escape`, `left`/`right`/`up`/`down`, `tab`), or a chord builtin (`ctrl-x`); bracket
+with `shiftdown:<mods>`/`shiftup:<mods>` for extra modifiers. `chars:` is for LITERAL TEXT ONLY (it is
+WM_CHAR text entry): `chars:=` types a `=` and never zooms, and `shiftdown:ctrl` then `chars:c` does NOT
+fire Ctrl+C. So type field values and paths with `chars:`, but fire shortcuts with the keydown command.
+Prefer the `clipboard` tool for clipboard text; use Ctrl+C/Ctrl+V keystrokes only to move data
 through an app that owns the selection (copy a canvas, paste an image). Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region; use a **desktop region** when Start/search
-and system dialogs must stay visible. Repeatable demos that write a known output file: harness/operator
-prep deletes the prior file before the run; after opening it in a viewer, dismiss with Alt+F4 so the next
-run's delete succeeds (PDF viewers often keep the file locked). The WinPrint hero:
-harness removes prior `winprintdemo.pdf` → disposable MCEC session → record region → Start Menu
-WinPrint → file tour → Print to PDF → open PDF → close viewer; see `docs/winprint-hero-gif.md`. Run from
-winprint repo; installed MCEC (`winget install Kindel.mcec`); operator ensures WinPrint is installed. Wait
-for a top-level window with `windows` (a `process`/`window` filter plus a `timeout`) rather than sleeping;
-poll `query` only for a control INSIDE a window you already have. Reach for a raw `send_command` before giving up.
+and system dialogs must stay visible. For a repeatable demo that writes a known output file, delete the
+prior file before the run and dismiss the viewer with Alt+F4 afterward so the next run's delete succeeds
+(viewers keep the file locked). Wait for a top-level window with `windows` (a `process`/`window` filter plus
+a `timeout`) rather than sleeping; poll `query` only for a control INSIDE a window you already have. Reach
+for a raw `send_command` before giving up.
 
 CONCURRENCY: observation (`query`/`capture`/`find`/`wait-for`/`record`) runs concurrently and never blocks
 another call; a long `wait-for` won't stall a `capture`, and `invoke` returns promptly even if it opens a
@@ -142,10 +157,10 @@ operator's CommandPacing), and a `send_command` call returns only AFTER its comm
 executed), and `command-dropped` means the queue refused it whole (bounds/shutdown; nothing executed).
 The execution wait is bounded at 30s: a command still running past it (a long macro, `pause`, or a deep
 queue backlog ahead of it) returns `error.code:send-command-timeout` while continuing to execute on the
-host; wait and verify with `query`/`capture` rather than resending. The queue is BOUNDED: at most 200
-commands may be pending, and one command's whole tree (the command itself plus all recursively embedded
-commands) may be at most 50. A command that breaks either bound is dropped ALL-OR-NOTHING: the entire
-tree is discarded; never partially run, so paired input (e.g. shiftdown:/shiftup:) can't be split. Don't
+host; wait and verify with `query`/`capture` rather than resending. The queue is BOUNDED (both total pending
+commands and one command's whole embedded-command tree). A command that breaks a bound is dropped
+ALL-OR-NOTHING: the entire tree is discarded, never partially run, so paired input (e.g. shiftdown:/shiftup:)
+can't be split. Don't
 flood the queue with long raw input streams; prefer one higher-level call (`drag`, `click`, or a single
 `mouse:drag,...`) over a long hand-rolled `mouse:mt` path, and if a long sequence is unavoidable, send it
 in small chunks and verify between chunks so the queue drains. Avoid sending a raw `invoke`-style command
@@ -161,10 +176,9 @@ operator can see MCEC is driving. It is deliberately excluded from `query`/`find
 you will never see or target it, and it is never a candidate window; but it DOES appear in
 full-screen/region `capture`s and `record`ings (not in window-targeted captures).
 
-PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it and disabling them
-when done; an abnormal exit leaks those security gates enabled. The installed copy enforces this: run from
-Program Files, `mcec.exe mcp`/`--mcp` exits with an error and the MCP/HTTP endpoint refuses to start, so do
-not try to spawn or point at the installed exe. Instead, when the operator has authorized it,
+PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it; an abnormal exit
+leaks those security gates enabled, and the installed copy refuses to serve as an agent server anyway.
+Instead, when the operator has authorized it,
 call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
 `mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
 launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), a `sessionId`, and a

@@ -67,6 +67,14 @@ public class UiaServiceTests {
     }
 
     [Fact]
+    public void ElementHasKeyboardFocus_ZeroHandle_ReturnsUnknown() {
+        // #272 CR: the focus tool verifies the RESOLVED ELEMENT holds keyboard focus (not just its
+        // window), so a sibling taking focus can't read as success. The guard path is "unknown" (null),
+        // which the command treats as "can't tell", never a false confirmation.
+        Assert.Null(UiaService.ElementHasKeyboardFocus(IntPtr.Zero, "name", "OK"));
+    }
+
+    [Fact]
     public void Find_ZeroHandle_ReturnsCleanMiss() {
         // #261: the guard path is a clean miss (no match, no fault), never a classified failure.
         UiaFindOutcome outcome = UiaService.Find(IntPtr.Zero, "name", "OK", timeoutMs: 0);

@@ -42,6 +42,9 @@ public class LaunchCommand : AgentCommand {
 
         try {
             ProcessStartInfo psi = new ProcessStartInfo {
+                // #271: Path is one literal path (never tokenized on whitespace) and Arguments is passed
+                // separately, so an executable under "Program Files (x86)" (spaces + parens) launches
+                // correctly. Guarded by LaunchCommandTests.
                 FileName = Path,
                 Arguments = Arguments ?? string.Empty,
                 WorkingDirectory = string.IsNullOrWhiteSpace(WorkingDirectory) ? string.Empty : WorkingDirectory,

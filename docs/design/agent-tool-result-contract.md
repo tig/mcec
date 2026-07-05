@@ -80,15 +80,16 @@ falling back to `category`.
 | `no-target`          | A selector matched nothing (no window/element). | Broaden the selector, `query` to discover targets, or wait for the target to appear. |
 | `invalid-argument`   | The request itself is malformed or inapplicable (#191): a client-supplied argument is invalid (unknown action, oversized region, ill-formed endpoint) or cannot apply to the target (an element that lacks the pattern an action needs). | Fix the arguments and re-issue. Do **not** retry the same call, broaden a selector, or re-find the target; the request will keep failing until it changes. |
 | `capture-blank`      | A screenshot was produced but detected as black/blank (composited/occluded/locked-session). | Try foreground/region capture; restore/foreground the window; surface the limitation. The suspect image still rides in `error.partialResult`. |
-| `focus`              | **Reserved** (#261): an action required input focus that could not be set. No code path produces it yet (`setfocus` dispatch is fire-and-forget); it stays in the closed set for wire compatibility and future detection. | Treat like `internal` until a producer exists. |
+| `focus`              | An action required keyboard focus and it could not be confirmed on the target. Produced (#91/#270) by the `focus` tool when the window is foreground but no control took focus (`FocusService.IsFocusInWindow`), and by `invoke setfocus` when the element does not end up with `HasKeyboardFocus` (`UiaInvokeResult.FocusNotSet`). | `click` the exact control (a real click focuses what a bare SetFocus misses), or drive it with `invoke` instead of keystrokes. |
 | `elevation`          | The target runs at a higher integrity level (UAC) than MCEC and cannot be driven. Produced (#261) when a UIA attach/read/dispatch on a valid window fails with E_ACCESSDENIED (UIPI). | Surface to the operator; the action cannot proceed without elevation. |
-| `foreground`         | **Reserved** (#261): an action required the target to be foreground and it could not be brought forward. No agent command checks a SetForegroundWindow result yet; kept for wire compatibility and future detection. | Treat like `internal` until a producer exists. |
+| `foreground`         | An action required the target to be foreground and it could not be brought forward. Produced (#91/#270) by the `focus` tool when `FocusService.BringToForeground` asks Windows to activate the target and `GetForegroundWindow` confirms it did not land. | Retry the `focus` tool once whatever holds the foreground (a foreground lock, a modal on another app, a full-screen exclusive window) is gone, or ask the operator to click the target. |
 | `internal`           | An unexpected MCEC-side fault (bug, unhandled exception). | Not agent-recoverable; report with `lastObservation` for a bug bundle (#87). |
 
 `focus`, `elevation`, and `foreground` are kept distinct (rather than one "input" bucket) because
-the recoveries differ: focus is retryable, foreground is OS-policy-constrained, and elevation is
-not recoverable by the agent at all. In-product guidance (`AgentInstructions.md`) documents recovery
-only for categories that can actually occur; reserved categories must not be taught to agents (#261).
+the recoveries differ: focus is retryable (click the control), foreground is OS-policy-constrained
+(retry once the holder clears), and elevation is not recoverable by the agent at all. In-product
+guidance (`AgentInstructions.md`) documents recovery for every category that can occur; all three now
+have producers (#91/#270).
 
 ### Example error codes per category
 
@@ -101,9 +102,9 @@ only for categories that can actually occur; reserved categories must not be tau
 - `invalid-argument` → `region-too-large`, `action-unknown`, `pattern-unsupported`, `bad-arguments`,
   `launch-path-missing`, `recording-in-progress`, `no-recording`
 - `capture-blank` → `frame-all-black`, `frame-mostly-blank`
-- `focus` → `set-focus-failed` (reserved; no producer yet)
+- `focus` → `focus-not-confirmed` (focus tool), `focus-not-set` (invoke setfocus)
 - `elevation` → `target-elevated`
-- `foreground` → `set-foreground-denied` (reserved; no producer yet)
+- `foreground` → `foreground-not-set`
 - `internal` → `unhandled-exception`, `uia-faulted`, `invoke-faulted`
 
 ## Warning model

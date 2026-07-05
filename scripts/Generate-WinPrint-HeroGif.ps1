@@ -297,13 +297,15 @@ try {
         Start-Sleep -Milliseconds 500
     }
     Send-McecCommand 'ctrl-a' $session; Start-Sleep -Milliseconds 200
-    Send-McecCommand ("chars:" + $PdfPath.Replace('\', '\\')) $session; Start-Sleep -Milliseconds 800
+    # chars: types its argument verbatim (#269), so send $PdfPath as-is; NO backslash doubling.
+    Send-McecCommand ("chars:" + $PdfPath) $session; Start-Sleep -Milliseconds 800
     Send-McecCommand 'enter' $session; Start-Sleep -Seconds 6
     if (-not (Test-Path -LiteralPath $PdfPath)) { throw "PDF not saved at $PdfPath" }
     Step 'print-pdf' 'pass' "saved $PdfPath"
 
     Send-McecCommand 'winr' $session; Start-Sleep -Milliseconds 1000
-    Send-McecCommand ("chars:" + $PdfPath.Replace('\', '\\')) $session; Start-Sleep -Milliseconds 600
+    # chars: types verbatim (#269); send the path as-is, no doubling.
+    Send-McecCommand ("chars:" + $PdfPath) $session; Start-Sleep -Milliseconds 600
     Send-McecCommand 'enter' $session; Start-Sleep -Seconds 3
     Step 'open-pdf' 'pass' 'PDF viewer foreground'
     Start-Sleep -Milliseconds 1500

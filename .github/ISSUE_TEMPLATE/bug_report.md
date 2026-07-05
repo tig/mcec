@@ -30,7 +30,7 @@ Include the first line from the log window, like this:
 ```
 
 **Snippets from the log**
-Include any other relevant logs (either copy/pasted from the MCEC window or from the log files found in `%appdata%\Kindel Systems\MCEC` which contain more debug info).
+Include any other relevant logs (either copy/pasted from the MCEC window or from the log files found in `%appdata%\Kindel\MCEC` which contain more debug info).
 
 ```
 Paste Logs here.
@@ -38,6 +38,11 @@ Paste Logs here.
 
 **Desktop (please complete the following information):**
 Details of home control system you are interfacing with.
+
+**Agent evidence (if this is agent / MCP behavior)**
+If the bug is in the agent surface (MCP tools, actuation, observation), attach an MCEC evidence bundle
+(`tool-calls.jsonl` and `failure-summary.md` are the most useful; see docs/evidence-bundles.md) so it can
+be triaged without reproducing live.
 
 **Additional context**
 Add any other context about the problem here.

@@ -78,4 +78,37 @@ public class CharsCommandTests
 
         Assert.Equal("Test String", cmd.Args);
     }
+
+    // #269: chars: is LITERAL text entry. It must NOT run Regex.Unescape (which silently mangled Windows
+    // paths: `\t`, `\U`, etc. in `C:\Users\tig\...` were eaten or turned into control chars). PrepareText
+    // is the pure seam Execute types verbatim; these pin that it never processes escape sequences.
+
+    [Fact]
+    public void PrepareText_WindowsPath_TypedVerbatim_NoBackslashMangling()
+    {
+        // The canonical footgun: `C:\Users\tig\file.txt` — the `\t`/`\f` must stay literal, not become a TAB.
+        string path = @"C:\Users\tig\file.txt";
+
+        string result = CharsCommand.PrepareText(path);
+
+        Assert.Equal(path, result);
+        Assert.DoesNotContain('\t', result); // \t was NOT turned into a TAB
+    }
+
+    [Fact]
+    public void PrepareText_BackslashEscapes_StayLiteral()
+    {
+        // A bare `\t`/`\n` sequence types the two characters backslash+t, not a TAB/newline.
+        Assert.Equal(@"a\tb", CharsCommand.PrepareText(@"a\tb"));
+        Assert.Equal(@"one\ntwo", CharsCommand.PrepareText(@"one\ntwo"));
+        Assert.DoesNotContain('\t', CharsCommand.PrepareText(@"a\tb"));
+        Assert.DoesNotContain('\n', CharsCommand.PrepareText(@"one\ntwo"));
+    }
+
+    [Fact]
+    public void PrepareText_NullOrEmpty_ReturnsEmpty()
+    {
+        Assert.Equal("", CharsCommand.PrepareText(null));
+        Assert.Equal("", CharsCommand.PrepareText(""));
+    }
 }

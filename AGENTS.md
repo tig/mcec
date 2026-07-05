@@ -32,22 +32,28 @@ which loads the embedded file and collapses each blank-line-separated paragraph 
 > 3. **Act**: prefer `invoke` (`by` name/automationId/classname; `action` invoke|toggle|setvalue|
 >    setfocus|expand|collapse|select) over coordinate clicks. `invoke` **fast-fails** if the control isn't present (it does not
 >    wait), so `find`/`wait-for` the control first; an `invoke` that returns `no-target` means it hasn't
->    appeared yet; `wait-for` it rather than retrying blindly. Use `select` for TabItem/ListItem/RadioButton. `send_command` sends any raw MCEC command
->    (keystrokes, mouse, launch). To **drag** (resize a window by its sizing border, move one by its
->    title bar, or drag a slider/handle; no `invoke` for these), send a press-move-release sequence:
->    `mouse:mt,x,y` to the start, `mouse:lbd`, a stream of `mouse:mt,x,y` along the path, then `mouse:lbu`
->    (absolute screen pixels; pause briefly between moves). Re-`query` after; bounds have moved.
+>    appeared yet; `wait-for` it rather than retrying blindly. Use `select` for TabItem/ListItem/RadioButton.
+>    To **drag** (resize a window by its sizing border, move one by its title bar, or drag a slider/handle;
+>    no `invoke` for these), use the `drag` tool: give a `from` and `to`, each an element `{ by, value }` or
+>    an absolute screen pixel `{ x, y }`, plus optional `path` waypoints; the whole press-move-release is
+>    dispatched **atomically** (prefer it over hand-rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu`, which can
+>    interleave with other input). To **click** a point `invoke` can't reach (a custom-drawn cell, a
+>    canvas/map coordinate, a bare pixel), use the `click` tool. Before firing an app's own keyboard
+>    shortcut at a specific surface (e.g. a MAUI GraphicsView), `focus` it first; keystrokes only reach the
+>    foreground window's focused control. `send_command` is the raw escape hatch for any other MCEC command
+>    (keystrokes, a single mouse action, launch). Re-`query` after acting; bounds have moved.
 > 4. **Verify** with another `query`/`capture`.
 >
 > **Compose creatively.** Many tasks have no single dedicated tool; build them from primitives. Launch an
 > app with the `launch` tool (preferred). Use `invoke` action:select for tabs/list/radios.
-> Drag/resize/move with `mouse:lbd` → a path of `mouse:mt` → `mouse:lbu`; switch a tab by `invoke` select or `query`+click;
+> Drag/resize/move with the `drag` tool; switch a tab by `invoke` select or `click`;
 > record a window by passing its `query`'d bounds as the `record` region;
-> wait for a window by polling `query`. A capable agent uses the *full* command set; reach for a raw
+> wait on window state with the `windows` tool + a `timeout` and a `condition` (appears/disappears/foreground).
+> A capable agent uses the *full* command set; reach for a raw
 > `send_command` before concluding something can't be done.
 >
 **There is exactly one copy: edit that file.** It is the observe → target → act → observe playbook
-(targeting; observation with `query`/`capture`/`record`/`displays`; `invoke`, `drag`, `click` and
+(targeting; observation with `query`/`capture`/`record`/`displays`; `invoke`, `drag`, `click`, `focus` and
 `send_command`; the result
 envelope; creative composition of primitives; the on-screen overlay; and the security gates). Nothing here
 to keep in sync.

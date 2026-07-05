@@ -254,10 +254,10 @@ A full list of virtual key codes is on
 > a launch sequence), then send the key.
 
 Sending `chars:` plus text simulates typing that text. `chars:3` types `3`; `chars:Hello` types the
-letters H-e-l-l-o (including the shift for the capital). The text after `chars:` can include *character
-escapes* for unprintable/Unicode characters: `chars:\\` sends `\`, `chars:☺` sends `☺`, and
-`chars:€` sends `€`. (The supported escapes are
-[documented here](https://docs.microsoft.com/en-us/dotnet/standard/base-types/character-escapes-in-regular-expressions).)
+letters H-e-l-l-o (including the shift for the capital). The text is typed **literally**, exactly as
+given; there is no escape processing, so `chars:\` sends a single backslash and a Windows path types
+straight through: `chars:C:\Users\me\file.txt` types `C:\Users\me\file.txt` (no backslash doubling).
+Unicode characters pass through as-is: `chars:☺` sends `☺`, `chars:€` sends `€`.
 
 How `chars:` interacts with modifier keys (shift/ctrl/alt/win) is app-dependent; for fine-grained control
 use `SendInput` commands instead.

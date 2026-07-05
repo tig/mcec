@@ -25,7 +25,7 @@ pattern and adds no breaking changes to any existing command, transport, or defa
                                             │  resolves + Execute()s
                                             ▼
    capture / query / displays / find / wait-for / invoke /
-   drag / click / record / launch   (the ToolCatalog set; new Commands)
+   drag / click / focus / record / launch   (the ToolCatalog set; new Commands)
         │            │           │
    ScreenCapture  WindowResolver  UiaService
    (PrintWindow)  (Win32 enum)    (FlaUI / UIA3, one dedicated MTA worker)
@@ -134,7 +134,7 @@ code/category to `unhandled`/`internal`, so every agent failure is categorical b
 
 ## How the new commands plug into the existing pattern
 
-Each agent command (`capture`, `query`, `find`/`wait-for`, `invoke`, `click`, `drag`,
+Each agent command (`capture`, `query`, `find`/`wait-for`, `invoke`, `click`, `focus`, `drag`,
 `record`, `displays`, `launch`) derives from `AgentCommand : Command` and follows
 the house pattern:
 

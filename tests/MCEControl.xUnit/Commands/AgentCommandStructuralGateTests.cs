@@ -25,7 +25,7 @@ public class AgentCommandStructuralGateTests {
     /// <c>ToolCatalogTests</c> pins the same list against the catalog itself.
     /// </summary>
     private static readonly string[] _gatedToolNames = [
-        "capture", "query", "displays", "windows", "find", "wait-for", "invoke", "record", "launch", "drag", "click", "clipboard",
+        "capture", "query", "displays", "windows", "find", "wait-for", "invoke", "record", "launch", "drag", "click", "focus", "clipboard",
     ];
 
     public static TheoryData<string> GatedToolNameData {

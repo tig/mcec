@@ -75,4 +75,31 @@ public class OverlayLayoutTests {
 
         Assert.InRange(lines, 30, 60);
     }
+
+    [Fact]
+    public void ControlBannerText_IsTheSingleControllingLine() {
+        // #266: one short, plain-language line telling the human MCEC is driving; no hotkey clutter.
+        Assert.Equal("MCEC is controlling your PC", OverlayLayout.ControlBannerText);
+    }
+
+    [Fact]
+    public void ControlBannerText_IsASingleLine() {
+        // "One line": the centered banner must never wrap to a second row.
+        Assert.DoesNotContain("\n", OverlayLayout.ControlBannerText);
+        Assert.DoesNotContain("\r", OverlayLayout.ControlBannerText);
+    }
+
+    [Fact]
+    public void FeedColumnWidth_IsAboutThirtyPercentOfTheFullWidthWindow() {
+        // #266: the window is full-width (so the banner centers across the screen), but the feed stays
+        // in a ~30% docked column.
+        Assert.Equal(300, OverlayLayout.FeedColumnWidth(1000));
+        Assert.Equal(576, OverlayLayout.FeedColumnWidth(1920));
+    }
+
+    [Fact]
+    public void FeedColumnWidth_HasASaneFloor_ForTinyOrDegenerateWidths() {
+        Assert.True(OverlayLayout.FeedColumnWidth(0) >= 1);
+        Assert.True(OverlayLayout.FeedColumnWidth(-100) >= 1);
+    }
 }

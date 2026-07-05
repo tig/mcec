@@ -108,6 +108,7 @@ public static class ToolCatalog {
                 Window = Str(args, "window")!,
                 Process = Str(args, "process")!,
                 ClassName = Str(args, "className")!,
+                Condition = Str(args, "condition")!,
                 Timeout = Int(args, "timeout"),
             },
             CreateCommandInstance = () => new WindowsCommand(),
@@ -167,6 +168,18 @@ public static class ToolCatalog {
             BuildCommand = BuildClickCommand,
             CreateCommandInstance = () => new ClickCommand(),
             Tersify = args => $"click {CommandTersifier.Endpoint(args, "at")}",
+            ProvisionedByDefault = true,
+        },
+        new() {
+            Name = "focus",
+            BuildSchema = BuildFocusSchema,
+            BuildCommand = BuildFocusCommand,
+            CreateCommandInstance = () => new FocusCommand(),
+            Tersify = args => $"focus {CommandTersifier.Endpoint(args, "at")}",
+            // Like drag, focus synthesizes a real click as part of a compound gesture (foreground →
+            // click → SetFocus → verify); serialize it on the input gate so that gesture cannot
+            // interleave with queue-driven input (send_command/legacy pipeline) mid-sequence (#113).
+            SerializesOnInput = true,
             ProvisionedByDefault = true,
         },
         new ToolDescriptor {
@@ -257,10 +270,11 @@ public static class ToolCatalog {
             ["window"] = PropSchema("string", "Filter by window title substring (case-insensitive)"),
             ["process"] = PropSchema("string", "Filter by process name (without .exe)"),
             ["className"] = PropSchema("string", "Filter by window class name (exact)"),
-            ["timeout"] = PropSchema("integer", "Milliseconds to WAIT for a matching top-level window to appear (0 = list now, no wait); requires at least one filter"),
+            ["condition"] = PropSchema("string", "The predicate to evaluate, waited for with a timeout or checked once with timeout:0: appears (default; a matching window exists), disappears (no window matches any more, e.g. a modal closed), or foreground (a matching window is the foreground window). Returns satisfied for the predicate result"),
+            ["timeout"] = PropSchema("integer", "Milliseconds to WAIT for the condition (0 = check/list now, one-shot); a wait, and the disappears/foreground conditions, require at least one filter"),
         };
         return Tool("windows",
-            "Discover top-level windows: returns each window's handle, title, className, processName, processId, and bounds so you can find and target a window instead of guessing. Optionally filter by title substring / process / class. With a timeout it WAITS, polling until a matching window appears (or the timeout, returning count:0). No filter lists every window; a timeout with no filter is refused (it won't wait for an arbitrary window). Reuse a returned handle directly on query/capture/invoke.",
+            "Discover top-level windows and WAIT on window state. Returns each window's handle, title, className, processName, processId, and bounds so you can target a window instead of guessing; reuse a returned handle directly on query/capture/invoke. Optionally filter by title substring / process / class. With a timeout it WAITS for `condition`: appears (default; poll until a match exists, count:0 on timeout), disappears (poll until no window matches, e.g. a dialog closed), or foreground (poll until a matching window is the foreground window). No filter lists every window; a wait, or disappears/foreground, with no filter is refused. On a timeout the result carries waitedFor + lastObservedWindows for triage.",
             props, []);
     }
 
@@ -323,6 +337,14 @@ public static class ToolCatalog {
         return Tool("click",
             "Click at a point; an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
             clickProps, ["at"]);
+    }
+
+    private static JsonObject BuildFocusSchema() {
+        JsonObject focusProps = WindowTargetProps();
+        focusProps["at"] = EndpointSchema("Optional control to focus: an element ({ by, value }) in the target window (clicked at its centre) or an absolute screen pixel ({ x, y }). Omit to just bring the window to the foreground and confirm keyboard focus is in it.");
+        return Tool("focus",
+            "Give a window (and optionally a control in it) real keyboard focus so send_command/chars keystrokes reach it. Foregrounds the window, clicks the control (a real click focuses surfaces a bare UIA setfocus misses; e.g. a MAUI GraphicsView), then verifies. Fails with category 'foreground' if the window won't activate, 'focus' if no control took focus. Use before sending app keyboard shortcuts to a custom-drawn surface.",
+            focusProps, []);
     }
 
     private static JsonObject BuildClipboardSchema() {
@@ -467,6 +489,30 @@ public static class ToolCatalog {
             Y = Int(at, "y"),
             Button = Str(args, "button") ?? "left",
             Count = count > 0 ? count : 1,
+        };
+    }
+
+    /// <summary>Maps the focus tool's optional <c>at</c> endpoint onto a <see cref="FocusCommand"/>. An
+    /// endpoint with a pixel (<c>x</c>/<c>y</c> present) and no <c>value</c> sets <c>PointSpecified</c> so a
+    /// literal (0,0) is distinguished from "no endpoint" (a bare window focus).</summary>
+    private static FocusCommand BuildFocusCommand(JsonObject args) {
+        JsonObject at = args["at"] as JsonObject ?? [];
+        bool hasElement = !string.IsNullOrEmpty(Str(at, "value"));
+        // Require BOTH coordinates for a pixel endpoint. The executor's FocusArgsError already rejects a
+        // partial pixel with invalid-argument; this is defense-in-depth for a direct build (tests), so a
+        // half-specified endpoint degrades to a bare window focus rather than a click at (x, 0).
+        bool hasPixel = !hasElement && at.ContainsKey("x") && at.ContainsKey("y");
+        return new FocusCommand {
+            Window = Str(args, "window")!,
+            Handle = Long(args, "handle"),
+            Process = Str(args, "process")!,
+            ClassName = Str(args, "className")!,
+            Foreground = Bool(args, "foreground"),
+            By = Str(at, "by") ?? "name",
+            Value = Str(at, "value")!,
+            X = Int(at, "x"),
+            Y = Int(at, "y"),
+            PointSpecified = hasPixel,
         };
     }
 
