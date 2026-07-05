@@ -48,7 +48,8 @@ which loads the embedded file and collapses each blank-line-separated paragraph 
 > app with the `launch` tool (preferred). Use `invoke` action:select for tabs/list/radios.
 > Drag/resize/move with the `drag` tool; switch a tab by `invoke` select or `click`;
 > record a window by passing its `query`'d bounds as the `record` region;
-> wait for a window by polling `query`. A capable agent uses the *full* command set; reach for a raw
+> wait on window state with the `windows` tool + a `timeout` and a `condition` (appears/disappears/foreground).
+> A capable agent uses the *full* command set; reach for a raw
 > `send_command` before concluding something can't be done.
 >
 **There is exactly one copy: edit that file.** It is the observe → target → act → observe playbook
