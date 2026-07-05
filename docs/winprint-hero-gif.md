@@ -76,8 +76,8 @@ operator/harness has provisioned it (agent commands enabled in the session copy 
 | Zoom | `click` preview → `key_equals` ×4 → arrows → `key_0` |
 | Second file | File → clipboard `README.md` → Ctrl+V → Enter |
 | Print | `query` tree → `click` toolbar **Print…** button by bounds (printer already **Microsoft Print to PDF**) |
-| Save PDF | `query` **Save Print Output As** by `handle` → `click` filename field → `chars:C:\\…\\winprintdemo.pdf` (backslashes doubled) → Enter |
-| Open PDF | `send_command winr` → `send_command chars:<pdf path>` (backslashes doubled) → Enter |
+| Save PDF | `query` **Save Print Output As** by `handle` → `click` filename field → `chars:C:\…\winprintdemo.pdf` (typed literally; chars: no longer doubles backslashes) → Enter |
+| Open PDF | `send_command winr` → `send_command chars:<pdf path>` (typed literally) → Enter |
 | Stop | `record { action:"stop", file:"docs/hero-gui-win.gif" }` |
 | Close PDF | `send_command alt_f4` — release the file lock so the next run's harness `Remove-Item` succeeds |
 

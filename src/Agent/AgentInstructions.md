@@ -62,8 +62,9 @@ absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and
 it doesn't depend on the control being on-screen and unobscured. System file dialogs (Open, Save Print
 Output As) are separate windows; `wait-for`/`query` by title, reuse the returned `handle`, and act on that
 target (don't assume the dialog shares the app's process). They often have no UIA-settable filename field;
-`clipboard { action:set, text:… }` then Ctrl+V and Enter, or `send_command chars:<path>` with every Windows
-backslash doubled (`C:\\folder\\file.ext`). Click the filename field first when paste fails. `send_command`
+`clipboard { action:set, text:… }` then Ctrl+V and Enter, or `send_command chars:<path>` (chars: types the
+path LITERALLY; a single backslash is a backslash, `C:\folder\file.ext`, no doubling). Click the filename
+field first when paste fails. `send_command`
 sends any other raw MCEC command (keystrokes, single mouse actions, launch); the raw
 `mouse:drag,x1,y1,x2,y2[,...]` is the same atomic drag in pixels and `mouse:mtp,x,y` moves the pointer to
 an absolute screen pixel. If `invoke`/`click` by name returns `no-target`, `query` the tree: WinUI/MAUI
@@ -122,10 +123,15 @@ started is refused the same way. (Note the hyphen: the tools are `session-start`
 COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. When
 injected keystrokes must reach Start/search or the bare desktop, first show the desktop (Win+D) or `click` an
 open desktop pixel; IDE/terminal shells otherwise swallow them. Launch
-an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D. To fire an app ACCELERATOR
-(Ctrl+C/V/A/S), send a real VK+modifier command (like the built-in `ctrl-x`), NOT `shiftdown:ctrl` then
-`chars:c`: `chars:` injects a character and never triggers the accelerator, so the copy/paste silently does
-nothing. Prefer the `clipboard` tool for clipboard text; use Ctrl+C/Ctrl+V keystrokes only to move data
+an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D.
+KEYSTROKES split two ways, and confusing them silently does nothing. To fire an app SHORTCUT or press a
+navigation/editing key; a Ctrl/Alt/Win chord (Ctrl+C/V/A/S), a lone shortcut key (zoom `+`/`-`/`=`), or an
+arrow/function/Enter/Esc/Tab; send a real KEYDOWN via `send_command`: a `VK_` name (`VK_OEM_PLUS` is `=`/`+`),
+a named key (`enter`, `escape`, `left`/`right`/`up`/`down`, `tab`), or a chord builtin (`ctrl-x`); bracket
+with `shiftdown:<mods>`/`shiftup:<mods>` for extra modifiers. `chars:` is for LITERAL TEXT ONLY (it is
+WM_CHAR text entry): `chars:=` types a `=` and never zooms, and `shiftdown:ctrl` then `chars:c` does NOT
+fire Ctrl+C. So type field values and paths with `chars:`, but fire shortcuts with the keydown command.
+Prefer the `clipboard` tool for clipboard text; use Ctrl+C/Ctrl+V keystrokes only to move data
 through an app that owns the selection (copy a canvas, paste an image). Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region; use a **desktop region** when Start/search

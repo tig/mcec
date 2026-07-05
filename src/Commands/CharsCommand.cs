@@ -9,10 +9,9 @@
 //-------------------------------------------------------------------
 
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using WindowsInput;
 
-namespace MCEControl; 
+namespace MCEControl;
 /// <summary>
 /// Supports sending raw text.
 /// </summary>
@@ -25,15 +24,23 @@ public class CharsCommand : Command {
         ];
     }
 
+    /// <summary>
+    /// The LITERAL text <c>chars:</c> types: <paramref name="args"/> verbatim (empty when null/blank).
+    /// It deliberately does NO escape processing (#269). It used to run <c>Regex.Unescape</c>, which
+    /// silently mangled any argument containing backslashes; a Windows path like
+    /// <c>C:\Users\tig\file.txt</c> had its <c>\t</c> turned into a TAB and other <c>\x</c> sequences
+    /// eaten, so agents had to double every backslash. <c>chars:</c> is text entry, not an escape-coded
+    /// string; typing the argument as-is is the least-surprising behavior. Pure; unit-testable.
+    /// </summary>
+    internal static string PrepareText(string? args) => args ?? "";
+
     // ICommand:Execute
     public override bool Execute() {
         if (!base.Execute()) {
             return false;
         }
 
-        // if command came in as a literal "chars:foo" command use args
-        // otherwise, use the Chars property
-        string text = !string.IsNullOrEmpty(Args) ? Regex.Unescape(Args) : "";
+        string text = PrepareText(Args);
 
         Logger.Instance.Log4.Info($"{this.GetType().Name}: Typing {text.Length} chars: {text}");
 
