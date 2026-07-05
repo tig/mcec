@@ -68,7 +68,14 @@ sends any other raw MCEC command (keystrokes, single mouse actions, launch); the
 `mouse:drag,x1,y1,x2,y2[,...]` is the same atomic drag in pixels and `mouse:mtp,x,y` moves the pointer to
 an absolute screen pixel. If `invoke`/`click` by name returns `no-target`, `query` the tree: WinUI/MAUI
 labels often include emoji and ellipsis; click a control's bounds centre from `query` instead of guessing a
-plain name.
+plain name. Before you send an app's own keyboard SHORTCUT to a specific control (e.g. a MAUI GraphicsView
+that zooms on `+`/`-`, a canvas, a game surface), `focus` it first: keystrokes only reach the foreground
+window's focused control, and a bare `click` or `invoke setfocus` does not reliably focus a custom-drawn
+surface. The `focus` tool foregrounds the window, clicks the control (a real click focuses what SetFocus
+misses), and verifies; give `at` an element `{ by, value }` or pixel `{ x, y }`, or omit `at` to just
+foreground a window and confirm focus. It fails `foreground` if the window won't activate, `focus` if no
+control took focus. `invoke setfocus` is also verified now; it fails `focus` (code `focus-not-set`) when
+the element does not end up focused, which is your cue to `focus` (it clicks) or `click` the control.
 
 4. VERIFY with another `query` or `capture`; always confirm the act had the intended effect.
 
@@ -86,8 +93,12 @@ or an automationId rather than the shared name; retrying it unchanged cannot hel
 `stale-element` means the window/element went away mid-call (closed or re-rendered); re-`query`/`find`
 for a fresh handle, then retry; `elevation` means the target runs elevated (UAC) at a higher integrity
 level than MCEC and cannot be observed or driven; report it to the user, do not retry; `internal` is not
-recoverable by you; report it. `focus` and `foreground` are reserved for future detection and are never
-produced today; treat them like `internal` if one ever appears. Branch on codes and categories, never on
+recoverable by you; report it. `foreground` means Windows refused to bring the target to the foreground
+(a foreground lock, a modal on another app, or a full-screen exclusive window is holding it), so keystrokes
+would not reach it; retry the `focus` tool after whatever holds the foreground is gone, or ask the operator
+to click the target. `focus` means the window is foreground but no control took keyboard focus (it went
+nowhere, or to a sibling); `click` the exact control, or drive it with `invoke` instead of keystrokes.
+Branch on codes and categories, never on
 the wording of `error.detail` (it is human-readable and may change). `error.lastObservation`, when present, is the last good state before the failure, and
 `error.partialResult` is the failing call's OWN partial payload (e.g. a blank capture's suspect PNG).
 For a `capture`, `lastObservation` is a compact summary plus an `artifact` path where the PNG was saved; it

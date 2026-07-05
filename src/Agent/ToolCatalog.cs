@@ -169,6 +169,18 @@ public static class ToolCatalog {
             Tersify = args => $"click {CommandTersifier.Endpoint(args, "at")}",
             ProvisionedByDefault = true,
         },
+        new() {
+            Name = "focus",
+            BuildSchema = BuildFocusSchema,
+            BuildCommand = BuildFocusCommand,
+            CreateCommandInstance = () => new FocusCommand(),
+            Tersify = args => $"focus {CommandTersifier.Endpoint(args, "at")}",
+            // Like drag, focus synthesizes a real click as part of a compound gesture (foreground →
+            // click → SetFocus → verify); serialize it on the input gate so that gesture cannot
+            // interleave with queue-driven input (send_command/legacy pipeline) mid-sequence (#113).
+            SerializesOnInput = true,
+            ProvisionedByDefault = true,
+        },
         new ToolDescriptor {
             Name = "clipboard",
             BuildSchema = BuildClipboardSchema,
@@ -325,6 +337,14 @@ public static class ToolCatalog {
             clickProps, ["at"]);
     }
 
+    private static JsonObject BuildFocusSchema() {
+        JsonObject focusProps = WindowTargetProps();
+        focusProps["at"] = EndpointSchema("Optional control to focus: an element ({ by, value }) in the target window (clicked at its centre) or an absolute screen pixel ({ x, y }). Omit to just bring the window to the foreground and confirm keyboard focus is in it.");
+        return Tool("focus",
+            "Give a window (and optionally a control in it) real keyboard focus so send_command/chars keystrokes reach it. Foregrounds the window, clicks the control (a real click focuses surfaces a bare UIA setfocus misses; e.g. a MAUI GraphicsView), then verifies. Fails with category 'foreground' if the window won't activate, 'focus' if no control took focus. Use before sending app keyboard shortcuts to a custom-drawn surface.",
+            focusProps, []);
+    }
+
     private static JsonObject BuildClipboardSchema() {
         JsonObject clipboardProps = new() {
             ["action"] = PropSchema("string", "set | get"),
@@ -467,6 +487,30 @@ public static class ToolCatalog {
             Y = Int(at, "y"),
             Button = Str(args, "button") ?? "left",
             Count = count > 0 ? count : 1,
+        };
+    }
+
+    /// <summary>Maps the focus tool's optional <c>at</c> endpoint onto a <see cref="FocusCommand"/>. An
+    /// endpoint with a pixel (<c>x</c>/<c>y</c> present) and no <c>value</c> sets <c>PointSpecified</c> so a
+    /// literal (0,0) is distinguished from "no endpoint" (a bare window focus).</summary>
+    private static FocusCommand BuildFocusCommand(JsonObject args) {
+        JsonObject at = args["at"] as JsonObject ?? [];
+        bool hasElement = !string.IsNullOrEmpty(Str(at, "value"));
+        // Require BOTH coordinates for a pixel endpoint. The executor's FocusArgsError already rejects a
+        // partial pixel with invalid-argument; this is defense-in-depth for a direct build (tests), so a
+        // half-specified endpoint degrades to a bare window focus rather than a click at (x, 0).
+        bool hasPixel = !hasElement && at.ContainsKey("x") && at.ContainsKey("y");
+        return new FocusCommand {
+            Window = Str(args, "window")!,
+            Handle = Long(args, "handle"),
+            Process = Str(args, "process")!,
+            ClassName = Str(args, "className")!,
+            Foreground = Bool(args, "foreground"),
+            By = Str(at, "by") ?? "name",
+            Value = Str(at, "value")!,
+            X = Int(at, "x"),
+            Y = Int(at, "y"),
+            PointSpecified = hasPixel,
         };
     }
 

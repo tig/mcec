@@ -73,6 +73,11 @@ public class InvokeCommand : WindowTargetingAgentCommand {
             "UI Automation was denied access to the target; it runs at a higher integrity level (UAC) than MCEC " +
             "and cannot be driven. Surface this to the operator; do not retry.",
             "target-elevated", "elevation"),
+        UiaInvokeResult.FocusNotSet => CommandResult.Fail(Cmd,
+            $"setfocus dispatched but the element ({By}='{Value}') did not take keyboard focus (it may redirect " +
+            "focus to a child, or be a surface a bare SetFocus cannot focus). Use the `focus` tool (it clicks to " +
+            "place focus first) or `click` the control directly before sending keystrokes.",
+            "focus-not-set", "focus"),
         _ => CommandResult.Fail(Cmd,
             "Invoke faulted: UI Automation threw while attaching to or driving the target (it may have closed mid-call). Re-observe the window.",
             "invoke-faulted", "internal"),

@@ -14,7 +14,7 @@ AI agents and scripts running on a Windows PC. It gives an agent three things:
   drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
 
 The agent surface is a set of new commands (`capture`, `query`, `displays`, `windows`, `find`,
-`wait-for`, `invoke`, `record`, `launch`, `drag`, and `click`) exposed as **tools over MCP/HTTP**
+`wait-for`, `invoke`, `record`, `launch`, `drag`, `click`, and `focus`) exposed as **tools over MCP/HTTP**
 so an agent can call them directly. Each tool call returns a **structured JSON result
 envelope** (`{ ok, result, … }`) instead of free text, so an agent can reason about
 success and failure uniformly.
@@ -81,7 +81,7 @@ If any one of these switches is off, the corresponding capability simply refuses
 and returns a JSON failure (for commands); it never silently proceeds.
 
 **Which gate applies where.** The agent *tools* (`capture`/`query`/`displays`/`windows`/`find`/`wait-for`/`invoke`/
-`record`/`launch`/`drag`/`click`) are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
+`record`/`launch`/`drag`/`click`/`focus`) are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
 flag, over **both** MCP transports (`mcec.exe --mcp` stdio and the HTTP floor): a `tools/call` for a
 command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
 `AgentCommandsEnabled=true`.
@@ -161,6 +161,7 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 | `drag`     | Press → move along a path → release, dispatched **atomically** (nothing interleaves). Each endpoint is a UI Automation element (dragged from/to its centre) or an absolute screen pixel; add `path` waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee-select, drag-reorder. | window target (needed when an endpoint is an element); `from`/`to` each `{ by, value }` or `{ x, y }`; optional `path` `[{ x, y }, …]` |
 | `launch`   | Launch an app directly (path + args + working dir); gated. Returns pid and primary window handle/info when the window appears. Preferred over Win+R composition. | `path` (required), `arguments`, `workingDirectory`, `timeout` |
 | `click`    | Click at a point (a UI Automation element's centre or an absolute screen pixel); move+click is dispatched **atomically**. For element types `invoke` can't drive, or when you must target a pixel. Prefer `invoke` for ordinary buttons/menus. | window target (needed when `at` is an element); `at` = `{ by, value }` or `{ x, y }`; `button` (`left`\|`right`\|`middle`, default `left`); `count` (`1`\|`2`, default `1`) |
+| `focus`    | Give a window (and optionally a control in it) real **keyboard focus** so `send_command`/`chars` keystrokes reach it. Foregrounds the window, clicks the control (a real click focuses custom-drawn surfaces a bare `setfocus` misses; e.g. a MAUI GraphicsView), then **verifies**. Fails `foreground` if the window won't activate, `focus` if no control takes focus. Use before firing an app's own keyboard shortcut at a specific surface. | window target; optional `at` = `{ by, value }` or `{ x, y }` (omit to just foreground + confirm focus) |
 | `record`   | Record a window or region to an **animated GIF** over time (start/stop or a bounded one-shot). | window target, or region `x`/`y`/`width`/`height`; `action` (`start`\|`stop`\|`oneshot`), `fps`, `durationMs`, `maxWidth`, `file` |
 
 Every MCP **tool call** returns one result envelope. An agent branches on `ok` first; on
@@ -183,8 +184,8 @@ Over MCP, the transport's `isError` flag mirrors the envelope (`isError = !ok`).
 
 On failure the `error` object carries a stable, fine-grained `code`, a coarse `category` from
 the closed taxonomy (`timeout`, `ambiguous-selector`, `stale-element`, `no-target`,
-`invalid-argument`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`; `focus`
-and `foreground` are reserved for future detection and are not currently produced), a
+`invalid-argument`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`; the `focus`
+tool produces `focus` and `foreground` when it cannot confirm focus or foreground on the target), a
 human-readable `detail`, and (when available) a `lastObservation` (the last good state before
 the failure, so a failed call is debuggable without rerunning it) and a `partialResult` (the
 failing call's own partial payload, e.g. a blank capture's suspect PNG):
@@ -546,6 +547,7 @@ When connected, the server advertises these tools:
 | `drag`         | The `drag` command (atomic press → move-path → release, element or pixel endpoints). |
 | `launch`       | Direct gated app launch (returns pid + window handle).         |
 | `click`        | The `click` command (atomic click at an element centre or pixel). |
+| `focus`        | The `focus` command (foreground + click + verify keyboard focus, for keystroke targeting). |
 | `record`       | The `record` command (window/region → animated GIF over time). |
 | `send_command` | Generic raw-command passthrough; send any MCEC command line.  |
 | `session-start`  | Start a new [agent session](#agent-sessions) and return its `sessionId`. |
@@ -565,9 +567,9 @@ Agent tool calls follow a simple contract so one slow call never stalls the othe
   shared lock**; a deep `query`, a large `capture`, or a long `wait-for` never blocks another tool call,
   even one from a different session. They snapshot state (each UIA read uses its own automation instance;
   screen capture is stateless) and don't mutate the desktop.
-- **Global-input actuation serializes.** `drag` and `send_command` synthesize physical mouse/keyboard;
-  the one input stream is a shared resource, so they serialize on a single gate
-  (`AgentRuntime.InputGate`): `drag` actuates directly under the gate on its worker, while
+- **Global-input actuation serializes.** `drag`, `focus`, and `send_command` synthesize physical
+  mouse/keyboard; the one input stream is a shared resource, so they serialize on a single gate
+  (`AgentRuntime.InputGate`): `drag`/`focus` actuate directly under the gate on their worker, while
   `send_command` enqueues into the command engine, whose single dispatcher thread holds the same
   gate around each input-synthesizing queued command's `Execute` (concurrent requests can't interleave
   keystrokes/mouse). Commands that provably touch no input (`pause`, `mcec:`) run outside the gate, so a

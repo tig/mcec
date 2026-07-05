@@ -31,10 +31,10 @@ public enum AgentErrorCategory {
     /// <summary>A screenshot was produced but detected as black/blank.</summary>
     CaptureBlank,
 
-    /// <summary>An action required input focus that could not be set. RESERVED (#261): part of the
-    /// closed wire contract but not yet produced by any code path; <c>setfocus</c> dispatch is
-    /// fire-and-forget and no command verifies focus landed. Do not document recovery guidance for it
-    /// until a producer exists.</summary>
+    /// <summary>An action required keyboard focus and it could not be confirmed on the target. Produced
+    /// (#91/#270) by the <c>focus</c> tool when a window is foreground but no control took focus
+    /// (<see cref="FocusService.IsFocusInWindow"/>), and by <c>invoke setfocus</c> when the element does
+    /// not end up with <c>HasKeyboardFocus</c> (<see cref="UiaInvokeResult.FocusNotSet"/>).</summary>
     Focus,
 
     /// <summary>The target runs at a higher integrity level (UAC) than MCEC and cannot be driven.
@@ -43,9 +43,9 @@ public enum AgentErrorCategory {
     Elevation,
 
     /// <summary>An action required the target to be foreground and it could not be brought forward.
-    /// RESERVED (#261): part of the closed wire contract but not yet produced by any code path; no
-    /// agent command checks a SetForegroundWindow result. Do not document recovery guidance for it
-    /// until a producer exists.</summary>
+    /// Produced (#91/#270) by the <c>focus</c> tool when <see cref="FocusService.BringToForeground"/>
+    /// asks Windows to activate the target and <c>GetForegroundWindow</c> confirms it did not land
+    /// (foreground lock, a modal on another app, a full-screen exclusive window).</summary>
     Foreground,
 
     /// <summary>An unexpected MCEC-side fault (bug, unhandled exception) or a policy refusal the agent

@@ -39,6 +39,7 @@ public class AgentServerTests {
     // concurrently (so a long wait-for/query never blocks an unrelated capture); invoke is UIA actuation
     // dispatched on a worker with the modal grace, not under this lock.
     [InlineData("drag", true)]
+    [InlineData("focus", true)]
     [InlineData("send_command", true)]
     [InlineData("query", false)]
     [InlineData("capture", false)]
@@ -185,6 +186,83 @@ public class AgentServerTests {
 
             Assert.False(envelope["ok"]!.GetValue<bool>());
             Assert.Equal("bad-arguments", envelope["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_Focus_IncompletePixelEndpoint_ReportsBadArguments() {
+        // #272 CR (P2): focus synthesizes a real click, so a pixel `at` with x but no y must be rejected
+        // up front, not turned into (x, 0) and clicked. `at` is optional for focus, but a PRESENT pixel
+        // endpoint must be complete.
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        try {
+            JsonObject prms = new() {
+                ["name"] = "focus",
+                ["arguments"] = new JsonObject {
+                    ["window"] = "Whatever",
+                    ["at"] = new JsonObject { ["x"] = 400 }, // missing y
+                },
+            };
+
+            JsonObject resp = AgentServer.Dispatch(Request(20, "tools/call", prms))!;
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
+
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            Assert.Equal("bad-arguments", envelope["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_Focus_NoEndpoint_PassesValidation() {
+        // Omitting `at` is a valid window-only focus (foreground + confirm), NOT a malformed endpoint; it
+        // must get PAST argument validation and stop at the per-command enable gate.
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = null;
+        try {
+            JsonObject prms = new() {
+                ["name"] = "focus",
+                ["arguments"] = new JsonObject { ["window"] = "Whatever" },
+            };
+
+            JsonObject resp = AgentServer.Dispatch(Request(21, "tools/call", prms))!;
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
+
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            Assert.NotEqual("bad-arguments", envelope["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void Dispatch_Focus_CompletePixelEndpoint_PassesValidation() {
+        // A full integer pixel endpoint is well-formed and must pass validation (stops at the enable gate).
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.Invoker = null;
+        try {
+            JsonObject prms = new() {
+                ["name"] = "focus",
+                ["arguments"] = new JsonObject {
+                    ["window"] = "Whatever",
+                    ["at"] = new JsonObject { ["x"] = 400, ["y"] = 250 },
+                },
+            };
+
+            JsonObject resp = AgentServer.Dispatch(Request(22, "tools/call", prms))!;
+            JsonObject envelope = JsonNode.Parse(FirstTextBlock(resp["result"]!.AsObject()))!.AsObject();
+
+            Assert.False(envelope["ok"]!.GetValue<bool>());
+            Assert.NotEqual("bad-arguments", envelope["error"]!.AsObject()["code"]!.GetValue<string>());
         }
         finally {
             AgentRuntime.Settings = null;
