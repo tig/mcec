@@ -28,9 +28,13 @@ namespace MCEControl;
 /// <para>It sizes itself from the full screen <see cref="Screen.Bounds"/> (not the working area, so it
 /// spans the taskbar's height too), inset by the layout margin, and re-asserts top-most Z-order on
 /// every paint (<see cref="PushLayered"/>), so a window created top-most AFTER the overlay cannot
-/// occlude it; a one-time WS_EX_TOPMOST would sink below any later top-most window. The feed cap scales
-/// with the screen height (<see cref="OverlayLayout.MaxLines"/>) so lines fill the whole height rather
-/// than only the bottom.</para>
+/// occlude it; a one-time WS_EX_TOPMOST would sink below any later top-most window.</para>
+///
+/// <para>A persistent banner sits across the top (#266): while running it reads "MCEC is being
+/// controlled; to stop press &lt;hotkey&gt;" in the brand orange; while emergency-stopped (#135) the red
+/// "⛔ STOPPED by operator" banner takes its place. The command feed flows downward from just below the
+/// banner (top-anchored), keeping the newest lines visible and trimming the oldest, so it fills the whole
+/// screen height instead of clustering at the bottom.</para>
 /// </summary>
 public sealed class CommandOverlayWindow : Form {
     private const int WS_EX_TRANSPARENT = 0x00000020;
@@ -45,6 +49,10 @@ public sealed class CommandOverlayWindow : Form {
     // Emergency stop (#135): a solid, high-contrast red for the persistent STOPPED banner (mostly opaque
     // so it reads as an alarm, not a fading log line).
     private static readonly Color _stoppedBackground = Color.FromArgb(235, 176, 0, 0);
+
+    // The persistent "being controlled" banner (#266): the brand orange, mostly opaque so it reads as a
+    // steady status header rather than a fading log line.
+    private static readonly Color _controlBackground = Color.FromArgb(225, 192, 90, 36);
 
     private readonly OverlayFeed _feed;
     private readonly Action<CommandEvent> _onEvent;
@@ -171,15 +179,15 @@ public sealed class CommandOverlayWindow : Form {
             g.Clear(Color.Transparent);
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-            if (_stopped) {
-                DrawStoppedBanner(g, w);
-            }
-            DrawFeed(g, w, h);
+            // The emergency-stop banner takes precedence over the "being controlled" banner: while
+            // stopped, the loud red alarm is what the operator needs to see, not the routine status.
+            float bannerBottom = _stopped ? DrawStoppedBanner(g, w) : DrawControlBanner(g, w);
+            DrawFeed(g, w, h, bannerBottom);
         }
         PushLayered(bmp);
     }
 
-    private void DrawFeed(Graphics g, int width, int height) {
+    private void DrawFeed(Graphics g, int width, int height, float top) {
         IReadOnlyList<CommandEvent> lines = _feed.Visible(DateTime.UtcNow);
         if (lines.Count == 0) {
             return;
@@ -189,21 +197,43 @@ public sealed class CommandOverlayWindow : Form {
         const int pad = 8;
         const int gap = 6;
 
-        // Newest at the bottom; stack upward until we run out of room.
-        float y = height - pad;
+        // Measure each box up front so we can both pick the newest lines that fit and lay them out
+        // top-down in one pass.
+        SizeF[] textSizes = new SizeF[lines.Count];
+        float[] boxHeights = new float[lines.Count];
+        for (int i = 0; i < lines.Count; i++) {
+            textSizes[i] = g.MeasureString(lines[i].TerseText, font, width - pad * 2);
+            boxHeights[i] = textSizes[i].Height + pad;
+        }
+
+        // Top-anchored (#266): the feed flows DOWN from just below the banner so it fills the whole
+        // screen height as lines accumulate, instead of the old bottom-up stack that left tall screens
+        // empty above the last few lines. When more lines exist than fit, keep the NEWEST: walk from the
+        // end back up while boxes still fit, then draw that window oldest-first from the top.
+        float available = height - (top + gap);
+        int first = 0;
+        float used = 0f;
         for (int i = lines.Count - 1; i >= 0; i--) {
-            CommandEvent ev = lines[i];
-            SizeF size = g.MeasureString(ev.TerseText, font, width - pad * 2);
-            float boxH = size.Height + pad;
-            float boxW = Math.Min(size.Width + pad * 2, width);
-            float boxX = _side == OverlayPosition.Left ? 0 : width - boxW; // hug the docked edge
-            float boxY = y - boxH;
-            if (boxY < 0) {
+            float add = boxHeights[i] + (used > 0f ? gap : 0f);
+            if (used + add > available) {
+                first = i + 1;
                 break;
             }
+            used += add;
+        }
+
+        float y = top + gap;
+        for (int i = first; i < lines.Count; i++) {
+            CommandEvent ev = lines[i];
+            float boxH = boxHeights[i];
+            if (y + boxH > height) {
+                break; // ran out of room at the bottom edge
+            }
+            float boxW = Math.Min(textSizes[i].Width + pad * 2, width);
+            float boxX = _side == OverlayPosition.Left ? 0 : width - boxW; // hug the docked edge
 
             using (SolidBrush scrim = new(_itemBackground))
-            using (GraphicsPath path = RoundedRect(new RectangleF(boxX, boxY, boxW, boxH), 6f)) {
+            using (GraphicsPath path = RoundedRect(new RectangleF(boxX, y, boxW, boxH), 6f)) {
                 g.FillPath(scrim, path);
             }
 
@@ -213,7 +243,7 @@ public sealed class CommandOverlayWindow : Form {
                 _ => Color.White,
             };
             float tx = boxX + pad;
-            float ty = boxY + pad / 2f;
+            float ty = y + pad / 2f;
             using (SolidBrush shadow = new(Color.FromArgb(200, 0, 0, 0))) {
                 g.DrawString(ev.TerseText, font, shadow, tx + 1.2f, ty + 1.2f);
             }
@@ -221,21 +251,33 @@ public sealed class CommandOverlayWindow : Form {
                 g.DrawString(ev.TerseText, font, brush, tx, ty);
             }
 
-            y = boxY - gap;
+            y += boxH + gap;
         }
     }
 
     /// <summary>
     /// Draws the persistent emergency-stop (#135) banner across the top of the overlay. Unlike the fading
     /// command feed, it stays until the operator re-arms; a loud, unmissable "MCEC is halted" indicator.
+    /// Returns the banner's bottom edge so the feed can start below it.
     /// </summary>
-    private void DrawStoppedBanner(Graphics g, int width) {
+    private float DrawStoppedBanner(Graphics g, int width) =>
+        DrawBanner(g, width, "⛔ STOPPED by operator; Re-arm to resume", _stoppedBackground);
+
+    /// <summary>
+    /// Draws the persistent "MCEC is being controlled" banner (#266) across the top of the overlay
+    /// whenever the overlay is up and the stop is not engaged; a steady reminder that an agent may be
+    /// driving this machine and how to halt it. Returns the banner's bottom edge so the feed starts below.
+    /// </summary>
+    private float DrawControlBanner(Graphics g, int width) =>
+        DrawBanner(g, width, OverlayLayout.ControlBannerText(EmergencyStop.Hotkey.Display), _controlBackground);
+
+    /// <summary>Draws a full-width top banner and returns its bottom edge (its height).</summary>
+    private static float DrawBanner(Graphics g, int width, string text, Color background) {
         const int pad = 8;
         using Font font = new("Consolas", 16F, FontStyle.Bold, GraphicsUnit.Point);
-        const string text = "⛔ STOPPED by operator; Re-arm to resume";
         SizeF size = g.MeasureString(text, font, width - pad * 2);
         float boxH = size.Height + pad * 1.5f;
-        using (SolidBrush bg = new(_stoppedBackground))
+        using (SolidBrush bg = new(background))
         using (GraphicsPath path = RoundedRect(new RectangleF(0, 0, width, boxH), 6f)) {
             g.FillPath(bg, path);
         }
@@ -245,6 +287,7 @@ public sealed class CommandOverlayWindow : Form {
         using (SolidBrush fg = new(Color.White)) {
             g.DrawString(text, font, fg, pad, pad / 2f);
         }
+        return boxH;
     }
 
     /// <summary>Pushes a 32bpp ARGB bitmap to this layered window so its per-pixel alpha composites over the desktop.</summary>

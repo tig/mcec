@@ -75,4 +75,27 @@ public class OverlayLayoutTests {
 
         Assert.InRange(lines, 30, 60);
     }
+
+    [Fact]
+    public void ControlBannerText_StatesControlAndEmbedsTheHotkey() {
+        // #266: the persistent top banner names the configured stop chord so the hint stays correct
+        // if the operator reconfigures it.
+        string text = OverlayLayout.ControlBannerText("Ctrl+Alt+Shift+S");
+
+        Assert.Contains("MCEC is being controlled", text);
+        Assert.Contains("Ctrl+Alt+Shift+S", text);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ControlBannerText_FallsBackWhenNoHotkey(string? display) {
+        // A missing/blank chord must still yield a usable instruction, not a dangling "press ".
+        string text = OverlayLayout.ControlBannerText(display);
+
+        Assert.Contains("MCEC is being controlled", text);
+        Assert.Contains("emergency-stop hotkey", text);
+        Assert.DoesNotContain("press  ", text);
+    }
 }
