@@ -6,9 +6,12 @@ Work the loop: observe -> target -> act -> observe.
 `foreground:true`: you MUST give at least one; a call with no target fails. If you do not yet know what to
 target, DISCOVER first with `windows`: it lists the visible top-level windows (handle, title, className,
 processName, processId, bounds), optionally filtered by `window`/`process`/`className`; use it to enumerate
-available targets instead of guessing one, and to WAIT for a window to appear (pass `timeout` ms with a
-filter; it polls until a match shows up or returns `count:0` on timeout). `windows` with no filter lists
-everything; with a `timeout` but no filter it is refused (it will not wait for an arbitrary window). Reuse
+available targets instead of guessing one, and to WAIT on window state (pass `timeout` ms + a filter and a
+`condition`): `appears` (default; poll until a match exists, `count:0` on timeout), `disappears` (until no
+window matches, e.g. a modal you opened has closed), or `foreground` (until a match is the foreground
+window, e.g. a launched app took focus). A wait that times out carries `waitedFor` + `lastObservedWindows`,
+so you can triage without a second observation. `windows` with no filter lists
+everything; a wait (or `disappears`/`foreground`) with no filter is refused (it will not wait for an arbitrary window). Reuse
 the `handle` a `windows`/`query` returns for follow-up calls: it is stable, and a dialog you open shares the
 process name, so re-resolving by process/title can match the wrong window. Open menus and other untitled
 popups are not enumerated by title/process; target them by handle or `foreground:true`.

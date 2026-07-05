@@ -130,6 +130,44 @@ public static class WindowResolver {
         }
     }
 
+    /// <summary>
+    /// Polls <see cref="ListTopLevel"/> until NO window matches the filter (the target closed) or
+    /// <paramref name="timeoutMs"/> elapses. Returns the STILL-matching windows: empty on success (all
+    /// gone), non-empty on timeout (what did not close). A zero timeout checks once. Lets an agent wait
+    /// for a dialog/app window to disappear (a modal closing) without external sleeps. The caller requires
+    /// a filter; waiting for "any window" to disappear is meaningless (the <c>windows</c> tool refuses it).
+    /// </summary>
+    public static List<WindowInfo> WaitUntilGone(string? title, string? processName, string? className, int timeoutMs, int pollMs = 100) {
+        Stopwatch sw = Stopwatch.StartNew();
+        while (true) {
+            List<WindowInfo> matches = ListTopLevel(title, processName, className);
+            if (matches.Count == 0 || sw.ElapsedMilliseconds >= timeoutMs) {
+                return matches;
+            }
+            Thread.Sleep(Math.Min(pollMs, Math.Max(1, timeoutMs - (int)sw.ElapsedMilliseconds)));
+        }
+    }
+
+    /// <summary>
+    /// Polls until the FOREGROUND window matches the filter or <paramref name="timeoutMs"/> elapses.
+    /// Returns the matching foreground window on success, or null on timeout (the foreground never
+    /// matched). A zero timeout checks the current foreground once. Lets an agent wait for its target
+    /// (a just-launched app, a dialog) to actually take focus before sending keystrokes.
+    /// </summary>
+    public static WindowInfo? WaitForForeground(string? title, string? processName, string? className, int timeoutMs, int pollMs = 100) {
+        Stopwatch sw = Stopwatch.StartNew();
+        while (true) {
+            WindowInfo? fg = Resolve(null, null, null, null, foreground: true);
+            if (fg is not null && Matches(fg, title, processName, className)) {
+                return fg;
+            }
+            if (sw.ElapsedMilliseconds >= timeoutMs) {
+                return null;
+            }
+            Thread.Sleep(Math.Min(pollMs, Math.Max(1, timeoutMs - (int)sw.ElapsedMilliseconds)));
+        }
+    }
+
     /// <summary>Enumerates visible, titled top-level windows.</summary>
     public static List<WindowInfo> EnumerateTopLevel() {
         List<WindowInfo> windows = [];

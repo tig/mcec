@@ -7,25 +7,36 @@ using System.Xml.Serialization;
 namespace MCEControl;
 
 /// <summary>
-/// Agent observation command: first-class top-level window DISCOVERY (issue #77). Where
-/// <see cref="QueryCommand"/>/<see cref="FindCommand"/> resolve ONE window and then look inside it, this
-/// enumerates the visible titled top-level windows themselves, so an agent that starts with only a
-/// partial title, a process name, or the expectation that a window will appear can list the available
-/// targets instead of guessing one. Filters (all optional) narrow the set with the SAME rules
-/// <see cref="WindowResolver.Resolve"/> uses: <c>window</c> title substring (case-insensitive),
-/// <c>process</c> name (exact, without .exe), <c>classname</c> (exact). With a <c>timeout</c> it WAITS,
-/// polling until a matching top-level window appears or the timeout elapses.
+/// Agent observation command: first-class top-level window DISCOVERY and window-WAIT predicates
+/// (issues #77, #112). Where <see cref="QueryCommand"/>/<see cref="FindCommand"/> resolve ONE window and
+/// then look inside it, this enumerates the visible titled top-level windows themselves, and can WAIT for
+/// one to change state, so an agent that starts with only a partial title, a process name, or the
+/// expectation that a window will appear/close/take focus can act with a single call instead of polling.
+/// Filters (all optional for discovery) narrow the set with the SAME rules <see cref="WindowResolver.Resolve"/>
+/// uses: <c>window</c> title substring (case-insensitive), <c>process</c> name (exact, without .exe),
+/// <c>classname</c> (exact).
 ///
-/// Returns <c>{ count, windows: [ { handle, title, className, processName, processId, x, y, width, height }, … ] }</c>;
-/// each array element is a full window OBJECT (the <see cref="WindowInfo"/> shape the other tools echo,
-/// via <see cref="WindowInfo.ToJsonObject"/>), so a listed handle can be reused directly on a follow-up
-/// <c>query</c>/<c>capture</c>/<c>invoke</c>.
+/// With a <c>timeout</c> it WAITS. <c>condition</c> selects the predicate (default <c>appears</c>):
+/// <list type="bullet">
+///   <item><c>appears</c>: poll until a matching window exists; returns the matches (<c>count:0</c> on timeout).</item>
+///   <item><c>disappears</c>: poll until NO window matches (a dialog/app closed); <c>satisfied</c> true when
+///     gone, and <c>windows</c> lists whatever is still present on timeout.</item>
+///   <item><c>foreground</c>: poll until the foreground window matches the filter; returns that <c>window</c>.</item>
+/// </list>
+/// On an unsatisfied wait the result carries actionable diagnostics (#112): <c>waitedFor</c> (the criteria)
+/// and <c>lastObservedWindows</c> (the full top-level set), so a timeout can be triaged without re-querying.
+///
+/// Returns <c>{ condition, count, windows: [ { handle, title, className, processName, processId, x, y, width, height }, … ] }</c>
+/// for <c>appears</c>/<c>disappears</c> (each element the <see cref="WindowInfo"/> shape via
+/// <see cref="WindowInfo.ToJsonObject"/>, so a listed handle is reusable directly), and
+/// <c>{ condition, satisfied, window }</c> for a satisfied <c>foreground</c>.
 ///
 /// SAFETY: a bare list (no filter, no timeout) enumerates ALL windows; that is discovery, not the
 /// silent-arbitrary-target hazard <see cref="WindowResolver.Resolve"/> guards against (it never picks one
-/// for you). But WAITING for "any window" IS that hazard (it would return whatever exists), so a
-/// <c>timeout</c> with no filter is refused. Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and
-/// audited (structurally, via <see cref="AgentCommand"/>). Disabled by default (security).
+/// for you). But WAITING for "any window" IS that hazard, and <c>disappears</c>/<c>foreground</c> are
+/// predicates ABOUT a specific window, so a wait (or either of those conditions) with no filter is refused.
+/// Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited (structurally, via
+/// <see cref="AgentCommand"/>). Disabled by default (security).
 /// </summary>
 public class WindowsCommand : AgentCommand {
     // NOTE: attribute names MUST be all-lowercase (the .commands load XSLT lower-cases every name; a
@@ -33,6 +44,7 @@ public class WindowsCommand : AgentCommand {
     [XmlAttribute("window")] public string Window { get; set; } = null!;
     [XmlAttribute("process")] public string Process { get; set; } = null!;
     [XmlAttribute("classname")] public string ClassName { get; set; } = null!;
+    [XmlAttribute("condition")] public string Condition { get; set; } = null!;
     [XmlAttribute("timeout")] public int Timeout { get; set; }
 
     public static List<Command> BuiltInCommands {
@@ -43,34 +55,128 @@ public class WindowsCommand : AgentCommand {
     private bool HasFilter =>
         !string.IsNullOrEmpty(Window) || !string.IsNullOrEmpty(Process) || !string.IsNullOrEmpty(ClassName);
 
+    /// <summary>The requested predicate, normalized; <c>appears</c> when omitted.</summary>
+    private string ConditionOrDefault =>
+        string.IsNullOrWhiteSpace(Condition) ? "appears" : Condition.Trim().ToLowerInvariant();
+
     protected override string AuditDetails() =>
-        $"windows title='{Window}' process='{Process}' class='{ClassName}' timeout={Timeout}";
+        $"windows title='{Window}' process='{Process}' class='{ClassName}' condition='{ConditionOrDefault}' timeout={Timeout}";
 
     protected override CommandResult ExecuteCore() {
-        // Waiting for "any window" would return whatever happens to exist; the same silent-arbitrary-target
-        // hazard the no-criteria Resolve refusal exists to prevent. Require a filter to WAIT. (A bare list
-        // with no timeout is fine: it enumerates the whole set for the agent to choose from.)
-        if (Timeout > 0 && !HasFilter) {
+        string condition = ConditionOrDefault;
+        if (condition is not ("appears" or "disappears" or "foreground")) {
             return CommandResult.Fail(Cmd,
-                "windows with a timeout needs at least one of window/process/className to wait for; " +
-                "refusing to wait for an arbitrary window. Drop timeout to list all windows now, or add a filter.",
+                $"windows condition '{Condition}' is not recognized; use appears (default), disappears, or foreground.",
+                "windows-unknown-condition", "invalid-argument");
+        }
+
+        bool waiting = Timeout > 0;
+
+        // disappears/foreground are predicates ABOUT a specific window, so they always need a filter.
+        // appears needs a filter only when WAITING (a bare list enumerates the whole set to choose from);
+        // waiting for "any window" is the silent-arbitrary-target hazard the no-criteria Resolve refuses.
+        bool needsFilter = condition != "appears" || waiting;
+        if (needsFilter && !HasFilter) {
+            return CommandResult.Fail(Cmd,
+                $"windows condition '{condition}' needs at least one of window/process/className to identify the " +
+                "window; refusing to wait for an arbitrary window. For 'appears', drop timeout to list all windows now.",
                 "windows-no-criteria", "invalid-argument");
         }
 
-        List<WindowInfo> windows = Timeout > 0
+        return condition switch {
+            "disappears" => Disappears(),
+            "foreground" => Foreground(),
+            _ => Appears(waiting),
+        };
+    }
+
+    private CommandResult Appears(bool waiting) {
+        List<WindowInfo> matches = waiting
             ? WindowResolver.WaitForTopLevel(Window, Process, ClassName, Timeout)
             : WindowResolver.ListTopLevel(Window, Process, ClassName);
 
+        JsonObject data = new() {
+            ["condition"] = "appears",
+            ["count"] = matches.Count,
+            ["windows"] = ToArray(matches),
+        };
+        // A wait that found nothing is an honest miss (count:0), like a one-shot find miss; not a failure.
+        if (waiting) {
+            bool satisfied = matches.Count > 0;
+            data["satisfied"] = satisfied;
+            if (!satisfied) {
+                AddTimeoutDiagnostics(data);
+            }
+        }
+        return CommandResult.Ok(Cmd, data);
+    }
+
+    private CommandResult Disappears() {
+        List<WindowInfo> remaining = Timeout > 0
+            ? WindowResolver.WaitUntilGone(Window, Process, ClassName, Timeout)
+            : WindowResolver.ListTopLevel(Window, Process, ClassName);
+        bool gone = remaining.Count == 0;
+
+        JsonObject data = new() {
+            ["condition"] = "disappears",
+            ["satisfied"] = gone,
+            ["count"] = remaining.Count,
+            ["windows"] = ToArray(remaining), // still-present matches; empty on success
+        };
+        if (!gone) {
+            AddTimeoutDiagnostics(data);
+        }
+        return CommandResult.Ok(Cmd, data);
+    }
+
+    private CommandResult Foreground() {
+        WindowInfo? match = Timeout > 0
+            ? WindowResolver.WaitForForeground(Window, Process, ClassName, Timeout)
+            : ForegroundIfMatches();
+        bool satisfied = match is not null;
+
+        JsonObject data = new() {
+            ["condition"] = "foreground",
+            ["satisfied"] = satisfied,
+        };
+        if (satisfied) {
+            data["window"] = match!.ToJsonObject();
+        }
+        else {
+            WindowInfo? current = WindowResolver.Resolve(null, null, null, null, foreground: true);
+            data["foreground"] = current?.ToJsonObject(); // what IS foreground now (may be null)
+            AddTimeoutDiagnostics(data);
+        }
+        return CommandResult.Ok(Cmd, data);
+    }
+
+    private WindowInfo? ForegroundIfMatches() {
+        WindowInfo? fg = WindowResolver.Resolve(null, null, null, null, foreground: true);
+        return fg is not null && WindowResolver.Matches(fg, Window, Process, ClassName) ? fg : null;
+    }
+
+    private static JsonArray ToArray(List<WindowInfo> windows) {
         JsonArray arr = [];
         foreach (WindowInfo w in windows) {
             arr.Add(w.ToJsonObject());
         }
-        JsonObject data = new() {
-            ["count"] = windows.Count,
-            ["windows"] = arr,
-        };
-        // A wait that found nothing is an honest empty result (count:0), like a one-shot find miss; the
-        // agent branches on count. It is NOT a failure, so it is not reclassified as a timeout error.
-        return CommandResult.Ok(Cmd, data);
+        return arr;
     }
+
+    // Actionable timeout diagnostics (#112): echo what was waited for and the full last-observed top-level
+    // window set, so an agent can triage a timeout without issuing a second observation.
+    private void AddTimeoutDiagnostics(JsonObject data) {
+        // Echo all three criteria (null for the ones not applied) so a triaging agent sees exactly what
+        // was waited for, plus the current full top-level set.
+        JsonObject waitedFor = new() {
+            ["window"] = NullIfEmpty(Window),
+            ["process"] = NullIfEmpty(Process),
+            ["className"] = NullIfEmpty(ClassName),
+        };
+        data["waitedFor"] = waitedFor;
+        data["lastObservedWindows"] = ToArray(WindowResolver.EnumerateTopLevel());
+    }
+
+    private static JsonNode? NullIfEmpty(string value) =>
+        string.IsNullOrEmpty(value) ? null : JsonValue.Create(value);
 }

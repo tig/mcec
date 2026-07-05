@@ -154,7 +154,7 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 | `capture`  | Screenshot a window (`PrintWindow` + `PW_RENDERFULLCONTENT`, captures WinUI/WPF surfaces) or a screen region, returned as base64 PNG. Blank/black frames are detected and flagged (see [Observation hardening](#observation-hardening--known-limitations)). | window target, or region `x`/`y`/`width`/`height`; optional `file` |
 | `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6), `maxNodes` (default 1000) |
 | `displays` | Report **display geometry**; every monitor's pixel `bounds`, `workingArea`, `primary` flag, and `dpi`/`scale`, plus the union `virtualBounds`. Lets an agent interpret the absolute-pixel bounds `query`/`find` return and place pixel clicks/drags without measuring the screen itself. | *(none)* |
-| `windows`  | **Discover top-level windows**: list each window's `handle`, `title`, `className`, `processName`, `processId`, and `bounds`, so an agent can find and target a window instead of guessing. Optionally filtered; with a `timeout` it **waits** (polls) for a matching window to appear. No filter lists all; a `timeout` with no filter is refused (won't wait for an arbitrary window). | `window`/`process`/`className` filters (all optional), `timeout` (ms; wait for a match) |
+| `windows`  | **Discover top-level windows and wait on window state**: list each window's `handle`, `title`, `className`, `processName`, `processId`, and `bounds`, so an agent can target a window instead of guessing. Optionally filtered; with a `timeout` it **waits** for `condition`: `appears` (default; a match exists), `disappears` (no window matches, e.g. a modal closed), or `foreground` (a match is the foreground window). No filter lists all; a wait (or `disappears`/`foreground`) with no filter is refused. A timeout carries `waitedFor` + `lastObservedWindows` for triage. | `window`/`process`/`className` filters, `condition` (appears/disappears/foreground), `timeout` (ms) |
 | `find`     | Find a **UI Automation element** by name / automation id / class.                 | window target, `by` (`name`\|`automationid`\|`classname`), `value`, `timeout` |
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
 | `invoke`   | Drive a UI Automation element pattern (incl. select for SelectionItem); far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`\|`expand`\|`collapse`\|`select`), `text` |
@@ -551,7 +551,7 @@ When connected, the server advertises these tools:
 | `capture`      | The `capture` command (window screenshot → base64 PNG).        |
 | `query`        | The `query` command (describe a window).                       |
 | `displays`     | The `displays` command (per-monitor bounds + DPI/scale, virtual bounds). |
-| `windows`      | The `windows` command (list/filter top-level windows for discovery; wait for one with a timeout). |
+| `windows`      | The `windows` command (list/filter top-level windows for discovery; wait on window state (appears/disappears/foreground) with a timeout). |
 | `find`         | The `find` command (match a UI element, one-shot).             |
 | `wait-for`     | The `wait-for` command (poll for a UI element until a timeout). |
 | `invoke`       | The `invoke` command (run an existing MCEC command, incl. select for tabs etc). |
