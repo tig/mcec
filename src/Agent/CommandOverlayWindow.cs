@@ -278,12 +278,22 @@ public sealed class CommandOverlayWindow : Form {
     /// </summary>
     private static float DrawBanner(Graphics g, int width, string text, Color background, bool centered) {
         const int pad = 8;
-        using Font font = new("Consolas", 16F, FontStyle.Bold, GraphicsUnit.Point);
-        SizeF size = g.MeasureString(text, font, width - pad * 2);
+        const float baseSize = 16F;
+        // Auto-fit to the overlay width so the banner is always ONE un-clipped line. The overlay is a
+        // narrow (~30% screen) docked column, so a fixed 16pt would clip on smaller screens; measure the
+        // text unconstrained (its true single-line width) and shrink the font just enough to fit,
+        // floored so it stays readable.
+        using Font probe = new("Consolas", baseSize, FontStyle.Bold, GraphicsUnit.Point);
+        float trueWidth = g.MeasureString(text, probe).Width;
+        float maxTextWidth = width - pad * 2;
+        float scale = trueWidth > maxTextWidth ? maxTextWidth / trueWidth : 1f;
+        float fontSize = Math.Max(9F, baseSize * scale);
+        using Font font = new("Consolas", fontSize, FontStyle.Bold, GraphicsUnit.Point);
+        SizeF size = g.MeasureString(text, font);
         float boxH = size.Height + pad * 1.5f;
         float boxW = centered ? Math.Min(size.Width + pad * 2, width) : width;
         float boxX = centered ? (width - boxW) / 2f : 0f;
-        float tx = boxX + pad;
+        float tx = boxX + (centered ? Math.Max(pad, (boxW - size.Width) / 2f) : pad);
         using (SolidBrush bg = new(background))
         using (GraphicsPath path = RoundedRect(new RectangleF(boxX, 0, boxW, boxH), 6f)) {
             g.FillPath(bg, path);
