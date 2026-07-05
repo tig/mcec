@@ -41,7 +41,7 @@ Engaging the stop (`EmergencyStop.Trigger`):
 3. **Releases held input.** All mouse buttons up; shift/ctrl/alt/win reset (the same reset `MainWindow`
    runs on exit); no stuck drag or chord.
 4. **Loud feedback.** A persistent red `⛔ STOPPED by operator` banner on the overlay (replacing the
-   routine `MCEC is being controlled; to stop press <hotkey>` banner it shows while running), an
+   routine centered `MCEC is controlling your PC` banner it shows while running), an
    `AGENT-AUDIT:` log line, a status-bar message, and a stamp into the `AgentSession` record.
 5. **Latches until re-armed.** Re-arming is always a deliberate operator action; the latch is never
    cleared automatically, and it deliberately has no MCP surface (an agent that could re-arm itself

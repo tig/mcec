@@ -77,25 +77,15 @@ public class OverlayLayoutTests {
     }
 
     [Fact]
-    public void ControlBannerText_StatesControlAndEmbedsTheHotkey() {
-        // #266: the persistent top banner names the configured stop chord so the hint stays correct
-        // if the operator reconfigures it.
-        string text = OverlayLayout.ControlBannerText("Ctrl+Alt+Shift+S");
-
-        Assert.Contains("MCEC is being controlled", text);
-        Assert.Contains("Ctrl+Alt+Shift+S", text);
+    public void ControlBannerText_IsTheSingleControllingLine() {
+        // #266: one short, plain-language line telling the human MCEC is driving; no hotkey clutter.
+        Assert.Equal("MCEC is controlling your PC", OverlayLayout.ControlBannerText);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void ControlBannerText_FallsBackWhenNoHotkey(string? display) {
-        // A missing/blank chord must still yield a usable instruction, not a dangling "press ".
-        string text = OverlayLayout.ControlBannerText(display);
-
-        Assert.Contains("MCEC is being controlled", text);
-        Assert.Contains("emergency-stop hotkey", text);
-        Assert.DoesNotContain("press  ", text);
+    [Fact]
+    public void ControlBannerText_IsASingleLine() {
+        // "One line": the centered banner must never wrap to a second row.
+        Assert.DoesNotContain("\n", OverlayLayout.ControlBannerText);
+        Assert.DoesNotContain("\r", OverlayLayout.ControlBannerText);
     }
 }

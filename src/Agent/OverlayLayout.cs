@@ -47,13 +47,8 @@ public static class OverlayLayout {
         Math.Max(MinLines, heightPx / ApproxLineStridePx);
 
     /// <summary>
-    /// The persistent "MCEC is being controlled" banner text (#266): a plain-language reminder that an
-    /// agent may be driving this machine, plus how to stop it. <paramref name="hotkeyDisplay"/> is the
-    /// operator's configured emergency-stop chord (e.g. <c>Ctrl+Alt+Shift+S</c>) so the hint stays correct
-    /// if the chord is reconfigured. Pure so it is unit-testable without a screen.
+    /// The persistent "being controlled" banner text (#266): a single, plain-language line, centered at
+    /// the top of the overlay, telling the human that MCEC is driving this machine.
     /// </summary>
-    public static string ControlBannerText(string? hotkeyDisplay) {
-        string chord = string.IsNullOrWhiteSpace(hotkeyDisplay) ? "the emergency-stop hotkey" : hotkeyDisplay;
-        return $"MCEC is being controlled; to stop press {chord}";
-    }
+    public const string ControlBannerText = "MCEC is controlling your PC";
 }

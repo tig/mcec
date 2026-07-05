@@ -30,11 +30,12 @@ namespace MCEControl;
 /// every paint (<see cref="PushLayered"/>), so a window created top-most AFTER the overlay cannot
 /// occlude it; a one-time WS_EX_TOPMOST would sink below any later top-most window.</para>
 ///
-/// <para>A persistent banner sits across the top (#266): while running it reads "MCEC is being
-/// controlled; to stop press &lt;hotkey&gt;" in the brand orange; while emergency-stopped (#135) the red
-/// "⛔ STOPPED by operator" banner takes its place. The command feed flows downward from just below the
-/// banner (top-anchored), keeping the newest lines visible and trimming the oldest, so it fills the whole
-/// screen height instead of clustering at the bottom.</para>
+/// <para>A persistent banner sits across the top (#266): while running it reads "MCEC is controlling
+/// your PC", one line centered in the brand orange; while emergency-stopped (#135) the red "⛔ STOPPED
+/// by operator" bar takes its place. The banner lives inside this window, so it only appears when the
+/// overlay itself is enabled. The command feed flows downward from just below the banner (top-anchored),
+/// keeping the newest lines visible and trimming the oldest, so it fills the whole screen height instead
+/// of clustering at the bottom.</para>
 /// </summary>
 public sealed class CommandOverlayWindow : Form {
     private const int WS_EX_TRANSPARENT = 0x00000020;
@@ -258,34 +259,40 @@ public sealed class CommandOverlayWindow : Form {
     /// <summary>
     /// Draws the persistent emergency-stop (#135) banner across the top of the overlay. Unlike the fading
     /// command feed, it stays until the operator re-arms; a loud, unmissable "MCEC is halted" indicator.
-    /// Returns the banner's bottom edge so the feed can start below it.
+    /// Full width (a loud alarm bar). Returns the banner's bottom edge so the feed can start below it.
     /// </summary>
     private float DrawStoppedBanner(Graphics g, int width) =>
-        DrawBanner(g, width, "⛔ STOPPED by operator; Re-arm to resume", _stoppedBackground);
+        DrawBanner(g, width, "⛔ STOPPED by operator; Re-arm to resume", _stoppedBackground, centered: false);
 
     /// <summary>
-    /// Draws the persistent "MCEC is being controlled" banner (#266) across the top of the overlay
-    /// whenever the overlay is up and the stop is not engaged; a steady reminder that an agent may be
-    /// driving this machine and how to halt it. Returns the banner's bottom edge so the feed starts below.
+    /// Draws the persistent "MCEC is controlling your PC" banner (#266): a single line, centered at the
+    /// top, shown whenever the overlay is up and the stop is not engaged; a steady reminder to the human
+    /// that MCEC is driving this machine. Returns the banner's bottom edge so the feed starts below it.
     /// </summary>
     private float DrawControlBanner(Graphics g, int width) =>
-        DrawBanner(g, width, OverlayLayout.ControlBannerText(EmergencyStop.Hotkey.Display), _controlBackground);
+        DrawBanner(g, width, OverlayLayout.ControlBannerText, _controlBackground, centered: true);
 
-    /// <summary>Draws a full-width top banner and returns its bottom edge (its height).</summary>
-    private static float DrawBanner(Graphics g, int width, string text, Color background) {
+    /// <summary>
+    /// Draws a top banner and returns its bottom edge (its height). <paramref name="centered"/> draws a
+    /// pill hugging the text, horizontally centered; otherwise a full-width bar with left-aligned text.
+    /// </summary>
+    private static float DrawBanner(Graphics g, int width, string text, Color background, bool centered) {
         const int pad = 8;
         using Font font = new("Consolas", 16F, FontStyle.Bold, GraphicsUnit.Point);
         SizeF size = g.MeasureString(text, font, width - pad * 2);
         float boxH = size.Height + pad * 1.5f;
+        float boxW = centered ? Math.Min(size.Width + pad * 2, width) : width;
+        float boxX = centered ? (width - boxW) / 2f : 0f;
+        float tx = boxX + pad;
         using (SolidBrush bg = new(background))
-        using (GraphicsPath path = RoundedRect(new RectangleF(0, 0, width, boxH), 6f)) {
+        using (GraphicsPath path = RoundedRect(new RectangleF(boxX, 0, boxW, boxH), 6f)) {
             g.FillPath(bg, path);
         }
         using (SolidBrush shadow = new(Color.FromArgb(200, 0, 0, 0))) {
-            g.DrawString(text, font, shadow, pad + 1.2f, pad / 2f + 1.2f);
+            g.DrawString(text, font, shadow, tx + 1.2f, pad / 2f + 1.2f);
         }
         using (SolidBrush fg = new(Color.White)) {
-            g.DrawString(text, font, fg, pad, pad / 2f);
+            g.DrawString(text, font, fg, tx, pad / 2f);
         }
         return boxH;
     }
