@@ -51,4 +51,15 @@ public static class OverlayLayout {
     /// the top of the overlay, telling the human that MCEC is driving this machine.
     /// </summary>
     public const string ControlBannerText = "MCEC is controlling your PC";
+
+    /// <summary>The fraction of the overlay width the command feed occupies as a docked column.</summary>
+    internal const double FeedColumnFraction = 0.30;
+
+    /// <summary>
+    /// Width of the command-feed column (#266). The overlay window spans the full screen width so the
+    /// banner can center across the whole screen; the feed itself stays in this ~30% column hugging the
+    /// docked edge. Floored so it stays usable on a narrow screen.
+    /// </summary>
+    public static int FeedColumnWidth(int windowWidthPx) =>
+        Math.Max(1, (int)(windowWidthPx * FeedColumnFraction));
 }

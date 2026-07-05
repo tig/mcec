@@ -88,4 +88,18 @@ public class OverlayLayoutTests {
         Assert.DoesNotContain("\n", OverlayLayout.ControlBannerText);
         Assert.DoesNotContain("\r", OverlayLayout.ControlBannerText);
     }
+
+    [Fact]
+    public void FeedColumnWidth_IsAboutThirtyPercentOfTheFullWidthWindow() {
+        // #266: the window is full-width (so the banner centers across the screen), but the feed stays
+        // in a ~30% docked column.
+        Assert.Equal(300, OverlayLayout.FeedColumnWidth(1000));
+        Assert.Equal(576, OverlayLayout.FeedColumnWidth(1920));
+    }
+
+    [Fact]
+    public void FeedColumnWidth_HasASaneFloor_ForTinyOrDegenerateWidths() {
+        Assert.True(OverlayLayout.FeedColumnWidth(0) >= 1);
+        Assert.True(OverlayLayout.FeedColumnWidth(-100) >= 1);
+    }
 }

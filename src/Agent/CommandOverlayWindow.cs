@@ -17,7 +17,8 @@ namespace MCEControl;
 /// The on-screen command overlay (#119): a borderless, top-most, <b>click-through</b>, alpha-blended
 /// window that shows each MCEC command as it executes; the "MainWindow log view, tersified, larger
 /// font." It subscribes to <see cref="CommandEventHub"/>, keeps a small <see cref="OverlayFeed"/>, and
-/// paints it over the right ~30% of the primary screen with no border or scrollbars; old lines fade out.
+/// paints the feed in a ~30% column hugging the docked (left or right) screen edge, with no border or
+/// scrollbars; old lines fade out.
 ///
 /// <para>It is a true per-pixel-alpha layered window (<c>UpdateLayeredWindow</c>): each line sits on the
 /// About box's burnt-orange brand colour at 30% alpha so the desktop shows through, while the text stays
@@ -25,17 +26,19 @@ namespace MCEControl;
 /// never sees or drives its own overlay, and it never takes focus or input (WS_EX_NOACTIVATE +
 /// WS_EX_TRANSPARENT).</para>
 ///
-/// <para>It sizes itself from the full screen <see cref="Screen.Bounds"/> (not the working area, so it
-/// spans the taskbar's height too), inset by the layout margin, and re-asserts top-most Z-order on
-/// every paint (<see cref="PushLayered"/>), so a window created top-most AFTER the overlay cannot
-/// occlude it; a one-time WS_EX_TOPMOST would sink below any later top-most window.</para>
+/// <para>The window spans the full screen <see cref="Screen.Bounds"/> (not the working area, so it sits
+/// over the taskbar too; full width so the banner can center across the whole screen), inset by the
+/// layout margin, and re-asserts top-most Z-order on every paint (<see cref="PushLayered"/>), so a window
+/// created top-most AFTER the overlay cannot occlude it; a one-time WS_EX_TOPMOST would sink below any
+/// later top-most window. It is click-through and per-pixel transparent, so covering the full width
+/// blocks nothing.</para>
 ///
 /// <para>A persistent banner sits across the top (#266): while running it reads "MCEC is controlling
-/// your PC", one line centered in the brand orange; while emergency-stopped (#135) the red "⛔ STOPPED
-/// by operator" bar takes its place. The banner lives inside this window, so it only appears when the
-/// overlay itself is enabled. The command feed flows downward from just below the banner (top-anchored),
-/// keeping the newest lines visible and trimming the oldest, so it fills the whole screen height instead
-/// of clustering at the bottom.</para>
+/// your PC", one line centered horizontally on the screen in the brand orange; while emergency-stopped
+/// (#135) the red "⛔ STOPPED by operator" bar takes its place. The banner lives inside this window, so it
+/// only appears when the overlay itself is enabled. The command feed flows downward from just below the
+/// banner (top-anchored) in its docked column, keeping the newest lines visible and trimming the oldest,
+/// so it fills the whole screen height instead of clustering at the bottom.</para>
 /// </summary>
 public sealed class CommandOverlayWindow : Form {
     private const int WS_EX_TRANSPARENT = 0x00000020;
@@ -61,6 +64,10 @@ public sealed class CommandOverlayWindow : Form {
     private readonly System.Windows.Forms.Timer _ageTimer;
     private readonly OverlayPosition _side;
 
+    // Width of the docked command-feed column. The window spans the full screen width (so the banner can
+    // center across the whole screen, #266), but the feed stays in this ~30% column on the docked edge.
+    private readonly int _feedColumnWidth;
+
     // True while the operator's emergency stop is engaged; drives the persistent STOPPED banner.
     private bool _stopped;
 
@@ -75,10 +82,13 @@ public sealed class CommandOverlayWindow : Form {
         StartPosition = FormStartPosition.Manual;
         Text = string.Empty;
         _side = AgentRuntime.Settings?.CommandOverlayPosition ?? OverlayPosition.Right;
-        // Full screen bounds, not WorkingArea: the overlay is meant to sit above everything (including
-        // over the taskbar), and using the full height is what lets the feed scroll top to bottom.
-        Rectangle bounds = OverlayLayout.ForSide(Screen.PrimaryScreen!.Bounds, 0.30, _side);
+        // The window spans the FULL screen (not the working area, so it sits over the taskbar too, and not
+        // just a 30% side column): a full-width window is what lets the banner center across the whole
+        // screen (#266). It is click-through and per-pixel transparent, so covering the width blocks
+        // nothing. The command feed still hugs the docked edge inside a ~30% column (_feedColumnWidth).
+        Rectangle bounds = OverlayLayout.ForSide(Screen.PrimaryScreen!.Bounds, 1.0, _side);
         Bounds = bounds;
+        _feedColumnWidth = OverlayLayout.FeedColumnWidth(bounds.Width);
         // Cap the feed to fill the actual overlay height (the old fixed 8 left tall screens empty above
         // the last few lines); the renderer's geometric break still trims anything past the top edge.
         _feed = new OverlayFeed(maxLines: OverlayLayout.MaxLines(bounds.Height), lifetime: TimeSpan.FromSeconds(8));
@@ -198,12 +208,17 @@ public sealed class CommandOverlayWindow : Form {
         const int pad = 8;
         const int gap = 6;
 
+        // The feed lives in a ~30% column hugging the docked edge, even though the window spans the full
+        // screen width (the full width exists only so the banner can center across the screen, #266).
+        int colWidth = Math.Min(_feedColumnWidth, width);
+        float colLeft = _side == OverlayPosition.Left ? 0f : width - colWidth;
+
         // Measure each box up front so we can both pick the newest lines that fit and lay them out
         // top-down in one pass.
         SizeF[] textSizes = new SizeF[lines.Count];
         float[] boxHeights = new float[lines.Count];
         for (int i = 0; i < lines.Count; i++) {
-            textSizes[i] = g.MeasureString(lines[i].TerseText, font, width - pad * 2);
+            textSizes[i] = g.MeasureString(lines[i].TerseText, font, colWidth - pad * 2);
             boxHeights[i] = textSizes[i].Height + pad;
         }
 
@@ -230,8 +245,8 @@ public sealed class CommandOverlayWindow : Form {
             if (y + boxH > height) {
                 break; // ran out of room at the bottom edge
             }
-            float boxW = Math.Min(textSizes[i].Width + pad * 2, width);
-            float boxX = _side == OverlayPosition.Left ? 0 : width - boxW; // hug the docked edge
+            float boxW = Math.Min(textSizes[i].Width + pad * 2, colWidth);
+            float boxX = _side == OverlayPosition.Left ? colLeft : colLeft + colWidth - boxW; // hug the docked edge
 
             using (SolidBrush scrim = new(_itemBackground))
             using (GraphicsPath path = RoundedRect(new RectangleF(boxX, y, boxW, boxH), 6f)) {
