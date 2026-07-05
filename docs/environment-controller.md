@@ -164,6 +164,17 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 | `focus`    | Give a window (and optionally a control in it) real **keyboard focus** so `send_command`/`chars` keystrokes reach it. Foregrounds the window, clicks the control (a real click focuses custom-drawn surfaces a bare `setfocus` misses; e.g. a MAUI GraphicsView), then **verifies**. Fails `foreground` if the window won't activate, `focus` if no control takes focus. Use before firing an app's own keyboard shortcut at a specific surface. | window target; optional `at` = `{ by, value }` or `{ x, y }` (omit to just foreground + confirm focus) |
 | `record`   | Record a window or region to an **animated GIF** over time (start/stop or a bounded one-shot). | window target, or region `x`/`y`/`width`/`height`; `action` (`start`\|`stop`\|`oneshot`), `fps`, `durationMs`, `maxWidth`, `file` |
 
+**Why purpose-built tools, not the raw command set.** MCP's value is typed discovery, so the agent
+surface is a small set of **purpose-built** tools rather than a 1:1 mapping of every legacy MCEC command.
+Each new tool supersedes the raw commands it replaces and is more reliable for an agent to drive:
+`launch` replaces the `startprocess`/Win+R dance and returns the new window's handle; `click` and `drag`
+replace hand-rolled `mouse:` sequences and dispatch their move+click / press-move-release **atomically**
+(raw `mouse:lbd`/`mouse:mt`/`mouse:lbu` can interleave with other input); `invoke` and `focus` replace
+the keystroke/message combinations once used to drive and target controls. `send_command` remains the
+**escape hatch**: it runs any raw MCEC command (including the legacy `startprocess`/`mouse:`/`sendmessage`/
+keystroke commands) for cases a typed tool doesn't cover, trading typed discovery for full reach. So the
+catalog stays small and legible while nothing from the underlying command set is lost.
+
 Every MCP **tool call** returns one result envelope. An agent branches on `ok` first; on
 success it reads `result`, on failure it reads `error`:
 
@@ -662,7 +673,7 @@ concurrently; past that the server answers `503` rather than queueing.
 
 ## Summary
 
-- New, opt-in agent surface: `capture`, `query`, `displays`, `windows`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `record` (plus `send_command`, and `provision-session`/`end-session`).
+- New, opt-in agent surface: `capture`, `query`, `displays`, `windows`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `focus`, `record` (plus `send_command`, and `provision-session`/`end-session`).
 - Structured `{ ok, result, error, … }` JSON result envelope; the commands are exposed as MCP/HTTP tools.
 - **No per-target sandbox:** an enabled command acts with your rights on whatever it targets. You control
   the *capability surface* (which commands are enabled, so read-only observation is possible), not what an
