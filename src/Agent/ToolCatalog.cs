@@ -270,8 +270,8 @@ public static class ToolCatalog {
             ["window"] = PropSchema("string", "Filter by window title substring (case-insensitive)"),
             ["process"] = PropSchema("string", "Filter by process name (without .exe)"),
             ["className"] = PropSchema("string", "Filter by window class name (exact)"),
-            ["condition"] = PropSchema("string", "What a timeout waits for: appears (default; a matching window exists), disappears (no window matches any more, e.g. a modal closed), or foreground (a matching window is the foreground window)"),
-            ["timeout"] = PropSchema("integer", "Milliseconds to WAIT for the condition (0 = check/list now, no wait); a wait, and the disappears/foreground conditions, require at least one filter"),
+            ["condition"] = PropSchema("string", "The predicate to evaluate, waited for with a timeout or checked once with timeout:0: appears (default; a matching window exists), disappears (no window matches any more, e.g. a modal closed), or foreground (a matching window is the foreground window). Returns satisfied for the predicate result"),
+            ["timeout"] = PropSchema("integer", "Milliseconds to WAIT for the condition (0 = check/list now, one-shot); a wait, and the disappears/foreground conditions, require at least one filter"),
         };
         return Tool("windows",
             "Discover top-level windows and WAIT on window state. Returns each window's handle, title, className, processName, processId, and bounds so you can target a window instead of guessing; reuse a returned handle directly on query/capture/invoke. Optionally filter by title substring / process / class. With a timeout it WAITS for `condition`: appears (default; poll until a match exists, count:0 on timeout), disappears (poll until no window matches, e.g. a dialog closed), or foreground (poll until a matching window is the foreground window). No filter lists every window; a wait, or disappears/foreground, with no filter is refused. On a timeout the result carries waitedFor + lastObservedWindows for triage.",

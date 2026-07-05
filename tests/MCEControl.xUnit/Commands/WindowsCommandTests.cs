@@ -170,13 +170,15 @@ public class WindowsCommandTests {
         }
     }
 
-    [Fact] // #112: foreground predicate, unsatisfied, carries triage diagnostics
-    public void Execute_ForegroundWithFilterMatchingNothing_NotSatisfied_WithDiagnostics() {
+    [Fact] // #112: a one-shot predicate miss (timeout=0) is lean: satisfied:false + foreground, NO wait diagnostics
+    public void Execute_ForegroundOneShotMiss_LeanResult_NoWaitDiagnostics() {
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
         try {
             CapturingReply reply = new();
-            // The foreground window never has this fake class; one-shot (no timeout) so it is fast.
+            // No timeout: a one-shot "is a matching window foreground right now?" check. The fake class
+            // never matches, so satisfied:false; it reports what IS foreground but attaches no wait
+            // diagnostics (waitedFor/lastObservedWindows are for a timed-out wait).
             WindowsCommand cmd = new() {
                 Cmd = "windows", Enabled = true, Reply = reply,
                 Condition = "foreground", ClassName = "MCEC_NoSuchWindowClass_112",
@@ -185,6 +187,29 @@ public class WindowsCommandTests {
             Assert.True(cmd.Execute());
             JsonObject data = JsonNode.Parse(reply.Captured.Trim())!.AsObject()["data"]!.AsObject();
             Assert.Equal("foreground", data["condition"]!.GetValue<string>());
+            Assert.False(data["satisfied"]!.GetValue<bool>());
+            Assert.True(data.ContainsKey("foreground"));           // reports what IS foreground now
+            Assert.False(data.ContainsKey("waitedFor"));            // no wait -> no wait diagnostics
+            Assert.False(data.ContainsKey("lastObservedWindows"));
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact] // #112: a timed-out predicate miss carries triage diagnostics
+    public void Execute_ForegroundTimedOutMiss_IncludesDiagnostics() {
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        try {
+            CapturingReply reply = new();
+            WindowsCommand cmd = new() {
+                Cmd = "windows", Enabled = true, Reply = reply,
+                Condition = "foreground", ClassName = "MCEC_NoSuchWindowClass_112", Timeout = 50,
+            };
+
+            Assert.True(cmd.Execute());
+            JsonObject data = JsonNode.Parse(reply.Captured.Trim())!.AsObject()["data"]!.AsObject();
             Assert.False(data["satisfied"]!.GetValue<bool>());
             Assert.True(data.ContainsKey("waitedFor"));
             Assert.True(data.ContainsKey("lastObservedWindows"));

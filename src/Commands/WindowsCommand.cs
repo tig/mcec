@@ -16,20 +16,24 @@ namespace MCEControl;
 /// uses: <c>window</c> title substring (case-insensitive), <c>process</c> name (exact, without .exe),
 /// <c>classname</c> (exact).
 ///
-/// With a <c>timeout</c> it WAITS. <c>condition</c> selects the predicate (default <c>appears</c>):
+/// With a <c>timeout</c> it WAITS; a <c>timeout</c> of 0 is a one-shot check. <c>condition</c> selects the
+/// predicate (default <c>appears</c>):
 /// <list type="bullet">
-///   <item><c>appears</c>: poll until a matching window exists; returns the matches (<c>count:0</c> on timeout).</item>
-///   <item><c>disappears</c>: poll until NO window matches (a dialog/app closed); <c>satisfied</c> true when
-///     gone, and <c>windows</c> lists whatever is still present on timeout.</item>
-///   <item><c>foreground</c>: poll until the foreground window matches the filter; returns that <c>window</c>.</item>
+///   <item><c>appears</c>: until a matching window exists; returns the matches (a wait also reports
+///     <c>satisfied</c>, and <c>count:0</c> on timeout).</item>
+///   <item><c>disappears</c>: until NO window matches (a dialog/app closed); <c>satisfied</c> true when
+///     gone, and <c>windows</c> lists whatever is still present.</item>
+///   <item><c>foreground</c>: until the foreground window matches the filter; a satisfied result carries
+///     the matched <c>window</c>, an unsatisfied one carries <c>foreground</c> (what IS foreground now).</item>
 /// </list>
-/// On an unsatisfied wait the result carries actionable diagnostics (#112): <c>waitedFor</c> (the criteria)
-/// and <c>lastObservedWindows</c> (the full top-level set), so a timeout can be triaged without re-querying.
+/// A WAIT that times out unsatisfied carries actionable diagnostics (#112): <c>waitedFor</c> (the criteria)
+/// and <c>lastObservedWindows</c> (the full top-level set), so a timeout is triageable without re-querying.
+/// A one-shot check (<c>timeout:0</c>) that misses returns <c>satisfied:false</c> alone, no wait diagnostics.
 ///
 /// Returns <c>{ condition, count, windows: [ { handle, title, className, processName, processId, x, y, width, height }, … ] }</c>
-/// for <c>appears</c>/<c>disappears</c> (each element the <see cref="WindowInfo"/> shape via
-/// <see cref="WindowInfo.ToJsonObject"/>, so a listed handle is reusable directly), and
-/// <c>{ condition, satisfied, window }</c> for a satisfied <c>foreground</c>.
+/// for <c>appears</c>/<c>disappears</c> (a wait adds <c>satisfied</c>; each element the <see cref="WindowInfo"/>
+/// shape via <see cref="WindowInfo.ToJsonObject"/>, so a listed handle is reusable directly), and
+/// <c>{ condition, satisfied, window|foreground }</c> for <c>foreground</c>.
 ///
 /// SAFETY: a bare list (no filter, no timeout) enumerates ALL windows; that is discovery, not the
 /// silent-arbitrary-target hazard <see cref="WindowResolver.Resolve"/> guards against (it never picks one
@@ -79,7 +83,7 @@ public class WindowsCommand : AgentCommand {
         if (needsFilter && !HasFilter) {
             return CommandResult.Fail(Cmd,
                 $"windows condition '{condition}' needs at least one of window/process/className to identify the " +
-                "window; refusing to wait for an arbitrary window. For 'appears', drop timeout to list all windows now.",
+                "window; refusing to act on an arbitrary window. For 'appears', drop timeout to list all windows now.",
                 "windows-no-criteria", "invalid-argument");
         }
 
@@ -123,7 +127,8 @@ public class WindowsCommand : AgentCommand {
             ["count"] = remaining.Count,
             ["windows"] = ToArray(remaining), // still-present matches; empty on success
         };
-        if (!gone) {
+        // Wait diagnostics only when a WAIT actually timed out; a one-shot check (timeout:0) stays lean.
+        if (!gone && Timeout > 0) {
             AddTimeoutDiagnostics(data);
         }
         return CommandResult.Ok(Cmd, data);
@@ -145,7 +150,10 @@ public class WindowsCommand : AgentCommand {
         else {
             WindowInfo? current = WindowResolver.Resolve(null, null, null, null, foreground: true);
             data["foreground"] = current?.ToJsonObject(); // what IS foreground now (may be null)
-            AddTimeoutDiagnostics(data);
+            // Wait diagnostics only when a WAIT actually timed out; a one-shot check (timeout:0) stays lean.
+            if (Timeout > 0) {
+                AddTimeoutDiagnostics(data);
+            }
         }
         return CommandResult.Ok(Cmd, data);
     }
