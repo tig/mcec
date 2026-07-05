@@ -167,11 +167,17 @@ public static class UiaService {
             // caller is a message-loop-free MTA thread (asserted), and UIA3 client objects are
             // free-threaded, so driving the worker-resolved element from here is safe.
             AssertNotOnMessageLoopThread();
+            // setfocus is VERIFIED (#91/#270), not fire-and-forget: it dispatches then confirms the
+            // element actually took keyboard focus, so a container that redirects focus (or a surface a
+            // bare SetFocus cannot focus) reports the closed taxonomy's `focus` category instead of a
+            // false success. The other actions have no such post-condition to check.
+            if (action.ToLowerInvariant() == "setfocus") {
+                return InvokeSetFocusVerified(el);
+            }
             bool dispatched = action.ToLowerInvariant() switch {
                 "invoke" => InvokeDefault(el),
                 "toggle" => InvokeToggle(el),
                 "setvalue" => InvokeSetValue(el, text),
-                "setfocus" => InvokeSetFocus(el),
                 "expand" => InvokeExpand(el),
                 "collapse" => InvokeCollapse(el),
                 "select" => InvokeSelect(el),
@@ -436,9 +442,45 @@ public static class UiaService {
         return true;
     }
 
-    private static bool InvokeSetFocus(AutomationElement el) {
+    /// <summary>How long <see cref="InvokeSetFocusVerified"/> re-reads HasKeyboardFocus after Focus():
+    /// UIA focus lands through the provider's message pump, so the property can lag the call by a few ms.
+    /// Bounded well under <see cref="InvokeFindTimeoutMs"/> so the verified setfocus never approaches the
+    /// modal grace.</summary>
+    private const int FocusConfirmTimeoutMs = 150;
+    private const int FocusConfirmPollMs = 30;
+
+    /// <summary>
+    /// Dispatches <c>setfocus</c> and VERIFIES it (#91/#270): after <c>Focus()</c>, re-reads
+    /// <c>HasKeyboardFocus</c> briefly (it lands asynchronously). Returns <see cref="UiaInvokeResult.Ok"/>
+    /// once the element holds focus, <see cref="UiaInvokeResult.FocusNotSet"/> if it demonstrably did not
+    /// (e.g. a container that redirects focus to a child, or a surface a bare SetFocus cannot focus). When
+    /// the property is unreadable it does NOT manufacture a failure; it assumes success, because a false
+    /// <c>focus</c> error is worse than a missed one and the <c>focus</c> tool is the robust path.
+    /// </summary>
+    private static UiaInvokeResult InvokeSetFocusVerified(AutomationElement el) {
         el.Focus();
-        return true;
+        Stopwatch sw = Stopwatch.StartNew();
+        while (true) {
+            bool? hasFocus = TryReadHasKeyboardFocus(el);
+            if (hasFocus != false) {
+                // true (confirmed) or null (unreadable; assume dispatched) -> Ok.
+                return UiaInvokeResult.Ok;
+            }
+            if (sw.ElapsedMilliseconds >= FocusConfirmTimeoutMs) {
+                return UiaInvokeResult.FocusNotSet;
+            }
+            Thread.Sleep(FocusConfirmPollMs);
+        }
+    }
+
+    /// <summary>Reads <c>HasKeyboardFocus</c> defensively; null when the property is unavailable (stale node).</summary>
+    private static bool? TryReadHasKeyboardFocus(AutomationElement el) {
+        try {
+            return el.Properties.HasKeyboardFocus.ValueOrDefault;
+        }
+        catch (COMException) {
+            return null;
+        }
     }
 
     private static bool InvokeExpand(AutomationElement el) {

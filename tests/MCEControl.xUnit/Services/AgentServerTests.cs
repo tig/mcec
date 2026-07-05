@@ -39,6 +39,7 @@ public class AgentServerTests {
     // concurrently (so a long wait-for/query never blocks an unrelated capture); invoke is UIA actuation
     // dispatched on a worker with the modal grace, not under this lock.
     [InlineData("drag", true)]
+    [InlineData("focus", true)]
     [InlineData("send_command", true)]
     [InlineData("query", false)]
     [InlineData("capture", false)]

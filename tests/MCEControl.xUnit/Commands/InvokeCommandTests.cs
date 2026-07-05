@@ -78,6 +78,7 @@ public class InvokeCommandTests {
     [InlineData(UiaInvokeResult.ActionUnknown, "action-unknown", "invalid-argument")]
     [InlineData(UiaInvokeResult.ElementStale, "element-stale", "stale-element")]
     [InlineData(UiaInvokeResult.TargetElevated, "target-elevated", "elevation")]
+    [InlineData(UiaInvokeResult.FocusNotSet, "focus-not-set", "focus")]
     [InlineData(UiaInvokeResult.Faulted, "invoke-faulted", "internal")]
     public void FailureFor_MapsEachOutcomeToADistinctCodeAndCategory(UiaInvokeResult outcome, string code, string category) {
         InvokeCommand cmd = new() { Cmd = "invoke", By = "name", Value = "OK", Action = "toggle" };

@@ -45,4 +45,10 @@ public enum UiaInvokeResult {
     /// <summary>UIA threw while attaching, finding, or dispatching (COM fault not classified as stale
     /// or elevation). Not agent-recoverable beyond re-observing the target.</summary>
     Faulted,
+
+    /// <summary>A <c>setfocus</c> dispatched but the element did NOT end up with keyboard focus
+    /// (verified via <c>HasKeyboardFocus</c>, #91/#270): e.g. a container that redirects focus, or a
+    /// surface a bare UIA SetFocus cannot focus. Maps to the <c>focus</c> category. Recovery: use the
+    /// <c>focus</c> tool (it clicks to place focus first), or <c>click</c> the control directly.</summary>
+    FocusNotSet,
 }
