@@ -513,10 +513,12 @@ public partial class MainWindow : Form, IAppHost {
         }
 
         // MCEC 3.0: on-screen command overlay (#119); narrates each command as it executes so anyone
-        // watching sees that MCEC is driving. On by default; headless --mcp hosts its copy on
-        // HeadlessOperatorUi's pump thread, never here. Independent (not owned) so it keeps narrating
-        // even when the MCEC window is minimized to the tray.
-        if (Settings.CommandOverlayEnabled && !AgentRuntime.Headless && _commandOverlay is null) {
+        // watching sees that MCEC is driving. Shown only when the agent front door is open (#292); a
+        // normal instance (e.g. a socket server for a Media Center remote) must never show the
+        // "controlling your PC" banner. Same front-door qualifier as the emergency stop above. Headless
+        // --mcp hosts its copy on HeadlessOperatorUi's pump thread, never here (stdio is always a live
+        // front door there). Independent (not owned) so it keeps narrating even when minimized to the tray.
+        if (ShouldShowCommandOverlay(Settings) && !AgentRuntime.Headless && _commandOverlay is null) {
             _commandOverlay = new CommandOverlayWindow();
             _commandOverlay.Show();
         }
@@ -530,6 +532,16 @@ public partial class MainWindow : Form, IAppHost {
             UserActivityMonitorService.Instance.LogActivity = Settings.LogUserActivity;
             UserActivityMonitorService.Instance.Start();
         }
+    }
+
+    // The command overlay (and its persistent "MCEC is controlling your PC" banner) only makes sense
+    // when an agent could be driving; it must not appear on a normal, non-agent instance (#292). Gated
+    // on the same front door as the emergency stop: the overlay narrates agent commands, so it belongs
+    // exactly when the MCP/HTTP endpoint or the agent commands are enabled. CommandOverlayEnabled=false
+    // still force-disables it. (Headless --mcp is handled by HeadlessOperatorUi, not this gate.)
+    internal static bool ShouldShowCommandOverlay(AppSettings settings) {
+        ArgumentNullException.ThrowIfNull(settings);
+        return settings.CommandOverlayEnabled && (settings.McpServerEnabled || settings.AgentCommandsEnabled);
     }
 
     private void Stop() {
