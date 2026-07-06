@@ -27,7 +27,9 @@ home-automation command surface (network and serial), which is unchanged.
 * **[Home Automation & Remote Control](home-automation.html)** — the classic role: listen on TCP/IP or a
   serial port and translate remote commands into keystrokes, text, mouse, window messages, and app
   launches ([Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/),
-  [Crestron](http://www.crestron.com/), and others).
+  [Crestron](http://www.crestron.com/), and others). The same chapter covers the **User Activity Monitor**,
+  which runs the flow in reverse: it reports when someone is actively using the PC, turning the machine into
+  an occupancy sensor that can drive lighting and scenes.
 
 See also [AGENTS.md](https://github.com/tig/mcec/blob/main/AGENTS.md) for connect-time agent guidance and
 the dogfood recipe (MCEC driving MCEC).

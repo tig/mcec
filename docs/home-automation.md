@@ -134,19 +134,78 @@ When the Serial Server is enabled, MCEC opens the specified COM port (e.g. COM1)
 
 ## User Activity Monitor
 
-MCEC's **User Activity Monitor** sends a command (`activity` by default) to your home-automation system
-when a user is using the PC. It knows the PC is in use by watching keyboard and mouse activity; if the
-mouse is moving or keys are being pressed, the PC is in use. This is useful for adding context to a room
-occupancy sensor.
+The **User Activity Monitor** turns the PC into an occupancy sensor for the room it sits in. While someone
+is actively using the machine, MCEC sends a command (`activity` by default) to your control system; the
+control system treats that as "the room is occupied" and acts on it, most commonly to turn the lights on
+and hold them on.
+
+This is a better occupancy signal than a passive-infrared (PIR) motion detector for any space where people
+sit still. A PIR sensor watches for gross body movement, so it happily switches an office's lights off on
+someone who is reading, on a call, or typing without waving their arms around. MCEC watches keyboard and
+mouse activity instead, so as long as you are actually working, the room reads as occupied and the lights
+stay on.
+
+### How it decides the room is occupied
+
+**Keyboard and mouse input is the occupancy signal, and the engine of the whole feature.** A global
+low-level input hook sees any key press or mouse movement, in any application, and arms a short repeating
+timer that emits the activity command about once per **debounce time** (default 10 seconds), rather than on
+every mouse move. This is the signal that makes MCEC better than a motion detector, and the monitor emits
+nothing without it.
+
+That timer keeps asserting presence on the same interval even after you stop touching the keyboard (that is
+the point: someone reading at their desk still counts as present). What turns it off is the other two
+options, which are **refinements that stop a stale "occupied" reading once Windows confirms you have
+actually left**, not standalone occupancy sources:
+
+* **Desktop lock and unlock.** Locking the desktop (Win+L, or an idle timeout) stops the timer at once;
+  unlocking re-arms it.
+* **Windows user presence and power.** When Windows reports the session has gone idle, entered away mode, or
+  powered the monitor down, the timer stops.
+
+Leave all three on (the default). Keyboard and mouse input is what actually reports occupancy; lock/unlock
+and user presence are what make it drop promptly when you step away, instead of the timer pulsing presence
+until you lock the desktop or MCEC shuts down.
 
 ![Activity Monitor](settings_activity.png "Activity Monitor")
 
-* **Enable User Activity Monitor**: enables/disables the monitor (disabled by default). If enabled:
-* **Command to send**: the string sent when activity is detected (`activity` by default).
-* **Debounce time (seconds)**: the activity message is sent no more frequently than this.
+Configure it on the **File ▸ Settings… ▸ Activity Monitor** tab:
 
-See the [Control4 User Activity Driver](https://github.com/tig/User_Activity) for an example Control4
-driver that uses this feature.
+* **Enable User Activity Monitor**: turns the monitor on or off (off by default). If enabled:
+* **Detection method**: keyboard/mouse input is the occupancy signal and must stay on for the monitor to
+  report anything; desktop lock/unlock and Windows user presence are refinements that make presence drop
+  faster when you leave. Keep all three on (the default).
+* **Command to send**: the string sent when activity is detected (`activity` by default). Send whatever
+  string your control system expects.
+* **Debounce time (seconds)**: the shortest gap between messages (default 10).
+
+The command travels over whichever transports are enabled (the TCP/IP client, the TCP/IP server, or the
+serial server), so you can either have MCEC connect **out** to your controller (the Client tab) or have the
+controller connect **in** to MCEC (the Server tab).
+
+### Example: your office lights follow you
+
+A typical setup, and the one this feature was built for:
+
+1. On the **Client** tab, enable the client and point it at the control system (for the Control4 driver
+   below, that is the controller's IP address and port **10001**).
+2. On the **Activity Monitor** tab, enable the monitor, leave the command as `activity`, and leave the
+   debounce at 10 seconds.
+3. On the control-system side, receive the `activity` string and use it as an occupancy input: turn the
+   office lights on, and (re)start a countdown that turns them off after, say, 15 minutes of silence.
+
+Now the lights come on when you sit down and start typing, stay on the whole time you are at the desk (even
+when you are just reading, and a motion sensor would have given up on you), and drop a while after you
+leave.
+
+For Control4, the [User Activity Driver](https://github.com/tig/User_Activity) packages exactly this: it
+listens for MCEC's `activity` messages and exposes them as a `CONTACT_SENSOR`, which you wire to a
+motion-sensor input or bind directly to lighting and scene programming. There is also a community
+[Control4.MceControllerDriver](https://github.com/garrynewman/Control4.MceControllerDriver).
+
+MCEC was originally built to feed a Crestron whole-house system, and Crestron works the same way with no
+packaged driver needed: point MCEC at a TCP client (or a serial port) on the processor, and a few lines of
+SIMPL logic latch a digital "occupied" signal on each `activity` string and drive the lighting from it.
 
 ## Enabling or Disabling Commands
 
