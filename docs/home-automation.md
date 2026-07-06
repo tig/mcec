@@ -145,34 +145,36 @@ someone who is reading, on a call, or typing without waving their arms around. M
 mouse activity instead, so as long as you are actually working, the room reads as occupied and the lights
 stay on.
 
-### What it watches
+### How it decides the room is occupied
 
-The monitor combines up to three independent presence signals. Each is a checkbox on the Activity Monitor
-tab, and all three are on by default once the monitor is enabled.
+**Keyboard and mouse input is the occupancy signal, and the engine of the whole feature.** A global
+low-level input hook sees any key press or mouse movement, in any application, and arms a short repeating
+timer that emits the activity command about once per **debounce time** (default 10 seconds), rather than on
+every mouse move. This is the signal that makes MCEC better than a motion detector, and the monitor emits
+nothing without it.
 
-* **Keyboard and mouse input.** The primary signal. A global low-level input hook sees any key press or
-  mouse movement, in any application, and reads it as the user being present. This is the signal that makes
-  MCEC better than a motion detector.
-* **Desktop lock and unlock.** Locking the desktop (Win+L, or an idle timeout) is a strong "nobody is here"
-  signal, so the monitor stops reporting presence; unlocking reports presence again immediately.
-* **Windows user presence and power.** MCEC listens to the Windows power notifications (user present versus
-  inactive, away mode, and monitor on/off) and stops presuming presence when Windows reports that the
-  session has gone idle or the monitor has powered down.
+That timer keeps asserting presence on the same interval even after you stop touching the keyboard (that is
+the point: someone reading at their desk still counts as present). What turns it off is the other two
+options, which are **refinements that stop a stale "occupied" reading once Windows confirms you have
+actually left**, not standalone occupancy sources:
 
-### How often it reports
+* **Desktop lock and unlock.** Locking the desktop (Win+L, or an idle timeout) stops the timer at once;
+  unlocking re-arms it.
+* **Windows user presence and power.** When Windows reports the session has gone idle, entered away mode, or
+  powered the monitor down, the timer stops.
 
-While presence is detected, MCEC sends the activity command no more often than the **debounce time**
-(default 10 seconds), so the control system is not flooded on every mouse move. As long as you keep using
-the PC it keeps re-sending on that interval, which lets the control system run a simple "turn the lights off
-if I have not heard `activity` in N minutes" timer. When you stop (lock the desktop, walk away and let the
-session go idle, or turn the monitor off), the messages stop and that timer eventually expires.
+Leave all three on (the default). Keyboard and mouse input is what actually reports occupancy; lock/unlock
+and user presence are what make it drop promptly when you step away, instead of the timer pulsing presence
+until you lock the desktop or MCEC shuts down.
 
 ![Activity Monitor](settings_activity.png "Activity Monitor")
 
 Configure it on the **File ▸ Settings… ▸ Activity Monitor** tab:
 
 * **Enable User Activity Monitor**: turns the monitor on or off (off by default). If enabled:
-* **Detection method**: which of the three signals above to use (all on by default).
+* **Detection method**: keyboard/mouse input is the occupancy signal and must stay on for the monitor to
+  report anything; desktop lock/unlock and Windows user presence are refinements that make presence drop
+  faster when you leave. Keep all three on (the default).
 * **Command to send**: the string sent when activity is detected (`activity` by default). Send whatever
   string your control system expects.
 * **Debounce time (seconds)**: the shortest gap between messages (default 10).
