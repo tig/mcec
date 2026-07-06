@@ -59,29 +59,49 @@ internal static class Program {
 
     /// <summary>
     ///     True when the running exe lives under Program Files; the installed, operator-owned copy.
-    ///     SECURITY: the installed copy must never serve agents (no <c>--mcp</c>, no MCP/HTTP server).
-    ///     Serving from it requires enabling agent security gates in the one config the operator's own
-    ///     MCEC reads (redirected to %AppData%), where a crashed or killed session leaks them enabled;
-    ///     exactly what isolated session provisioning (#138) exists to prevent. Agent serving is only
-    ///     allowed from non-installed locations (a provisioned session or a manual copy), which read a
-    ///     disposable co-located config instead.
+    ///     SECURITY: the installed copy must never serve the agent observation/actuation surface (no
+    ///     MCP/HTTP server; <c>--mcp</c> serves only the provisioning bootstrap, see
+    ///     <see cref="ProvisioningBootstrapOnly" />). Serving the full surface from it requires
+    ///     enabling agent security gates in the one config the operator's own MCEC reads (redirected
+    ///     to %AppData%), where a crashed or killed session leaks them enabled; exactly what isolated
+    ///     session provisioning (#138) exists to prevent. Full agent serving is only allowed from
+    ///     non-installed locations (a provisioned session or a manual copy), which read a disposable
+    ///     co-located config instead.
     /// </summary>
     internal static bool IsProgramFilesInstall =>
         IsProgramFilesInstallOverrideForTests ??
         GetProgramFilesRoot(AppDomain.CurrentDomain.BaseDirectory) is not null;
 
     /// <summary>
-    ///     The operator-facing explanation both refusal sites share (the <c>--mcp</c> exit and the
-    ///     MCP/HTTP server start).
+    ///     True when the MCP surface must be restricted to the provisioning BOOTSTRAP; exactly
+    ///     <c>provision-session</c> and <c>end-session</c>; because we are serving from the installed
+    ///     (Program Files) copy (#296). Without this, provisioning could not bootstrap itself: the
+    ///     tool that mints a disposable instance is an MCP tool, but a fresh install refused to serve
+    ///     MCP at all, so a new user had no first hop. The bootstrap is safe from the install because
+    ///     neither meta-tool observes or actuates anything: <c>provision-session</c> (still gated by
+    ///     the operator's <c>AllowSessionProvisioning</c> opt-in) only writes a NEW throwaway
+    ///     directory, and <c>end-session</c> (token-gated) only deletes one; the installed config is
+    ///     never touched, and every observation/actuation tool (including <c>send_command</c>) is
+    ///     refused at dispatch (<see cref="AgentToolExecutor.CallTool" />) and hidden from
+    ///     <c>tools/list</c> (<see cref="JsonRpcDispatcher" />).
+    /// </summary>
+    internal static bool ProvisioningBootstrapOnly => IsProgramFilesInstall;
+
+    /// <summary>
+    ///     The operator-facing explanation for the one remaining refusal site (the MCP/HTTP server
+    ///     start), also echoed in docs: how to get an agent-servable MCEC when the installed copy
+    ///     won't open its own front door.
     /// </summary>
     internal const string InstalledAgentServingGuidance =
-        "MCEC will not serve agents from its installed (Program Files) location: enabling agent " +
-        "security gates in the installed copy's configuration would leak them enabled if a session " +
-        "crashed. Either (1) run the installed MCEC normally and have your agent call the " +
-        "'provision-session' MCP tool (requires AllowSessionProvisioning=true in Settings) to get a " +
-        "disposable, isolated copy to drive, or (2) copy the MCEC install directory somewhere " +
-        "writable and run it from there; a non-installed copy reads its own co-located mcec.settings. " +
-        "See the Environment Controller documentation (docs/environment-controller.md).";
+        "MCEC will not serve the full agent surface from its installed (Program Files) location: " +
+        "enabling agent security gates in the installed copy's configuration would leak them enabled " +
+        "if a session crashed. Get a disposable, isolated copy instead: (1) click 'Provision new...' " +
+        "on File > Settings > Agent and point your agent at the instance it creates, (2) have your " +
+        "agent connect to the installed 'mcec.exe --mcp' (it serves ONLY the provision-session/" +
+        "end-session bootstrap; requires AllowSessionProvisioning=true in Settings) and call " +
+        "'provision-session', or (3) copy the MCEC install directory somewhere writable and run it " +
+        "from there; a non-installed copy reads its own co-located mcec.settings. See the Environment " +
+        "Controller documentation (docs/environment-controller.md).";
 
     /// <summary>
     ///     Safely launches a URL, file, or folder using the shell (UseShellExecute).
@@ -257,13 +277,15 @@ internal static class Program {
     ///     pump thread), then serves MCP over stdio. Returns the process exit code.
     /// </summary>
     private static int RunHeadlessMcp() {
-        // SECURITY: the installed copy never serves agents (see IsProgramFilesInstall). stderr so a
-        // terminal user and an MCP client's error log both see WHY the server exited immediately.
-        if (IsProgramFilesInstall) {
-            Logger.Instance.Log4.Error($"MCEC: --mcp refused from the installed location. {InstalledAgentServingGuidance}");
-            Console.Error.WriteLine("mcec: --mcp refused: running from the installed (Program Files) location.");
-            Console.Error.WriteLine(InstalledAgentServingGuidance);
-            return ExitCodes.UsageError;
+        // SECURITY: from the installed copy this server is restricted to the provisioning bootstrap
+        // (#296, see ProvisioningBootstrapOnly): tools/list shows and dispatch accepts ONLY
+        // provision-session/end-session, so a fresh install's agent can mint a disposable instance
+        // to drive; without this, provisioning could not bootstrap itself. The full agent surface is
+        // still never served from the install (the pre-#296 behavior was to refuse --mcp outright).
+        if (ProvisioningBootstrapOnly) {
+            Logger.Instance.Log4.Info(
+                "MCEC: --mcp from the installed location; serving the provisioning bootstrap only " +
+                "(provision-session/end-session).");
         }
 
         // mcp serves JSON-RPC over stdio and is meant to be SPAWNED by an MCP client with

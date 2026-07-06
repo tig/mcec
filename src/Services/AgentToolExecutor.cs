@@ -111,6 +111,23 @@ public sealed class AgentToolExecutor {
                 "emergency-stopped", AgentErrorCategory.Internal, DefaultSessionId());
         }
 
+        // Provisioning bootstrap (#296): the installed (Program Files) copy serves ONLY the
+        // isolated-install lifecycle (provision-session/end-session), so a fresh install's agent can
+        // mint a disposable instance without the operator hand-editing configs. Everything else;
+        // observation, actuation, raw send_command (which is otherwise ungated over stdio), and the
+        // in-process session lifecycle; stays refused from the install; the full surface is served by
+        // the provisioned copy the agent gets back. Checked before every branch below so no tool,
+        // present or future, can slip past the restriction.
+        if (Program.ProvisioningBootstrapOnly && name is not ("provision-session" or "end-session")) {
+            AgentRuntime.Audit(name, "BLOCKED; the installed copy serves only the provisioning bootstrap (provision-session/end-session)");
+            return ToolError(
+                "This is MCEC's installed copy serving the provisioning bootstrap: only provision-session and " +
+                "end-session are available here. Call provision-session to get a fresh, disposable, isolated " +
+                "MCEC instance (it returns the directory, exePath, sessionId, and token), launch that " +
+                "instance's mcec.exe --mcp (or use its HTTP mcpEndpoint), and drive it instead.",
+                "bootstrap-only", AgentErrorCategory.Internal, DefaultSessionId());
+        }
+
         // Session lifecycle (#86 Phase 3): session-start/status/end. These read `sessionId` as an explicit
         // TARGET (which session to start/inspect/end), not as call routing, so they're handled before the
         // generic routing refusal below. They are part of the agent surface, so they honor the same

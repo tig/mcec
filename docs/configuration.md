@@ -32,10 +32,13 @@ spawn it on demand and talk JSON-RPC over stdio:
 mcec.exe mcp
 ```
 
-The **installed** copy (under Program Files) refuses to run as an MCP server or to serve the MCP/HTTP
-endpoint: enabling agent gates in the installed configuration would leak them enabled if a session
-crashed. Use [session provisioning](safety-emergency-stop-and-provisioning.md) to get a disposable,
-isolated copy, or copy the install directory somewhere writable and run from there.
+The **installed** copy (under Program Files) never serves the full agent surface: it refuses to start
+the MCP/HTTP endpoint, and over `mcp`/`--mcp` it serves only the provisioning **bootstrap**
+(`provision-session` / `end-session`), because enabling agent gates in the installed configuration would
+leak them enabled if a session crashed. Use [session provisioning](safety-emergency-stop-and-provisioning.md)
+to get a disposable, isolated copy that serves everything — call `provision-session` (or click
+**Provision new…** on File ▸ Settings ▸ Agent), or copy the install directory somewhere writable and run
+from there.
 
 `mcec.exe` also has a command-line surface (built on
 [Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--help`, `--version`, `--opencli` (machine-readable
@@ -92,7 +95,7 @@ The agent surface is configured by these keys. All are off/safe by default; see
 | `CommandOverlayPosition` | `Right` | Which side of the primary screen the overlay docks to. |
 | `EmergencyStopEnabled` | `true` | Arms the global emergency-stop hotkey while the agent front door could be driving. |
 | `EmergencyStopHotkey` | `Ctrl+Alt+Shift+S` | The panic-hotkey chord (a `+`-separated spec). |
-| `AllowSessionProvisioning` | `false` | Operator opt-in that lets an agent request a fresh, isolated MCEC instance via `provision-session`. |
+| `AllowSessionProvisioning` | `false` | Operator opt-in that lets an agent request a fresh, isolated MCEC instance via `provision-session` (and enables the **Provision new…** button on the Agent tab). |
 | `AgentRecordMaxFps` / `AgentRecordMaxDurationMs` / `AgentRecordMaxFrames` / `AgentRecordMaxWidth` | 30 / 60000 / 600 / 1280 | Safety limits for the `record` tool (requests above them are clamped, not failed). |
 
 Restart MCEC (or relaunch `--mcp`) after editing `mcec.settings`.

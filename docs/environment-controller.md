@@ -499,15 +499,19 @@ input/output:
 mcec.exe mcp        # or the equivalent legacy spelling: mcec.exe --mcp
 ```
 
-**Never point an MCP client at the installed copy.** `mcec.exe` under Program Files
-refuses `mcp`/`--mcp` (and refuses to start the MCP/HTTP endpoint) with an error
-explaining the alternatives: serving agents from the installed, operator-owned copy
-would mean enabling agent security gates in the one configuration the operator's own
-MCEC reads, where a crashed session leaks them enabled. Instead, either have an agent
-call `provision-session` (see
-[Agent safety](safety-emergency-stop-and-provisioning.md)) to get a disposable,
-isolated copy, or copy the install directory somewhere writable and point the client
-there; a non-installed copy reads its own co-located `mcec.settings`.
+**Don't drive the installed copy directly; use it to bootstrap.** `mcec.exe` under Program Files never
+serves the full agent surface: it refuses to start the MCP/HTTP endpoint, and over `mcp`/`--mcp` it
+serves **only the provisioning bootstrap** (#296) — `tools/list` and dispatch expose just
+`provision-session` and `end-session`, and every observation/actuation tool is refused with
+`error.code: bootstrap-only` (the connect-time `instructions` say so). Serving the full surface from the
+installed, operator-owned copy would mean enabling agent security gates in the one configuration the
+operator's own MCEC reads, where a crashed session leaks them enabled. So an MCP client points at the
+installed copy only to call `provision-session` (see
+[Agent safety](safety-emergency-stop-and-provisioning.md)) and gets back a disposable, isolated copy that
+serves the full surface — then drives *that*. Alternatives that skip the round-trip: click
+**Provision new…** on File ▸ Settings ▸ Agent and paste the handoff into your client, or copy the install
+directory somewhere writable and point the client there (a non-installed copy reads its own co-located
+`mcec.settings` and serves everything).
 
 The exe also exposes a CLI surface (built on
 [Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--opencli` emits machine-readable
@@ -529,7 +533,9 @@ style used by most clients):
 ```
 
 (`C:/mcec` here is a writable copy of the install directory, or a provisioned session's
-`directory`; the Program Files path itself would be refused, per above.)
+`directory`. Pointing it at the Program Files path connects, but that copy serves only the
+`provision-session`/`end-session` bootstrap, per above — use it to mint an instance, then repoint your
+client at the instance's `directory`.)
 
 `mcp` is a spawned server, not an interactive command: typed at a terminal it refuses
 (stdin is an interactive console; the server would block on the shared console and
