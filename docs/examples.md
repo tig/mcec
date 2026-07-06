@@ -14,7 +14,7 @@ leads with the artifact and the plain-English prompt, then gives the exact recip
 | Example | Flavor | What it shows | Recipe |
 |---------|--------|---------------|--------|
 | **MCEC hero GIF** | Scripted recipe | One MCEC drives a second MCEC through a guided tour (Settings tabs, mouse-resize, drag the title bar, Help ▸ About) while the overlay narrates; recorded with the `record` tool. | [hero-gif.md](hero-gif.md) |
-| **WinPrint hero GIF** | Scripted recipe | MCEC drives installed **WinPrint** across a real desktop: Start-menu launch, settings/zoom tour, Print to PDF, open the PDF. | [winprint-hero-gif.md](winprint-hero-gif.md) |
+| **WinPrint hero GIF** | Scripted recipe | MCEC drives installed **WinPrint** through a guided tour (launch, settings/zoom, Print to PDF), recorded as a clean, window-only GIF. Owned and produced in the WinPrint repo. | [hero-gif-win.md](https://github.com/tig/winprint/blob/develop/docs/hero-gif-win.md) |
 | **Paint → smiley → email** | Prompt demo | Hand a computer-use agent one sentence and it drives the desktop: open Paint, draw a smiley, copy it, start a new email, paste it in. | [paint-smiley-email.md](paint-smiley-email.md) |
 
 ## Two flavors
