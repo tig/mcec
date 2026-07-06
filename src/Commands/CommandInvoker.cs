@@ -204,9 +204,7 @@ public class CommandInvoker : Hashtable {
     /// <param name="reply">Reply context</param>
     /// <param name="cmdString">The command string that was received</param>
     public CommandEnqueueResult Enqueue(Reply reply, String cmdString) {
-        if (cmdString == null) {
-            throw new ArgumentNullException(nameof(cmdString));
-        }
+        ArgumentNullException.ThrowIfNull(cmdString);
 
         string cmd;
         string args = "";

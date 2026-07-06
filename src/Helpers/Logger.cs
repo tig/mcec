@@ -151,17 +151,13 @@ public class Logger {
         Log4 = LogManager.GetLogger("MCEControl");
     }
     public static void DumpException(Exception ex) {
-        if (ex is null) {
-            throw new ArgumentNullException(nameof(ex));
-        }
+        ArgumentNullException.ThrowIfNull(ex);
 
         WriteExceptionInfo(ex);
     }
 
     private static void WriteExceptionInfo(Exception ex) {
-        if (ex is null) {
-            throw new ArgumentNullException(nameof(ex));
-        }
+        ArgumentNullException.ThrowIfNull(ex);
 
         Logger.Instance.Log4.Debug("--------- Exception Data ---------");
         Logger.Instance.Log4.Debug($"Message:        {ex.FullMessage()}");

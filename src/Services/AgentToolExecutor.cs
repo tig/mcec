@@ -538,7 +538,7 @@ public sealed class AgentToolExecutor {
     /// authorization gate (teardown must always be possible), so before the token this tool let any
     /// MCP caller delete any session it could name; now only the token holder can.
     /// </summary>
-    private JsonObject RunEndSession(JsonObject args, AgentSession session) {
+    private static JsonObject RunEndSession(JsonObject args, AgentSession session) {
         string? sessionId = Str(args, "sessionId");
         if (string.IsNullOrWhiteSpace(sessionId)) {
             return ToolError("end-session requires a non-empty 'sessionId' argument.", "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);

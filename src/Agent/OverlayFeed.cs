@@ -20,12 +20,8 @@ public sealed class OverlayFeed {
     private readonly LinkedList<(DateTime At, CommandEvent Ev)> _items = new();
 
     public OverlayFeed(int maxLines, TimeSpan lifetime) {
-        if (maxLines <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(maxLines));
-        }
-        if (lifetime <= TimeSpan.Zero) {
-            throw new ArgumentOutOfRangeException(nameof(lifetime));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxLines);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(lifetime, TimeSpan.Zero);
         _maxLines = maxLines;
         _lifetime = lifetime;
     }

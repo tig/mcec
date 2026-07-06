@@ -134,6 +134,16 @@ jobs:
         if: ${{ env.SIGN != 'true' }}
         run: echo "::warning::AZURE_* signing secrets not set; installer is UNSIGNED. Run 'pwsh scripts/SetupAzure.ps1 -SetGitHubSecrets' to enable Azure Trusted Signing (see docs/code-signing.md)."
 
+      # Package the portable PDBs (excluded from the installer) so crash reports and post-mortem
+      # debugging can be symbolicated. Staged AFTER signing so the signer only ever sees the .exe.
+      - name: Stage symbols
+        shell: pwsh
+        run: |
+          $pdbs = Get-ChildItem src/bin/publish -Filter *.pdb -Recurse
+          if (-not $pdbs) { throw "No .pdb symbols in publish output; expected portable PDBs (src/MCEControl.csproj DebugType=portable)." }
+          Compress-Archive -Path $pdbs.FullName -DestinationPath "artifacts/symbols-${{ steps.ver.outputs.tag }}.zip" -Force
+          Write-Host "::notice::Packaged $($pdbs.Count) symbol file(s) into symbols-${{ steps.ver.outputs.tag }}.zip"
+
       - name: Publish GitHub Release
         shell: pwsh
         env:
@@ -143,7 +153,8 @@ jobs:
             --title "MCEC ${{ steps.ver.outputs.tag }}" `
             --generate-notes `
             --latest `
-            artifacts/mcec.Setup.exe
+            artifacts/mcec.Setup.exe `
+            "artifacts/symbols-${{ steps.ver.outputs.tag }}.zip"
 
   # Auto-submit the new version to winget-pkgs on every STABLE release (skips pre-releases
   # and is gated on the WINGET_TOKEN secret). Requires a one-time manual bootstrap of the

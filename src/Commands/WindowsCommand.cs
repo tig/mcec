@@ -185,6 +185,6 @@ public class WindowsCommand : AgentCommand {
         data["lastObservedWindows"] = ToArray(WindowResolver.EnumerateTopLevel());
     }
 
-    private static JsonNode? NullIfEmpty(string value) =>
+    private static JsonValue? NullIfEmpty(string value) =>
         string.IsNullOrEmpty(value) ? null : JsonValue.Create(value);
 }

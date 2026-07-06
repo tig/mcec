@@ -105,7 +105,7 @@ public class SendInputCommand : Command {
 
     static SendInputCommand() {
         // Populate default VK_ codes
-        foreach (VirtualKeyCode vk in Enum.GetValues(typeof(VirtualKeyCode))) {
+        foreach (VirtualKeyCode vk in Enum.GetValues<VirtualKeyCode>()) {
             string s;
             if (vk is > VirtualKeyCode.HELP and < VirtualKeyCode.LWIN) {
                 s = vk.ToString();  // already have VK_
@@ -187,7 +187,7 @@ public class SendInputCommand : Command {
                      !Enum.TryParse(Vk.ToLowerInvariant().Substring(3), true, out vkcode))) {
                     // It's not a VK_ string. Is it Hex?
                     if ((!Vk.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase) ||
-                         !ushort.TryParse(Vk.Substring(2), NumberStyles.HexNumber,
+                         !ushort.TryParse(Vk.AsSpan(2), NumberStyles.HexNumber,
                                           CultureInfo.InvariantCulture.NumberFormat, out ushort num)) &&
                          !ushort.TryParse(Vk, NumberStyles.Integer, CultureInfo.InvariantCulture.NumberFormat,
                                          out num)) {

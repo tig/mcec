@@ -5,6 +5,9 @@
 		<IsPackable>false</IsPackable>
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<!-- Production code runs latest-recommended (Directory.Build.props); test code keeps the lighter
+		     default analyzer set so xUnit Method_Scenario naming (CA1707) and test-data idioms stay clean. -->
+		<AnalysisLevel>latest-default</AnalysisLevel>
 		<NoWarn>$(NoWarn);CA1416</NoWarn>
 	</PropertyGroup>
 

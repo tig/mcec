@@ -22,9 +22,7 @@ internal static class TelnetProtocol {
     /// <param name="text">The text to escape. Must not be null.</param>
     /// <returns>The text with every '\xFF' character doubled.</returns>
     public static string EscapeIac(string text) {
-        if (text is null) {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         return text.Replace("\xFF", "\xFF\xFF", StringComparison.Ordinal);
     }

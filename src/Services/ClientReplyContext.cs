@@ -5,9 +5,7 @@ namespace MCEControl;
 
 internal class ClientReplyContext(TcpClient tcpClient) : Reply {
     public override void Write(String text) {
-        if (text is null) {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         if (!tcpClient.Connected) {
             return;
