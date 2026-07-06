@@ -57,7 +57,7 @@ namespace MCEControl {
             //
             this._buttonCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this._buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this._buttonCancel.Location = new System.Drawing.Point(384, 288);
+            this._buttonCancel.Location = new System.Drawing.Point(384, 340);
             this._buttonCancel.Margin = new System.Windows.Forms.Padding(1);
             this._buttonCancel.Name = "_buttonCancel";
             this._buttonCancel.Size = new System.Drawing.Size(75, 24);
@@ -69,7 +69,7 @@ namespace MCEControl {
             // _buttonOk
             //
             this._buttonOk.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this._buttonOk.Location = new System.Drawing.Point(296, 288);
+            this._buttonOk.Location = new System.Drawing.Point(296, 340);
             this._buttonOk.Margin = new System.Windows.Forms.Padding(1);
             this._buttonOk.Name = "_buttonOk";
             this._buttonOk.Size = new System.Drawing.Size(75, 24);
@@ -93,7 +93,7 @@ namespace MCEControl {
             this._tabcontrol.Margin = new System.Windows.Forms.Padding(1);
             this._tabcontrol.Name = "_tabcontrol";
             this._tabcontrol.SelectedIndex = 0;
-            this._tabcontrol.Size = new System.Drawing.Size(448, 264);
+            this._tabcontrol.Size = new System.Drawing.Size(448, 316);
             this._tabcontrol.TabIndex = 0;
             //
             // _tabPageGeneral
@@ -103,7 +103,7 @@ namespace MCEControl {
             this._tabPageGeneral.Location = new System.Drawing.Point(4, 22);
             this._tabPageGeneral.Margin = new System.Windows.Forms.Padding(1);
             this._tabPageGeneral.Name = "_tabPageGeneral";
-            this._tabPageGeneral.Size = new System.Drawing.Size(440, 238);
+            this._tabPageGeneral.Size = new System.Drawing.Size(440, 290);
             this._tabPageGeneral.TabIndex = 0;
             this._tabPageGeneral.Text = "General";
             //
@@ -112,7 +112,7 @@ namespace MCEControl {
             this._tabGeneral.Dock = System.Windows.Forms.DockStyle.Fill;
             this._tabGeneral.Location = new System.Drawing.Point(0, 0);
             this._tabGeneral.Name = "_tabGeneral";
-            this._tabGeneral.Size = new System.Drawing.Size(440, 238);
+            this._tabGeneral.Size = new System.Drawing.Size(440, 290);
             this._tabGeneral.TabIndex = 0;
             //
             // _tabPageClient
@@ -122,7 +122,7 @@ namespace MCEControl {
             this._tabPageClient.Location = new System.Drawing.Point(4, 22);
             this._tabPageClient.Margin = new System.Windows.Forms.Padding(1);
             this._tabPageClient.Name = "_tabPageClient";
-            this._tabPageClient.Size = new System.Drawing.Size(440, 238);
+            this._tabPageClient.Size = new System.Drawing.Size(440, 290);
             this._tabPageClient.TabIndex = 1;
             this._tabPageClient.Text = "Client";
             //
@@ -131,7 +131,7 @@ namespace MCEControl {
             this._tabClient.Dock = System.Windows.Forms.DockStyle.Fill;
             this._tabClient.Location = new System.Drawing.Point(0, 0);
             this._tabClient.Name = "_tabClient";
-            this._tabClient.Size = new System.Drawing.Size(440, 238);
+            this._tabClient.Size = new System.Drawing.Size(440, 290);
             this._tabClient.TabIndex = 0;
             //
             // _tabPageServer
@@ -141,7 +141,7 @@ namespace MCEControl {
             this._tabPageServer.Location = new System.Drawing.Point(4, 22);
             this._tabPageServer.Margin = new System.Windows.Forms.Padding(1);
             this._tabPageServer.Name = "_tabPageServer";
-            this._tabPageServer.Size = new System.Drawing.Size(440, 238);
+            this._tabPageServer.Size = new System.Drawing.Size(440, 290);
             this._tabPageServer.TabIndex = 2;
             this._tabPageServer.Text = "Server";
             //
@@ -150,7 +150,7 @@ namespace MCEControl {
             this._tabServer.Dock = System.Windows.Forms.DockStyle.Fill;
             this._tabServer.Location = new System.Drawing.Point(0, 0);
             this._tabServer.Name = "_tabServer";
-            this._tabServer.Size = new System.Drawing.Size(440, 238);
+            this._tabServer.Size = new System.Drawing.Size(440, 290);
             this._tabServer.TabIndex = 0;
             //
             // _tabPageSerial
@@ -161,7 +161,7 @@ namespace MCEControl {
             this._tabPageSerial.Margin = new System.Windows.Forms.Padding(1);
             this._tabPageSerial.Name = "_tabPageSerial";
             this._tabPageSerial.Padding = new System.Windows.Forms.Padding(1);
-            this._tabPageSerial.Size = new System.Drawing.Size(440, 238);
+            this._tabPageSerial.Size = new System.Drawing.Size(440, 290);
             this._tabPageSerial.TabIndex = 3;
             this._tabPageSerial.Text = "Serial Server";
             //
@@ -179,7 +179,7 @@ namespace MCEControl {
             this._tabPageActivityMonitor.Location = new System.Drawing.Point(4, 22);
             this._tabPageActivityMonitor.Margin = new System.Windows.Forms.Padding(1);
             this._tabPageActivityMonitor.Name = "_tabPageActivityMonitor";
-            this._tabPageActivityMonitor.Size = new System.Drawing.Size(440, 238);
+            this._tabPageActivityMonitor.Size = new System.Drawing.Size(440, 290);
             this._tabPageActivityMonitor.TabIndex = 4;
             this._tabPageActivityMonitor.Text = "Activity Monitor";
             this._tabPageActivityMonitor.UseVisualStyleBackColor = true;
@@ -189,7 +189,7 @@ namespace MCEControl {
             this._tabActivityMonitor.Dock = System.Windows.Forms.DockStyle.Fill;
             this._tabActivityMonitor.Location = new System.Drawing.Point(0, 0);
             this._tabActivityMonitor.Name = "_tabActivityMonitor";
-            this._tabActivityMonitor.Size = new System.Drawing.Size(440, 238);
+            this._tabActivityMonitor.Size = new System.Drawing.Size(440, 290);
             this._tabActivityMonitor.TabIndex = 0;
             //
             // _tabPageAgent
@@ -199,7 +199,7 @@ namespace MCEControl {
             this._tabPageAgent.Location = new System.Drawing.Point(4, 22);
             this._tabPageAgent.Margin = new System.Windows.Forms.Padding(1);
             this._tabPageAgent.Name = "_tabPageAgent";
-            this._tabPageAgent.Size = new System.Drawing.Size(440, 238);
+            this._tabPageAgent.Size = new System.Drawing.Size(440, 290);
             this._tabPageAgent.TabIndex = 5;
             this._tabPageAgent.Text = "Agent";
             //
@@ -208,7 +208,7 @@ namespace MCEControl {
             this._tabAgent.Dock = System.Windows.Forms.DockStyle.Fill;
             this._tabAgent.Location = new System.Drawing.Point(0, 0);
             this._tabAgent.Name = "_tabAgent";
-            this._tabAgent.Size = new System.Drawing.Size(440, 238);
+            this._tabAgent.Size = new System.Drawing.Size(440, 290);
             this._tabAgent.TabIndex = 0;
             //
             // _eventLog
@@ -222,7 +222,7 @@ namespace MCEControl {
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.CancelButton = this._buttonCancel;
-            this.ClientSize = new System.Drawing.Size(475, 321);
+            this.ClientSize = new System.Drawing.Size(475, 373);
             this.Controls.Add(this._tabcontrol);
             this.Controls.Add(this._buttonCancel);
             this.Controls.Add(this._buttonOk);

@@ -373,19 +373,24 @@ internal static class Program {
     }
 
     private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e) {
+        // A faulted background Task was GC'd without its exception observed (#295) - e.g. an async socket
+        // read aborted when a client disconnects ("The I/O operation has been aborted...") or an update
+        // check. Mark it observed so it can NEVER escalate to a process-terminating exception, and record
+        // it - but do NOT pop a modal dialog: a benign background fault must not nag the user, and putting
+        // up UI from the finalizer thread (where this fires) is wrong. Genuine crashes still reach
+        // CurrentDomain_UnhandledException and its copyable dialog.
+        e.SetObserved();
         Logger.DumpException(e.Exception);
         TelemetryService.Instance.TrackException(e.Exception);
-        MessageBox.Show(@$"Unhandled Exception: {e.Exception.Message}\n\n" +
-                        @$"See log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec",
-            Application.ProductName);
     }
 
     private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e) {
         Exception ex = e.ExceptionObject as Exception ?? new InvalidOperationException($"Unhandled non-exception object: {e.ExceptionObject}");
         Logger.DumpException(ex);
         TelemetryService.Instance.TrackException(ex);
-        MessageBox.Show(@$"Unhandled Exception: {ex.Message}\n\n" +
-                        @$"See log file for details: {Logger.Instance.LogFile}\n\nFor help, open an issue at github.com/tig/mcec",
-            Application.ProductName);
+        // A copyable dialog (#295) with the full exception detail, so a user can paste it straight into a
+        // bug report. Replaces the old MessageBox that showed only the message (and a literal "\n" from a
+        // verbatim interpolated string).
+        Dialogs.ExceptionDialog.Show("MCEC hit an unexpected error. You can copy the details below into a bug report.", ex);
     }
 }
