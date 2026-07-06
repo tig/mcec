@@ -30,6 +30,8 @@ Enable the agent surface only on a machine and session where you accept an agent
 
 MCEC is also the same **battle-tested remote control for home-automation systems** it has always been. In its long-standing role it runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that can send text over TCP/IP or RS-232 ([Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/), [Crestron](http://www.crestron.com/), and others) can use MCEC to drive a Windows PC. The agent surface in 3.0 is **purely additive**: every existing home-automation feature is unchanged.
 
+It also runs the flow in reverse: the **[User Activity Monitor](https://tig.github.io/mcec/home-automation.html#user-activity-monitor)** reports when someone is actively using the PC, turning the machine into an occupancy sensor a control system can use to drive lighting. It is better than a passive motion detector, which gives up on someone sitting still at a desk. The [Control4 User Activity Driver](https://github.com/tig/User_Activity) packages exactly that.
+
 * [Documentation](https://tig.github.io/mcec): start here
 * [Configuration](https://tig.github.io/mcec/configuration.html): configuring mcec
 * [Environment Controller](https://tig.github.io/mcec/environment-controller.html): the full agent/MCP tool reference and security model
