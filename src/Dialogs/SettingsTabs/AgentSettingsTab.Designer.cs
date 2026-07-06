@@ -62,7 +62,7 @@ namespace MCEControl {
             this._labelExplanation.Location = new System.Drawing.Point(12, 34);
             this._labelExplanation.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this._labelExplanation.Name = "_labelExplanation";
-            this._labelExplanation.Size = new System.Drawing.Size(416, 44);
+            this._labelExplanation.Size = new System.Drawing.Size(352, 58);
             this._labelExplanation.TabIndex = 1;
             this._labelExplanation.Text = "The agent gets a disposable, isolated copy to drive (deleted on teardown); this " +
                 "installed copy is never opened up.";
@@ -74,11 +74,11 @@ namespace MCEControl {
             this._groupSessions.Controls.Add(this._labelNoSessions);
             this._groupSessions.Controls.Add(this._buttonProvision);
             this._groupSessions.Controls.Add(this._buttonDeleteAll);
-            this._groupSessions.Location = new System.Drawing.Point(12, 82);
+            this._groupSessions.Location = new System.Drawing.Point(12, 96);
             this._groupSessions.Margin = new System.Windows.Forms.Padding(1);
             this._groupSessions.Name = "_groupSessions";
             this._groupSessions.Padding = new System.Windows.Forms.Padding(1);
-            this._groupSessions.Size = new System.Drawing.Size(416, 150);
+            this._groupSessions.Size = new System.Drawing.Size(352, 140);
             this._groupSessions.TabIndex = 2;
             this._groupSessions.TabStop = false;
             this._groupSessions.Text = "Provisioned instances";
@@ -103,7 +103,7 @@ namespace MCEControl {
             this._gridSessions.ReadOnly = true;
             this._gridSessions.RowHeadersVisible = false;
             this._gridSessions.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this._gridSessions.Size = new System.Drawing.Size(400, 94);
+            this._gridSessions.Size = new System.Drawing.Size(336, 80);
             this._gridSessions.TabIndex = 0;
             this._gridSessions.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.GridSessionsCellContentClick);
             //
@@ -113,7 +113,7 @@ namespace MCEControl {
             this._columnId.Name = "_columnId";
             this._columnId.ReadOnly = true;
             this._columnId.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this._columnId.Width = 100;
+            this._columnId.Width = 92;
             //
             // _columnAge
             //
@@ -121,7 +121,7 @@ namespace MCEControl {
             this._columnAge.Name = "_columnAge";
             this._columnAge.ReadOnly = true;
             this._columnAge.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this._columnAge.Width = 62;
+            this._columnAge.Width = 50;
             //
             // _columnSize
             //
@@ -129,7 +129,7 @@ namespace MCEControl {
             this._columnSize.Name = "_columnSize";
             this._columnSize.ReadOnly = true;
             this._columnSize.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this._columnSize.Width = 72;
+            this._columnSize.Width = 58;
             //
             // _columnStatus
             //
@@ -137,7 +137,7 @@ namespace MCEControl {
             this._columnStatus.Name = "_columnStatus";
             this._columnStatus.ReadOnly = true;
             this._columnStatus.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this._columnStatus.Width = 64;
+            this._columnStatus.Width = 52;
             //
             // _columnDelete
             //
@@ -150,7 +150,7 @@ namespace MCEControl {
             // _labelNoSessions
             //
             this._labelNoSessions.AutoSize = true;
-            this._labelNoSessions.Location = new System.Drawing.Point(8, 124);
+            this._labelNoSessions.Location = new System.Drawing.Point(12, 44);
             this._labelNoSessions.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this._labelNoSessions.Name = "_labelNoSessions";
             this._labelNoSessions.Size = new System.Drawing.Size(140, 17);
@@ -159,7 +159,7 @@ namespace MCEControl {
             //
             // _buttonProvision
             //
-            this._buttonProvision.Location = new System.Drawing.Point(8, 120);
+            this._buttonProvision.Location = new System.Drawing.Point(8, 108);
             this._buttonProvision.Margin = new System.Windows.Forms.Padding(1);
             this._buttonProvision.Name = "_buttonProvision";
             this._buttonProvision.Size = new System.Drawing.Size(110, 26);
@@ -171,7 +171,7 @@ namespace MCEControl {
             //
             // _buttonDeleteAll
             //
-            this._buttonDeleteAll.Location = new System.Drawing.Point(326, 120);
+            this._buttonDeleteAll.Location = new System.Drawing.Point(256, 108);
             this._buttonDeleteAll.Margin = new System.Windows.Forms.Padding(1);
             this._buttonDeleteAll.Name = "_buttonDeleteAll";
             this._buttonDeleteAll.Size = new System.Drawing.Size(82, 26);
