@@ -71,6 +71,22 @@ public sealed class JsonRpcDispatcher {
         }
     }
 
+    /// <summary>
+    /// Connect-time guidance served instead of the full playbook when only the provisioning bootstrap
+    /// is available (#296, <see cref="Program.ProvisioningBootstrapOnly"/>): the full observe/target/act
+    /// instructions would teach tools this server refuses, so teach the two-step handoff instead.
+    /// </summary>
+    internal const string BootstrapInstructions =
+        "This is MCEC's installed copy serving the provisioning BOOTSTRAP only: the sole tools are " +
+        "provision-session and end-session; every other tool is refused with error.code:bootstrap-only. " +
+        "To drive the desktop, call provision-session (requires the operator's 'Allow agents to provision " +
+        "disposable instances' opt-in on File > Settings > Agent) to get a fresh, disposable, isolated MCEC " +
+        "instance; it returns the directory, exePath, sessionId, and token. Launch \"<exePath>\" --mcp as a " +
+        "stdio MCP server (or POST JSON-RPC to its HTTP mcpEndpoint with 'Authorization: Bearer <token>') " +
+        "and do ALL observation and actuation against THAT instance; it serves the full tool surface and " +
+        "the full connect-time instructions. When finished, stop the instance's mcec.exe, then call " +
+        "end-session here with the sessionId AND token to delete it.";
+
     private JsonObject BuildInitializeResult() => new() {
         ["protocolVersion"] = ProtocolVersion,
         ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() },
@@ -79,8 +95,9 @@ public sealed class JsonRpcDispatcher {
             ["version"] = Application.ProductVersion,
         },
         // Built-in agent guidance: surfaced to the model by the MCP client so it knows how to drive
-        // MCEC effectively (the observe -> target -> act loop) and understands the security model.
-        ["instructions"] = _instructions(),
+        // MCEC effectively (the observe -> target -> act loop) and understands the security model. In
+        // bootstrap mode (#296) the playbook would teach refused tools, so serve the handoff recipe.
+        ["instructions"] = Program.ProvisioningBootstrapOnly ? BootstrapInstructions : _instructions(),
     };
 
     // -------------------------------------------------------------------------------------------
@@ -88,6 +105,13 @@ public sealed class JsonRpcDispatcher {
     // -------------------------------------------------------------------------------------------
 
     private static JsonArray BuildToolsList() {
+        // Provisioning bootstrap (#296): from the installed copy, list exactly what dispatch will
+        // accept (AgentToolExecutor.CallTool refuses everything else with bootstrap-only), so an MCP
+        // client's tool list never advertises a tool this server refuses.
+        if (Program.ProvisioningBootstrapOnly) {
+            return [BuildProvisionSessionTool(), BuildEndSessionTool()];
+        }
+
         JsonArray tools = [];
 
         // The gated agent tools; one descriptor per tool, schema included; live in ToolCatalog (#205).
@@ -130,6 +154,14 @@ public sealed class JsonRpcDispatcher {
 
         // Isolated session provisioning (#138). Requires the operator to have opted in
         // (AllowSessionProvisioning); it never mutates the installed config.
+        tools.Add(BuildProvisionSessionTool());
+        tools.Add(BuildEndSessionTool());
+
+        return tools;
+    }
+
+    /// <summary>The <c>provision-session</c> tool schema (#138); shared by the full list and the bootstrap list (#296).</summary>
+    private static JsonObject BuildProvisionSessionTool() {
         JsonObject provisionProps = new() {
             ["mcpServer"] = ToolCatalog.PropSchema("boolean", "Enable the provisioned instance's localhost MCP/HTTP server (default true)"),
             ["commands"] = new JsonObject {
@@ -138,20 +170,20 @@ public sealed class JsonRpcDispatcher {
                 ["items"] = new JsonObject { ["type"] = "string" },
             },
         };
-        tools.Add(ToolCatalog.Tool("provision-session",
+        return ToolCatalog.Tool("provision-session",
             "Get a fresh, disposable, isolated MCEC instance to run from instead of enabling the installed one. Returns a directory containing mcec.exe + an agent-ready co-located config (agent commands enabled ONLY inside the copy), plus how to launch/connect and the sessionId + token to tear it down. The token is the session credential: HTTP requests to the session's mcpEndpoint must send 'Authorization: Bearer <token>', and end-session requires it. Requires the operator to have enabled AllowSessionProvisioning; the installed config is never touched. Call end-session (or delete the directory) when finished.",
-            provisionProps, []));
+            provisionProps, []);
+    }
 
-        tools.Add(ToolCatalog.Tool("end-session",
+    /// <summary>The <c>end-session</c> tool schema (#138); shared by the full list and the bootstrap list (#296).</summary>
+    private static JsonObject BuildEndSessionTool() =>
+        ToolCatalog.Tool("end-session",
             "Tear down a provisioned session (from provision-session) by deleting its directory. Requires the session's token; the teardown credential provision-session returned. Stop the session's mcec.exe first, or its files stay locked. MCEC also reaps stale session dirs on launch.",
             new JsonObject {
                 ["sessionId"] = ToolCatalog.PropSchema("string", "The sessionId returned by provision-session"),
                 ["token"] = ToolCatalog.PropSchema("string", "The token returned by provision-session (the teardown credential)"),
             },
-            ["sessionId", "token"]));
-
-        return tools;
-    }
+            ["sessionId", "token"]);
 
     /// <summary>
     /// Adds the optional <c>sessionId</c> routing property (#86 Phase 3) to a tool's

@@ -177,8 +177,11 @@ you will never see or target it, and it is never a candidate window; but it DOES
 full-screen/region `capture`s and `record`ings (not in window-targeted captures).
 
 PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it; an abnormal exit
-leaks those security gates enabled, and the installed copy refuses to serve as an agent server anyway.
-Instead, when the operator has authorized it,
+leaks those security gates enabled, and the installed copy will not serve the full agent surface anyway.
+When you connect to the installed `mcec.exe --mcp`, it serves ONLY the provisioning BOOTSTRAP: the sole
+tools are `provision-session` and `end-session`, and every observation/actuation tool is refused with
+`error.code:bootstrap-only` (its connect-time instructions say so). That is by design and is your first
+hop, not a dead end: when the operator has authorized it,
 call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
 `mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
 launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), a `sessionId`, and a
@@ -192,8 +195,10 @@ down; orphaned sessions are reaped automatically. If `provision-session` returns
 `error.code:provisioning-not-authorized` (these feature-specific refusals ride in `error.code`, while
 `error.category` stays `internal`), the operator has not opted in; tell them to enable "Allow agents to
 provision disposable instances" on the Settings dialog's Agent tab (File > Settings > Agent), then retry;
-do not retry blindly before they do. That same Agent tab lists the provisioned instances and lets the
-operator delete any you leave behind, but you own teardown: `end-session` every instance you provision.
+do not retry blindly before they do. On that same Agent tab the operator can also click "Provision new…"
+to create an instance themselves and hand you its directory/endpoint; and it lists the provisioned
+instances and lets them delete any you leave behind. But you own teardown: `end-session` every instance
+you provision.
 
 EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
 session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category;

@@ -110,10 +110,34 @@ that copy). The agent runs from there and deletes it when done, so any enabled s
 throwaway copy, "cleanup" is `rm -rf <dir>`, and a crashed or killed session leaves the real install
 untouched. Concurrent sessions each get their own directory and never contend.
 
-The installed copy **enforces** its side of this: `mcec.exe` running from Program Files refuses
-`mcp`/`--mcp` and refuses to start the MCP/HTTP endpoint (`Program.IsProgramFilesInstall`), with an
-error pointing at provisioning or a manual writable copy. The operator's install cannot be turned into
-an agent server even by editing its settings.
+The installed copy **enforces** its side of this: `mcec.exe` running from Program Files never serves the
+full agent surface. It refuses to start the MCP/HTTP endpoint (`AgentServer.StartHttp` →
+`Program.IsProgramFilesInstall`), and over `--mcp` it serves **only the provisioning bootstrap** (see
+below). The operator's install cannot be turned into an observation/actuation agent server even by
+editing its settings.
+
+### Bootstrapping: how a fresh install gets its first instance (#296)
+
+There is a chicken-and-egg to close. `provision-session` is itself an MCP tool, so an agent must reach
+*some* MCEC MCP server to call it; but a fresh install's own copy refuses to serve agents, and a new
+user has no other copy yet. Two first hops resolve it, neither requiring the operator to hand-edit a
+config:
+
+- **Operator-initiated (GUI).** The **Agent** tab's **Provision new…** button calls
+  `SessionProvisioner.Provision()` directly (no MCP round-trip) and shows a copyable handoff
+  ([`ProvisionedInstanceDialog`](../src/Dialogs/ProvisionedInstanceDialog.cs)): the directory, the
+  `mcec.exe --mcp` launch line, the HTTP endpoint + bearer token, and teardown notes. The operator
+  pastes that into their agent's MCP client. Enabled only when the opt-in below is ticked.
+- **Bootstrap MCP mode (headless).** An agent may connect to the **installed** `mcec.exe --mcp`; but
+  from the install it serves a restricted surface: `tools/list` and dispatch expose **only**
+  `provision-session` and `end-session`, and every other tool is refused with `error.code:bootstrap-only`
+  (the connect-time `instructions` say so). That is enough to mint a disposable instance and no more; the
+  installed config is never touched because neither meta-tool observes or actuates. Gated, as always, by
+  `AllowSessionProvisioning`. See `Program.ProvisioningBootstrapOnly`, `JsonRpcDispatcher` (restricted
+  `tools/list` + bootstrap `instructions`), and `AgentToolExecutor.CallTool` (the `bootstrap-only` gate).
+
+Either way the agent gets back a **non-installed** disposable copy that serves the full tool surface, and
+drives *that*.
 
 ### Flow
 
@@ -123,7 +147,8 @@ an agent server even by editing its settings.
    to let an agent drive MCEC; it grants access only to a disposable copy, never this installed instance.
    The tab refuses to toggle it from inside a provisioned copy, so a driving agent can never widen its
    own permissions.
-2. Agent calls `provision-session` (optional `mcpServer`, `commands`). MCEC
+2. A session is created, either by the operator's **Provision new…** button or by an agent calling
+   `provision-session` (optional `mcpServer`, `commands`) over the bootstrap MCP surface. MCEC
    ([`SessionProvisioner`](../src/Agent/SessionProvisioner.cs)):
    - creates `%LOCALAPPDATA%\MCEC\sessions\<id>`,
    - **copies the binaries** from the running exe's dir (excluding the installed `mcec.settings` /
@@ -168,9 +193,10 @@ construction, and supersedes the earlier hand-rolled "copy the build and write a
 
 - **Explicit:** `end-session` (or just deleting the directory).
 - **Operator:** the Settings dialog's **Agent** tab lists every provisioned instance (id, age, size,
-  running/stale) and offers per-row **Delete** and **Delete all**, so the operator can clean up copies an
-  agent left behind without hunting through `%LOCALAPPDATA%`. Deleting is the same directory removal
-  `end-session` and the reaper perform; a running instance is locked and skipped (stop it first).
+  running/stale), offers per-row **Delete** and **Delete all**, and (with the opt-in ticked)
+  **Provision new…** to create one, so the operator can create and clean up copies without hunting
+  through `%LOCALAPPDATA%`. Deleting is the same directory removal `end-session` and the reaper
+  perform; a running instance is locked and skipped (stop it first).
 - **Belt-and-suspenders:** on every launch (`Program.Main`) and before each provision, MCEC reaps session
   directories older than `AgentServer.SessionReapAgeHours` (12h). A **running** session's files are locked,
   so a live session is never reaped; it's collected on a later launch after it exits.
@@ -182,7 +208,9 @@ construction, and supersedes the earlier hand-rolled "copy the build and write a
 | Provision / teardown / reap | [`SessionProvisioner`](../src/Agent/SessionProvisioner.cs) |
 | Handoff descriptor | [`ProvisionedSession`](../src/Agent/ProvisionedSession.cs) |
 | MCP tools + authorization gate | `AgentServer` (`provision-session`, `end-session`) |
+| Bootstrap-only MCP surface (#296) | `Program.ProvisioningBootstrapOnly`, `JsonRpcDispatcher` (restricted `tools/list` + `BootstrapInstructions`), `AgentToolExecutor.CallTool` (`bootstrap-only`) |
 | Operator opt-in + management UI | Settings dialog **Agent** tab ([`AgentSettingsTab`](../src/Dialogs/SettingsTabs/AgentSettingsTab.cs)) → `AppSettings.AllowSessionProvisioning` |
+| Operator "Provision new…" handoff (#296) | [`ProvisionedInstanceDialog`](../src/Dialogs/ProvisionedInstanceDialog.cs) |
 | Session enumeration for the UI | `SessionProvisioner.ListSessions` |
 | Reap on launch | `Program.Main` |
 
