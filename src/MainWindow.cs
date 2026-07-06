@@ -701,6 +701,31 @@ public partial class MainWindow : Form, IAppHost {
     // IAppHost (#209); the GUI half of the AgentRuntime host seam (non-explicit; CA1033 forbids
     // explicit-only implementations on an unsealed type). SendLine below already matches.
 
+    /// <summary>
+    /// The GUI consent-prompt channel for <c>request-command-access</c> (#307), registered as
+    /// <see cref="AgentConsent.Prompter"/> in <see cref="ApplySettings"/>. Marshals the modal
+    /// <see cref="CommandAccessConsentDialog"/> onto the UI thread (unowned: this window may be
+    /// hidden in the tray; the dialog is TopMost + CenterScreen) and blocks the calling MCP worker
+    /// for the operator's decision. Null; reported as <c>consent-unavailable</c>, fail closed; when
+    /// the window cannot host a dialog (torn down, no handle).
+    /// </summary>
+    private CommandAccessDecision? PromptCommandAccess(CommandAccessRequest request) {
+        if (IsDisposed || !IsHandleCreated) {
+            return null;
+        }
+        try {
+            return Invoke(() => {
+                using CommandAccessConsentDialog dialog = new(request);
+                _ = dialog.ShowDialog();
+                return dialog.Decision;
+            });
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Warn($"MainWindow: could not show the consent prompt: {e.Message}");
+            return null;
+        }
+    }
+
     // ShutDown() self-marshals (BeginInvoke when InvokeRequired), so this is callable from any
     // thread; the invoker's dispatcher (mcec:exit) and the updater's async download path both do.
     public void RequestShutdown() => ShutDown();
@@ -902,6 +927,9 @@ public partial class MainWindow : Form, IAppHost {
         // handle) on the same seam, in the same place the settings are published. Idempotent;
         // the dialog-OK path re-runs this with the same instance.
         AgentRuntime.Host = this;
+
+        // #307: the request-command-access consent prompt shows on this window's UI thread.
+        AgentConsent.Prompter = PromptCommandAccess;
 
         // LevelMap's indexer returns null for a name it does not know (e.g. a hand-edited
         // settings file); keep the current threshold instead of dereferencing the miss.

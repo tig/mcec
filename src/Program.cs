@@ -348,6 +348,11 @@ internal static class Program {
         // (bounded) for arming, so by the time the protocol serves, the hotkey is live.
         HeadlessOperatorUi.Start(settings);
 
+        // #307: the request-command-access consent prompt rides the same pump thread. If the pump is
+        // not hosting (no interactive desktop, or overlay + e-stop both disabled), the channel returns
+        // null and the tool fails closed with consent-unavailable.
+        AgentConsent.Prompter = HeadlessOperatorUi.PromptCommandAccess;
+
         Logger.Instance.Log4.Info("MCEC: headless MCP mode.");
         LogAgentState(settings);
 

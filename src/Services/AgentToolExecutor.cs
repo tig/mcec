@@ -4,7 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Text;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -92,6 +95,34 @@ public sealed class AgentToolExecutor {
     public static bool SerializesOnInputLock(string tool) =>
         tool == "send_command" || (ToolCatalog.TryGet(tool, out ToolDescriptor descriptor) && descriptor.SerializesOnInput);
 
+    /// <summary>
+    /// The tools still served while an operator consent prompt is open (#307): pure observation plus
+    /// <c>record</c>. An ALLOW-list, not a deny-list, so a future actuation tool can never slip past
+    /// the consent freeze by not being enumerated. The in-process session lifecycle and the
+    /// provisioning meta-tools are handled before the consent guard in <see cref="CallTool"/> and are
+    /// unaffected (none of them can reach the prompt); everything else; every actuator, raw
+    /// <c>send_command</c>, <c>clipboard</c>, and a second <c>request-command-access</c>; is refused
+    /// with <c>consent-pending</c>.
+    /// </summary>
+    internal static bool ServedWhileConsentPending(string tool) =>
+        tool is "capture" or "query" or "displays" or "windows" or "find" or "wait-for" or "record";
+
+    /// <summary>
+    /// The consent-freeze refusal (#307), or null when the call may proceed (no prompt is open, or
+    /// <paramref name="name"/> is served while one is).
+    /// </summary>
+    private static JsonObject? ConsentPendingRefusal(string name, AgentSession session) {
+        if (!AgentConsent.IsPending || ServedWhileConsentPending(name)) {
+            return null;
+        }
+        AgentRuntime.Audit(name, "BLOCKED; an operator consent prompt (request-command-access) is open");
+        return ToolError(
+            "An operator consent prompt (request-command-access) is open; actuation is paused until the operator answers. " +
+            "Only observation tools (capture/query/displays/windows/find/wait-for/record) are served right now. " +
+            "Wait for the pending request-command-access call to return, then retry.",
+            "consent-pending", AgentErrorCategory.Internal, session.SessionId);
+    }
+
     // -------------------------------------------------------------------------------------------
     // tools/call
     // -------------------------------------------------------------------------------------------
@@ -169,6 +200,20 @@ public sealed class AgentToolExecutor {
             return ToolError(
                 $"Unknown sessionId '{routeId}'. It was never started or has ended. Call session-start to get a fresh sessionId, or omit sessionId to use the default session.",
                 "unknown-session", AgentErrorCategory.InvalidArgument, routeId!);
+        }
+
+        // Operator consent in progress (#307): while a request-command-access prompt is on the
+        // operator's screen, every actuation-capable call is refused. This is one of the three layers
+        // that keep the agent from answering its own prompt: `invoke` is UIA-pattern actuation that
+        // deliberately never takes the input gate (#105), so the gate hold around the prompt cannot
+        // stop it; this dispatch refusal does. Observation stays served (the agent may look, not touch).
+        if (ConsentPendingRefusal(name, session) is { } consentRefusal) {
+            return consentRefusal;
+        }
+
+        // Command-access consent (#307): the agent asks, the OPERATOR decides, on MCEC's own dialog.
+        if (name == "request-command-access") {
+            return RunRequestCommandAccess(args, transport, session);
         }
 
         if (name == "send_command") {
@@ -352,7 +397,12 @@ public sealed class AgentToolExecutor {
         // the operator opts in per-command via mcec.commands). Fail closed if the table/command is missing.
         if ((_invoker()?[name] as Command)?.Enabled != true) {
             AgentRuntime.Audit(name, "BLOCKED; command is disabled in mcec.commands");
-            return ToolError($"The '{name}' command is disabled. Enable it in mcec.commands (set Enabled=\"true\").", "command-disabled", AgentErrorCategory.Internal, session.SessionId);
+            // #307: the recovery is asking the OPERATOR, never editing config files; an agent must
+            // not widen its own permissions, and in a provisioned session the config is off-limits.
+            return ToolError(
+                $"The '{name}' command is disabled. Call request-command-access with the command name and a one-line reason; " +
+                "the operator will be asked on screen. Do not edit mcec.commands or any config file.",
+                "command-disabled", AgentErrorCategory.Internal, session.SessionId);
         }
 
         CapturingReply reply = new();
@@ -472,6 +522,17 @@ public sealed class AgentToolExecutor {
             return ToolError("Command engine is not available.", "engine-unavailable", AgentErrorCategory.Internal, session.SessionId);
         }
 
+        // #307: fail fast (and honestly) on a DISABLED command. Without this the clone enqueued fine
+        // and the dispatcher silently skipped it (the per-command gate), so the call reported "ok"
+        // while nothing executed; the agent had no command-disabled signal to recover from.
+        if (DisabledSendCommandKey(invoker, command) is { } disabledKey) {
+            AgentRuntime.Audit("send_command", $"BLOCKED; the '{disabledKey}' command is disabled in mcec.commands");
+            return ToolError(
+                $"The '{disabledKey}' command is disabled; nothing was executed. Call request-command-access with the " +
+                "command name and a one-line reason; the operator will be asked on screen. Do not edit mcec.commands or any config file.",
+                "command-disabled", AgentErrorCategory.Internal, session.SessionId);
+        }
+
         AgentRuntime.Audit("send_command", command);
 
         // #195: enqueue-and-await. send_command is a PRODUCER into the invoker's single
@@ -589,6 +650,271 @@ public sealed class AgentToolExecutor {
             result["note"] = "The session directory could not be deleted; its mcec.exe may still be running. Stop it and retry, or MCEC will reap it on a later launch.";
         }
         return McpResult(AgentToolResult.Success(result, session.SessionId));
+    }
+
+    // -------------------------------------------------------------------------------------------
+    // request-command-access (#307)
+    // -------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// <c>request-command-access</c>: the agent asks the OPERATOR to enable disabled command(s); the
+    /// legitimate mid-session acquisition path the <c>command-disabled</c> refusal points at (an agent
+    /// must never widen its own permissions by editing config files). Shows MCEC's own consent dialog
+    /// on the operator's desktop via <see cref="AgentConsent.Prompter"/> and blocks this MCP worker
+    /// for the answer (bounded by the dialog's own timeout). Grants flip <see cref="Command.Enabled"/>
+    /// on the LOADED table only; in-memory, this process only, never persisted; and every grant
+    /// (including auto-grants under a standing "allow any" choice) is audited and narrated on the
+    /// overlay. A deny is sticky for the process (anti-nag); a timeout is not (the operator did not
+    /// decide). While the prompt is up this call holds <see cref="AgentRuntime.InputGate"/> so no
+    /// queued or synthesized input can reach the dialog; only physical input can answer it.
+    /// </summary>
+    private JsonObject RunRequestCommandAccess(JsonObject args, AgentTransport transport, AgentSession session) {
+        // Mirrors send_command's transport-sensitive gate (#153): over the network-facing HTTP floor
+        // it requires the AgentCommandsEnabled opt-in; over local stdio it is available alongside the
+        // documented send_command pass-through (whose per-command Enabled refusals are exactly what
+        // this tool exists to recover from).
+        if (transport == AgentTransport.Http && !AgentCommandsEnabled) {
+            AgentRuntime.Audit("request-command-access", "BLOCKED; agent commands disabled; request-command-access over HTTP requires AgentCommandsEnabled");
+            return ToolError(
+                "request-command-access over HTTP requires AgentCommandsEnabled=true. Enable the agent surface to opt in, or drive it over the local stdio transport (mcec.exe --mcp).",
+                "agent-commands-disabled", AgentErrorCategory.Internal, session.SessionId);
+        }
+
+        CommandInvoker? invoker = _invoker();
+        if (invoker is null) {
+            return ToolError("Command engine is not available.", "engine-unavailable", AgentErrorCategory.Internal, session.SessionId);
+        }
+
+        List<string>? names = StrArray(args["commands"] as JsonArray);
+        if (names is null) {
+            return ToolError(
+                "request-command-access requires a non-empty 'commands' array (the command names to enable).",
+                "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
+        }
+        if (names.Count > AgentConsent.MaxCommandsPerRequest) {
+            return ToolError(
+                $"request-command-access accepts at most {AgentConsent.MaxCommandsPerRequest} commands per request (got {names.Count}); ask for what this step needs.",
+                "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
+        }
+        string reason = SanitizeReason(Str(args, "reason"));
+        if (reason.Length == 0) {
+            return ToolError(
+                "request-command-access requires a non-empty 'reason'; the operator reads it to decide.",
+                "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
+        }
+
+        // Resolve every requested name against the loaded table (the same name/prefix rules the
+        // invoker applies), refusing the WHOLE request on any unknown name; the operator must never
+        // be asked to adjudicate a typo.
+        Dictionary<string, Command> resolved = new(StringComparer.OrdinalIgnoreCase);
+        List<string> unknown = [];
+        foreach (string requested in names) {
+            string? key = ResolveTableKey(invoker, requested);
+            if (key is null || invoker[key] is not Command cmd) {
+                unknown.Add(requested);
+                continue;
+            }
+            resolved[key] = cmd;
+        }
+        if (unknown.Count > 0) {
+            return ToolError(
+                $"Unknown command(s): {string.Join(", ", unknown)}. They are not in the loaded command table; nothing was asked of the operator. Fix the names and retry.",
+                "unknown-command", AgentErrorCategory.InvalidArgument, session.SessionId);
+        }
+
+        List<string> alreadyEnabled = [.. resolved.Where(p => p.Value.Enabled).Select(p => p.Key)];
+        List<KeyValuePair<string, Command>> needed = [.. resolved.Where(p => !p.Value.Enabled)];
+        if (needed.Count == 0) {
+            AgentRuntime.Audit("request-command-access", $"no-op; already enabled: [{string.Join(",", alreadyEnabled)}]");
+            return McpResult(AgentToolResult.Success(AccessResult([], alreadyEnabled, "requested"), session.SessionId));
+        }
+
+        // Sticky deny (#307): the operator already said no to one of these this process; do not
+        // re-prompt (consent fatigue is how consent UIs get worn down into approval).
+        List<string> denied = [.. needed.Select(p => p.Key).Where(AgentConsent.IsDenied)];
+        if (denied.Count > 0) {
+            AgentRuntime.Audit("request-command-access", $"BLOCKED; operator already denied: [{string.Join(",", denied)}]");
+            return ToolError(
+                $"The operator already denied: {string.Join(", ", denied)}. A deny is final for this instance; do not ask again. If you believe it is essential, tell the user why and let them enable it themselves.",
+                "consent-denied", AgentErrorCategory.Internal, session.SessionId);
+        }
+
+        // Standing "allow any later requests" grant: auto-approve WITHOUT a prompt, but still one
+        // audit line and one overlay narration per command; the operator sees every grant land.
+        if (AgentConsent.AnyCommandGrantActive) {
+            EnableGranted(needed, "auto-granted under the operator's allow-any choice", session.SessionId);
+            return McpResult(AgentToolResult.Success(AccessResult([.. needed.Select(p => p.Key)], alreadyEnabled, "any"), session.SessionId));
+        }
+
+        Func<CommandAccessRequest, CommandAccessDecision?>? prompter = AgentConsent.Prompter;
+        if (prompter is null) {
+            AgentRuntime.Audit("request-command-access", "BLOCKED; no operator prompt surface is available (fail closed)");
+            return ToolError(
+                "No operator consent prompt can be shown here (no interactive operator surface). The request fails closed; ask the user to run the command-enable themselves.",
+                "consent-unavailable", AgentErrorCategory.Internal, session.SessionId);
+        }
+        if (!AgentConsent.TryBeginPrompt()) {
+            return ToolError(
+                "Another request-command-access prompt is already on the operator's screen; one at a time. Wait for it to resolve, then retry.",
+                "consent-pending", AgentErrorCategory.Internal, session.SessionId);
+        }
+
+        CommandAccessDecision? decision;
+        try {
+            CommandAccessRequest request = new() {
+                Commands = [.. needed.Select(p => p.Key)],
+                DisplayLines = [.. needed.Select(p => DescribeCommand(p.Key, p.Value))],
+                Reason = reason,
+            };
+            AgentRuntime.Audit("request-command-access", $"asking the operator to enable [{string.Join(",", request.Commands)}]; agent's reason: {reason}");
+            CommandEventHub.Publish(new CommandEvent("request-command-access",
+                $"asking you: enable {string.Join(", ", request.Commands)}?", CommandOutcome.Pending, session.SessionId));
+
+            // Hold the input gate for the prompt's whole lifetime (#307): the same gate every queued
+            // command's Execute and every direct actuation takes, so synthesized input cannot land on
+            // the dialog; only physical input can. A deliberate, documented exception to the
+            // "leaf lock, never wait while holding it" rule; see AgentRuntime.InputGate.
+            lock (AgentRuntime.InputGate) {
+                decision = prompter(request);
+            }
+        }
+        finally {
+            AgentConsent.EndPrompt();
+        }
+
+        if (decision is null) {
+            AgentRuntime.Audit("request-command-access", "BLOCKED; the operator prompt could not be shown (fail closed)");
+            return ToolError(
+                "The operator consent prompt could not be shown (no interactive desktop, or the operator surface is gone). The request fails closed.",
+                "consent-unavailable", AgentErrorCategory.Internal, session.SessionId);
+        }
+
+        AgentConsent.RecordDecision(decision.Value, needed.Select(p => p.Key));
+        switch (decision.Value) {
+            case CommandAccessDecision.AllowRequested:
+            case CommandAccessDecision.AllowAny:
+                EnableGranted(needed, decision.Value == CommandAccessDecision.AllowAny
+                    ? "granted by the operator (and any-command auto-grant armed)"
+                    : "granted by the operator", session.SessionId);
+                return McpResult(AgentToolResult.Success(
+                    AccessResult([.. needed.Select(p => p.Key)], alreadyEnabled, decision.Value == CommandAccessDecision.AllowAny ? "any" : "requested"),
+                    session.SessionId));
+
+            case CommandAccessDecision.TimedOut:
+                AgentRuntime.Audit("request-command-access", $"TIMEOUT; the operator did not answer for [{string.Join(",", needed.Select(p => p.Key))}]");
+                CommandEventHub.Publish(new CommandEvent("request-command-access", "consent request timed out (denied)", CommandOutcome.Failed, session.SessionId));
+                return ToolError(
+                    "The operator did not answer the consent prompt in time; the request is denied. They may be away; tell the user what you need and why, and retry only if they say so.",
+                    "consent-timeout", AgentErrorCategory.Internal, session.SessionId);
+
+            case CommandAccessDecision.Denied:
+            default:
+                AgentRuntime.Audit("request-command-access", $"DENIED by the operator: [{string.Join(",", needed.Select(p => p.Key))}]");
+                CommandEventHub.Publish(new CommandEvent("request-command-access", $"you denied: {string.Join(", ", needed.Select(p => p.Key))}", CommandOutcome.Failed, session.SessionId));
+                return ToolError(
+                    $"The operator denied enabling: {string.Join(", ", needed.Select(p => p.Key))}. This deny is final for this instance; do not ask again for these commands.",
+                    "consent-denied", AgentErrorCategory.Internal, session.SessionId);
+        }
+    }
+
+    /// <summary>
+    /// Applies a grant: flips <see cref="Command.Enabled"/> on each LOADED-table instance (the enqueue
+    /// path clones from the table, and the per-command gates read the table, so future calls see it),
+    /// with one audit line and one overlay narration per command so every grant is operator-visible.
+    /// In-memory only; nothing is ever written back to mcec.commands.
+    /// </summary>
+    private static void EnableGranted(List<KeyValuePair<string, Command>> granted, string how, string sessionId) {
+        foreach ((string key, Command cmd) in granted) {
+            cmd.Enabled = true;
+            AgentRuntime.Audit("request-command-access", $"ENABLED '{key}' ({how}); in-memory, this instance only");
+            CommandEventHub.Publish(new CommandEvent("request-command-access", $"enabled {key} ({how})", CommandOutcome.Ok, sessionId));
+        }
+    }
+
+    private static JsonObject AccessResult(List<string> granted, List<string> alreadyEnabled, string scope) {
+        JsonObject result = new() {
+            ["granted"] = new JsonArray([.. granted.Select(n => (JsonNode)n)]),
+            ["alreadyEnabled"] = new JsonArray([.. alreadyEnabled.Select(n => (JsonNode)n)]),
+            ["scope"] = scope,
+        };
+        if (scope == "any") {
+            result["note"] = "The operator's allow-any grant is active for this instance; future request-command-access calls auto-approve (each grant is still audited).";
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Resolves a requested command name to its loaded-table key using the invoker's own rules: a
+    /// direct (lower-cased) lookup first, then the <c>prefix:args</c> spelling (so requesting
+    /// <c>chars:hello</c> resolves to the <c>chars:</c> command, matching how Enqueue parses it).
+    /// Null when nothing in the table matches.
+    /// </summary>
+    private static string? ResolveTableKey(CommandInvoker invoker, string requested) {
+        string name = requested.Trim().ToLowerInvariant();
+        if (name.Length == 0) {
+            return null;
+        }
+        if (invoker[name] is Command) {
+            return name;
+        }
+        Match match = Regex.Match(name, @"(\w+:)(.+)");
+        return match.Success && invoker[match.Groups[1].Value] is Command ? match.Groups[1].Value : null;
+    }
+
+    /// <summary>
+    /// Resolves which loaded-table command a raw <c>send_command</c> string would execute (the same
+    /// name/prefix/single-character rules Enqueue applies) and returns its key when that command
+    /// exists but is DISABLED; null when the command would run, is unknown (Enqueue reports that
+    /// honestly already), or a single character rides an enabled <c>chars:</c>.
+    /// </summary>
+    private static string? DisabledSendCommandKey(CommandInvoker invoker, string command) {
+        if (command.Length == 1) {
+            if (invoker["chars:"] is Command { Enabled: true }) {
+                return null; // runs as a chars:-gated keypress
+            }
+            if (invoker[command.ToLowerInvariant()] is Command single) {
+                return single.Enabled ? null : command.ToLowerInvariant();
+            }
+            return invoker["chars:"] is Command ? "chars:" : null; // chars: exists but is disabled
+        }
+        Match match = Regex.Match(command, @"(\w+:)(.+)");
+        string key = (match.Success ? match.Groups[1].Value : command).ToLowerInvariant();
+        return invoker[key] is Command { Enabled: false } ? key : null;
+    }
+
+    /// <summary>
+    /// One consent-dialog display line for a command: its name plus what enabling it permits (the
+    /// catalog tool's description when it is an agent tool, else its command type), so the operator
+    /// judges the capability rather than the name.
+    /// </summary>
+    private static string DescribeCommand(string key, Command cmd) {
+        if (ToolCatalog.TryGet(key, out ToolDescriptor descriptor)
+            && descriptor.BuildSchema()["description"] is JsonValue v && v.TryGetValue(out string? desc)
+            && !string.IsNullOrWhiteSpace(desc)) {
+            int cut = desc.IndexOf(". ", StringComparison.Ordinal);
+            return $"{key}: {(cut > 0 ? desc[..(cut + 1)] : desc)}";
+        }
+        return $"{key}: a raw MCEC command ({cmd.GetType().Name})";
+    }
+
+    /// <summary>
+    /// Sanitizes the agent's stated reason for operator display: newlines/control characters collapse
+    /// to spaces (one visual line; no fake dialog paragraphs), embedded double quotes soften so the
+    /// dialog's own quoting stays unambiguous, and length is capped.
+    /// </summary>
+    private static string SanitizeReason(string? reason) {
+        if (string.IsNullOrWhiteSpace(reason)) {
+            return "";
+        }
+        StringBuilder sb = new(Math.Min(reason.Length, AgentConsent.MaxReasonLength + 1));
+        foreach (char c in reason) {
+            sb.Append(char.IsControl(c) ? ' ' : c == '"' ? '\'' : c);
+            if (sb.Length > AgentConsent.MaxReasonLength) {
+                break;
+            }
+        }
+        string clean = string.Join(" ", sb.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        return clean.Length > AgentConsent.MaxReasonLength ? clean[..AgentConsent.MaxReasonLength] + "..." : clean;
     }
 
     /// <summary>Reads a JSON array of strings into a list, or null when the node is absent/empty.</summary>

@@ -84,7 +84,10 @@ and returns a JSON failure (for commands); it never silently proceeds.
 `record`/`launch`/`drag`/`click`/`focus`) are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
 flag, over **both** MCP transports (`mcec.exe --mcp` stdio and the HTTP floor): a `tools/call` for a
 command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
-`AgentCommandsEnabled=true`.
+`AgentCommandsEnabled=true`. An agent can recover from `command-disabled` mid-session with the
+`request-command-access` tool, which asks **you** on-screen and enables the command (in-memory, that
+instance only) only if you allow it; see
+[command-access consent](safety-emergency-stop-and-provisioning.md).
 
 **`send_command` is transport-sensitive.** It is a raw pass-through to the existing command engine,
 so it is a command-injection surface. Over the **local stdio** transport (`mcec.exe --mcp`, launched by its
@@ -224,8 +227,10 @@ failing call's own partial payload, e.g. a blank capture's suspect PNG):
 > [`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md). A
 > couple of feature-specific refusals ride in `error.code` while `error.category` stays `internal`:
 > `emergency-stopped` (the operator engaged the [emergency stop](safety-emergency-stop-and-provisioning.md)),
-> `provisioning-not-authorized` (`AllowSessionProvisioning` is off), and `command-disabled` (the
-> per-command `Enabled` gate).
+> `provisioning-not-authorized` (`AllowSessionProvisioning` is off), `command-disabled` (the
+> per-command `Enabled` gate; recover via `request-command-access`), and the
+> [command-access consent](safety-emergency-stop-and-provisioning.md) family
+> (`consent-denied`, `consent-timeout`, `consent-pending`, `consent-unavailable`).
 
 ### Agent sessions
 
@@ -679,7 +684,7 @@ concurrently; past that the server answers `503` rather than queueing.
 
 ## Summary
 
-- New, opt-in agent surface: `capture`, `query`, `displays`, `windows`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `focus`, `record` (plus `send_command`, and `provision-session`/`end-session`).
+- New, opt-in agent surface: `capture`, `query`, `displays`, `windows`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `focus`, `record` (plus `send_command`, `request-command-access`, and `provision-session`/`end-session`).
 - Structured `{ ok, result, error, … }` JSON result envelope; the commands are exposed as MCP/HTTP tools.
 - **No per-target sandbox:** an enabled command acts with your rights on whatever it targets. You control
   the *capability surface* (which commands are enabled, so read-only observation is possible), not what an
@@ -694,7 +699,9 @@ concurrently; past that the server answers `503` rather than queueing.
 
 ## Agent safety
 
-Two operator-safety features build on the gates above: a global **emergency stop** hotkey that halts a
-session instantly from any window, and disposable **isolated session provisioning** so an agent drives a
-throwaway copy instead of your installed instance. Both are covered in
+Three operator-safety features build on the gates above: a global **emergency stop** hotkey that halts a
+session instantly from any window, disposable **isolated session provisioning** so an agent drives a
+throwaway copy instead of your installed instance, and **command-access consent**
+(`request-command-access`) so an agent can gain a disabled command mid-session only by asking you
+on-screen. All three are covered in
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)**.

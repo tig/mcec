@@ -3,12 +3,13 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# Agent safety: Emergency Stop and Isolated Session Provisioning
+# Agent safety: Emergency Stop, Isolated Session Provisioning, and Command-Access Consent
 
-Two related safety features for MCEC's Agent Mode. When MCEC is agent-driving the desktop, the **target
+Three related safety features for MCEC's Agent Mode. When MCEC is agent-driving the desktop, the **target
 app has focus, not MCEC**; so the operator needs (a) a way to instantly intervene when a run goes wrong,
-and (b) assurance that a session can't leave the machine in an unsafe state. Both features exist so the
-operator stays in control.
+(b) assurance that a session can't leave the machine in an unsafe state, and (c) a way to grant an agent
+more capability mid-session without ever letting it grant itself. All three exist so the operator stays
+in control.
 
 ---
 
@@ -124,10 +125,13 @@ user has no other copy yet. Two first hops resolve it, neither requiring the ope
 config:
 
 - **Operator-initiated (GUI).** The **Agent** tab's **Provision new…** button calls
-  `SessionProvisioner.Provision()` directly (no MCP round-trip) and shows a copyable handoff
-  ([`ProvisionedInstanceDialog`](../src/Dialogs/ProvisionedInstanceDialog.cs)): the directory, the
-  `mcec.exe --mcp` launch line, the HTTP endpoint + bearer token, and teardown notes. The operator
-  pastes that into their agent's MCP client. Enabled only when the opt-in below is ticked.
+  `SessionProvisioner.Provision()` directly (no MCP round-trip) and shows a two-step handoff
+  ([`ProvisionedInstanceDialog`](../src/Dialogs/ProvisionedInstanceDialog.cs)): step 1, the MCP client
+  setup (the `mcec.exe --mcp` launch line and, when enabled, the HTTP endpoint + bearer token); step 2,
+  a ready-made **briefing prompt to paste to the agent** carrying the session id, directory, token
+  custody, the rules of engagement (ask for disabled commands via `request-command-access`, never edit
+  config files, stop on `emergency-stopped`), and the teardown duty. Each step has its own copy
+  button. Enabled only when the opt-in below is ticked.
 - **Bootstrap MCP mode (headless).** An agent may connect to the **installed** `mcec.exe --mcp`; but
   from the install it serves a restricted surface: `tools/list` and dispatch expose **only**
   `provision-session` and `end-session`, and every other tool is refused with `error.code:bootstrap-only`
@@ -221,4 +225,58 @@ construction, and supersedes the earlier hand-rolled "copy the build and write a
 - **Auto-launch.** `provision-session` returns a directory and how to launch it; it does not spawn the
   process (the caller/host does).
 - **Artifacts.** Evidence bundles live under the session directory, so teardown collects them.
+
+---
+
+## 3. Command access by operator consent (`request-command-access`)
+
+A provisioned session enables the standard agent tool set; everything else (`launch`, raw built-ins like
+`chars:` or `shutdown`, user-defined commands) starts disabled, and any tool or `send_command` that hits
+one is refused with `error.code:command-disabled`. The legitimate mid-session acquisition path is the
+`request-command-access` meta-tool: the agent names the command(s) and a one-line reason, and MCEC shows
+the **operator** a consent dialog ([`CommandAccessConsentDialog`](../src/Dialogs/CommandAccessConsentDialog.cs))
+on their desktop; GUI host on the main window's thread, headless `--mcp` on `HeadlessOperatorUi`'s pump
+thread. The agent's call blocks for the answer. Three choices:
+
+1. **Allow these commands**; enables exactly the requested names.
+2. **Allow these + any later requests**; also auto-approves this instance's future requests (the agent
+   still asks per command, and every grant is audit-logged and narrated on the overlay).
+3. **Deny** (the default button; Esc, the close box, the ~2-minute timeout, and an emergency stop
+   engaging all deny). A deny is **sticky** for the instance: re-requesting a denied command returns
+   `consent-denied` without a prompt, so an agent cannot nag the operator into approval.
+
+### Why the agent can't answer its own prompt
+
+The agent being asked can synthesize input and drive UIA on the same desktop, so the dialog is protected
+by three layers:
+
+1. The call holds the **input gate** (`AgentRuntime.InputGate`) for the prompt's whole lifetime, so no
+   queued or synthesized keyboard/mouse input can land while it is up.
+2. Dispatch refuses every actuation-capable tool with `consent-pending` while a prompt is open; only
+   observation is served. This covers `invoke`, which is UIA-pattern actuation that deliberately does
+   not take the input gate.
+3. The dialog registers itself with `WindowResolver` as never-a-target (the overlay's mechanism), so
+   in-process targeting can never resolve it.
+
+Residual risk: a *second* MCEC instance driven by the same agent shares none of these; the audit log and
+overlay narration are the mitigations there.
+
+### Why grants are in-memory only
+
+A grant flips the command's `Enabled` flag on the **loaded table** of the running instance; nothing is
+written to `mcec.commands` or `mcec.settings`. A leaked session directory therefore never carries
+permissions beyond its provisioned defaults, a respawned instance resets and must ask again, and the
+co-located files remain a faithful record of what *provisioning* granted (the audit log holds what
+*consent* granted). Consent is deliberately MCEC's own out-of-band dialog, never MCP elicitation, which
+would route the question through the agent's own client; the party being constrained.
+
+### Design / where it lives
+
+| Concern | Location |
+| --- | --- |
+| Consent state (single-flight, standing grant, sticky denies) | [`AgentConsent`](../src/Agent/AgentConsent.cs) |
+| The consent dialog | [`CommandAccessConsentDialog`](../src/Dialogs/CommandAccessConsentDialog.cs) |
+| Tool dispatch, gates, and the consent-pending freeze | `AgentToolExecutor` (`request-command-access`, `ConsentPendingRefusal`) |
+| GUI prompt channel | `MainWindow.PromptCommandAccess` |
+| Headless prompt channel | `HeadlessOperatorUi.PromptCommandAccess` |
 

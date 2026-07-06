@@ -2,7 +2,9 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using MCEControl;
 using Xunit;
@@ -122,29 +124,72 @@ public class AgentSettingsTabTests : IDisposable {
         Assert.True(FindControl<Button>(tab, "_buttonProvision").Enabled);
     }
 
+    private static ProvisionedSession SampleSession(bool mcpServerEnabled) => new() {
+        SessionId = "0123456789ab",
+        Directory = @"C:\sessions\0123456789ab",
+        ExePath = @"C:\sessions\0123456789ab\mcec.exe",
+        McpServerEnabled = mcpServerEnabled,
+        BindAddress = "127.0.0.1",
+        Port = 51515,
+        Token = "deadbeefcafef00d",
+    };
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ProvisionedInstanceDialog_HandoffText_HasLaunchTokenAndConditionalEndpoint(bool mcpServerEnabled) {
-        var session = new ProvisionedSession {
-            SessionId = "0123456789ab",
-            Directory = @"C:\sessions\0123456789ab",
-            ExePath = @"C:\sessions\0123456789ab\mcec.exe",
-            McpServerEnabled = mcpServerEnabled,
-            BindAddress = "127.0.0.1",
-            Port = 51515,
-            Token = "deadbeefcafef00d",
-        };
+    public void ProvisionedInstanceDialog_HandoffText_HasLaunchAndConditionalEndpoint(bool mcpServerEnabled) {
+        string text = ProvisionedInstanceDialog.BuildHandoffText(SampleSession(mcpServerEnabled));
 
-        string text = ProvisionedInstanceDialog.BuildHandoffText(session);
-
-        // Always: the stdio launch line, the directory, and the teardown token.
+        // Always: the stdio launch line and the MCP-client registration example.
         Assert.Contains(@"C:\sessions\0123456789ab\mcec.exe"" --mcp", text);
-        Assert.Contains("0123456789ab", text);
-        Assert.Contains("deadbeefcafef00d", text);
+        Assert.Contains("claude mcp add mcec", text);
         // The HTTP endpoint + bearer line only when the session's MCP server is enabled.
         Assert.Equal(mcpServerEnabled, text.Contains("http://127.0.0.1:51515/mcp"));
         Assert.Equal(mcpServerEnabled, text.Contains("Authorization: Bearer deadbeefcafef00d"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ProvisionedInstanceDialog_AgentPrompt_CarriesSessionFactsAndRulesOfEngagement(bool mcpServerEnabled) {
+        string prompt = ProvisionedInstanceDialog.BuildAgentPrompt(SampleSession(mcpServerEnabled));
+
+        // The session identity and token custody the connect-time instructions cannot know.
+        Assert.Contains("0123456789ab", prompt);
+        Assert.Contains(@"C:\sessions\0123456789ab", prompt);
+        Assert.Contains("deadbeefcafef00d", prompt);
+        Assert.Equal(mcpServerEnabled, prompt.Contains("http://127.0.0.1:51515/mcp"));
+
+        // The rules of engagement (#307): consent path, never edit config files, e-stop, teardown.
+        Assert.Contains("request-command-access", prompt);
+        Assert.Contains("command-disabled", prompt);
+        Assert.Contains("NEVER edit mcec.commands", prompt);
+        Assert.Contains("emergency-stopped", prompt);
+        Assert.Contains("mcec:exit", prompt);
+        Assert.Contains("end-session", prompt);
+
+        // A template the operator appends their task to.
+        Assert.EndsWith("<describe the task here>", prompt);
+    }
+
+    [Fact]
+    public void ProvisionedInstanceDialog_AgentPrompt_MentionsOnlyToolsTheFullSurfaceServes() {
+        // The prompt must never drift from the served surface: every tool name it tells the agent to
+        // call has to exist in the full tools/list.
+        string prompt = ProvisionedInstanceDialog.BuildAgentPrompt(SampleSession(true));
+        var listRequest = new System.Text.Json.Nodes.JsonObject {
+            ["jsonrpc"] = "2.0",
+            ["id"] = 1,
+            ["method"] = "tools/list",
+            ["params"] = new System.Text.Json.Nodes.JsonObject(),
+        };
+        var tools = AgentServer.Dispatch(listRequest)!["result"]!.AsObject()["tools"]!.AsArray();
+        var served = new HashSet<string>(tools.Select(t => t!["name"]!.GetValue<string>()));
+
+        foreach (string tool in (string[])["request-command-access", "send_command", "end-session"]) {
+            Assert.Contains(tool, prompt);
+            Assert.Contains(tool, served);
+        }
     }
 
     [Fact]

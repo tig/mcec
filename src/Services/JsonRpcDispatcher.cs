@@ -152,6 +152,29 @@ public sealed class JsonRpcDispatcher {
             new JsonObject { ["sessionId"] = ToolCatalog.PropSchema("string", "The session to end (from session-start)") },
             ["sessionId"]));
 
+        // Command-access consent (#307): the agent asks, the operator decides on MCEC's own dialog.
+        // Full surface only; the bootstrap list above stays exactly provision-session/end-session.
+        JsonObject requestAccessSchema = ToolCatalog.Tool("request-command-access",
+            "Ask the OPERATOR to enable disabled MCEC command(s) in this instance; the recovery for error.code:command-disabled. " +
+            "Shows a consent dialog on their screen and BLOCKS until they answer (up to ~2 minutes): allow exactly these commands, " +
+            "allow these plus any future requests, or deny. On a grant the commands are immediately usable (enabled in-memory, this " +
+            "instance only; nothing is written to config files; never edit them yourself). A deny is FINAL for this instance: " +
+            "re-requesting a denied command returns consent-denied without a prompt, so ask once, honestly. No answer within the " +
+            "timeout returns consent-timeout (the operator may be away; you may ask again later). While the dialog is up only " +
+            "observation tools are served; anything else returns consent-pending. Keep the reason to one short, specific sentence; " +
+            "the operator reads it verbatim.",
+            new JsonObject {
+                ["commands"] = new JsonObject {
+                    ["type"] = "array",
+                    ["description"] = $"The command name(s) to enable (max {AgentConsent.MaxCommandsPerRequest}); the names command-disabled refusals report (e.g. 'launch', 'chars:')",
+                    ["items"] = new JsonObject { ["type"] = "string" },
+                },
+                ["reason"] = ToolCatalog.PropSchema("string", "One short sentence saying why you need these commands; shown to the operator verbatim"),
+            },
+            ["commands", "reason"]);
+        AddSessionArg(requestAccessSchema);
+        tools.Add(requestAccessSchema);
+
         // Isolated session provisioning (#138). Requires the operator to have opted in
         // (AllowSessionProvisioning); it never mutates the installed config.
         tools.Add(BuildProvisionSessionTool());

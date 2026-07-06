@@ -157,7 +157,9 @@ PACING: raw commands (`send_command`) are queued and executed paced (a per-comma
 operator's CommandPacing), and a `send_command` call returns only AFTER its command has actually executed
 (its `result.output` is the command's real output). It fails fast when nothing will run:
 `error.code:unknown-command` means the name isn't in the loaded command table (fix the name; nothing
-executed), and `command-dropped` means the queue refused it whole (bounds/shutdown; nothing executed).
+executed), `command-disabled` means the command exists but the operator has not enabled it (nothing
+executed; recover via `request-command-access`, see COMMAND ACCESS), and `command-dropped` means the
+queue refused it whole (bounds/shutdown; nothing executed).
 The execution wait is bounded at 30s: a command still running past it (a long macro, `pause`, or a deep
 queue backlog ahead of it) returns `error.code:send-command-timeout` while continuing to execute on the
 host; wait and verify with `query`/`capture` rather than resending. The queue is BOUNDED (both total pending
@@ -201,7 +203,26 @@ provision disposable instances" on the Settings dialog's Agent tab (File > Setti
 do not retry blindly before they do. On that same Agent tab the operator can also click "Provision new…"
 to create an instance themselves and hand you its directory/endpoint; and it lists the provisioned
 instances and lets them delete any you leave behind. But you own teardown: `end-session` every instance
-you provision.
+you provision. A provisioned session enables the standard observation/actuation tool set; anything else
+(e.g. `launch`, raw built-ins like `chars:`) starts disabled; acquire it mid-session with
+`request-command-access` (see COMMAND ACCESS), never by editing the session's files.
+
+COMMAND ACCESS: any tool or raw command refused with `error.code:command-disabled` can be requested from
+the OPERATOR with the `request-command-access` tool: pass the command name(s) the refusal reported (e.g.
+`launch`, `chars:`) and a one-line, honest `reason`; MCEC shows the operator a consent dialog on their
+screen and your call BLOCKS (up to ~2 minutes) for their answer. On a grant the commands are immediately
+usable; enabled in-memory in THIS instance only, never written to a config file; NEVER edit mcec.commands,
+mcec.settings, or anything in the session directory to grant yourself access. The operator can also choose
+"allow any later requests", after which further requests auto-approve (still ask per command; every grant
+is audited and narrated on the overlay). A deny is FINAL for this instance: re-requesting a denied command
+returns `error.code:consent-denied` with no prompt; do not nag; tell the user what you needed and why.
+`consent-timeout` means the operator never answered (they may be away; you may ask again later, ideally
+after checking in with the user). `consent-pending` means a consent prompt is already open: while it is up,
+only observation (`capture`/`query`/`displays`/`windows`/`find`/`wait-for`/`record`) is served and every
+other call is refused with that code; wait for your pending request to return. `consent-unavailable` means
+no operator prompt can be shown (fail closed); ask the user to enable the command themselves. You will
+never see or target the consent dialog; it is excluded from targeting like the overlay, and actuation is
+frozen while it is open; only the operator's physical input can answer it.
 
 EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
 session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category;
@@ -213,7 +234,9 @@ session-start/session-status/session-end lifecycle) only work when the operator 
 AgentCommandsEnabled=true; otherwise they return an error; surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is
 refused with `error.code:agent-commands-disabled` if the agent surface is not opted in); over the local
-stdio transport (`mcec.exe --mcp`) `send_command` remains available without that opt-in. Either way the raw
-command it runs still needs its own command Enabled in mcec.commands.
+stdio transport (`mcec.exe --mcp`) `send_command` remains available without that opt-in; and
+`request-command-access` follows the same transport rule. Either way the raw
+command it runs still needs its own command Enabled in mcec.commands (recover from `command-disabled` via
+`request-command-access`, never by editing files; see COMMAND ACCESS).
 `provision-session` additionally requires AllowSessionProvisioning, and any tool is refused with
 `emergency-stopped` while the operator's emergency stop is engaged. Every action is audit-logged on the host.
