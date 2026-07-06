@@ -36,9 +36,7 @@ public sealed class JsonRpcDispatcher {
     /// <c>send_command</c> honors the network gate over HTTP (#153).
     /// </summary>
     public JsonObject? Dispatch(JsonObject request, AgentTransport transport) {
-        if (request is null) {
-            throw new ArgumentNullException(nameof(request));
-        }
+        ArgumentNullException.ThrowIfNull(request);
 
         JsonNode? idNode = request["id"];
         string method = AsString(request["method"]);

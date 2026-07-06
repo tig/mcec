@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Run the latest analyzer rules in "recommended" mode so GlobalSuppressions corresponds to rules that actually run (#219). -->
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
 
     <!-- Suppress NuGet package pruning advisories. Some legacy transitive deps require
          explicit package references for runtime resolution and cannot be pruned. -->

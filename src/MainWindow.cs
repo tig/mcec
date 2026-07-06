@@ -816,7 +816,7 @@ public partial class MainWindow : Form, IAppHost {
         _ => StatusLight.Unchanged,
     };
 
-    private static Image? StatusLightImage(ServiceStatus status) => StatusLightFor(status) switch {
+    private static Bitmap? StatusLightImage(ServiceStatus status) => StatusLightFor(status) switch {
         StatusLight.Green => Properties.Resources.Trafficlight_green_icon,
         StatusLight.Gray => Properties.Resources.Trafficlight_gray_icon,
         StatusLight.Red => Properties.Resources.Trafficlight_red_icon,

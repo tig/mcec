@@ -75,9 +75,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
     }
 
     public SocketClient(AppSettings settings) {
-        if (settings is null) {
-            throw new ArgumentNullException(nameof(settings));
-        }
+        ArgumentNullException.ThrowIfNull(settings);
 
         _port = settings.ClientPort;
         _host = settings.ClientHost;
@@ -135,9 +133,7 @@ public sealed class SocketClient : ServiceBase, IDisposable {
     public override void Send(string text, Reply? replyContext = null) {
         base.Send(text, replyContext);
 
-        if (text is null) {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         // Snapshot the current connection; the run loop may retire it concurrently.
         TcpClient? tcpClient = Volatile.Read(ref _tcpClient);

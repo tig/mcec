@@ -25,9 +25,7 @@ namespace MCEControl;
 /// </summary>
 public static class ExtensionMethods {
     public static string FullMessage(this Exception ex) {
-        if (ex is null) {
-            throw new ArgumentNullException(nameof(ex));
-        }
+        ArgumentNullException.ThrowIfNull(ex);
 
         if (ex is AggregateException aex) {
             return aex.InnerExceptions.Aggregate("[ ", (total, next) => $"{total}[{next.FullMessage()}] ") + "]";

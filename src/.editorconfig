@@ -326,3 +326,17 @@ dotnet_diagnostic.CA5381.severity = none
 dotnet_diagnostic.CA5384.severity = none
 
 dotnet_diagnostic.CA5385.severity = none
+
+###############################
+# Vendored code               #
+###############################
+# src/WindowsInput is a vendored InputSimulator fork that mirrors Win32 constant names and legacy
+# interop idioms verbatim; it is deliberately not restyled to our conventions. Exempt the vendored
+# folder from the rules its Win32-mirroring style trips so they never need GlobalSuppressions entries.
+# (A per-rule list is used because a bulk dotnet_analyzer_diagnostic default does not override rules
+# that AnalysisLevel=latest-recommended enables.)
+[WindowsInput/**.cs]
+dotnet_diagnostic.CA1707.severity = none   # underscores in Win32 VK_/OEM_/ICO_ constant names
+dotnet_diagnostic.CA2263.severity = none   # legacy non-generic interop overloads
+dotnet_diagnostic.CA1838.severity = none   # StringBuilder P/Invoke marshalling
+dotnet_diagnostic.CA1510.severity = none   # explicit ArgumentNullException throws

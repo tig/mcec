@@ -112,7 +112,7 @@ public class AppSettings : ICloneable {
     public bool DisableUpdatePopup { get; set; }
 
     // TELEMETRY: NOT SAFE FOR PII - MUST DEFAULT TO FALSE
-    public bool LogUserActivity { get; set; } = false;
+    public bool LogUserActivity { get; set; }
 
     // --- MCEC 3.0 agent (Model Context Environment Controller) settings ---
     // SECURITY: The observation/targeting commands (capture/query/find/invoke) ship DISABLED by

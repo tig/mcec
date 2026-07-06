@@ -67,7 +67,7 @@ public partial class CommandWindow : Form {
         }
     }
 
-    private void Send(string line) {
+    private static void Send(string line) {
         MainWindow.Instance.SendLine(line);
     }
 

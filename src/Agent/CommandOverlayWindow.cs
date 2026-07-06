@@ -276,7 +276,7 @@ public sealed class CommandOverlayWindow : Form {
     /// command feed, it stays until the operator re-arms; a loud, unmissable "MCEC is halted" indicator.
     /// Full width (a loud alarm bar). Returns the banner's bottom edge so the feed can start below it.
     /// </summary>
-    private float DrawStoppedBanner(Graphics g, int width) =>
+    private static float DrawStoppedBanner(Graphics g, int width) =>
         DrawBanner(g, width, "⛔ STOPPED by operator; Re-arm to resume", _stoppedBackground, centered: false);
 
     /// <summary>
@@ -284,7 +284,7 @@ public sealed class CommandOverlayWindow : Form {
     /// top, shown whenever the overlay is up and the stop is not engaged; a steady reminder to the human
     /// that MCEC is driving this machine. Returns the banner's bottom edge so the feed starts below it.
     /// </summary>
-    private float DrawControlBanner(Graphics g, int width) =>
+    private static float DrawControlBanner(Graphics g, int width) =>
         DrawBanner(g, width, OverlayLayout.ControlBannerText, _controlBackground, centered: true);
 
     /// <summary>
@@ -359,7 +359,7 @@ public sealed class CommandOverlayWindow : Form {
                 AgentNativeMethods.DeleteObject(hBmp);
             }
             AgentNativeMethods.DeleteDC(memDc);
-            AgentNativeMethods.ReleaseDC(IntPtr.Zero, screenDc);
+            _ = AgentNativeMethods.ReleaseDC(IntPtr.Zero, screenDc);
         }
     }
 

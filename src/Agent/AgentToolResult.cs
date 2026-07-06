@@ -79,9 +79,7 @@ public sealed class AgentToolResult {
     /// <c>ok:true</c>. A one-shot <c>find</c> miss stays a success ("a miss is not an error").</para>
     /// </summary>
     public static AgentToolResult FromCommandResult(CommandResult command, string toolName, string? sessionId = null, JsonObject? lastObservation = null) {
-        if (command is null) {
-            throw new ArgumentNullException(nameof(command));
-        }
+        ArgumentNullException.ThrowIfNull(command);
 
         List<AgentWarning> warnings = [];
         foreach (CommandWarning w in command.Warnings) {

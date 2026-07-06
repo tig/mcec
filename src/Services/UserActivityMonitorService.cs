@@ -141,7 +141,7 @@ public sealed class UserActivityMonitorService : IDisposable {
         switch (pbt) {
             case PBT_POWERSETTINGCHANGE:
                 POWERBROADCAST_SETTING pbSetting =
-                    (POWERBROADCAST_SETTING)Marshal.PtrToStructure(lParam, typeof(POWERBROADCAST_SETTING))!;
+                    Marshal.PtrToStructure<POWERBROADCAST_SETTING>(lParam)!;
                 if (pbSetting.PowerSetting == GUID_SESSION_USER_PRESENCE) {
                     // BUGBUG: Data is just a byte and we're lucky the MSB has our value in it
                     switch (pbSetting.Data) {

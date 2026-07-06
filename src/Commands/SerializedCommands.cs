@@ -144,9 +144,7 @@ public class SerializedCommands {
     /// <param name="commands">commands to serialize</param>
     /// <param name="currentVersion">version stamp written to the file's version attribute</param>
     public static void SaveCommands(string userCommandsFile, SerializedCommands commands, string currentVersion) {
-        if (commands == null) {
-            throw new ArgumentNullException(nameof(commands));
-        }
+        ArgumentNullException.ThrowIfNull(commands);
         // TODO: Emit comments: https://stackoverflow.com/questions/7385921/how-to-write-a-comment-to-an-xml-file-when-using-the-xmlserializer
 
         FileStream? ucFs = null;
