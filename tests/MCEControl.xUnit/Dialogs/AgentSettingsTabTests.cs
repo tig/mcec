@@ -98,6 +98,56 @@ public class AgentSettingsTabTests : IDisposable {
     }
 
     [Fact]
+    public void AgentTab_ProvisionButton_TracksTheOptInCheckbox() {
+        // "Provision new…" (#296) mirrors the MCP tool's AllowSessionProvisioning gate: available only
+        // when the opt-in is ticked, and it follows the checkbox live.
+        using var tab = new AgentSettingsTab();
+        tab.Bind(new AppSettings { AllowSessionProvisioning = false });
+
+        var provision = FindControl<Button>(tab, "_buttonProvision");
+        var checkbox = FindControl<CheckBox>(tab, "_checkBoxAllowProvisioning");
+        Assert.False(provision.Enabled);
+
+        checkbox.Checked = true;
+        Assert.True(provision.Enabled);
+
+        checkbox.Checked = false;
+        Assert.False(provision.Enabled);
+    }
+
+    [Fact]
+    public void ProvisionButton_EnabledWhenBoundToAuthorizedSettings() {
+        using var tab = new AgentSettingsTab();
+        tab.Bind(new AppSettings { AllowSessionProvisioning = true });
+        Assert.True(FindControl<Button>(tab, "_buttonProvision").Enabled);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ProvisionedInstanceDialog_HandoffText_HasLaunchTokenAndConditionalEndpoint(bool mcpServerEnabled) {
+        var session = new ProvisionedSession {
+            SessionId = "0123456789ab",
+            Directory = @"C:\sessions\0123456789ab",
+            ExePath = @"C:\sessions\0123456789ab\mcec.exe",
+            McpServerEnabled = mcpServerEnabled,
+            BindAddress = "127.0.0.1",
+            Port = 51515,
+            Token = "deadbeefcafef00d",
+        };
+
+        string text = ProvisionedInstanceDialog.BuildHandoffText(session);
+
+        // Always: the stdio launch line, the directory, and the teardown token.
+        Assert.Contains(@"C:\sessions\0123456789ab\mcec.exe"" --mcp", text);
+        Assert.Contains("0123456789ab", text);
+        Assert.Contains("deadbeefcafef00d", text);
+        // The HTTP endpoint + bearer line only when the session's MCP server is enabled.
+        Assert.Equal(mcpServerEnabled, text.Contains("http://127.0.0.1:51515/mcp"));
+        Assert.Equal(mcpServerEnabled, text.Contains("Authorization: Bearer deadbeefcafef00d"));
+    }
+
+    [Fact]
     public void AgentTab_EmptyList_DisablesDeleteAllAndShowsNoSessionsLabel() {
         using var tab = new AgentSettingsTab();
         tab.Bind(new AppSettings());

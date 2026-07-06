@@ -37,6 +37,7 @@ namespace MCEControl {
             this._columnStatus = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this._columnDelete = new System.Windows.Forms.DataGridViewButtonColumn();
             this._labelNoSessions = new System.Windows.Forms.Label();
+            this._buttonProvision = new System.Windows.Forms.Button();
             this._buttonDeleteAll = new System.Windows.Forms.Button();
             this._toolTipAgent = new System.Windows.Forms.ToolTip(this.components);
             this._groupSessions.SuspendLayout();
@@ -71,6 +72,7 @@ namespace MCEControl {
             this._groupSessions.BackColor = System.Drawing.SystemColors.Window;
             this._groupSessions.Controls.Add(this._gridSessions);
             this._groupSessions.Controls.Add(this._labelNoSessions);
+            this._groupSessions.Controls.Add(this._buttonProvision);
             this._groupSessions.Controls.Add(this._buttonDeleteAll);
             this._groupSessions.Location = new System.Drawing.Point(12, 82);
             this._groupSessions.Margin = new System.Windows.Forms.Padding(1);
@@ -155,6 +157,18 @@ namespace MCEControl {
             this._labelNoSessions.TabIndex = 1;
             this._labelNoSessions.Text = "No provisioned instances.";
             //
+            // _buttonProvision
+            //
+            this._buttonProvision.Location = new System.Drawing.Point(8, 120);
+            this._buttonProvision.Margin = new System.Windows.Forms.Padding(1);
+            this._buttonProvision.Name = "_buttonProvision";
+            this._buttonProvision.Size = new System.Drawing.Size(110, 26);
+            this._buttonProvision.TabIndex = 3;
+            this._buttonProvision.Text = "&Provision new...";
+            this._buttonProvision.UseVisualStyleBackColor = true;
+            this._toolTipAgent.SetToolTip(this._buttonProvision, "Creates a fresh, disposable, isolated MCEC instance and shows how to point an agent at it. Requires the opt-in above.");
+            this._buttonProvision.Click += new System.EventHandler(this.ButtonProvisionClick);
+            //
             // _buttonDeleteAll
             //
             this._buttonDeleteAll.Location = new System.Drawing.Point(326, 120);
@@ -202,6 +216,7 @@ namespace MCEControl {
         private System.Windows.Forms.DataGridViewTextBoxColumn _columnStatus;
         private System.Windows.Forms.DataGridViewButtonColumn _columnDelete;
         private System.Windows.Forms.Label _labelNoSessions;
+        private System.Windows.Forms.Button _buttonProvision;
         private System.Windows.Forms.Button _buttonDeleteAll;
         private System.Windows.Forms.ToolTip _toolTipAgent;
     }

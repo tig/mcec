@@ -77,7 +77,12 @@ Two safety features layer on top (see [`docs/safety-emergency-stop-and-provision
   `AllowSessionProvisioning` opt-in, set from **File ▸ Settings ▸ Agent**) hands the agent a disposable
   directory with its own agent-ready config; teardown is deleting the directory, and MCEC reaps orphaned
   session dirs on launch. The installed config is never touched. That same Agent tab lists the provisioned
-  instances and lets the operator delete any an agent leaves behind.
+  instances, lets the operator delete any an agent leaves behind, and (with the opt-in ticked) has a
+  **Provision new…** button that mints one and shows the handoff. So provisioning can bootstrap itself
+  (#296): the installed `mcec.exe --mcp` serves the **bootstrap only** — just `provision-session` /
+  `end-session`, every other tool refused with `bootstrap-only` — so a fresh install's agent has a first
+  hop, while the full observe/act surface is still never served from Program Files. Keep the bootstrap
+  restriction (`Program.ProvisioningBootstrapOnly`) and the meta-tools' own gates intact.
 
 ## Dogfood: test MCEC using MCEC (mcec drives mcec)
 
