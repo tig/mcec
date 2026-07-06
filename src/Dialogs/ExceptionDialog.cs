@@ -3,6 +3,7 @@
 
 using System;
 using System.Drawing;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace MCEControl.Dialogs;
@@ -104,13 +105,31 @@ public sealed class ExceptionDialog : Form {
 
     /// <summary>
     /// Shows the crash dialog modally, with <paramref name="headline"/> above the copyable detail built
-    /// from <paramref name="ex"/>. Best-effort: if the UI is too far gone to show a Form, falls back to a
-    /// plain message box so the user still sees something.
+    /// from <paramref name="ex"/>.
+    /// <para>A fatal exception can originate on a background/ThreadPool (MTA) thread, in which case
+    /// <c>CurrentDomain.UnhandledException</c> runs here on that MTA thread. The <b>Copy details</b>
+    /// button's <see cref="Clipboard.SetText(string)"/> throws outside STA (CR #297), so the report is
+    /// always shown on a dedicated STA thread when the caller is not already STA. That also avoids
+    /// depending on the UI thread, which may be the very thread that died.</para>
     /// </summary>
     public static void Show(string headline, Exception ex) {
         string details = BuildDetails(ex);
+        string logFile = Logger.Instance.LogFile;
+        if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA) {
+            ShowCore(headline, details, logFile);
+            return;
+        }
+        Thread sta = new(() => ShowCore(headline, details, logFile)) { IsBackground = false, Name = "MCEC-crash-dialog" };
+        sta.SetApartmentState(ApartmentState.STA);
+        sta.Start();
+        sta.Join(); // block the crashing thread until the user dismisses the report, like MessageBox.Show
+    }
+
+    /// <summary>Builds and shows the dialog (assumes an STA thread). Falls back to a message box if the
+    /// dialog itself cannot be shown, so a crash never becomes silent.</summary>
+    private static void ShowCore(string headline, string details, string logFile) {
         try {
-            using ExceptionDialog dialog = new(headline, details, Logger.Instance.LogFile);
+            using ExceptionDialog dialog = new(headline, details, logFile);
             dialog.ShowDialog();
         }
         catch (Exception dialogEx) {
