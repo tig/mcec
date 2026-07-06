@@ -206,7 +206,7 @@ public static class UiaService {
             // element actually took keyboard focus, so a container that redirects focus (or a surface a
             // bare SetFocus cannot focus) reports the closed taxonomy's `focus` category instead of a
             // false success. The other actions have no such post-condition to check.
-            if (action.ToLowerInvariant() == "setfocus") {
+            if (action.Equals("setfocus", StringComparison.OrdinalIgnoreCase)) {
                 return InvokeSetFocusVerified(el);
             }
             bool dispatched = action.ToLowerInvariant() switch {

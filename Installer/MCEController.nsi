@@ -101,8 +101,9 @@ Section "MainSection" SEC01
   Sleep 500
   SetOutPath "$INSTDIR"
   SetOverwrite on
-  ; Recursively install the entire self-contained publish output
-  File /r "${PUBLISHDIR}\*.*"
+  ; Recursively install the self-contained publish output. Exclude *.pdb: the portable symbols
+  ; ship as a separate symbols zip on the GitHub release, not bundled for end users.
+  File /r /x "*.pdb" "${PUBLISHDIR}\*.*"
   CreateDirectory "$SMPROGRAMS\$ICONS_GROUP"
   CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\MCEC.lnk" "$INSTDIR\mcec.exe"
   CreateShortCut "$DESKTOP\MCEC.lnk" "$INSTDIR\mcec.exe"

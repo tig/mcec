@@ -43,9 +43,7 @@ public abstract class ServiceBase {
     public ServiceStatus CurrentStatus { get; private set; } = ServiceStatus.Stopped;
 
     public virtual void Send(string text, Reply? replyContext = null) {
-        if (text == null) {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         Logger.Instance.Log4.Info($"{this.GetType().Name}: Sending \"{Regex.Escape(text)}\"");
 
@@ -66,7 +64,7 @@ public abstract class ServiceBase {
         // what: Service status
         // why: to understand the typical/non-typical conenction flows
         // how is PII protected: no PII is involved
-        TelemetryService.Instance.TrackEvent($"{this.GetType().Name} {Enum.GetName(typeof(ServiceStatus), status)}", properties: new Dictionary<string, string> { { "msg", msg } });
+        TelemetryService.Instance.TrackEvent($"{this.GetType().Name} {Enum.GetName(status)}", properties: new Dictionary<string, string> { { "msg", msg } });
 
         switch (status) {
             case ServiceStatus.Connected:
@@ -100,9 +98,7 @@ public abstract class ServiceBase {
 
     // Raise ErrorOccurred with a typed error payload
     protected void Error(ServiceError error) {
-        if (error is null) {
-            throw new ArgumentNullException(nameof(error));
-        }
+        ArgumentNullException.ThrowIfNull(error);
         Log4.Debug(error.ToString());
         ErrorOccurred?.Invoke(error);
     }

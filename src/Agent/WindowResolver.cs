@@ -194,15 +194,15 @@ public static class WindowResolver {
         int len = AgentNativeMethods.GetWindowTextLength(hwnd);
         if (len > 0) {
             StringBuilder sb = new(len + 1);
-            AgentNativeMethods.GetWindowText(hwnd, sb, sb.Capacity);
+            _ = AgentNativeMethods.GetWindowText(hwnd, sb, sb.Capacity);
             info.Title = sb.ToString();
         }
 
         StringBuilder cls = new(256);
-        AgentNativeMethods.GetClassName(hwnd, cls, cls.Capacity);
+        _ = AgentNativeMethods.GetClassName(hwnd, cls, cls.Capacity);
         info.ClassName = cls.ToString();
 
-        AgentNativeMethods.GetWindowThreadProcessId(hwnd, out uint pid);
+        _ = AgentNativeMethods.GetWindowThreadProcessId(hwnd, out uint pid);
         info.ProcessId = (int)pid;
         try {
             using Process p = Process.GetProcessById((int)pid);

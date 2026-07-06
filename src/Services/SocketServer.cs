@@ -599,9 +599,7 @@ public sealed class SocketServer : ServiceBase, IDisposable {
     public override void Send(string text, Reply? replyContext = null) {
         base.Send(text, replyContext);
 
-        if (text is null) {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         if (CurrentStatus != ServiceStatus.Connected ||
             _mainSocket == null) {

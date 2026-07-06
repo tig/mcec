@@ -109,7 +109,7 @@ public sealed class McpStdioTransport {
 
     private int _pendingCount;
 
-    private JsonObject? ProcessLine(string line, Func<JsonObject, JsonObject?> dispatch) {
+    private static JsonObject? ProcessLine(string line, Func<JsonObject, JsonObject?> dispatch) {
         try {
             JsonNode? node = JsonNode.Parse(line);
             if (node is not JsonObject request) {

@@ -32,9 +32,7 @@ public partial class SettingsDialog : Form {
     private readonly ISettingsTab[] _tabs;
 
     public SettingsDialog(AppSettings settings) {
-        if (settings is null) {
-            throw new ArgumentNullException(nameof(settings));
-        }
+        ArgumentNullException.ThrowIfNull(settings);
         //
         // Required for Windows Form Designer support
         //

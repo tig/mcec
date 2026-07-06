@@ -167,11 +167,11 @@ public class RecordCommand : WindowTargetingAgentCommand {
 
     /// <summary>
     /// Builds the per-frame grabber for the requested target (explicit region, else resolved window).
-    /// Returns null with <paramref name="error"/> set when no window matches. Virtual so tests can
+    /// Returns null with <paramref name="errorMessage"/> set when no window matches. Virtual so tests can
     /// substitute a synthetic in-memory grabber and exercise start/oneshot without touching the desktop.
     /// </summary>
-    protected virtual Func<Bitmap>? BuildGrabber(out JsonNode? target, out string? error) {
-        error = null;
+    protected virtual Func<Bitmap>? BuildGrabber(out JsonNode? target, out string? errorMessage) {
+        errorMessage = null;
         if (IsRegionTarget) {
             int rx = X, ry = Y, rw = Width, rh = Height;
             target = new JsonObject {
@@ -187,7 +187,7 @@ public class RecordCommand : WindowTargetingAgentCommand {
         WindowInfo? win = ResolveTargetWindow();
         if (win is null) {
             target = null;
-            error = "No matching window";
+            errorMessage = "No matching window";
             return null;
         }
         IntPtr hwnd = new(win.Handle);
