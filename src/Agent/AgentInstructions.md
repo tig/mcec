@@ -13,7 +13,10 @@ window, e.g. a launched app took focus). A wait that times out carries `waitedFo
 so you can triage without a second observation. `windows` with no filter lists
 everything; a wait (or `disappears`/`foreground`) with no filter is refused (it will not wait for an arbitrary window). Reuse
 the `handle` a `windows`/`query` returns for follow-up calls: it is stable, and a dialog you open shares the
-process name, so re-resolving by process/title can match the wrong window. Open menus and other untitled
+process name, so re-resolving by process/title can match the wrong window. `window` and `at:{by:name}` match
+on **substring**, so a name can silently resolve to the wrong element or window with no error: asking for the
+`Serial Server` tab can select the `Server` tab, and `window:"Settings"` can hit the OS Settings app; when
+names overlap, target by `handle`. Open menus and other untitled
 popups are not enumerated by title/process; target them by handle or `foreground:true`.
 
 2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, state, value)
