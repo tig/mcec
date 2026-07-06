@@ -129,26 +129,19 @@ exe (`winr`, `chars:`, `enter`, `mouse:`, `key_a`, `key_esc`, `alt_f`, `key_x`) 
   popped `MessageBox` prompts that would hang the headless `--mcp` process. Now uses
   `System.Version.TryParse` and suppresses load-path dialogs when `AgentRuntime.Headless`.
 
-## Dogfood: WinPrint hero GIF (Customer 1, issue #84)
+## Dogfood: WinPrint hero GIF
 
-> The worked examples (this one, the mcec hero GIF, and prompt demos like Paint → smiley → email) are
-> cataloged for humans and agents in [`docs/examples.md`](docs/examples.md), with a template for adding more.
+> The worked examples (the mcec hero GIF, this WinPrint one, and prompt demos like Paint → smiley → email)
+> are cataloged for humans and agents in [`docs/examples.md`](docs/examples.md), with a template for adding more.
 
-Script: [`scripts/Generate-WinPrint-HeroGif.ps1`](scripts/Generate-WinPrint-HeroGif.ps1). Run from the
-**winprint** repo root; output is `docs/hero-gui-win.gif` there. Full recipe:
-[`docs/winprint-hero-gif.md`](docs/winprint-hero-gif.md).
-
-Until the epic merges, the harness needs the `clipboard` tool (not on plain `develop` yet). For local
-runs, build this branch and pass `-McecInstallDir` to `src\bin\Debug\net10.0-windows`.
-
-### Operational tips (learned the hard way)
-
-- **Win+D before Start search** — the harness sends `desktop` (Win+D) before `winsearch` (Win+S) so
-  keystrokes are not swallowed by an IDE/terminal; retry once if WinPrint does not appear.
-- **Dismiss the PDF viewer** — Alt+F4 after opening `winprintdemo.pdf` so the next run's harness
-  `Remove-Item` succeeds (viewers keep the file locked).
-- **Disposable session copy** — the harness copies MCEC into `%LOCALAPPDATA%\MCEC\sessions\winprint-hero`
-  so the core install's `mcec.settings` / `mcec.commands` are never touched.
+MCEC driving installed **WinPrint** is a marquee dogfooding example, but the WinPrint hero GIF
+(`hero-gui-win.gif`) is **owned and produced in the [winprint](https://github.com/tig/winprint) repo**,
+agent-driven via the generic [`scripts/Generate-HeroGif.ps1`](scripts/Generate-HeroGif.ps1) controller
+(no producer script lives here). Follow winprint's authoritative recipe
+[`docs/hero-gif-win.md`](https://github.com/tig/winprint/blob/develop/docs/hero-gif-win.md); it records a
+clean, **window-only, overlay-off** hero. mcec-side conveniences that recipe still hand-configures (a
+bootstrap `-NoOverlay` switch, default-enabling `windows`/`right`/`down`/`enter`/`run`) are tracked as
+controller-bootstrap follow-ups.
 
 ## Working in this repo
 
