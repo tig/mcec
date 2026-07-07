@@ -154,7 +154,7 @@ The same flow can be driven as discrete commands from the Commands window test c
     <SendInput vk="VK_RIGHT" Shift="true" Win="true"/> <!-- Win-Shift-Right to move Notepad to 2nd monitor -->
     <Pause Args="100"/>                      <!-- pause -->
     <SendMessage Cmd="maximize" Msg="274" wParam="61488" lParam="0" /> <!-- maximize notepad -->
-    <SendInput vk="VK_RETURN">                   <!-- hit enter -->
+    <SendInput vk="VK_RETURN"/>                  <!-- hit enter -->
     <Chars Args="Second "/>                      <!-- type a second line of text -->
     <Chars Args="line.." />
     <SendInput vk="h" Alt="true"/>           <!-- Alt-H, Alt-A to pop Help About dialog -->
@@ -168,7 +168,7 @@ The same flow can be driven as discrete commands from the Commands window test c
 <Chars enabled="true" Cmd="movemouse">
 <Mouse Args="mm,100,100"/>
 <Pause Args="250"/>
-<SendInput vk="moved"/>
+<Chars Args="moved"/>
 </Chars>
 ```
 
