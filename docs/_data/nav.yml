@@ -5,13 +5,13 @@
   url: install.html
 - title: Configuration
   url: configuration.html
+- title: Agent Control
+  url: agent_control.html
 - title: Agent Safety
   url: safety-emergency-stop-and-provisioning.html
-- title: Environment Controller
-  url: environment-controller.html
+- title: Remote Control
+  url: remote_control.html
 - title: Examples
   url: examples.html
-- title: Home Automation
-  url: home-automation.html
 - title: View On GitHub
   url: https://github.com/tig/mcec

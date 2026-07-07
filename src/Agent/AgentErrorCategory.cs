@@ -5,7 +5,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The <b>closed</b> failure taxonomy for every MCEC 3.0 agent tool result, owned by the contract in
-/// <c>docs/design/agent-tool-result-contract.md</c> (#101). An agent may branch exhaustively on this
+/// <c>docs/agent_control.md</c> / <c>agent-tool-result.schema.json</c>. An agent may branch exhaustively on this
 /// set; new failure modes are mapped onto an existing member rather than added ad hoc. The wire form
 /// (the kebab-case string that goes into <c>error.category</c>) is produced by
 /// <see cref="AgentError.CategoryWire"/>.

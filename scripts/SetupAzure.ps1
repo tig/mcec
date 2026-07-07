@@ -15,7 +15,7 @@
   Re-running is safe: each step is find-or-create. Run it again any time the config
   changes (e.g. you add a branch) and it will converge.
 
-  PREREQUISITES THAT THIS SCRIPT DOES NOT CREATE (manual, one-time; see docs/code-signing.md):
+  PREREQUISITES THAT THIS SCRIPT DOES NOT CREATE (manual, one-time; see dev/code-signing.md):
     * The Trusted Signing *account* and a *PublicTrust certificate profile*. Public-trust
       profiles require a Microsoft identity-validation request that is completed in the
       Azure Portal and cannot be fully scripted. Create those first; this script then
@@ -72,7 +72,7 @@ $ProfileScope = "/subscriptions/$($cfg.SubscriptionId)/resourceGroups/$($cfg.Res
 $acct = az resource show --ids "/subscriptions/$($cfg.SubscriptionId)/resourceGroups/$($cfg.ResourceGroup)/providers/Microsoft.CodeSigning/codeSigningAccounts/$($cfg.SigningAccount)" --query "name" -o tsv 2>$null
 if (-not $acct) {
     throw "Trusted Signing account '$($cfg.SigningAccount)' not found in RG '$($cfg.ResourceGroup)'. " +
-          "Create the account + a PublicTrust certificate profile in the Azure Portal first (see docs/code-signing.md)."
+          "Create the account + a PublicTrust certificate profile in the Azure Portal first (see dev/code-signing.md)."
 }
 
 # ---------------------------------------------------------------------------

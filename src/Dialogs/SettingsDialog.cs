@@ -52,7 +52,7 @@ public partial class SettingsDialog : Form {
         // (mcec.settings) by design: opening the agent front door is a considered, out-of-band
         // act by the operator, not a checkbox to be toggled (or social-engineered) mid-session,
         // and an agent driving this very dialog must never be able to widen its own permissions.
-        // See docs/environment-controller.md and docs/safety-emergency-stop-and-provisioning.md before
+        // See docs/agent_control.md and docs/safety-emergency-stop-and-provisioning.md before
         // "helpfully" adding checkboxes for them. The ONE deliberate exception (#259) is
         // AllowSessionProvisioning on the Agent tab: it grants access only to a disposable,
         // isolated copy (never this instance), it is the sole opt-in a non-technical operator

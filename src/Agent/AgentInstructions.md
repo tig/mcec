@@ -185,29 +185,29 @@ full-screen/region `capture`s and `record`ings (not in window-targeted captures)
 
 PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it; an abnormal exit
 leaks those security gates enabled, and the installed copy will not serve the full agent surface anyway.
-When you connect to the installed `mcec.exe --mcp`, it serves ONLY the provisioning BOOTSTRAP: the sole
-tools are `provision-session` and `end-session`, and every observation/actuation tool is refused with
-`error.code:bootstrap-only` (its connect-time instructions say so). That is by design and is your first
-hop, not a dead end: when the operator has authorized it,
-call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
-`mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
-launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), a `sessionId`, and a
-`token`. The `token` is the session credential; keep it: every HTTP request to the session's
-`mcpEndpoint` must send the header `Authorization: Bearer <token>` (stdio needs no header), and
-`end-session` requires it. Run from that directory, do your work there, then call `end-session` with the
-`sessionId` AND `token` (after stopping its mcec.exe) to delete it; teardown is just removing the
-directory, so a crash leaves the real install untouched. An `end-session` with a wrong/missing token
-fails with `error.code:session-token-invalid`; a session you did not provision is not yours to tear
-down; orphaned sessions are reaped automatically. If `provision-session` returns
-`error.code:provisioning-not-authorized` (these feature-specific refusals ride in `error.code`, while
-`error.category` stays `internal`), the operator has not opted in; tell them to enable "Allow agents to
-provision disposable instances" on the Settings dialog's Agent tab (File > Settings > Agent), then retry;
-do not retry blindly before they do. On that same Agent tab the operator can also click "Provision new…"
-to create an instance themselves and hand you its directory/endpoint; and it lists the provisioned
-instances and lets them delete any you leave behind. But you own teardown: `end-session` every instance
-you provision. A provisioned session enables the standard observation/actuation tool set; anything else
-(e.g. `launch`, raw built-ins like `chars:`) starts disabled; acquire it mid-session with
-`request-command-access` (see COMMAND ACCESS), never by editing the session's files.
+Recommended path: the operator enables "Allow agents to provision disposable instances" on File > Settings
+> Agent, clicks "Provision new…", and hands you a disposable instance's directory, launch line, and
+token; connect to THAT copy's `mcec.exe --mcp` (or its HTTP endpoint when enabled) and do all work
+there. A provisioned session enables the standard observation/actuation tool set; anything else (e.g.
+`launch`, raw built-ins like `chars:`) starts disabled; acquire it mid-session with
+`request-command-access` (see COMMAND ACCESS), never by editing the session's files. The `token` is the
+session credential; keep it: every HTTP request to the session's `mcpEndpoint` must send the header
+`Authorization: Bearer <token>` (stdio needs no header), and `end-session` requires it when you tear down
+via the bootstrap server. When your task is done, disconnect (stdio stops when the connection closes),
+tell the operator, and if you also have the installed bootstrap server call `end-session` with the
+`sessionId` AND `token` after this instance has stopped; teardown is just removing the directory. An
+`end-session` with a wrong/missing token fails with `error.code:session-token-invalid`; a session you did
+not provision is not yours to tear down; orphaned sessions are reaped automatically. The Agent tab also
+lists provisioned instances and lets the operator delete any you leave behind.
+Bootstrap path (when you are connected to the installed `mcec.exe --mcp` instead): it serves ONLY
+provisioning tools — `provision-session` and `end-session` — and every observation/actuation tool is
+refused with `error.code:bootstrap-only`. That is by design: when the operator has authorized it, call
+`provision-session` to mint a fresh isolated instance (it returns `directory`, `exePath`, optional
+`mcpEndpoint`, `sessionId`, and `token`), reconnect to that copy, and work there. If `provision-session`
+returns `error.code:provisioning-not-authorized` (these feature-specific refusals ride in `error.code`,
+while `error.category` stays `internal`), the operator has not opted in; tell them to enable provisioning
+on the Agent tab, then retry; do not retry blindly before they do. You own teardown: `end-session` every
+instance you provision.
 
 COMMAND ACCESS: any tool or raw command refused with `error.code:command-disabled` can be requested from
 the OPERATOR with the `request-command-access` tool: pass the command name(s) the refusal reported (e.g.

@@ -24,7 +24,7 @@ namespace MCEControl;
 /// agent cannot create an unbounded file.
 ///
 /// PRIVACY: a recording captures whatever is on screen for its whole duration; louder than a single
-/// still <c>capture</c>. See <c>docs/environment-controller.md</c>.
+/// still <c>capture</c>. See <c>docs/agent_control.md</c>.
 /// </summary>
 public class RecordCommand : WindowTargetingAgentCommand {
     [XmlAttribute("action")] public string Action { get; set; } = null!;

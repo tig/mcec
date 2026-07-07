@@ -11,12 +11,13 @@ running MCEC, every Settings tab, the agent gates in `mcec.settings`, enabling c
 
 For **installing** MCEC and where its files live, see [Install](install.md); for the **security model**
 behind the agent gates, see [Agent Safety](safety-emergency-stop-and-provisioning.md); for the agent
-tools themselves, see [Environment Controller](environment-controller.md).
+tools themselves, see [Agent Control](agent_control.md).
 
-If you want to use MCEC from a desktop agent app, start with the [Environment Controller](environment-controller.md)
-workflow and use provisioning rather than opening up the installed copy. In practice: enable
-**Allow agents to provision disposable instances**, create a disposable session, and point your agent at
-that instance's `mcec.exe mcp` (or its HTTP endpoint).
+If you want to use MCEC from a desktop agent app, see [Agent Control](agent_control.md).
+In practice: enable
+**Allow agents to provision disposable instances**, create a disposable session (**Provision new…** or
+`provision-session`), and use the MCP client setup line from the handoff (or the session's HTTP endpoint
+when enabled).
 
 Installed under Program Files, MCEC keeps its configuration under `%APPDATA%\Kindel\MCEC`
 (`mcec.settings`, `mcec.commands`, `mcec.log`); a copy run from anywhere else reads its config co-located
@@ -29,21 +30,17 @@ from there. MCEC runs as a normal windowed app that can minimize to a taskbar (t
 main window minimizes it to the tray; double-click the tray icon to show it again, or right-click for a
 menu. To start hidden, check **Hide Window at Startup** in **Settings**.
 
-To run headless as an **MCP server** (no main window, no tray icon; the command overlay and the
-emergency-stop hotkey still work), launch it with `mcp` (or the equivalent `--mcp`); an MCP client can
-spawn it on demand and talk JSON-RPC over stdio:
-
-```
-mcec.exe mcp
-```
+Desktop agent apps connect over **MCP**: the client's configuration spawns a headless MCEC process (no
+main window, no tray icon; the command overlay and the emergency-stop hotkey still work) and talks
+JSON-RPC over stdio. That transport is for MCP clients to launch — not something you run yourself from a
+terminal.
 
 The **installed** copy (under Program Files) never serves the full agent surface: it refuses to start
-the MCP/HTTP endpoint, and over `mcp`/`--mcp` it serves only the provisioning **bootstrap**
-(`provision-session` / `end-session`), because enabling agent gates in the installed configuration would
+the MCP/HTTP endpoint, and when an MCP client spawns it as the bootstrap server it exposes only
+`provision-session` / `end-session`, because enabling agent gates in the installed configuration would
 leak them enabled if a session crashed. Use [session provisioning](safety-emergency-stop-and-provisioning.md)
-to get a disposable, isolated copy that serves everything — call `provision-session` (or click
-**Provision new…** on File ▸ Settings ▸ Agent), or copy the install directory somewhere writable and run
-from there.
+to get a disposable, isolated copy that serves everything — click **Provision new…** on File ▸ Settings ▸
+Agent, or let a connected agent call `provision-session`.
 
 `mcec.exe` also has a command-line surface (built on
 [Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--help`, `--version`, `--opencli` (machine-readable
@@ -57,7 +54,7 @@ somewhere writable; each copy gets its own independent `.settings`, `.commands`,
 
 ## Settings
 
-<!-- To regenerate the settings_*.png tab screenshots below, see dialog-screenshots.md. -->
+<!-- To regenerate the settings_*.png tab screenshots below, see dev/doc-images.md. -->
 ![Settings](settings_general.png "Settings")
 
 Settings are stored as XML in `mcec.settings`, in the `%APPDATA%\Kindel\MCEC` directory. Most settings
@@ -75,7 +72,7 @@ The **General** tab:
 
 The **Client**, **Server**, **Serial Server**, and **Activity Monitor** tabs configure the classic
 remote-control transports and are documented in
-**[Home Automation & Remote Control](home-automation.md)**.
+**[Remote Control](remote_control.md)**.
 
 The **Agent** tab is where you let an agent (a desktop assistant or computer-use tool) work with MCEC via
 [session provisioning](safety-emergency-stop-and-provisioning.md):
@@ -102,6 +99,12 @@ in-memory and die with the instance; nothing is written to your config files. Se
 The agent surface is configured by these keys. All are off/safe by default; see
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)** for the full security model.
 
+> **Program Files install:** the normal installed copy under `C:\Program Files\…` is
+> `ProvisioningBootstrapOnly` — it refuses to start the MCP/HTTP endpoint and, when an MCP client spawns
+> it, serves only `provision-session` / `end-session`. These keys apply to **provisioned sessions** and
+> **non-installed copies** (a writable side-by-side copy; see [Install](install.md#side-by-side-copies)),
+> not to enabling the installed instance directly.
+
 | Setting | Default | Meaning |
 |---------|---------|---------|
 | `AgentCommandsEnabled` | `false` | Master opt-in for the agent observation/actuation commands. Separate from the classic command enable. |
@@ -115,7 +118,8 @@ The agent surface is configured by these keys. All are off/safe by default; see
 | `AllowSessionProvisioning` | `false` | Operator opt-in that lets an agent request a fresh, isolated MCEC instance via `provision-session` (and enables the **Provision new…** button on the Agent tab). |
 | `AgentRecordMaxFps` / `AgentRecordMaxDurationMs` / `AgentRecordMaxFrames` / `AgentRecordMaxWidth` | 30 / 60000 / 600 / 1280 | Safety limits for the `record` tool (requests above them are clamped, not failed). |
 
-Restart MCEC (or relaunch `--mcp`) after editing `mcec.settings`.
+Restart the MCEC instance whose `mcec.settings` you edited (the provisioned copy or a non-installed
+copy).
 
 ### Update checks (in `mcec.settings`)
 
@@ -143,21 +147,22 @@ Restart MCEC after changing it.
 ## Enabling or Disabling Commands
 
 For security, **every** command is disabled by default; this reduces the surface area MCEC exposes. This
-applies to both the classic commands and the agent commands: an agent command runs only when
-`AgentCommandsEnabled=true` **and** that individual command is enabled.
+applies to both the classic commands and the agent commands: in a provisioned session or non-installed
+copy, an agent command runs only when `AgentCommandsEnabled=true` **and** that individual command is
+enabled. (The Program Files install never serves the full agent command surface; see the note above.)
 
 Use the **Commands Window** (**Commands ▸ Enable and Test Commands…**) to enable/disable commands and test
 them. Details, including the `mcec.commands` XML format, are in
-**[Home Automation & Remote Control](home-automation.md#enabling-or-disabling-commands)**. An agent that
+**[Remote Control](remote_control.md#enabling-or-disabling-commands)**. An agent that
 needs a disabled command can also ask you for it live via `request-command-access`; you approve or deny
 on-screen, and an approval enables it in-memory for that instance only (see
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)**).
 
 ## Agent safety
 
-The agent gates above decide *whether* the agent surface is reachable. Three operator-safety features build
-on them: the global **emergency-stop** hotkey, disposable **isolated session provisioning**, and
-on-screen **command-access consent**. All are covered in
+The agent gates above decide *whether* the agent surface is reachable. Four operator-safety features build
+on them: on-screen **command-access consent**, disposable **isolated session provisioning**, the global
+**emergency-stop** hotkey, and the on-screen **command overlay**. All are covered in
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)**.
 
 ## Logging
