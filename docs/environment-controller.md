@@ -342,7 +342,7 @@ the model can view it directly, alongside the JSON envelope above.
 ### `record`: capturing change over time
 
 `capture` answers "what does this look like **now**". When you need to show change *over
-time* (an animation for a demo or issue report, or a repro of a transient/flicker), use
+time* (for example, an animation for a demo or a reproduction of a transient/flicker), use
 `record`, which writes an **animated GIF**.
 
 > **⚠️ Privacy:** a recording captures whatever is on screen for its *entire* duration,

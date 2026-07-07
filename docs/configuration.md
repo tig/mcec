@@ -120,7 +120,7 @@ Restart MCEC (or relaunch `--mcp`) after editing `mcec.settings`.
 MCEC checks GitHub for a newer release at startup and once every 24 hours. When one is found it enables
 the **Help ▸ Install Latest Version…** menu item and pops up the update dialog. On an unattended
 kiosk/exhibit machine that popup can appear over the interactive application and interrupt people who
-should never see MCEC's UI ([#309](https://github.com/tig/mcec/issues/309)).
+should never see MCEC's UI.
 
 To keep the check but suppress the automatic popup, set this key directly in `mcec.settings` (there is
 no Settings-dialog checkbox for it):
