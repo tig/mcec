@@ -12,7 +12,7 @@ truth for the one-time bootstrap; ongoing version updates are automated by CI.
 | First version | **manual, once** | Submit the initial manifests to winget-pkgs (it requires a package to already exist before it can be auto-updated). Done for 2.4.1; see below. |
 | Every later release | **automated** | The `winget` job in `.github/workflows/release.yml` runs `winget-releaser` on each **stable** tag, opening a winget-pkgs PR with the new version + signed installer. |
 
-The installer is Authenticode-signed (Azure Trusted Signing; see `../../docs/code-signing.md`),
+The installer is Authenticode-signed (Azure Trusted Signing; see `../../dev/code-signing.md`),
 which smooths winget validation (sandbox install/uninstall + SmartScreen).
 
 ## One-time setup

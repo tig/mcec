@@ -11,7 +11,7 @@
   and certificate profile (publisher identity = Kindel LLC). The one-time Microsoft
   identity validation is therefore NOT repeated. Only a *dedicated app registration*
   ('mcec') with its own GitHub OIDC federated credentials is created for this repo, and
-  it is granted the signer role on the same certificate profile. See docs/code-signing.md.
+  it is granted the signer role on the same certificate profile. See dev/code-signing.md.
 #>
 @{
     # --- Subscription / signing identity (REUSED from WinPrint; do not recreate) ---

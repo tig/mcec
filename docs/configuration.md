@@ -54,7 +54,7 @@ somewhere writable; each copy gets its own independent `.settings`, `.commands`,
 
 ## Settings
 
-<!-- To regenerate the settings_*.png tab screenshots below, see doc-images.md. -->
+<!-- To regenerate the settings_*.png tab screenshots below, see dev/doc-images.md. -->
 ![Settings](settings_general.png "Settings")
 
 Settings are stored as XML in `mcec.settings`, in the `%APPDATA%\Kindel\MCEC` directory. Most settings

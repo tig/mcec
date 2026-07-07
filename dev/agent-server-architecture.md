@@ -3,9 +3,10 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# Agent Server: Architecture Notes (dev)
+# Agent Server: Architecture Notes
 
-This is a short developer-facing tour of the MCEC 3.0 agent subsystem. It lives under
+Developer doc ([`dev/`](README.md)); not published to GitHub Pages. A short tour of the MCEC 3.0 agent
+subsystem. It lives under
 `src/Agent/` and is **additive**: it reuses the existing `Command` / `CommandInvoker`
 pattern and adds no breaking changes to any existing command, transport, or default.
 

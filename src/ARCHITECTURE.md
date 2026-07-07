@@ -186,7 +186,7 @@ All commands are located in the `Commands\` directory:
 > only, and loudly audit-log every action. The engine reaches settings/invoker through the
 > UI-agnostic `AgentRuntime` seam so it runs headless (no `MainWindow`). See
 > [`docs/agent_control.md`](../docs/agent_control.md) (users) and
-> [`docs/agent-server-architecture.md`](../docs/agent-server-architecture.md) (devs).
+> [`dev/agent-server-architecture.md`](../dev/agent-server-architecture.md) (devs).
 
 **Nested Commands**:
 Commands can contain embedded commands that execute after the parent completes. Example:

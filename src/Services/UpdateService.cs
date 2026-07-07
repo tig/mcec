@@ -28,7 +28,7 @@ public class UpdateService {
 
     // The publisher name the installer's Authenticode signer certificate subject must contain. The
     // release is signed via Azure Trusted Signing under the Kindel LLC publisher identity (see
-    // docs/code-signing.md); a substring keeps this stable across certificate rotations.
+    // dev/code-signing.md); a substring keeps this stable across certificate rotations.
     private const string ExpectedPublisher = "Kindel";
 
     // One shared client for installer downloads: per-call HttpClient instances risk socket

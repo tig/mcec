@@ -23,7 +23,7 @@ leads with the artifact and the plain-English prompt, then gives the exact recip
   GIF) held to a visual bar. The recipe is a precise, numbered sequence of tool calls, and it doubles as a
   regression test: re-running it is how the artifact is regenerated, so the doc can't drift from what
   actually works. Committed doc images (PNG/GIF under `docs/`) are always produced this way — see
-  [doc-images.md](doc-images.md).
+  [doc-images.md](https://github.com/tig/mcec/blob/develop/dev/doc-images.md).
 - **Prompt demo.** A natural-language **task** you hand a capable computer-use agent, which it *improvises*
   with MCEC's tools. The point is to showcase the capability surface, not a pixel-perfect artifact, so the
   page is mostly the prompt, the gates it needs, and a captured recording of one good run.

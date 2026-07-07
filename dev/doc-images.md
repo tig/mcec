@@ -1,6 +1,7 @@
 # Regenerating doc images (MCEC dogfood)
 
-Every **UI screenshot and demo GIF** committed under `docs/` is produced by **MCEC driving itself**:
+Maintainer doc ([`dev/`](README.md)); not published to GitHub Pages. Every **UI screenshot and demo GIF**
+committed under `docs/` is produced by **MCEC driving itself**:
 `capture` for stills, `record` for animations. No hand-cropped external screenshots, no in-process
 `DrawToBitmap` test harnesses, and no designer-only renders for committed assets.
 

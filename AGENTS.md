@@ -180,14 +180,14 @@ controller-bootstrap follow-ups.
   dogfooding. Treat it like updating tests.
 - **Doc UI images are dogfood artifacts.** Every PNG/GIF under `docs/` that shows running MCEC (Settings
   tabs, the provision handoff, Commands window, hero/prompt GIFs, installer shots) must be regenerated with
-  MCEC's own `capture`/`record` tools, following [`docs/doc-images.md`](docs/doc-images.md). No
+  MCEC's own `capture`/`record` tools, following [`dev/doc-images.md`](dev/doc-images.md). No
   `DrawToBitmap` export tests or hand-taken screenshots for committed assets.
 - Build is strict: `Nullable=enable`, `TreatWarningsAsErrors=true`, and house analyzers **MCEC0001
   (one top-level type per file)** / **MCEC0002 (no nested types)**. New code must be warning-clean.
 - Agent subsystem lives in `src/Agent/` + the MCP server in `src/Services/` (`AgentServer.cs` is a
   thin static facade over `McpStdioTransport`/`McpHttpTransport`/`JsonRpcDispatcher`/
   `AgentToolExecutor`); commands plug into the existing `Command`/`CommandInvoker` pattern.
-  Dev notes: [`docs/agent-server-architecture.md`](docs/agent-server-architecture.md).
+  Dev notes: [`dev/agent-server-architecture.md`](dev/agent-server-architecture.md).
 - Tests: `dotnet test tests/MCEControl.xUnit/MCEControl.xUnit.csproj`. Before opening a PR, run the
   **full** suite — not a `--filter` on only the tests you touched. Filtered runs miss regressions in
   other fixtures (e.g. a `SessionProvisioner` guard can break `EndSessionTokenTests` while

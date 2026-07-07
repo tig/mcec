@@ -32,7 +32,7 @@ Debug builds check for pre-releases and there should ALWAYS be a fake, NEWER pre
 
 ## How to Release a new version
 
-Releases are cut by pushing a `v<major>.<minor>.<patch>` tag; **do not** hand-build or hand-upload the installer, since that bypasses the release pipeline's Authenticode signing (see [`docs/code-signing.md`](../docs/code-signing.md)).
+Releases are cut by pushing a `v<major>.<minor>.<patch>` tag; **do not** hand-build or hand-upload the installer, since that bypasses the release pipeline's Authenticode signing (see [`dev/code-signing.md`](../dev/code-signing.md)).
 
 1. Bump `next-version` in `GitVersion.yml` on `develop` (`release: set GitVersion next-version to vX.Y.Z ...`) and merge/fast-forward it to `main`.
 2. `git tag -a vX.Y.Z <commit> -m "MCEC vX.Y.Z"` on that commit, then `git push origin vX.Y.Z`.

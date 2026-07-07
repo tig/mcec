@@ -45,6 +45,7 @@ Full guides live on the [docs site](https://tig.github.io/mcec/):
 * [Examples](https://tig.github.io/mcec/examples.html) — worked agent-driving recipes
 
 Developers and agents: [AGENTS.md](AGENTS.md) (connect-time guidance and the MCEC-drives-MCEC dogfood test).
+Contributor docs (CI, signing, architecture, image regeneration) live in [`dev/`](dev/).
 
 ## Integrations
 
