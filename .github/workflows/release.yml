@@ -40,21 +40,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      # POLICY: releases are cut from `main`, never from `develop` or a feature branch. GitHub Pages
-      # also publishes the docs site from `main/docs`, so gating the release on "commit is on main"
-      # ALSO guarantees the published docs match the released build; a release can never ship ahead of
-      # the docs site again. The fix when this fails is always the same: merge develop into main, then
-      # tag the main commit. Fails fast, before any build/sign work.
+      # POLICY: releases are cut from the CURRENT TIP of `main`, never from `develop`, a feature branch,
+      # or an older `main` commit. GitHub Pages also publishes the docs site from `main/docs`, so gating
+      # the release on "commit == main tip" ALSO guarantees the published docs match the released build;
+      # a release can never ship ahead of (or behind) the docs site. An "is-ancestor of main" test would
+      # be too weak: an older main commit (or a develop commit already merged into main) is an ancestor
+      # yet can carry older docs than the tip Pages publishes. The fix when this fails is always the
+      # same: merge develop into main, push main, then tag that main commit. Fails fast, before any
+      # build/sign work.
       - name: Enforce release comes from main
         shell: pwsh
         run: |
           git fetch --no-tags origin main
+          $mainSha = (git rev-parse FETCH_HEAD).Trim()
           $sha = (git rev-parse HEAD).Trim()
-          git merge-base --is-ancestor $sha FETCH_HEAD
-          if ($LASTEXITCODE -ne 0) {
-            throw "Release commit $sha is not on origin/main. Releases must come from main: merge develop into main, then tag the main commit (see dev/RELEASING.md)."
+          if ($sha -ne $mainSha) {
+            throw "Release commit $sha is not the current tip of origin/main ($mainSha). Releases must come from main: merge develop into main, push main, then tag that main commit (see dev/RELEASING.md)."
           }
-          Write-Host "::notice::Verified the release commit is on main."
+          Write-Host "::notice::Verified the release commit is the current tip of main."
 
       - name: Setup .NET
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5

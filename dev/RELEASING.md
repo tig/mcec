@@ -29,6 +29,9 @@ build and the published docs in lockstep: a release can never go out ahead of th
 ## Guardrail
 
 The release workflow's **"Enforce release comes from main"** step refuses to build any tag whose commit
-is not an ancestor of `origin/main`. If you accidentally tag a `develop` (or feature-branch) commit, the
-release fails fast with a message telling you to merge `develop → main` and tag the `main` commit
-instead. This is what keeps releases — and the published docs — from drifting off `main`.
+is not the **current tip** of `origin/main`. If you accidentally tag a `develop` (or feature-branch)
+commit — or an older `main` commit — the release fails fast with a message telling you to merge
+`develop → main`, push `main`, and tag that `main` commit instead. Requiring the exact tip (not merely
+an ancestor) is deliberate: an older commit can carry older docs than the tip Pages publishes, so an
+ancestor-only check could still ship a build whose docs lag the site. This is what keeps releases — and
+the published docs — from drifting off `main`.
