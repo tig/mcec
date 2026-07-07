@@ -104,9 +104,15 @@ public sealed class CommandOverlayWindow : Form {
         _onEmergencyStop = OnEmergencyStopStateChanged;
         EmergencyStop.StateChanged += _onEmergencyStop;
 
-        _repaintTimer = new System.Windows.Forms.Timer { Interval = 300 };
-        _repaintTimer.Tick += (_, _) => Render();
-        _repaintTimer.Start();
+_repaintTimer = new System.Windows.Forms.Timer { Interval = 300 };
+_repaintTimer.Tick += (_, _) => {
+    if (!IsHandleCreated || IsDisposed) {
+        return;
+    }
+    AgentNativeMethods.SetWindowPos(Handle, AgentNativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+        AgentNativeMethods.SWP_NOMOVE | AgentNativeMethods.SWP_NOSIZE | AgentNativeMethods.SWP_NOACTIVATE);
+};
+_repaintTimer.Start();
     }
 
     private void OnEmergencyStopStateChanged(bool stopped) {
