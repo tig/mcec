@@ -61,8 +61,10 @@ in the target window (dragged from/to its centre) or an absolute screen pixel `{
 prefer it over hand-rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands).
 Coords are absolute screen pixels (the same space `query`/`find` bounds report), so you can drag straight
 from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls are at new
-bounds. To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a bare
-pixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
+bounds. For window-level move/resize, use the `window` tool: `action:"move"`/`"resize"` with target
+coordinates and optional `animate:true` to make the window appear to be dragged rather than instantly
+teleported. `window` also handles `minimize`, `maximize`, `restore`, and `foreground`.
+To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a barepixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
 absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and `count`
 (2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items;
 it doesn't depend on the control being on-screen and unobscured. System file dialogs (Open, Save Print

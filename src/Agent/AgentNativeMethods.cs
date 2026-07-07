@@ -32,6 +32,12 @@ internal static class AgentNativeMethods {
     /// focused child HWND back to its top-level window when verifying foreground/focus (#91, #270).</summary>
     public const uint GA_ROOT = 2;
 
+    /// <summary>ShowWindow nCmdShow: minimize a window.</summary>
+    public const int SW_MINIMIZE = 6;
+
+    /// <summary>ShowWindow nCmdShow: maximize a window.</summary>
+    public const int SW_MAXIMIZE = 3;
+
     /// <summary>ShowWindow nCmdShow: restore a minimized window (a minimized target can never take focus).</summary>
     public const int SW_RESTORE = 9;
 

@@ -1,0 +1,172 @@
+// Copyright © Kindel, LLC - http://www.kindel.com
+// Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
+
+using System;
+using System.Collections.Generic;
+using System.Text.Json.Nodes;
+using System.Threading;
+using System.Xml.Serialization;
+using WindowsInput;
+
+namespace MCEControl;
+
+/// <summary>
+/// Agent actuation command: manage a top-level window by handle/title/process/class and optionally drag it
+/// visually for move/resize. Supports <c>move</c>, <c>resize</c>, <c>minimize</c>, <c>maximize</c>,
+/// <c>restore</c>, and <c>foreground</c>. For <c>move</c>/<c>resize</c>, <c>animate:true</c> renders the
+/// screen change as a short drag gesture instead of an instant jump.
+/// </summary>
+public class WindowCommand : WindowTargetingAgentCommand {
+    [XmlAttribute("action")] public string Action { get; set; } = "foreground";
+    [XmlAttribute("x")] public int? X { get; set; }
+    [XmlAttribute("y")] public int? Y { get; set; }
+    [XmlAttribute("width")] public int? Width { get; set; }
+    [XmlAttribute("height")] public int? Height { get; set; }
+    [XmlAttribute("animate")] public bool Animate { get; set; }
+
+    public static List<Command> BuiltInCommands {
+        get => [new WindowCommand { Cmd = "window" }];
+    }
+
+    protected override string AuditDetails() =>
+        $"window action='{NormalizedAction}' window handle={Handle} title='{Window}' process='{Process}'";
+
+    protected override CommandResult ExecuteCore(WindowInfo? target) {
+        WindowInfo window = target!;
+        string action = NormalizedAction;
+        string? argsError = ValidateArguments(action, X, Y, Width, Height);
+        if (argsError is not null) {
+            return CommandResult.Fail(Cmd, argsError, "invalid-argument", "invalid-argument");
+        }
+
+        IntPtr hwnd = new(window.Handle);
+        switch (action) {
+            case "move":
+                if (Animate) {
+                    AnimateMove(hwnd, window, X!.Value, Y!.Value);
+                }
+                else {
+                    ApplyMove(hwnd, window, X!.Value, Y!.Value);
+                }
+                break;
+            case "resize":
+                if (Animate) {
+                    AnimateResize(hwnd, window, Width!.Value, Height!.Value);
+                }
+                else {
+                    ApplyResize(hwnd, window, Width!.Value, Height!.Value);
+                }
+                break;
+            case "minimize":
+                ApplyShowWindow(hwnd, AgentNativeMethods.SW_MINIMIZE);
+                break;
+            case "maximize":
+                ApplyShowWindow(hwnd, AgentNativeMethods.SW_MAXIMIZE);
+                break;
+            case "restore":
+                ApplyShowWindow(hwnd, AgentNativeMethods.SW_RESTORE);
+                break;
+            case "foreground":
+                if (!FocusService.BringToForeground(hwnd)) {
+                    return ForegroundFailure();
+                }
+                break;
+            default:
+                return CommandResult.Fail(Cmd, $"Unsupported window action '{Action}'.", "invalid-argument", "invalid-argument");
+        }
+
+        WindowInfo updated = WindowResolver.Describe(hwnd) ?? window;
+        JsonObject data = new() {
+            ["action"] = action,
+            ["animate"] = Animate && (action is "move" or "resize"),
+            ["window"] = updated.ToJsonObject(),
+        };
+        return CommandResult.Ok(Cmd, data);
+    }
+
+    internal static string? ValidateArguments(string action, int? x, int? y, int? width, int? height) =>
+        NormalizeAction(action) switch {
+            "move" => x is null || y is null ? "move requires x and y." : null,
+            "resize" => width is null || height is null ? "resize requires width and height." : null,
+            "minimize" or "maximize" or "restore" or "foreground" => null,
+            _ => $"Unsupported window action '{action}'.",
+        };
+
+    private string NormalizedAction => NormalizeAction(Action);
+
+    private static string NormalizeAction(string? action) => (action ?? "foreground").Trim().ToLowerInvariant() switch {
+        "min" or "minimize" or "minimise" => "minimize",
+        "max" or "maximize" or "maximise" => "maximize",
+        "restore" => "restore",
+        "foreground" or "focus" => "foreground",
+        "move" => "move",
+        "resize" => "resize",
+        _ => string.Empty,
+    };
+
+    private static void ApplyMove(IntPtr hwnd, WindowInfo window, int x, int y) {
+        AgentNativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x, y, window.Width, window.Height, AgentNativeMethods.SWP_NOACTIVATE);
+    }
+
+    private static void ApplyResize(IntPtr hwnd, WindowInfo window, int width, int height) {
+        AgentNativeMethods.SetWindowPos(hwnd, IntPtr.Zero, window.X, window.Y, width, height, AgentNativeMethods.SWP_NOACTIVATE);
+    }
+
+    private static void AnimateMove(IntPtr hwnd, WindowInfo window, int x, int y) {
+        List<(int X, int Y)> path = MouseCommand.InterpolatePath([(window.X, window.Y), (x, y)]);
+        InputSimulator sim = new();
+        MoveToPixel(sim, path[0]);
+        Thread.Sleep(90);
+        sim.Mouse.LeftButtonDown();
+        Thread.Sleep(90);
+        for (int i = 1; i < path.Count; i++) {
+            if (AgentRuntime.EmergencyStopped) {
+                break;
+            }
+            MoveToPixel(sim, path[i]);
+            ApplyMove(hwnd, window, path[i].X, path[i].Y);
+            Thread.Sleep(12);
+        }
+        Thread.Sleep(90);
+        sim.Mouse.LeftButtonUp();
+        ApplyMove(hwnd, window, x, y);
+    }
+
+    private static void AnimateResize(IntPtr hwnd, WindowInfo window, int width, int height) {
+        (int startX, int startY) = (window.X + window.Width, window.Y + window.Height);
+        (int endX, int endY) = (window.X + width, window.Y + height);
+        List<(int X, int Y)> path = MouseCommand.InterpolatePath([(startX, startY), (endX, endY)]);
+        InputSimulator sim = new();
+        MoveToPixel(sim, path[0]);
+        Thread.Sleep(90);
+        sim.Mouse.LeftButtonDown();
+        Thread.Sleep(90);
+        for (int i = 1; i < path.Count; i++) {
+            if (AgentRuntime.EmergencyStopped) {
+                break;
+            }
+            MoveToPixel(sim, path[i]);
+            int newWidth = Math.Max(1, path[i].X - window.X);
+            int newHeight = Math.Max(1, path[i].Y - window.Y);
+            AgentNativeMethods.SetWindowPos(hwnd, IntPtr.Zero, window.X, window.Y, newWidth, newHeight, AgentNativeMethods.SWP_NOACTIVATE);
+            Thread.Sleep(12);
+        }
+        Thread.Sleep(90);
+        sim.Mouse.LeftButtonUp();
+        ApplyResize(hwnd, window, width, height);
+    }
+
+    private static void MoveToPixel(InputSimulator sim, (int X, int Y) pixel) {
+        (int nx, int ny) = MouseCommand.PixelToVirtualDesktopNormalized(pixel.X, pixel.Y, System.Windows.Forms.SystemInformation.VirtualScreen);
+        sim.Mouse.MoveMouseToPositionOnVirtualDesktop(nx, ny);
+    }
+
+    private static void ApplyShowWindow(IntPtr hwnd, int nCmdShow) {
+        AgentNativeMethods.ShowWindow(hwnd, nCmdShow);
+    }
+
+    internal CommandResult ForegroundFailure() => CommandResult.Fail(Cmd,
+        "Could not bring the target window to the foreground; Windows refused the activation (foreground lock, " +
+        "a modal on another app, or a full-screen exclusive window is holding it).",
+        "foreground-not-set", "foreground");
+}
