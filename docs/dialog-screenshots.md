@@ -6,7 +6,10 @@
 
 `docs/settings_*.png` (General, Agent, Client, Server, Serial Server, Activity Monitor) are the Settings
 dialog tab screenshots embedded in [configuration.md](configuration.md) and
-[home_control.md](home_control.md). They are produced by **MCEC dogfooding itself**: a controller
+[remote_control.md](remote_control.md). `docs/provision_handoff.png` (the **Provision new…** handoff
+dialog in [agent_control.md](agent_control.md)) is exported by
+`ProvisionedInstanceDialogScreenshotTests` with `MCEC_DOC_SCREENSHOT=1`. The Settings tab shots are
+produced by **MCEC dogfooding itself**: a controller
 drives a disposable subject, opens its Settings dialog, and `capture`s each tab. No committed producer
 script; an agent authors a throwaway driver from this page.
 

@@ -9,8 +9,8 @@
   url: agent_control.html
 - title: Agent Safety
   url: safety-emergency-stop-and-provisioning.html
-- title: Home Control
-  url: home_control.html
+- title: Remote Control
+  url: remote_control.html
 - title: Examples
   url: examples.html
 - title: View On GitHub

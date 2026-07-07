@@ -72,7 +72,7 @@ The **General** tab:
 
 The **Client**, **Server**, **Serial Server**, and **Activity Monitor** tabs configure the classic
 remote-control transports and are documented in
-**[Home Control](home_control.md)**.
+**[Remote Control](remote_control.md)**.
 
 The **Agent** tab is where you let an agent (a desktop assistant or computer-use tool) work with MCEC via
 [session provisioning](safety-emergency-stop-and-provisioning.md):
@@ -153,7 +153,7 @@ enabled. (The Program Files install never serves the full agent command surface;
 
 Use the **Commands Window** (**Commands ▸ Enable and Test Commands…**) to enable/disable commands and test
 them. Details, including the `mcec.commands` XML format, are in
-**[Home Control](home_control.md#enabling-or-disabling-commands)**. An agent that
+**[Remote Control](remote_control.md#enabling-or-disabling-commands)**. An agent that
 needs a disabled command can also ask you for it live via `request-command-access`; you approve or deny
 on-screen, and an approval enables it in-memory for that instance only (see
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)**).

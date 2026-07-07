@@ -12,7 +12,7 @@ namespace MCEControl.xUnit.Commands;
 /// First-run behavior: a missing mcec.commands is not an error — LoadCommands creates the default
 /// file (the full built-in catalog, every command Enabled="false", version-stamped, guidance
 /// comments) the same way SettingsStore creates a default mcec.settings, then loads it. This is the
-/// contract docs/home_control.md documents. Creation is quiet on failure; MCEC runs on built-ins
+/// contract docs/remote_control.md documents. Creation is quiet on failure; MCEC runs on built-ins
 /// alone.
 /// </summary>
 public class DefaultCommandsFileTests {

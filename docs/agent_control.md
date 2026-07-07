@@ -25,22 +25,28 @@ success and failure uniformly.
 
 ## Quick start: use it from a desktop agent app
 
-If your goal is to let a desktop agent app (an MCP client, a desktop assistant, or a custom automation
-app) drive MCEC, use the provisioning workflow below. It is the recommended path because it keeps the agent
-on a disposable copy of MCEC instead of your installed instance.
+The supported way to let a desktop agent app (an MCP client or desktop assistant) drive MCEC is
+**Provision new…** on **File ▸ Settings ▸ Agent**. MCEC mints a disposable copy of itself with agent
+commands enabled only inside that session; your installed Program Files copy stays untouched.
 
-1. In **File ▸ Settings ▸ Agent**, turn on **Allow agents to provision disposable instances**.
-2. Create a disposable session either by clicking **Provision new…** or by letting the agent call
-   `provision-session` over the bootstrap surface. MCEC returns a throwaway copy of the app and the
-   launch/teardown details.
-3. Point your agent at that instance's `mcec.exe mcp` (or its HTTP endpoint if you configured one) and
-   start driving. The installed copy is only for bootstrapping; the provisioned copy serves the full tool
-   surface.
-4. If the agent needs a command that is disabled, it asks via `request-command-access`; you approve or
-   deny on-screen. Use the emergency-stop hotkey if the session goes off the rails.
-5. When the run is done, end the session or delete the provisioned instance.
+1. Turn on **Allow agents to provision disposable instances** on the **Agent** tab (see
+   [Configuration](configuration.md#agent-settings-in-mcecsettings)).
+2. Click **Provision new…**. MCEC creates the session and opens the handoff dialog:
 
-This is the primary supported workflow for desktop-agent use. The detailed safety model is in
+![Provision new… handoff dialog](provision_handoff.png "After Provision new…: Step 1 is the MCP client setup block; Step 2 is the agent briefing prompt")
+
+3. **Step 1 (you):** copy the MCP client setup block and add it to your agent app's MCP configuration
+   (the stdio spawn line, and the HTTP endpoint + bearer token when the session's MCP server is enabled).
+4. **Step 2 (you):** copy the briefing prompt and paste it as your agent's first message. It carries the
+   session identity, token, rules of engagement, and teardown duty; the server's connect-time
+   instructions teach the observe → target → act loop.
+5. Work with your agent. If it needs a command that starts disabled, it asks via
+   `request-command-access` and you approve or deny on-screen. Use the emergency-stop hotkey
+   (`Ctrl+Alt+Shift+S` by default) if the session goes off the rails.
+6. When the run is done, disconnect your agent (a stdio session stops when the connection closes), then
+   delete the instance from the **Agent** tab's provisioned-instances list (or let MCEC reap stale dirs).
+
+The safety model (emergency stop, consent, session isolation) is in
 [Agent Safety](safety-emergency-stop-and-provisioning.md).
 
 ---

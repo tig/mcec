@@ -3,11 +3,11 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# Home Control
+# Remote Control
 
 **MCEC** (Model Context Environment Controller) began life as **MCE Controller**, and its original job is
-still first-class: it is a robust, battle-tested way to control a Windows PC from a home-control or
-remote-control system. It runs in the background listening on the network (or a serial port) for
+still first-class: it is a robust, battle-tested way to control a Windows PC from a control system or
+integration app. It runs in the background listening on the network (or a serial port) for
 *Commands*, and translates them into actions on the PC: keystrokes, text input, mouse movement, window
 messages, and launching programs.
 

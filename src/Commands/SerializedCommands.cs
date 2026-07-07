@@ -78,7 +78,7 @@ public class SerializedCommands {
         // First run (and provisioned/demo subject copies): create the default commands file, the
         // same way SettingsStore creates a default mcec.settings — the full built-in catalog with
         // every command Enabled="false" (nothing enabled, so no actuation surface changes), per the
-        // long-documented contract in docs/home_control.md.
+        // long-documented contract in docs/remote_control.md.
         if (!File.Exists(userCommandsFile)) {
             TryCreateDefaultCommandsFile(userCommandsFile, currentVersion);
         }
@@ -176,7 +176,7 @@ public class SerializedCommands {
     /// <summary>
     /// Creates the default commands file on first run: every built-in command from
     /// <see cref="CommandRegistry"/>, all with <c>Enabled="false"</c>, version-stamped, and carrying
-    /// the standard guidance comments. This is the contract docs/home_control.md has always
+    /// the standard guidance comments. This is the contract docs/remote_control.md has always
     /// described ("containing all built-in commands with Enabled=false") and it is what makes the
     /// security model's enable-a-command workflow real: the user flips Enabled on an existing entry
     /// instead of authoring XML from scratch. Nothing enabled → the actuation surface is unchanged.
