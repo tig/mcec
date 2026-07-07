@@ -277,7 +277,6 @@ public class AgentDesktopE2ETests {
         "  <AgentCommandsEnabled>true</AgentCommandsEnabled>\r\n" +
         "  <McpServerEnabled>false</McpServerEnabled>\r\n" +
         "  <ActAsServer>false</ActAsServer>\r\n" +
-        "  <DisableUpdatePopup>true</DisableUpdatePopup>\r\n" +
         "</AppSettings>\r\n";
 
     private static string CommandsXml() =>

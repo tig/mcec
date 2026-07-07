@@ -108,9 +108,6 @@ public class AppSettings : ICloneable {
     [SafeForTelemetry]
     public bool UserPresenceDetection { get; set; }
 
-    [SafeForTelemetry]
-    public bool DisableUpdatePopup { get; set; }
-
     // TELEMETRY: NOT SAFE FOR PII - MUST DEFAULT TO FALSE
     public bool LogUserActivity { get; set; }
 

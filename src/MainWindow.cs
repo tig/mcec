@@ -374,12 +374,14 @@ public partial class MainWindow : Form, IAppHost {
                     $"Could not access {UpdateService.Instance.ReleasePageUri} to see if a newer version is available. {UpdateService.Instance.ErrorMessage}");
             }
             else if (UpdateService.Instance.CompareVersions() < 0) {
+                // A newer version is available: enable the Help ▸ "Install Latest Version..." menu item so
+                // the operator can choose to update, but do NOT pop the update dialog automatically. The
+                // background/periodic check must stay silent — an unattended popup lands over kiosk/exhibit
+                // apps and interrupts users who must never see MCEC's UI (#309). The dialog is shown only on
+                // explicit request via updatesMenuItem_Click.
                 installLatestVersionMenuItem.Enabled = true;
                 Logger.Instance.Log4.Info("A newer version is available at");
                 Logger.Instance.Log4.Info($"   {UpdateService.Instance.ReleasePageUri}");
-
-                if (!Settings.DisableUpdatePopup)
-                    UpdateDialog.Instance.ShowDialog(this);
             }
             else if (UpdateService.Instance.CompareVersions() > 0) {
                 Logger.Instance.Log4.Info(
