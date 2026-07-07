@@ -137,8 +137,15 @@ streams) rather than flooding the queue.
 
 ## How to enable
 
-Edit `mcec.settings` (in your MCEC settings directory) and set the opt-ins you
-want. At minimum, to use the agent commands at all:
+**Recommended path (desktop agents):** leave the installed instance's agent gates off and tick
+**Allow agents to provision disposable instances** on the Settings dialog's **Agent** tab. The agent
+then drives a fresh throwaway copy (deleted when done) rather than this installed one, and the same tab
+cleans up any it leaves behind. See [session provisioning](safety-emergency-stop-and-provisioning.md).
+
+![Settings ▸ Agent](settings_agent.png "The Agent tab: the provisioning opt-in and the list of provisioned instances")
+
+**Alternative (enable the installed instance directly):** edit `mcec.settings` (in your MCEC settings
+directory) and set the opt-ins you want. At minimum, to use the agent commands at all:
 
 ```xml
 <AgentCommandsEnabled>true</AgentCommandsEnabled>
@@ -155,14 +162,8 @@ To additionally expose the MCP / HTTP server so agents can connect over a transp
 
 Restart MCEC after editing the settings file. Remember you must **also** enable the
 individual agent commands you intend to use (they ship `Enabled=false` like every other
-command).
-
-The recommended path, though, is to leave these gates off and instead tick **Allow agents to provision
-disposable instances** on the Settings dialog's **Agent** tab. The agent then drives a fresh throwaway
-copy (deleted when done) rather than this installed one, and the same tab cleans up any it leaves behind.
-See [session provisioning](safety-emergency-stop-and-provisioning.md).
-
-![Settings ▸ Agent](settings_agent.png "The Agent tab: the provisioning opt-in and the list of provisioned instances")
+command). This path keeps the agent on your installed copy; prefer provisioning above when a desktop
+agent app is driving MCEC.
 
 ---
 
