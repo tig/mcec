@@ -198,6 +198,19 @@ internal static class HeadlessOperatorUi {
         }
     }
 
+    /// <summary>
+    /// The headless consent-prompt channel for <c>request-command-access</c> (#307), registered as
+    /// <see cref="AgentConsent.Prompter"/> by <c>Program.RunHeadlessMcp</c>: the shared
+    /// <see cref="CommandAccessConsentDialog.ShowVia"/> body marshaled onto this pump thread (the
+    /// same pattern as the re-arm prompt: the pump keeps the hotkey and overlay live behind the
+    /// modal). Null; fail closed as <c>consent-unavailable</c>; when the pump is not hosting (no
+    /// interactive desktop, or the operator disabled both the overlay and the e-stop so
+    /// <see cref="Start"/> no-op'ed). A <see cref="Stop"/> racing an open prompt exits the message
+    /// loop, which dismisses the dialog with its fail-safe default (deny).
+    /// </summary>
+    internal static CommandAccessDecision? PromptCommandAccess(CommandAccessRequest request) =>
+        CommandAccessConsentDialog.ShowVia(_marshal, nameof(HeadlessOperatorUi), request);
+
     private static void OnStateChanged(bool stopped) {
         if (stopped) {
             RequestPrompt();

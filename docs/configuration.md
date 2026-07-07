@@ -78,8 +78,17 @@ The **Agent** tab is where you let an agent (a desktop assistant or computer-use
 * **Allow agents to provision disposable instances**: the one switch to turn on. A connected agent then
   gets a fresh, throwaway copy of MCEC to drive, deleted when it finishes. It never opens up this installed
   copy.
+* **Provision new…**: creates a throwaway copy yourself and shows a two-step handoff: the MCP client
+  setup line, and a ready-made briefing prompt to paste to your agent (its session id, token, rules of
+  engagement, and teardown duty), each with its own copy button.
 * **Provisioned instances**: lists those copies (age, size, running or not), with **Delete** / **Delete
   all** to clear any an agent left behind. MCEC also cleans up stale ones on its own.
+
+While an agent is driving, it may ask to use a command that is disabled (for example `launch`). MCEC then
+shows you a consent dialog naming the command(s) and the agent's stated reason; you can allow just those,
+allow those plus any later requests, or deny (the default; a deny is final for that instance). Grants are
+in-memory and die with the instance; nothing is written to your config files. See
+**[Agent Safety](safety-emergency-stop-and-provisioning.md)**.
 
 ### Agent settings (in `mcec.settings`)
 
@@ -132,13 +141,17 @@ applies to both the classic commands and the agent commands: an agent command ru
 
 Use the **Commands Window** (**Commands ▸ Enable and Test Commands…**) to enable/disable commands and test
 them. Details, including the `mcec.commands` XML format, are in
-**[Home Automation & Remote Control](home-automation.md#enabling-or-disabling-commands)**.
+**[Home Automation & Remote Control](home-automation.md#enabling-or-disabling-commands)**. An agent that
+needs a disabled command can also ask you for it live via `request-command-access`; you approve or deny
+on-screen, and an approval enables it in-memory for that instance only (see
+**[Agent Safety](safety-emergency-stop-and-provisioning.md)**).
 
 ## Agent safety
 
-The agent gates above decide *whether* the agent surface is reachable. Two operator-safety features build
-on them: the global **emergency-stop** hotkey and disposable **isolated session provisioning**. Both are
-covered in **[Agent Safety](safety-emergency-stop-and-provisioning.md)**.
+The agent gates above decide *whether* the agent surface is reachable. Three operator-safety features build
+on them: the global **emergency-stop** hotkey, disposable **isolated session provisioning**, and
+on-screen **command-access consent**. All are covered in
+**[Agent Safety](safety-emergency-stop-and-provisioning.md)**.
 
 ## Logging
 

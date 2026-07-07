@@ -65,7 +65,7 @@ Three independent, **off-by-default** gates; see [`docs/environment-controller.m
 `McpServerEnabled` (HTTP floor, localhost-bound). Every agent action is logged with an `AGENT-AUDIT:`
 line. An agent that hits "agent commands are disabled" should tell the user, not retry.
 
-Two safety features layer on top (see [`docs/safety-emergency-stop-and-provisioning.md`](docs/safety-emergency-stop-and-provisioning.md)):
+Three safety features layer on top (see [`docs/safety-emergency-stop-and-provisioning.md`](docs/safety-emergency-stop-and-provisioning.md)):
 
 - **Emergency stop**: a global "dead man's switch" hotkey (default `Ctrl+Alt+Shift+S`) the operator
   can hit from **any** window to instantly halt a session: it latches the actuation gate (every tool call is
@@ -82,7 +82,26 @@ Two safety features layer on top (see [`docs/safety-emergency-stop-and-provision
   (#296): the installed `mcec.exe --mcp` serves the **bootstrap only** — just `provision-session` /
   `end-session`, every other tool refused with `bootstrap-only` — so a fresh install's agent has a first
   hop, while the full observe/act surface is still never served from Program Files. Keep the bootstrap
-  restriction (`Program.ProvisioningBootstrapOnly`) and the meta-tools' own gates intact.
+  restriction (`Program.ProvisioningBootstrapOnly`) and the meta-tools' own gates intact. The operator's
+  **Provision new…** handoff dialog shows a two-step handoff: MCP client setup plus a ready-made agent
+  briefing prompt (`ProvisionedInstanceDialog.BuildAgentPrompt`); the prompt points at the connect-time
+  instructions rather than duplicating the playbook, keep it that way.
+- **Command-access consent** (#307): a `command-disabled` refusal is recovered by the
+  `request-command-access` meta-tool, never by editing config files. It shows the OPERATOR a consent
+  dialog (`CommandAccessConsentDialog`) with three choices: allow these commands, allow these plus any
+  later requests, or deny (sticky per instance; an emergency stop dismissing the prompt is NOT a deny
+  and records nothing). Grants are **in-memory only**: the loaded table's `Enabled` flags, never
+  persisted; `CommandInvoker.Save` serializes consent-granted commands as disabled
+  (`AgentConsent.WasGrantedByConsent`) so the Commands window cannot quietly write a grant into
+  mcec.commands. The dialog is protected from the agent by three layers: the call holds
+  `AgentRuntime.InputGate` while the prompt is up; dispatch freezes everything except the
+  `ToolDescriptor.ServedDuringConsent` observation tools with `consent-pending` (default false, so a
+  new tool stays frozen; the freeze runs BEFORE the meta-tool branches, so `provision-session` cannot
+  mint a second, unfrozen instance mid-prompt); and the dialog registers itself with `WindowResolver`
+  as never-a-target. Do not weaken any of the three, do not persist grants, and do not replace the
+  dialog with MCP elicitation (that routes consent through the agent's own client; the party being
+  constrained). Grants land on the key `CommandInvoker.ResolveGateKey` resolves (the entry Enqueue
+  actually gates on); route any new name-resolution through that one resolver.
 
 ## Dogfood: test MCEC using MCEC (mcec drives mcec)
 

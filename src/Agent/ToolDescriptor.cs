@@ -68,4 +68,13 @@ public sealed record ToolDescriptor {
     /// matching <see cref="SessionProvisioner"/>'s historical command set.
     /// </summary>
     public bool ProvisionedByDefault { get; init; }
+
+    /// <summary>
+    /// Whether the tool is still served while an operator consent prompt is open (#307). Default
+    /// FALSE; fail closed: only pure observation may run during the consent freeze, so anything that
+    /// could actuate, mutate state, or mint capability (and every meta-tool, which is not in the
+    /// catalog at all) is refused with <c>consent-pending</c> and can never reach, or help answer,
+    /// the agent's own prompt. A new tool must opt IN to being served, never out of the freeze.
+    /// </summary>
+    public bool ServedDuringConsent { get; init; }
 }
