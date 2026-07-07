@@ -32,6 +32,7 @@ namespace MCEControl {
             this._labelLogLevel = new System.Windows.Forms.Label();
             this._checkBoxHideOnStartup = new System.Windows.Forms.CheckBox();
             this._checkBoxAutoStart = new System.Windows.Forms.CheckBox();
+            this._checkBoxDisableUpdatePopup = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             //
             // _textBoxPacing
@@ -52,6 +53,17 @@ namespace MCEControl {
             this._labelPacing.Size = new System.Drawing.Size(150, 13);
             this._labelPacing.TabIndex = 3;
             this._labelPacing.Text = "Default command &pacing (ms):";
+            //
+            // _checkBoxDisableUpdatePopup
+            //
+            this._checkBoxDisableUpdatePopup.AutoSize = true;
+            this._checkBoxDisableUpdatePopup.Location = new System.Drawing.Point(16, 122);
+            this._checkBoxDisableUpdatePopup.Margin = new System.Windows.Forms.Padding(1);
+            this._checkBoxDisableUpdatePopup.Name = "_checkBoxDisableUpdatePopup";
+            this._checkBoxDisableUpdatePopup.Size = new System.Drawing.Size(220, 17);
+            this._checkBoxDisableUpdatePopup.TabIndex = 5;
+            this._checkBoxDisableUpdatePopup.Text = "&Disable automatic update notification popup";
+            this._checkBoxDisableUpdatePopup.CheckedChanged += new System.EventHandler(this.CheckBoxDisableUpdatePopupCheckedChanged);
             //
             // _comboBoxLogThresholds
             //
@@ -104,6 +116,7 @@ namespace MCEControl {
             this.Controls.Add(this._labelLogLevel);
             this.Controls.Add(this._checkBoxHideOnStartup);
             this.Controls.Add(this._checkBoxAutoStart);
+            this.Controls.Add(this._checkBoxDisableUpdatePopup);
             this.Name = "GeneralSettingsTab";
             this.Size = new System.Drawing.Size(440, 238);
             this.ResumeLayout(false);
@@ -119,5 +132,6 @@ namespace MCEControl {
         private System.Windows.Forms.Label _labelLogLevel;
         private System.Windows.Forms.CheckBox _checkBoxHideOnStartup;
         private System.Windows.Forms.CheckBox _checkBoxAutoStart;
+        private System.Windows.Forms.CheckBox _checkBoxDisableUpdatePopup;
     }
 }

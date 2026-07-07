@@ -153,4 +153,27 @@ public class SettingsTabControlTests {
         Assert.Equal("changed", clone.ClientHost);
         Assert.Equal("orig", original.ClientHost);
     }
+
+    [Fact]
+    public void GeneralTab_BindPopulatesAndMutatesDisableUpdatePopup() {
+        var settings = new AppSettings {
+            HideOnStartup = true,
+            DisableUpdatePopup = true,
+            CommandPacing = 100,
+        };
+
+        using var tab = new GeneralSettingsTab();
+        tab.Bind(settings);
+
+        var disableUpdatePopup = FindControl<CheckBox>(tab, "_checkBoxDisableUpdatePopup");
+        Assert.True(disableUpdatePopup.Checked);
+        Assert.True(tab.IsValid);
+
+        int changes = 0;
+        tab.ValidityChanged += (_, _) => changes++;
+
+        disableUpdatePopup.Checked = false;
+        Assert.False(settings.DisableUpdatePopup);
+        Assert.True(changes > 0);
+    }
 }
