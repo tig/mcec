@@ -21,7 +21,7 @@ If you are using MCEC from a desktop agent app, the recommended flow is:
    `provision-session` over the bootstrap surface). MCEC gives the agent the launch command, the session
    token, and the teardown instructions.
 3. Point your agent app at the provisioned instance's `mcec.exe mcp` (or its HTTP endpoint if you enabled
-   one). The agent can then use the normal environment-controller tools, while the safety gates remain in
+   one). The agent can then use the normal agent control tools, while the safety gates remain in
    effect.
 4. If the agent needs a command that is disabled, it asks for it with `request-command-access`; you can
    approve it for that instance, approve it plus later requests, or deny it.

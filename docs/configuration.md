@@ -11,9 +11,9 @@ running MCEC, every Settings tab, the agent gates in `mcec.settings`, enabling c
 
 For **installing** MCEC and where its files live, see [Install](install.md); for the **security model**
 behind the agent gates, see [Agent Safety](safety-emergency-stop-and-provisioning.md); for the agent
-tools themselves, see [Environment Controller](environment-controller.md).
+tools themselves, see [Agent Control](agent_control.md).
 
-If you want to use MCEC from a desktop agent app, see [Environment Controller](environment-controller.md).
+If you want to use MCEC from a desktop agent app, see [Agent Control](agent_control.md).
 In practice: enable
 **Allow agents to provision disposable instances**, create a disposable session (**Provision new…** or
 `provision-session`), and use the MCP client setup line from the handoff (or the session's HTTP endpoint
@@ -72,7 +72,7 @@ The **General** tab:
 
 The **Client**, **Server**, **Serial Server**, and **Activity Monitor** tabs configure the classic
 remote-control transports and are documented in
-**[Home Automation & Remote Control](home-automation.md)**.
+**[Home Control](home_control.md)**.
 
 The **Agent** tab is where you let an agent (a desktop assistant or computer-use tool) work with MCEC via
 [session provisioning](safety-emergency-stop-and-provisioning.md):
@@ -153,7 +153,7 @@ enabled. (The Program Files install never serves the full agent command surface;
 
 Use the **Commands Window** (**Commands ▸ Enable and Test Commands…**) to enable/disable commands and test
 them. Details, including the `mcec.commands` XML format, are in
-**[Home Automation & Remote Control](home-automation.md#enabling-or-disabling-commands)**. An agent that
+**[Home Control](home_control.md#enabling-or-disabling-commands)**. An agent that
 needs a disabled command can also ask you for it live via `request-command-access`; you approve or deny
 on-screen, and an approval enables it in-memory for that instance only (see
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)**).

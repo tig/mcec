@@ -3,7 +3,7 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# Environment Controller
+# Agent Control
 
 MCEC 3.0 turns the MCE Controller daemon into a small, opt-in automation server for
 AI agents and scripts running on a Windows PC. It gives an agent three things:

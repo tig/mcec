@@ -3,10 +3,10 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# MCEC for Home Automation & Remote Control
+# Home Control
 
 **MCEC** (Model Context Environment Controller) began life as **MCE Controller**, and its original job is
-still first-class: it is a robust, battle-tested way to control a Windows PC from a home-automation or
+still first-class: it is a robust, battle-tested way to control a Windows PC from a home-control or
 remote-control system. It runs in the background listening on the network (or a serial port) for
 *Commands*, and translates them into actions on the PC: keystrokes, text input, mouse movement, window
 messages, and launching programs.
@@ -22,7 +22,7 @@ whole-house A/V system, but it is general enough for any control system that can
 port or serial port.
 
 > **Looking for the agent/AI side?** MCEC 3.0 is also an opt-in automation server for AI agents over the
-> **Model Context Protocol (MCP)**: see the [Environment Controller](environment-controller.md) and
+> **Model Context Protocol (MCP)**: see the [Agent Control](agent_control.md) and
 > [Configuration](configuration.md) chapters. This page covers the classic remote-control features, which are
 > unchanged and remain the default behavior.
 
@@ -52,9 +52,9 @@ engine can:
 * Shut down, restart, sleep, or hibernate the PC with `Shutdown` commands.
 * Be extended to suit your needs through an `mcec.commands` file.
 
-> **Same vocabulary, two front doors.** This command language is shared. A home-automation system sends
+> **Same vocabulary, two front doors.** This command language is shared. A home-control system sends
 > these commands over TCP/serial; an AI agent can send the very same raw command strings through the MCP
-> [`send_command`](environment-controller.md) tool. Everything on this page applies to both.
+> [`send_command`](agent_control.md) tool. Everything on this page applies to both.
 
 ## Transports: Client, Server, and Serial
 
@@ -369,7 +369,7 @@ The general format is:
 | `mtp,x,y` | Move to an absolute **screen pixel**; the same coordinate space the agent `query`/`find`/`displays` tools use. Takes real pixels and normalizes across the virtual desktop, so negative or secondary-monitor coordinates land correctly (`mouse:mtp,812,562`). |
 | `hs,n` | Horizontal scroll *n* clicks (positive = right) |
 | `vs,n` | Vertical scroll *n* clicks (positive = forward/away) |
-| `drag,x1,y1,x2,y2[,x3,y3,…]` | Press at the first point, move through every subsequent point with the button held, and release at the last; a full press → move-path → release gesture dispatched **atomically** (nothing else interleaves). Coordinates are absolute screen pixels (normalized across the virtual desktop internally). Use it to resize a window by its border, move one by its title bar, drag a slider, marquee-select, or reorder (`mouse:drag,400,300,700,500`). Agents get a higher-level [`drag`](environment-controller.md) tool that also accepts UI Automation elements as endpoints. |
+| `drag,x1,y1,x2,y2[,x3,y3,…]` | Press at the first point, move through every subsequent point with the button held, and release at the last; a full press → move-path → release gesture dispatched **atomically** (nothing else interleaves). Coordinates are absolute screen pixels (normalized across the virtual desktop internally). Use it to resize a window by its border, move one by its title bar, drag a slider, marquee-select, or reorder (`mouse:drag,400,300,700,500`). Agents get a higher-level [`drag`](agent_control.md) tool that also accepts UI Automation elements as endpoints. |
 
 When sending mouse movements it helps to hide the MCEC window; the live log display consumes resources and
 can make motion jerky.

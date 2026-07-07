@@ -9,7 +9,7 @@ itself: one MCEC drives a **second MCEC** through a guided tour (launch → **Fi
 every tab) → **mouse-resize** the window ~25% smaller by dragging its sizing border → **drag the title
 bar in small circles** → **Help ▸ About** → pause) while the **on-screen command overlay**
 narrates every command in burnt orange, all recorded by the agent
-[`record`](environment-controller.md#record--capturing-change-over-time) tool. No external screen-recorder.
+[`record`](agent_control.md#record--capturing-change-over-time) tool. No external screen-recorder.
 
 The two oranges line up on purpose: the overlay's item background is the **About box's brand orange**,
 so the About dialog and the narration match.

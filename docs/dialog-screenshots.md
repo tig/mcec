@@ -6,7 +6,7 @@
 
 `docs/settings_*.png` (General, Agent, Client, Server, Serial Server, Activity Monitor) are the Settings
 dialog tab screenshots embedded in [configuration.md](configuration.md) and
-[home-automation.md](home-automation.md). They are produced by **MCEC dogfooding itself**: a controller
+[home_control.md](home_control.md). They are produced by **MCEC dogfooding itself**: a controller
 drives a disposable subject, opens its Settings dialog, and `capture`s each tab. No committed producer
 script; an agent authors a throwaway driver from this page.
 

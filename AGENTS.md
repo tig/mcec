@@ -60,7 +60,7 @@ to keep in sync.
 
 ## Security (do not regress)
 
-Three independent, **off-by-default** gates; see [`docs/environment-controller.md`](docs/environment-controller.md):
+Three independent, **off-by-default** gates; see [`docs/agent_control.md`](docs/agent_control.md):
 `AgentCommandsEnabled` (the observation opt-in, separate from actuation), per-command `Enabled`, and
 `McpServerEnabled` (HTTP floor, localhost-bound). Every agent action is logged with an `AGENT-AUDIT:`
 line. An agent that hits "agent commands are disabled" should tell the user, not retry.

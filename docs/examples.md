@@ -104,4 +104,4 @@ artifact and the prompt at the very top so a human sees the payoff first and an 
 ```
 
 See also [AGENTS.md](https://github.com/tig/mcec/blob/main/AGENTS.md) for the connect-time guidance an
-agent gets, and [Environment Controller](environment-controller.md) for the full tool reference.
+agent gets, and [Agent Control](agent_control.md) for the full tool reference.

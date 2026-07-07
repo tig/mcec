@@ -185,7 +185,7 @@ All commands are located in the `Commands\` directory:
 > (`AppSettings.AgentCommandsEnabled`, separate from the actuation enable), bind to localhost
 > only, and loudly audit-log every action. The engine reaches settings/invoker through the
 > UI-agnostic `AgentRuntime` seam so it runs headless (no `MainWindow`). See
-> [`docs/environment-controller.md`](../docs/environment-controller.md) (users) and
+> [`docs/agent_control.md`](../docs/agent_control.md) (users) and
 > [`docs/agent-server-architecture.md`](../docs/agent-server-architecture.md) (devs).
 
 **Nested Commands**:
