@@ -13,8 +13,8 @@ For **installing** MCEC and where its files live, see [Install](install.md); for
 behind the agent gates, see [Agent Safety](safety-emergency-stop-and-provisioning.md); for the agent
 tools themselves, see [Environment Controller](environment-controller.md).
 
-If you want to use MCEC from a desktop agent app, start with the [Environment Controller](environment-controller.md)
-workflow and use provisioning rather than opening up the installed copy. In practice: enable
+If you want to use MCEC from a desktop agent app, see [Environment Controller](environment-controller.md).
+In practice: enable
 **Allow agents to provision disposable instances**, create a disposable session (**Provision new…** or
 `provision-session`), and use the MCP client setup line from the handoff (or the session's HTTP endpoint
 when enabled).
