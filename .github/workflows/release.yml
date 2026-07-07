@@ -40,6 +40,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      # POLICY: releases are cut from the CURRENT TIP of `main`, never from `develop`, a feature branch,
+      # or an older `main` commit. GitHub Pages also publishes the docs site from `main/docs`, so gating
+      # the release on "commit == main tip" ALSO guarantees the published docs match the released build;
+      # a release can never ship ahead of (or behind) the docs site. An "is-ancestor of main" test would
+      # be too weak: an older main commit (or a develop commit already merged into main) is an ancestor
+      # yet can carry older docs than the tip Pages publishes. The fix when this fails is always the
+      # same: merge develop into main, push main, then tag that main commit. Fails fast, before any
+      # build/sign work.
+      - name: Enforce release comes from main
+        shell: pwsh
+        run: |
+          git fetch --no-tags origin main
+          $mainSha = (git rev-parse FETCH_HEAD).Trim()
+          $sha = (git rev-parse HEAD).Trim()
+          if ($sha -ne $mainSha) {
+            throw "Release commit $sha is not the current tip of origin/main ($mainSha). Releases must come from main: merge develop into main, push main, then tag that main commit (see dev/RELEASING.md)."
+          }
+          Write-Host "::notice::Verified the release commit is the current tip of main."
+
       - name: Setup .NET
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
@@ -77,7 +96,7 @@ jobs:
 
       - name: Azure login (OIDC)
         if: ${{ env.SIGN == 'true' }}
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}

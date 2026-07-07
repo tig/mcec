@@ -34,6 +34,12 @@ public static class SessionProvisioner {
     public static readonly string[] DefaultCommands =
         [.. ToolCatalog.All.Where(d => d.ProvisionedByDefault).Select(d => d.Name)];
 
+    /// <summary>
+    /// Agent UIA dependencies that must be co-located with <c>mcec.exe</c> in every provisioned copy.
+    /// A session missing these cannot run (or safely shut down after) agent observation commands (#317).
+    /// </summary>
+    internal static readonly string[] RequiredAgentAssemblies = ["FlaUI.Core.dll", "FlaUI.UIA3.dll"];
+
     // A provisioned session id is a bare 12-char lowercase-hex token (Guid "N"[..12]). end-session accepts
     // ONLY this shape so a caller can never pass a path/traversal token (e.g. ".." or "a/b") that would make
     // Teardown delete something outside the sessions root. end-session is exposed over MCP and is not behind
@@ -89,7 +95,9 @@ public static class SessionProvisioner {
 
         try {
             Directory.CreateDirectory(dir);
+            VerifyAgentDependencies(BinariesDir, sessionDir: null);
             CopyBinaries(BinariesDir, dir);
+            VerifyAgentDependencies(dir, sessionDir: dir);
             WriteSessionSettings(dir, mcpServerEnabled, port, token);
             WriteSessionCommands(dir, enable, version);
         }
@@ -322,6 +330,21 @@ public static class SessionProvisioner {
             AgentRuntime.Audit("provision-session", $"reaped {reaped} stale session dir(s) under {SessionsRoot}");
         }
         return reaped;
+    }
+
+    /// <summary>
+    /// Confirms every <see cref="RequiredAgentAssemblies"/> file exists under
+    /// <paramref name="binariesDir"/> (and, when <paramref name="sessionDir"/> is set, was copied into
+    /// the session). Throws before a partial provision is handed off.
+    /// </summary>
+    private static void VerifyAgentDependencies(string binariesDir, string? sessionDir) {
+        foreach (string name in RequiredAgentAssemblies) {
+            string path = Path.Combine(binariesDir, name);
+            if (!File.Exists(path)) {
+                string where = sessionDir is null ? $"the running install at '{binariesDir}'" : $"the provisioned copy at '{sessionDir}'";
+                throw new InvalidOperationException($"Required agent dependency '{name}' is missing from {where}. Reinstall or rebuild MCEC.");
+            }
+        }
     }
 
     /// <summary>Recursively copies the binaries, skipping any mutable config/log the installed instance left behind.</summary>

@@ -13,6 +13,11 @@ For **installing** MCEC and where its files live, see [Install](install.md); for
 behind the agent gates, see [Agent Safety](safety-emergency-stop-and-provisioning.md); for the agent
 tools themselves, see [Environment Controller](environment-controller.md).
 
+If you want to use MCEC from a desktop agent app, start with the [Environment Controller](environment-controller.md)
+workflow and use provisioning rather than opening up the installed copy. In practice: enable
+**Allow agents to provision disposable instances**, create a disposable session, and point your agent at
+that instance's `mcec.exe mcp` (or its HTTP endpoint).
+
 Installed under Program Files, MCEC keeps its configuration under `%APPDATA%\Kindel\MCEC`
 (`mcec.settings`, `mcec.commands`, `mcec.log`); a copy run from anywhere else reads its config co-located
 in its own folder (see [Install](install.md#side-by-side-copies)).
@@ -32,10 +37,13 @@ spawn it on demand and talk JSON-RPC over stdio:
 mcec.exe mcp
 ```
 
-The **installed** copy (under Program Files) refuses to run as an MCP server or to serve the MCP/HTTP
-endpoint: enabling agent gates in the installed configuration would leak them enabled if a session
-crashed. Use [session provisioning](safety-emergency-stop-and-provisioning.md) to get a disposable,
-isolated copy, or copy the install directory somewhere writable and run from there.
+The **installed** copy (under Program Files) never serves the full agent surface: it refuses to start
+the MCP/HTTP endpoint, and over `mcp`/`--mcp` it serves only the provisioning **bootstrap**
+(`provision-session` / `end-session`), because enabling agent gates in the installed configuration would
+leak them enabled if a session crashed. Use [session provisioning](safety-emergency-stop-and-provisioning.md)
+to get a disposable, isolated copy that serves everything — call `provision-session` (or click
+**Provision new…** on File ▸ Settings ▸ Agent), or copy the install directory somewhere writable and run
+from there.
 
 `mcec.exe` also has a command-line surface (built on
 [Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--help`, `--version`, `--opencli` (machine-readable
@@ -49,6 +57,7 @@ somewhere writable; each copy gets its own independent `.settings`, `.commands`,
 
 ## Settings
 
+<!-- To regenerate the settings_*.png tab screenshots below, see dialog-screenshots.md. -->
 ![Settings](settings_general.png "Settings")
 
 Settings are stored as XML in `mcec.settings`, in the `%APPDATA%\Kindel\MCEC` directory. Most settings
@@ -61,6 +70,8 @@ The **General** tab:
 * **Log Threshold**: how much is shown in the main window (`INFO`, `DEBUG`, or `ALL`). Log *files* always
   contain `ALL` events.
 * **Default command pacing (ms)**: delay MCEC applies before executing each received command (default 0).
+* **Disable automatic update notification popup**: when checked, MCEC still checks for updates and
+  enables **Help ▸ Install Latest Version…**, but does not pop up the update dialog automatically.
 
 The **Client**, **Server**, **Serial Server**, and **Activity Monitor** tabs configure the classic
 remote-control transports and are documented in
@@ -71,11 +82,20 @@ The **Agent** tab is where you let an agent (a desktop assistant or computer-use
 
 ![Settings ▸ Agent](settings_agent.png "The Agent tab: the provisioning opt-in and the list of provisioned instances")
 
-* **Allow agents to provision disposable instances**: the one switch to turn on. A connected agent then
-  gets a fresh, throwaway copy of MCEC to drive, deleted when it finishes. It never opens up this installed
-  copy.
+* **Allow agents to provision disposable instances**: the one switch to turn on for a desktop agent app.
+  A connected agent then gets a fresh, throwaway copy of MCEC to drive, deleted when it finishes. It never
+  opens up this installed copy.
+* **Provision new…**: creates a throwaway copy yourself and shows a two-step handoff: the MCP client
+  setup line, and a ready-made briefing prompt to paste to your agent (its session id, token, rules of
+  engagement, and teardown duty), each with its own copy button.
 * **Provisioned instances**: lists those copies (age, size, running or not), with **Delete** / **Delete
   all** to clear any an agent left behind. MCEC also cleans up stale ones on its own.
+
+While an agent is driving, it may ask to use a command that is disabled (for example `launch`). MCEC then
+shows you a consent dialog naming the command(s) and the agent's stated reason; you can allow just those,
+allow those plus any later requests, or deny (the default; a deny is final for that instance). Grants are
+in-memory and die with the instance; nothing is written to your config files. See
+**[Agent Safety](safety-emergency-stop-and-provisioning.md)**.
 
 ### Agent settings (in `mcec.settings`)
 
@@ -92,10 +112,33 @@ The agent surface is configured by these keys. All are off/safe by default; see
 | `CommandOverlayPosition` | `Right` | Which side of the primary screen the overlay docks to. |
 | `EmergencyStopEnabled` | `true` | Arms the global emergency-stop hotkey while the agent front door could be driving. |
 | `EmergencyStopHotkey` | `Ctrl+Alt+Shift+S` | The panic-hotkey chord (a `+`-separated spec). |
-| `AllowSessionProvisioning` | `false` | Operator opt-in that lets an agent request a fresh, isolated MCEC instance via `provision-session`. |
+| `AllowSessionProvisioning` | `false` | Operator opt-in that lets an agent request a fresh, isolated MCEC instance via `provision-session` (and enables the **Provision new…** button on the Agent tab). |
 | `AgentRecordMaxFps` / `AgentRecordMaxDurationMs` / `AgentRecordMaxFrames` / `AgentRecordMaxWidth` | 30 / 60000 / 600 / 1280 | Safety limits for the `record` tool (requests above them are clamped, not failed). |
 
 Restart MCEC (or relaunch `--mcp`) after editing `mcec.settings`.
+
+### Update checks (in `mcec.settings`)
+
+MCEC checks GitHub for a newer release at startup and once every 24 hours. When one is found it enables
+the **Help ▸ Install Latest Version…** menu item and pops up the update dialog. On an unattended
+kiosk/exhibit machine that popup can appear over the interactive application and interrupt people who
+should never see MCEC's UI.
+
+To keep the check but suppress the automatic popup, tick **Disable automatic update notification popup**
+on the **General** tab of **File ▸ Settings…**, or set the key directly in `mcec.settings`:
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `DisableUpdatePopup` | `false` | When `true`, MCEC still checks for updates and enables **Help ▸ Install Latest Version…** when one is available, but does **not** pop up the update dialog automatically. Operators update on demand from the Help menu. |
+
+```xml
+<AppSettings>
+  ...
+  <DisableUpdatePopup>true</DisableUpdatePopup>
+</AppSettings>
+```
+
+Restart MCEC after changing it.
 
 ## Enabling or Disabling Commands
 
@@ -105,13 +148,17 @@ applies to both the classic commands and the agent commands: an agent command ru
 
 Use the **Commands Window** (**Commands ▸ Enable and Test Commands…**) to enable/disable commands and test
 them. Details, including the `mcec.commands` XML format, are in
-**[Home Automation & Remote Control](home-automation.md#enabling-or-disabling-commands)**.
+**[Home Automation & Remote Control](home-automation.md#enabling-or-disabling-commands)**. An agent that
+needs a disabled command can also ask you for it live via `request-command-access`; you approve or deny
+on-screen, and an approval enables it in-memory for that instance only (see
+**[Agent Safety](safety-emergency-stop-and-provisioning.md)**).
 
 ## Agent safety
 
-The agent gates above decide *whether* the agent surface is reachable. Two operator-safety features build
-on them: the global **emergency-stop** hotkey and disposable **isolated session provisioning**. Both are
-covered in **[Agent Safety](safety-emergency-stop-and-provisioning.md)**.
+The agent gates above decide *whether* the agent surface is reachable. Three operator-safety features build
+on them: the global **emergency-stop** hotkey, disposable **isolated session provisioning**, and
+on-screen **command-access consent**. All are covered in
+**[Agent Safety](safety-emergency-stop-and-provisioning.md)**.
 
 ## Logging
 

@@ -16,9 +16,9 @@ namespace MCEControl;
 /// <summary>
 /// The on-screen command overlay (#119): a borderless, top-most, <b>click-through</b>, alpha-blended
 /// window that shows each MCEC command as it executes; the "MainWindow log view, tersified, larger
-/// font." It subscribes to <see cref="CommandEventHub"/>, keeps a small <see cref="OverlayFeed"/>, and
+/// font." It subscribes to <see cref="CommandEventHub"/>, keeps a bounded <see cref="OverlayFeed"/>, and
 /// paints the feed in a ~30% column hugging the docked (left or right) screen edge, with no border or
-/// scrollbars; old lines fade out.
+/// scrollbars; the newest command sits at the top and older ones scroll down and off the bottom.
 ///
 /// <para>It is a true per-pixel-alpha layered window (<c>UpdateLayeredWindow</c>): each line sits on the
 /// About box's burnt-orange brand colour at 30% alpha so the desktop shows through, while the text stays
@@ -36,9 +36,10 @@ namespace MCEControl;
 /// <para>A persistent banner sits across the top (#266): while running it reads "MCEC is controlling
 /// your PC", one line centered horizontally on the screen in the brand orange; while emergency-stopped
 /// (#135) the red "⛔ STOPPED by operator" bar takes its place. The banner lives inside this window, so it
-/// only appears when the overlay itself is enabled. The command feed flows downward from just below the
-/// banner (top-anchored) in its docked column, keeping the newest lines visible and trimming the oldest,
-/// so it fills the whole screen height instead of clustering at the bottom.</para>
+/// only appears when the overlay itself is enabled. The command feed is a running list below the banner
+/// in its docked column: the newest command appears at the top and older ones are pushed down, filling
+/// the screen height until the oldest scroll off the bottom edge. Entries persist (they do not time out);
+/// the feed is bounded only by a line cap and the available screen height.</para>
 /// </summary>
 public sealed class CommandOverlayWindow : Form {
     private const int WS_EX_TRANSPARENT = 0x00000020;
@@ -61,7 +62,10 @@ public sealed class CommandOverlayWindow : Form {
     private readonly OverlayFeed _feed;
     private readonly Action<CommandEvent> _onEvent;
     private readonly Action<bool> _onEmergencyStop;
-    private readonly System.Windows.Forms.Timer _ageTimer;
+    // Periodic repaint that re-asserts top-most Z-order (see PushLayered): a window that goes top-most
+    // AFTER the overlay would otherwise occlude it. It no longer ages the feed out; the feed is now a
+    // persistent scrolling list (newest at top), redrawn on each new command event.
+    private readonly System.Windows.Forms.Timer _repaintTimer;
     private readonly OverlayPosition _side;
 
     // Width of the docked command-feed column. The window spans the full screen width (so the banner can
@@ -90,8 +94,8 @@ public sealed class CommandOverlayWindow : Form {
         Bounds = bounds;
         _feedColumnWidth = OverlayLayout.FeedColumnWidth(bounds.Width);
         // Cap the feed to fill the actual overlay height (the old fixed 8 left tall screens empty above
-        // the last few lines); the renderer's geometric break still trims anything past the top edge.
-        _feed = new OverlayFeed(maxLines: OverlayLayout.MaxLines(bounds.Height), lifetime: TimeSpan.FromSeconds(8));
+        // the last few lines); the renderer's geometric break still trims anything past the bottom edge.
+        _feed = new OverlayFeed(maxLines: OverlayLayout.MaxLines(bounds.Height));
 
         _onEvent = OnCommandEvent;
         CommandEventHub.Subscribe(_onEvent);
@@ -100,9 +104,15 @@ public sealed class CommandOverlayWindow : Form {
         _onEmergencyStop = OnEmergencyStopStateChanged;
         EmergencyStop.StateChanged += _onEmergencyStop;
 
-        _ageTimer = new System.Windows.Forms.Timer { Interval = 300 };
-        _ageTimer.Tick += (_, _) => Render();
-        _ageTimer.Start();
+_repaintTimer = new System.Windows.Forms.Timer { Interval = 300 };
+_repaintTimer.Tick += (_, _) => {
+    if (!IsHandleCreated || IsDisposed) {
+        return;
+    }
+    AgentNativeMethods.SetWindowPos(Handle, AgentNativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+        AgentNativeMethods.SWP_NOMOVE | AgentNativeMethods.SWP_NOSIZE | AgentNativeMethods.SWP_NOACTIVATE);
+};
+_repaintTimer.Start();
     }
 
     private void OnEmergencyStopStateChanged(bool stopped) {
@@ -167,7 +177,7 @@ public sealed class CommandOverlayWindow : Form {
                 BeginInvoke(_onEvent, ev);
                 return;
             }
-            _feed.Add(ev, DateTime.UtcNow);
+            _feed.Add(ev);
             Render();
         }
         catch (ObjectDisposedException) {
@@ -199,7 +209,7 @@ public sealed class CommandOverlayWindow : Form {
     }
 
     private void DrawFeed(Graphics g, int width, int height, float top) {
-        IReadOnlyList<CommandEvent> lines = _feed.Visible(DateTime.UtcNow);
+        IReadOnlyList<CommandEvent> lines = _feed.Snapshot(); // newest first
         if (lines.Count == 0) {
             return;
         }
@@ -213,39 +223,17 @@ public sealed class CommandOverlayWindow : Form {
         int colWidth = Math.Min(_feedColumnWidth, width);
         float colLeft = _side == OverlayPosition.Left ? 0f : width - colWidth;
 
-        // Measure each box up front so we can both pick the newest lines that fit and lay them out
-        // top-down in one pass.
-        SizeF[] textSizes = new SizeF[lines.Count];
-        float[] boxHeights = new float[lines.Count];
-        for (int i = 0; i < lines.Count; i++) {
-            textSizes[i] = g.MeasureString(lines[i].TerseText, font, colWidth - pad * 2);
-            boxHeights[i] = textSizes[i].Height + pad;
-        }
-
-        // Top-anchored (#266): the feed flows DOWN from just below the banner so it fills the whole
-        // screen height as lines accumulate, instead of the old bottom-up stack that left tall screens
-        // empty above the last few lines. When more lines exist than fit, keep the NEWEST: walk from the
-        // end back up while boxes still fit, then draw that window oldest-first from the top.
-        float available = height - (top + gap);
-        int first = 0;
-        float used = 0f;
-        for (int i = lines.Count - 1; i >= 0; i--) {
-            float add = boxHeights[i] + (used > 0f ? gap : 0f);
-            if (used + add > available) {
-                first = i + 1;
-                break;
-            }
-            used += add;
-        }
-
+        // Newest at the top, older pushed down: draw from just below the banner and walk toward the
+        // bottom edge, so the most recent command is always the top box. When more lines exist than fit,
+        // the oldest simply fall off the bottom (the geometric break below), no timeout involved.
         float y = top + gap;
-        for (int i = first; i < lines.Count; i++) {
-            CommandEvent ev = lines[i];
-            float boxH = boxHeights[i];
+        foreach (CommandEvent ev in lines) {
+            SizeF textSize = g.MeasureString(ev.TerseText, font, colWidth - pad * 2);
+            float boxH = textSize.Height + pad;
             if (y + boxH > height) {
-                break; // ran out of room at the bottom edge
+                break; // ran out of room at the bottom edge; older lines fall off
             }
-            float boxW = Math.Min(textSizes[i].Width + pad * 2, colWidth);
+            float boxW = Math.Min(textSize.Width + pad * 2, colWidth);
             float boxX = _side == OverlayPosition.Left ? colLeft : colLeft + colWidth - boxW; // hug the docked edge
 
             using (SolidBrush scrim = new(_itemBackground))
@@ -378,7 +366,7 @@ public sealed class CommandOverlayWindow : Form {
         if (disposing) {
             CommandEventHub.Unsubscribe(_onEvent);
             EmergencyStop.StateChanged -= _onEmergencyStop;
-            _ageTimer.Dispose();
+            _repaintTimer.Dispose();
             // OnHandleDestroyed normally clears the registration; unregister defensively in case the
             // window is disposed without a handle-destroyed notification.
             if (_registeredHandle != 0) {

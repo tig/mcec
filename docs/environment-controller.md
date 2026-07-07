@@ -13,7 +13,7 @@ AI agents and scripts running on a Windows PC. It gives an agent three things:
 - **A front door**: query/find windows and UI elements, wait for conditions, and
   drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
 
-The agent surface is a set of new commands (`capture`, `query`, `displays`, `windows`, `find`,
+The agent surface is a set of new commands (`capture`, `query`, `displays`, `windows`, `window`, `find`,
 `wait-for`, `invoke`, `record`, `launch`, `drag`, `click`, and `focus`) exposed as **tools over MCP/HTTP**
 so an agent can call them directly. Each tool call returns a **structured JSON result
 envelope** (`{ ok, result, … }`) instead of free text, so an agent can reason about
@@ -22,6 +22,26 @@ success and failure uniformly.
 > **This release is purely additive.** No existing HTPC command, transport, or default
 > is changed. If you do nothing, MCEC behaves exactly as it did before; every new
 > capability is **off by default** and must be explicitly enabled.
+
+## Quick start: use it from a desktop agent app
+
+If your goal is to let a desktop agent app (an MCP client, a desktop assistant, or a custom automation
+app) drive MCEC, use the provisioning workflow below. It is the recommended path because it keeps the agent
+on a disposable copy of MCEC instead of your installed instance.
+
+1. In **File ▸ Settings ▸ Agent**, turn on **Allow agents to provision disposable instances**.
+2. Create a disposable session either by clicking **Provision new…** or by letting the agent call
+   `provision-session` over the bootstrap surface. MCEC returns a throwaway copy of the app and the
+   launch/teardown details.
+3. Point your agent at that instance's `mcec.exe mcp` (or its HTTP endpoint if you configured one) and
+   start driving. The installed copy is only for bootstrapping; the provisioned copy serves the full tool
+   surface.
+4. If the agent needs a command that is disabled, it asks via `request-command-access`; you approve or
+   deny on-screen. Use the emergency-stop hotkey if the session goes off the rails.
+5. When the run is done, end the session or delete the provisioned instance.
+
+This is the primary supported workflow for desktop-agent use. The detailed safety model is in
+[Agent Safety](safety-emergency-stop-and-provisioning.md).
 
 ---
 
@@ -84,7 +104,10 @@ and returns a JSON failure (for commands); it never silently proceeds.
 `record`/`launch`/`drag`/`click`/`focus`) are gated by **both** `AgentCommandsEnabled` **and** the per-command `Enabled`
 flag, over **both** MCP transports (`mcec.exe --mcp` stdio and the HTTP floor): a `tools/call` for a
 command whose `Enabled=false` is refused (`error.code: command-disabled`) even when
-`AgentCommandsEnabled=true`.
+`AgentCommandsEnabled=true`. An agent can recover from `command-disabled` mid-session with the
+`request-command-access` tool, which asks **you** on-screen and enables the command (in-memory, that
+instance only) only if you allow it; see
+[command-access consent](safety-emergency-stop-and-provisioning.md).
 
 **`send_command` is transport-sensitive.** It is a raw pass-through to the existing command engine,
 so it is a command-injection surface. Over the **local stdio** transport (`mcec.exe --mcp`, launched by its
@@ -155,6 +178,7 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 | `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6), `maxNodes` (default 1000) |
 | `displays` | Report **display geometry**; every monitor's pixel `bounds`, `workingArea`, `primary` flag, and `dpi`/`scale`, plus the union `virtualBounds`. Lets an agent interpret the absolute-pixel bounds `query`/`find` return and place pixel clicks/drags without measuring the screen itself. | *(none)* |
 | `windows`  | **Discover top-level windows and wait on window state**: list each window's `handle`, `title`, `className`, `processName`, `processId`, and `bounds`, so an agent can target a window instead of guessing. Optionally filtered; with a `timeout` it **waits** for `condition`: `appears` (default; a match exists), `disappears` (no window matches, e.g. a modal closed), or `foreground` (a match is the foreground window). No filter lists all; a wait (or `disappears`/`foreground`) with no filter is refused. A timeout carries `waitedFor` + `lastObservedWindows` for triage. | `window`/`process`/`className` filters, `condition` (appears/disappears/foreground), `timeout` (ms) |
+| `window`   | **Manage a top-level window directly**: move/resize it, minimize/maximize/restore it, or bring it to the foreground. For move/resize, `animate:true` lets the window appear to be dragged instead of instantly teleporting. | window target, `action` (`move`\|`resize`\|`minimize`\|`maximize`\|`restore`\|`foreground`), `x`/`y` or `width`/`height`, optional `animate` |
 | `find`     | Find a **UI Automation element** by name / automation id / class.                 | window target, `by` (`name`\|`automationid`\|`classname`), `value`, `timeout` |
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
 | `invoke`   | Drive a UI Automation element pattern (incl. select for SelectionItem); far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`\|`expand`\|`collapse`\|`select`), `text` |
@@ -224,8 +248,10 @@ failing call's own partial payload, e.g. a blank capture's suspect PNG):
 > [`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md). A
 > couple of feature-specific refusals ride in `error.code` while `error.category` stays `internal`:
 > `emergency-stopped` (the operator engaged the [emergency stop](safety-emergency-stop-and-provisioning.md)),
-> `provisioning-not-authorized` (`AllowSessionProvisioning` is off), and `command-disabled` (the
-> per-command `Enabled` gate).
+> `provisioning-not-authorized` (`AllowSessionProvisioning` is off), `command-disabled` (the
+> per-command `Enabled` gate; recover via `request-command-access`), and the
+> [command-access consent](safety-emergency-stop-and-provisioning.md) family
+> (`consent-denied`, `consent-timeout`, `consent-pending`, `consent-unavailable`).
 
 ### Agent sessions
 
@@ -317,7 +343,7 @@ the model can view it directly, alongside the JSON envelope above.
 ### `record`: capturing change over time
 
 `capture` answers "what does this look like **now**". When you need to show change *over
-time* (an animation for a demo or issue report, or a repro of a transient/flicker), use
+time* (for example, an animation for a demo or a reproduction of a transient/flicker), use
 `record`, which writes an **animated GIF**.
 
 > **⚠️ Privacy:** a recording captures whatever is on screen for its *entire* duration,
@@ -488,26 +514,30 @@ rest of the tree is returned.
 
 ---
 
-## Using MCEC as an MCP server
+## Using MCEC from a desktop agent app
 
 MCEC can run **headless** as an MCP **stdio** server (no main window, no tray icon; the
-on-screen command overlay and the emergency-stop hotkey still work) so an MCP client
-(such as a desktop AI assistant) can spawn it on demand and talk to it over standard
+on-screen command overlay and the emergency-stop hotkey still work) so a desktop agent app
+(such as a desktop AI assistant or custom MCP client) can spawn it on demand and talk to it over standard
 input/output:
 
 ```
 mcec.exe mcp        # or the equivalent legacy spelling: mcec.exe --mcp
 ```
 
-**Never point an MCP client at the installed copy.** `mcec.exe` under Program Files
-refuses `mcp`/`--mcp` (and refuses to start the MCP/HTTP endpoint) with an error
-explaining the alternatives: serving agents from the installed, operator-owned copy
-would mean enabling agent security gates in the one configuration the operator's own
-MCEC reads, where a crashed session leaks them enabled. Instead, either have an agent
-call `provision-session` (see
-[Agent safety](safety-emergency-stop-and-provisioning.md)) to get a disposable,
-isolated copy, or copy the install directory somewhere writable and point the client
-there; a non-installed copy reads its own co-located `mcec.settings`.
+**Don't drive the installed copy directly; use it to bootstrap.** `mcec.exe` under Program Files never
+serves the full agent surface: it refuses to start the MCP/HTTP endpoint, and over `mcp`/`--mcp` it
+serves **only the provisioning bootstrap** (#296) — `tools/list` and dispatch expose just
+`provision-session` and `end-session`, and every observation/actuation tool is refused with
+`error.code: bootstrap-only` (the connect-time `instructions` say so). Serving the full surface from the
+installed, operator-owned copy would mean enabling agent security gates in the one configuration the
+operator's own MCEC reads, where a crashed session leaks them enabled. So an MCP client points at the
+installed copy only to call `provision-session` (see
+[Agent safety](safety-emergency-stop-and-provisioning.md)) and gets back a disposable, isolated copy that
+serves the full surface — then drives *that*. Alternatives that skip the round-trip: click
+**Provision new…** on File ▸ Settings ▸ Agent and paste the handoff into your client, or copy the install
+directory somewhere writable and point the client there (a non-installed copy reads its own co-located
+`mcec.settings` and serves everything).
 
 The exe also exposes a CLI surface (built on
 [Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--opencli` emits machine-readable
@@ -529,7 +559,9 @@ style used by most clients):
 ```
 
 (`C:/mcec` here is a writable copy of the install directory, or a provisioned session's
-`directory`; the Program Files path itself would be refused, per above.)
+`directory`. Pointing it at the Program Files path connects, but that copy serves only the
+`provision-session`/`end-session` bootstrap, per above — use it to mint an instance, then repoint your
+client at the instance's `directory`.)
 
 `mcp` is a spawned server, not an interactive command: typed at a terminal it refuses
 (stdin is an interactive console; the server would block on the shared console and
@@ -673,7 +705,7 @@ concurrently; past that the server answers `503` rather than queueing.
 
 ## Summary
 
-- New, opt-in agent surface: `capture`, `query`, `displays`, `windows`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `focus`, `record` (plus `send_command`, and `provision-session`/`end-session`).
+- New, opt-in agent surface: `capture`, `query`, `displays`, `windows`, `find`, `wait-for`, `invoke`, `launch`, `drag`, `click`, `focus`, `record` (plus `send_command`, `request-command-access`, and `provision-session`/`end-session`).
 - Structured `{ ok, result, error, … }` JSON result envelope; the commands are exposed as MCP/HTTP tools.
 - **No per-target sandbox:** an enabled command acts with your rights on whatever it targets. You control
   the *capability surface* (which commands are enabled, so read-only observation is possible), not what an
@@ -688,7 +720,9 @@ concurrently; past that the server answers `503` rather than queueing.
 
 ## Agent safety
 
-Two operator-safety features build on the gates above: a global **emergency stop** hotkey that halts a
-session instantly from any window, and disposable **isolated session provisioning** so an agent drives a
-throwaway copy instead of your installed instance. Both are covered in
+Three operator-safety features build on the gates above: a global **emergency stop** hotkey that halts a
+session instantly from any window, disposable **isolated session provisioning** so an agent drives a
+throwaway copy instead of your installed instance, and **command-access consent**
+(`request-command-access`) so an agent can gain a disabled command mid-session only by asking you
+on-screen. All three are covered in
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)**.

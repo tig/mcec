@@ -88,6 +88,11 @@ public static class AgentRuntime {
     /// wait on a task/thread while holding it; a command's <c>Execute</c> may take seconds (paced
     /// macros), and anything that waits on the dispatcher while holding this deadlocks it.
     /// Observation (query/capture/find/wait-for/record) deliberately never takes it.
+    /// ONE deliberate exception (#307): <c>request-command-access</c> holds this gate for the whole
+    /// lifetime of the operator consent prompt (bounded by the prompt's own timeout), precisely SO
+    /// synthesized input cannot land while the dialog is up; only physical input can answer it. Safe
+    /// against the deadlock rule because the prompt's UI thread never takes this gate and waits on
+    /// nothing that does; actuation stalls behind it by design.
     /// </para>
     /// <para>
     /// KNOWN HAZARD (queue-path modal invoke): the agent's <c>invoke</c> TOOL runs on a worker with

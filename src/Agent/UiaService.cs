@@ -270,11 +270,6 @@ public static class UiaService {
     // The dedicated UIA worker (#215)
     // -------------------------------------------------------------------------------------------
 
-    private static readonly Lock _workerGate = new();
-    private static BlockingCollection<Action<UIA3Automation>>? _workQueue;
-    private static Thread? _workerThread;
-    private static int _workerGeneration;
-
     /// <summary>
     /// Runs <paramref name="work"/> on the dedicated UIA worker thread (started lazily) against the
     /// cached <see cref="UIA3Automation"/>, blocking the caller until it completes. Exceptions
@@ -294,53 +289,17 @@ public static class UiaService {
         return tcs.Task.GetAwaiter().GetResult();
     }
 
-    private static void EnqueueWork(Action<UIA3Automation> item) {
-        lock (_workerGate) {
-            if (_workQueue is null) {
-                BlockingCollection<Action<UIA3Automation>> queue = [];
-                _workQueue = queue;
-                _workerGeneration++;
-                _workerThread = new Thread(() => WorkerMain(queue)) { IsBackground = true, Name = "mcec-uia" };
-                // Explicitly MTA: UIA *clients* are recommended to run MTA (an STA client can deadlock
-                // against providers that marshal back), and MTA lets the invoke path drive a
-                // worker-resolved element from another MTA thread without marshaling.
-                _workerThread.SetApartmentState(ApartmentState.MTA);
-                _workerThread.Start();
-            }
-            _workQueue.Add(item);
-        }
-    }
-
-    /// <summary>The worker main: one cached automation for the thread's lifetime, disposed at the end.</summary>
-    private static void WorkerMain(BlockingCollection<Action<UIA3Automation>> queue) {
-        using UIA3Automation automation = new();
-        foreach (Action<UIA3Automation> item in queue.GetConsumingEnumerable()) {
-            item(automation);
-        }
-    }
+    private static void EnqueueWork(Action<UIA3Automation> item) => UiaWorkerAccess.Enqueue(item);
 
     /// <summary>
     /// Stops the worker thread and disposes the cached <see cref="UIA3Automation"/> (bounded join).
     /// Called on application shutdown (GUI: <c>MainWindow.PerformShutdown</c>; headless: after the
     /// stdio loop ends). Idempotent; a later call lazily restarts the worker (tests rely on this).
+    /// Uses <see cref="IUiaWorkerStopHandle"/> only so this path never JIT-loads FlaUI (#317).
     /// </summary>
     public static void Shutdown() {
-        BlockingCollection<Action<UIA3Automation>>? queue;
-        Thread? worker;
-        lock (_workerGate) {
-            queue = _workQueue;
-            worker = _workerThread;
-            _workQueue = null;
-            _workerThread = null;
-        }
-        if (queue is null) {
-            return;
-        }
-        queue.CompleteAdding(); // the worker drains what's queued, disposes the automation, and exits
-        if (worker is not null && !worker.Join(ShutdownJoinTimeoutMs)) {
-            Logger.Instance.Log4.Warn(
-                $"UiaService: the UIA worker did not exit within {ShutdownJoinTimeoutMs}ms (a stuck UIA call); abandoning it (background thread).");
-        }
+        IUiaWorkerStopHandle? stop = UiaWorkerAccess.TakeStopHandle();
+        stop?.Stop(ShutdownJoinTimeoutMs);
     }
 
     /// <summary>
@@ -365,9 +324,7 @@ public static class UiaService {
     internal static (int ThreadId, int AutomationHash, int Generation) ProbeWorker() {
         (int threadId, int automationHash) = RunOnWorker(automation => (Environment.CurrentManagedThreadId,
             System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(automation)));
-        lock (_workerGate) {
-            return (threadId, automationHash, _workerGeneration);
-        }
+        return (threadId, automationHash, UiaWorkerAccess.Generation);
     }
 
     /// <summary>

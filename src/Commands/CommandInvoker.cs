@@ -172,10 +172,27 @@ public class CommandInvoker : Hashtable {
 
         Command[] values = [.. Values.Cast<Command>()];
 
-        // Sort 
-        sc.commandArray = [.. values.OrderBy(c => c.Cmd)];
+        // SECURITY (#307/#308 review): a consent-granted enable (request-command-access) is
+        // process-lifetime ONLY; "nothing is written to any config file" is the promise the consent
+        // dialog makes the operator. Serialize such commands as DISABLED stand-in clones so a later
+        // Commands-window Save cannot quietly persist an agent's grant into mcec.commands (where it
+        // would survive restart with no consent gate). The live table is untouched; the operator's
+        // own hand-made enables persist as always. (A consent-granted key stays shielded for the
+        // process lifetime even if the operator re-toggles it in the window; persist it by editing
+        // mcec.commands directly, or restart first.)
+        sc.commandArray = [.. values
+            .Select(c => c.Enabled && AgentConsent.WasGrantedByConsent(c.Cmd) ? DisabledCloneForSave(c) : c)
+            .OrderBy(c => c.Cmd)];
 
         SerializedCommands.SaveCommands(userCommandsFile, sc, System.Windows.Forms.Application.ProductVersion);
+    }
+
+    // A serialization stand-in for a consent-granted command: identical, but Enabled=false on disk.
+    // Clone just carries the Reply through (null stays null; Reply is never serialized).
+    private static Command DisabledCloneForSave(Command cmd) {
+        Command clone = cmd.Clone(cmd.Reply!);
+        clone.Enabled = false;
+        return clone;
     }
 
     // Adds a command to the hashtable. Optionally logs. Ensures case insenstiitivy. 
@@ -192,6 +209,41 @@ public class CommandInvoker : Hashtable {
         else {
             Logger.Instance.Log4.Error($"{this.GetType().Name}: Error parsing command: {cmd}");
         }
+    }
+
+    // The 'prefix:args' shape Enqueue splits (group 1 is the table key, group 2 the Args). ONE
+    // compiled pattern shared with ResolveGateKey so the gate and its consumers can never drift.
+    private static readonly Regex _prefixCommandPattern = new(@"(\w+:)(.+)", RegexOptions.Compiled);
+
+    /// <summary>
+    /// The loaded-table key <see cref="Enqueue"/> will gate and execute for <paramref name="cmdString"/>
+    /// (#308 review): a single character rides <c>chars:</c> when that is enabled (else a same-named
+    /// single-character entry when one exists, else <c>chars:</c> itself when present, so callers
+    /// report the entry whose disablement actually blocks it); a <c>prefix:args</c> spelling resolves
+    /// to its bare prefix entry (the table's full spellings like <c>mcec:exit</c> are never resolved
+    /// by Enqueue); anything else is looked up whole. Null when nothing in the table matches.
+    /// Consumers: <c>request-command-access</c> (the key a grant must enable) and <c>send_command</c>'s
+    /// <c>command-disabled</c> pre-check; sharing this resolver is what keeps a grant and the gate
+    /// agreeing on the same key.
+    /// </summary>
+    internal string? ResolveGateKey(string cmdString) {
+        if (string.IsNullOrWhiteSpace(cmdString)) {
+            return null;
+        }
+        string trimmed = cmdString.Trim();
+        if (trimmed.Length == 1) {
+            if (this["chars:"] is Command { Enabled: true }) {
+                return "chars:"; // Enqueue's single-character SendInput path
+            }
+            string single = trimmed.ToLowerInvariant();
+            if (this[single] is Command) {
+                return single;
+            }
+            return this["chars:"] is Command ? "chars:" : null;
+        }
+        Match match = _prefixCommandPattern.Match(trimmed);
+        string key = (match.Success ? match.Groups[1].Value : trimmed).ToLowerInvariant();
+        return this[key] is Command ? key : null;
     }
 
     /// <summary>
@@ -212,7 +264,7 @@ public class CommandInvoker : Hashtable {
         // parse cmd and args (eg. char vs "shutdown" vs "mouse:<action>[,<parameter>,<parameter>]"
         // and "mouse:<action>[,<parameter>,<parameter>]"
         // These commands are handled internally as Cmd="cmd:" Args="<args>"
-        Match match = Regex.Match(cmdString, @"(\w+:)(.+)");
+        Match match = _prefixCommandPattern.Match(cmdString);
         if (match.Success) {
             cmd = match.Groups[1].Value;
             args = match.Groups[2].Value;

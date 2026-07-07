@@ -6,6 +6,7 @@ using System.IO;
 using System.Text.Json.Nodes;
 using Xunit;
 using MCEControl;
+using MCEControl.xUnit.Helpers;
 
 namespace MCEControl.xUnit.Services;
 
@@ -27,8 +28,7 @@ public class EndSessionTokenTests : IDisposable {
 
         _baseTemp = Path.Combine(Path.GetTempPath(), "mcec-endsession-token-test", Path.GetRandomFileName());
         string fakeBinaries = Path.Combine(_baseTemp, "install");
-        Directory.CreateDirectory(fakeBinaries);
-        File.WriteAllText(Path.Combine(fakeBinaries, "mcec.exe"), "stub");
+        ProvisionTestFixtures.SeedMinimalInstall(fakeBinaries);
 
         SessionProvisioner.SessionsRoot = Path.Combine(_baseTemp, "sessions");
         SessionProvisioner.BinariesDir = fakeBinaries;

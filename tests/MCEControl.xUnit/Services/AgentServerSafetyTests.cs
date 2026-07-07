@@ -68,6 +68,82 @@ public class AgentServerSafetyTests {
         }
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Provisioning bootstrap from the installed copy (#296): the installed (Program Files) mcec.exe
+    // --mcp serves ONLY provision-session/end-session, so a fresh install can bootstrap a disposable
+    // instance without the operator hand-editing configs. Every other tool is refused, and tools/list
+    // advertises only the two meta-tools so a client never sees a tool this server will refuse.
+    // ---------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void BootstrapOnly_ToolsList_ExposesOnlyProvisioningTools() {
+        Program.IsProgramFilesInstallOverrideForTests = true;
+        try {
+            JsonArray tools = AgentServer.Dispatch(Request(10, "tools/list"))!["result"]!.AsObject()["tools"]!.AsArray();
+            string[] names = [.. tools.Select(t => t!["name"]!.GetValue<string>())];
+            Assert.Equal(["provision-session", "end-session"], names);
+        }
+        finally {
+            Program.IsProgramFilesInstallOverrideForTests = null;
+        }
+    }
+
+    [Fact]
+    public void BootstrapOnly_Initialize_ServesBootstrapInstructions() {
+        Program.IsProgramFilesInstallOverrideForTests = true;
+        try {
+            string instructions = AgentServer.Dispatch(Request(11, "initialize"))!["result"]!.AsObject()["instructions"]!.GetValue<string>();
+            Assert.Equal(JsonRpcDispatcher.BootstrapInstructions, instructions);
+        }
+        finally {
+            Program.IsProgramFilesInstallOverrideForTests = null;
+        }
+    }
+
+    [Fact]
+    public void BootstrapOnly_RefusesObservationTool_EvenWhenAgentCommandsEnabled() {
+        Program.IsProgramFilesInstallOverrideForTests = true;
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        try {
+            JsonObject env = Envelope(Call(12, "capture", new JsonObject { ["foreground"] = true }));
+            Assert.False(env["ok"]!.GetValue<bool>());
+            Assert.Equal("bootstrap-only", env["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            Program.IsProgramFilesInstallOverrideForTests = null;
+        }
+    }
+
+    [Fact]
+    public void BootstrapOnly_RefusesRawSendCommand() {
+        Program.IsProgramFilesInstallOverrideForTests = true;
+        try {
+            JsonObject env = Envelope(Call(13, "send_command", new JsonObject { ["command"] = "winr" }));
+            Assert.Equal("bootstrap-only", env["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            Program.IsProgramFilesInstallOverrideForTests = null;
+        }
+    }
+
+    [Fact]
+    public void BootstrapOnly_AllowsProvisionSessionThroughToItsOwnGate() {
+        // The bootstrap gate must let provision-session THROUGH to its own AllowSessionProvisioning
+        // check; with provisioning unauthorized it fails with provisioning-not-authorized (NOT
+        // bootstrap-only), proving the meta-tool is reachable from the installed copy.
+        Program.IsProgramFilesInstallOverrideForTests = true;
+        AgentRuntime.Settings = new AppSettings { AllowSessionProvisioning = false };
+        try {
+            JsonObject env = Envelope(Call(14, "provision-session", []));
+            Assert.Equal("provisioning-not-authorized", env["error"]!.AsObject()["code"]!.GetValue<string>());
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            Program.IsProgramFilesInstallOverrideForTests = null;
+        }
+    }
+
     [Fact]
     public void ToolsList_IncludesProvisioningTools() {
         JsonArray tools = AgentServer.Dispatch(Request(3, "tools/list"))!["result"]!.AsObject()["tools"]!.AsArray();
@@ -100,8 +176,7 @@ public class AgentServerSafetyTests {
         string origBin = SessionProvisioner.BinariesDir;
         string baseTemp = Path.Combine(Path.GetTempPath(), "mcec-provision-gate-test", Path.GetRandomFileName());
         string fakeBin = Path.Combine(baseTemp, "install");
-        Directory.CreateDirectory(fakeBin);
-        File.WriteAllText(Path.Combine(fakeBin, "mcec.exe"), "stub");
+        MCEControl.xUnit.Helpers.ProvisionTestFixtures.SeedMinimalInstall(fakeBin);
 
         AgentRuntime.Settings = new AppSettings { AllowSessionProvisioning = true };
         SessionProvisioner.SessionsRoot = Path.Combine(baseTemp, "sessions");

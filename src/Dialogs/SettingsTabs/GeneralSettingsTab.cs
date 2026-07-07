@@ -31,6 +31,7 @@ public partial class GeneralSettingsTab : UserControl, ISettingsTab {
 
         _checkBoxHideOnStartup.Checked = settings.HideOnStartup;
         _checkBoxAutoStart.Checked = settings.AutoStart;
+        _checkBoxDisableUpdatePopup.Checked = settings.DisableUpdatePopup;
 
         _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository!.LevelMap["ALL"]!);
         _comboBoxLogThresholds.Items.Add(LogManager.GetLogger("MCEControl").Logger.Repository!.LevelMap["INFO"]!);
@@ -82,6 +83,15 @@ public partial class GeneralSettingsTab : UserControl, ISettingsTab {
         }
 
         _settings.AutoStart = _checkBoxAutoStart.Checked;
+        SettingsChanged();
+    }
+
+    private void CheckBoxDisableUpdatePopupCheckedChanged(object? sender, EventArgs e) {
+        if (_settings is null) {
+            return;
+        }
+
+        _settings.DisableUpdatePopup = _checkBoxDisableUpdatePopup.Checked;
         SettingsChanged();
     }
 

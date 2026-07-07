@@ -13,7 +13,10 @@ window, e.g. a launched app took focus). A wait that times out carries `waitedFo
 so you can triage without a second observation. `windows` with no filter lists
 everything; a wait (or `disappears`/`foreground`) with no filter is refused (it will not wait for an arbitrary window). Reuse
 the `handle` a `windows`/`query` returns for follow-up calls: it is stable, and a dialog you open shares the
-process name, so re-resolving by process/title can match the wrong window. Open menus and other untitled
+process name, so re-resolving by process/title can match the wrong window. `window` and `at:{by:name}` match
+on **substring**, so a name can silently resolve to the wrong element or window with no error: asking for the
+`Serial Server` tab can select the `Server` tab, and `window:"Settings"` can hit the OS Settings app; when
+names overlap, target by `handle`. Open menus and other untitled
 popups are not enumerated by title/process; target them by handle or `foreground:true`.
 
 2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, state, value)
@@ -58,8 +61,10 @@ in the target window (dragged from/to its centre) or an absolute screen pixel `{
 prefer it over hand-rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands).
 Coords are absolute screen pixels (the same space `query`/`find` bounds report), so you can drag straight
 from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls are at new
-bounds. To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a bare
-pixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
+bounds. For window-level move/resize, use the `window` tool: `action:"move"`/`"resize"` with target
+coordinates and optional `animate:true` to make the window appear to be dragged rather than instantly
+teleported. `window` also handles `minimize`, `maximize`, `restore`, and `foreground`.
+To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a barepixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
 absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and `count`
 (2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items;
 it doesn't depend on the control being on-screen and unobscured. System file dialogs (Open, Save Print
@@ -154,7 +159,9 @@ PACING: raw commands (`send_command`) are queued and executed paced (a per-comma
 operator's CommandPacing), and a `send_command` call returns only AFTER its command has actually executed
 (its `result.output` is the command's real output). It fails fast when nothing will run:
 `error.code:unknown-command` means the name isn't in the loaded command table (fix the name; nothing
-executed), and `command-dropped` means the queue refused it whole (bounds/shutdown; nothing executed).
+executed), `command-disabled` means the command exists but the operator has not enabled it (nothing
+executed; recover via `request-command-access`, see COMMAND ACCESS), and `command-dropped` means the
+queue refused it whole (bounds/shutdown; nothing executed).
 The execution wait is bounded at 30s: a command still running past it (a long macro, `pause`, or a deep
 queue backlog ahead of it) returns `error.code:send-command-timeout` while continuing to execute on the
 host; wait and verify with `query`/`capture` rather than resending. The queue is BOUNDED (both total pending
@@ -177,8 +184,11 @@ you will never see or target it, and it is never a candidate window; but it DOES
 full-screen/region `capture`s and `record`ings (not in window-targeted captures).
 
 PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it; an abnormal exit
-leaks those security gates enabled, and the installed copy refuses to serve as an agent server anyway.
-Instead, when the operator has authorized it,
+leaks those security gates enabled, and the installed copy will not serve the full agent surface anyway.
+When you connect to the installed `mcec.exe --mcp`, it serves ONLY the provisioning BOOTSTRAP: the sole
+tools are `provision-session` and `end-session`, and every observation/actuation tool is refused with
+`error.code:bootstrap-only` (its connect-time instructions say so). That is by design and is your first
+hop, not a dead end: when the operator has authorized it,
 call `provision-session` to get a fresh, disposable, isolated instance: it returns a `directory` containing
 `mcec.exe` plus an agent-ready co-located config (agent commands enabled ONLY inside that copy), how to
 launch/connect (`exePath`, and an `mcpEndpoint` when the MCP server is enabled), a `sessionId`, and a
@@ -192,8 +202,29 @@ down; orphaned sessions are reaped automatically. If `provision-session` returns
 `error.code:provisioning-not-authorized` (these feature-specific refusals ride in `error.code`, while
 `error.category` stays `internal`), the operator has not opted in; tell them to enable "Allow agents to
 provision disposable instances" on the Settings dialog's Agent tab (File > Settings > Agent), then retry;
-do not retry blindly before they do. That same Agent tab lists the provisioned instances and lets the
-operator delete any you leave behind, but you own teardown: `end-session` every instance you provision.
+do not retry blindly before they do. On that same Agent tab the operator can also click "Provision new…"
+to create an instance themselves and hand you its directory/endpoint; and it lists the provisioned
+instances and lets them delete any you leave behind. But you own teardown: `end-session` every instance
+you provision. A provisioned session enables the standard observation/actuation tool set; anything else
+(e.g. `launch`, raw built-ins like `chars:`) starts disabled; acquire it mid-session with
+`request-command-access` (see COMMAND ACCESS), never by editing the session's files.
+
+COMMAND ACCESS: any tool or raw command refused with `error.code:command-disabled` can be requested from
+the OPERATOR with the `request-command-access` tool: pass the command name(s) the refusal reported (e.g.
+`launch`, `chars:`) and a one-line, honest `reason`; MCEC shows the operator a consent dialog on their
+screen and your call BLOCKS (up to ~2 minutes) for their answer. On a grant the commands are immediately
+usable; enabled in-memory in THIS instance only, never written to a config file; NEVER edit mcec.commands,
+mcec.settings, or anything in the session directory to grant yourself access. The operator can also choose
+"allow any later requests", after which further requests auto-approve (still ask per command; every grant
+is audited and narrated on the overlay). A deny is FINAL for this instance: re-requesting a denied command
+returns `error.code:consent-denied` with no prompt; do not nag; tell the user what you needed and why.
+`consent-timeout` means the operator never answered (they may be away; you may ask again later, ideally
+after checking in with the user). `consent-pending` means a consent prompt is already open: while it is up,
+only observation (`capture`/`query`/`displays`/`windows`/`find`/`wait-for`/`record`) is served and every
+other call is refused with that code; wait for your pending request to return. `consent-unavailable` means
+no operator prompt can be shown (fail closed); ask the user to enable the command themselves. You will
+never see or target the consent dialog; it is excluded from targeting like the overlay, and actuation is
+frozen while it is open; only the operator's physical input can answer it.
 
 EMERGENCY STOP: the operator has a global panic hotkey (default Ctrl+Alt+Shift+S) that instantly halts the
 session from any window. If ANY tool returns `error.code:emergency-stopped` (the code, not the category;
@@ -205,7 +236,9 @@ session-start/session-status/session-end lifecycle) only work when the operator 
 AgentCommandsEnabled=true; otherwise they return an error; surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is
 refused with `error.code:agent-commands-disabled` if the agent surface is not opted in); over the local
-stdio transport (`mcec.exe --mcp`) `send_command` remains available without that opt-in. Either way the raw
-command it runs still needs its own command Enabled in mcec.commands.
+stdio transport (`mcec.exe --mcp`) `send_command` remains available without that opt-in; and
+`request-command-access` follows the same transport rule. Either way the raw
+command it runs still needs its own command Enabled in mcec.commands (recover from `command-disabled` via
+`request-command-access`, never by editing files; see COMMAND ACCESS).
 `provision-session` additionally requires AllowSessionProvisioning, and any tool is refused with
 `emergency-stopped` while the operator's emergency stop is engaged. Every action is audit-logged on the host.
