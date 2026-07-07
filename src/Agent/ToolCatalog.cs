@@ -1,4 +1,4 @@
-// Copyright © Kindel, LLC - http://www.kindel.com
+﻿// Copyright © Kindel, LLC - http://www.kindel.com
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
@@ -71,6 +71,7 @@ public static class ToolCatalog {
             Tersify = args => $"capture {CommandTersifier.Target(args)}",
             IsObservation = true,
             ProvisionedByDefault = true,
+            ServedDuringConsent = true,
         },
         new() {
             Name = "query",
@@ -92,6 +93,7 @@ public static class ToolCatalog {
             Tersify = args => $"query {CommandTersifier.Target(args)}",
             IsObservation = true,
             ProvisionedByDefault = true,
+            ServedDuringConsent = true,
         },
         new() {
             Name = "displays",
@@ -100,6 +102,7 @@ public static class ToolCatalog {
             CreateCommandInstance = () => new DisplaysCommand(),
             Tersify = _ => "displays",
             ProvisionedByDefault = true,
+            ServedDuringConsent = true,
         },
         new() {
             Name = "windows",
@@ -116,6 +119,7 @@ public static class ToolCatalog {
             // NOT IsObservation: it returns a SET of windows, not a single active target the session
             // should record as LastObservation (that stays query/capture/find/wait-for).
             ProvisionedByDefault = true,
+            ServedDuringConsent = true,
         },
         new() {
             Name = "find",
@@ -125,6 +129,7 @@ public static class ToolCatalog {
             Tersify = args => $"find {CommandTersifier.Selector(args)}",
             IsObservation = true,
             ProvisionedByDefault = true,
+            ServedDuringConsent = true,
         },
         new() {
             Name = "wait-for",
@@ -134,6 +139,7 @@ public static class ToolCatalog {
             Tersify = args => $"wait-for {CommandTersifier.Selector(args)}",
             IsObservation = true,
             ProvisionedByDefault = true,
+            ServedDuringConsent = true,
         },
         new() {
             Name = "invoke",
@@ -217,6 +223,7 @@ public static class ToolCatalog {
             // drift where record rendered as a bare "record" on the overlay.)
             Tersify = args => $"record {CommandTersifier.Target(args)}",
             ProvisionedByDefault = true,
+            ServedDuringConsent = true,
         },
         new() {
             Name = "launch",

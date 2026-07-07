@@ -34,6 +34,16 @@ public class CommandAccessConsentDialogTests {
     }
 
     [Fact]
+    public void EmergencyStopDismissal_ReportsTimedOut_NotAnOperatorDeny() {
+        // #308 review: the panic hotkey halts the session; it does not answer the consent question.
+        // Dismissing as Denied would record a sticky per-command deny the operator never chose.
+        using var dialog = new CommandAccessConsentDialog(SampleRequest());
+        Assert.Equal(CommandAccessDecision.Denied, dialog.Decision); // the fail-safe default
+        dialog.HandleEmergencyStop(stopped: true);
+        Assert.Equal(CommandAccessDecision.TimedOut, dialog.Decision);
+    }
+
+    [Fact]
     public void Body_StatesScopeStickyDenyAndTimeout() {
         string body = CommandAccessConsentDialog.BuildBody(SampleRequest(), 90);
         // In-memory, this instance only; never persisted.

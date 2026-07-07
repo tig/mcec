@@ -127,6 +127,13 @@ internal sealed class ProvisionedInstanceDialog : Form {
         _ = sb.AppendLine("A fresh, disposable MCEC instance is ready. Agent commands are enabled ONLY");
         _ = sb.AppendLine("inside this copy; your installed MCEC is untouched.");
         _ = sb.AppendLine();
+        // The identity + credential ALWAYS ride this block too (#308 review): the operator may only
+        // ever copy/keep this one, and a stdio-only session would otherwise show the token nowhere
+        // outside the briefing.
+        _ = sb.AppendLine($"Directory:  {session.Directory}");
+        _ = sb.AppendLine($"Session id: {session.SessionId}");
+        _ = sb.AppendLine($"Token:      {session.Token}");
+        _ = sb.AppendLine();
         _ = sb.AppendLine("Connect over stdio (recommended): configure your MCP client to spawn:");
         _ = sb.AppendLine($"  \"{session.ExePath}\" --mcp");
         _ = sb.AppendLine();
@@ -140,9 +147,9 @@ internal sealed class ProvisionedInstanceDialog : Form {
         }
         _ = sb.AppendLine();
         _ = sb.AppendLine("Teardown: the briefing below tells the agent to stop the instance and report");
-        _ = sb.AppendLine("done; you can then delete it from this Agent tab (or the agent calls");
-        _ = sb.AppendLine("end-session on the installed bootstrap). Stale instances are also cleaned up");
-        _ = sb.AppendLine("automatically.");
+        _ = sb.AppendLine("done; you can then delete it from this Agent tab (or an agent connected to");
+        _ = sb.AppendLine("the installed bootstrap calls end-session with the session id and token");
+        _ = sb.AppendLine("above). Stale instances are also cleaned up automatically.");
         return sb.ToString();
     }
 
@@ -183,11 +190,15 @@ internal sealed class ProvisionedInstanceDialog : Form {
         _ = sb.AppendLine("   to grant yourself access.");
         _ = sb.AppendLine("2. If any call fails with error.code \"emergency-stopped\", I halted you on");
         _ = sb.AppendLine("   purpose. Stop immediately and check in with me; do not retry.");
-        _ = sb.AppendLine("3. When your task is complete: stop the instance (send_command mcec:exit over");
-        _ = sb.AppendLine("   its stdio connection ends it cleanly), then tell me it is finished so I can");
-        _ = sb.AppendLine("   delete the session from Settings > Agent. If you are also connected to my");
-        _ = sb.AppendLine("   installed MCEC's bootstrap server, instead call its end-session tool with the");
-        _ = sb.AppendLine("   session id and token above.");
+        // Teardown must work UNATTENDED, so the briefing never routes it through a command that
+        // needs a consent round-trip: the raw mcec: built-in is disabled in every provisioned
+        // instance (#308 review). Disconnecting ends a stdio instance (the server stops at EOF).
+        _ = sb.AppendLine("3. When your task is complete: disconnect from this instance (removing it from");
+        _ = sb.AppendLine("   your MCP client stops it; the server exits when its stdio connection closes),");
+        _ = sb.AppendLine("   then tell me it is finished so I can delete the session from Settings > Agent.");
+        _ = sb.AppendLine("   If you are also connected to my installed MCEC's bootstrap server, instead");
+        _ = sb.AppendLine("   call its end-session tool with the session id and token above once this");
+        _ = sb.AppendLine("   instance has stopped.");
         _ = sb.AppendLine();
         _ = sb.Append("My task for you: <describe the task here>");
         return sb.ToString();

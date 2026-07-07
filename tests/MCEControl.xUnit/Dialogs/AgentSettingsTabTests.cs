@@ -137,12 +137,17 @@ public class AgentSettingsTabTests : IDisposable {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ProvisionedInstanceDialog_HandoffText_HasLaunchAndConditionalEndpoint(bool mcpServerEnabled) {
+    public void ProvisionedInstanceDialog_HandoffText_HasLaunchTokenAndConditionalEndpoint(bool mcpServerEnabled) {
         string text = ProvisionedInstanceDialog.BuildHandoffText(SampleSession(mcpServerEnabled));
 
-        // Always: the stdio launch line and the MCP-client registration example.
+        // Always: the stdio launch line, the MCP-client registration example, AND the session
+        // identity + teardown token (#308 review: a stdio-only handoff must still carry the
+        // credential; the operator may only ever copy this block).
         Assert.Contains(@"C:\sessions\0123456789ab\mcec.exe"" --mcp", text);
         Assert.Contains("claude mcp add mcec", text);
+        Assert.Contains("Session id: 0123456789ab", text);
+        Assert.Contains(@"C:\sessions\0123456789ab", text);
+        Assert.Contains("deadbeefcafef00d", text);
         // The HTTP endpoint + bearer line only when the session's MCP server is enabled.
         Assert.Equal(mcpServerEnabled, text.Contains("http://127.0.0.1:51515/mcp"));
         Assert.Equal(mcpServerEnabled, text.Contains("Authorization: Bearer deadbeefcafef00d"));
@@ -165,8 +170,10 @@ public class AgentSettingsTabTests : IDisposable {
         Assert.Contains("command-disabled", prompt);
         Assert.Contains("NEVER edit mcec.commands", prompt);
         Assert.Contains("emergency-stopped", prompt);
-        Assert.Contains("mcec:exit", prompt);
         Assert.Contains("end-session", prompt);
+        // #308 review: mcec:exit is DISABLED in every provisioned instance (not ProvisionedByDefault),
+        // so the briefing must not instruct it as the teardown path; disconnecting stops stdio.
+        Assert.DoesNotContain("mcec:exit", prompt);
 
         // A template the operator appends their task to.
         Assert.EndsWith("<describe the task here>", prompt);
@@ -186,7 +193,9 @@ public class AgentSettingsTabTests : IDisposable {
         var tools = AgentServer.Dispatch(listRequest)!["result"]!.AsObject()["tools"]!.AsArray();
         var served = new HashSet<string>(tools.Select(t => t!["name"]!.GetValue<string>()));
 
-        foreach (string tool in (string[])["request-command-access", "send_command", "end-session"]) {
+        // send_command dropped out of the briefing when teardown moved to disconnect + end-session
+        // (#308 review: mcec:exit is disabled in provisioned instances), so it is no longer pinned.
+        foreach (string tool in (string[])["request-command-access", "end-session"]) {
             Assert.Contains(tool, prompt);
             Assert.Contains(tool, served);
         }

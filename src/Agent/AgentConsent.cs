@@ -41,6 +41,7 @@ public static class AgentConsent {
     private static bool _pending;
     private static bool _anyCommandGrant;
     private static readonly HashSet<string> _denied = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> _granted = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// The operator-prompt channel, registered by whichever host has an operator surface
@@ -83,6 +84,31 @@ public static class AgentConsent {
     public static bool IsDenied(string commandName) {
         lock (_gate) {
             return _denied.Contains(commandName);
+        }
+    }
+
+    /// <summary>
+    /// Records a table key the operator's consent enabled, so persistence paths can shield it:
+    /// <see cref="CommandInvoker.Save"/> serializes a consent-granted command as DISABLED, keeping
+    /// the dialog's "nothing is written to any config file" promise even when the operator later
+    /// saves the Commands window (#308 review). Process-lifetime, like the grant itself.
+    /// </summary>
+    internal static void RecordGrantedKey(string commandKey) {
+        lock (_gate) {
+            _ = _granted.Add(commandKey);
+        }
+    }
+
+    /// <summary>
+    /// Whether <paramref name="commandKey"/> was enabled by operator consent this process. A true
+    /// here means the enable is in-memory-only by contract and must never be persisted as enabled.
+    /// </summary>
+    public static bool WasGrantedByConsent(string? commandKey) {
+        if (string.IsNullOrEmpty(commandKey)) {
+            return false;
+        }
+        lock (_gate) {
+            return _granted.Contains(commandKey);
         }
     }
 
@@ -133,12 +159,13 @@ public static class AgentConsent {
         }
     }
 
-    /// <summary>Drops all consent state (pending flag, standing grant, sticky denies). Tests only.</summary>
+    /// <summary>Drops all consent state (pending flag, standing grant, sticky denies, granted keys). Tests only.</summary>
     internal static void ResetForTests() {
         lock (_gate) {
             _pending = false;
             _anyCommandGrant = false;
             _denied.Clear();
+            _granted.Clear();
         }
     }
 }

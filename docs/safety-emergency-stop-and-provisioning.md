@@ -241,9 +241,12 @@ thread. The agent's call blocks for the answer. Three choices:
 1. **Allow these commands**; enables exactly the requested names.
 2. **Allow these + any later requests**; also auto-approves this instance's future requests (the agent
    still asks per command, and every grant is audit-logged and narrated on the overlay).
-3. **Deny** (the default button; Esc, the close box, the ~2-minute timeout, and an emergency stop
-   engaging all deny). A deny is **sticky** for the instance: re-requesting a denied command returns
-   `consent-denied` without a prompt, so an agent cannot nag the operator into approval.
+3. **Deny** (the default button; Esc, the close box, and the ~2-minute timeout all deny). A deny is
+   **sticky** for the instance: re-requesting a denied command returns `consent-denied` without a
+   prompt, so an agent cannot nag the operator into approval. An **emergency stop** engaging while
+   the prompt is open dismisses it too, but that is the operator halting the session, not answering
+   the question: it is reported as `emergency-stopped`, records no deny, and the command stays
+   grantable after re-arm.
 
 ### Why the agent can't answer its own prompt
 
@@ -252,9 +255,11 @@ by three layers:
 
 1. The call holds the **input gate** (`AgentRuntime.InputGate`) for the prompt's whole lifetime, so no
    queued or synthesized keyboard/mouse input can land while it is up.
-2. Dispatch refuses every actuation-capable tool with `consent-pending` while a prompt is open; only
-   observation is served. This covers `invoke`, which is UIA-pattern actuation that deliberately does
-   not take the input gate.
+2. Dispatch freezes everything except the flagged observation tools (`ToolDescriptor.ServedDuringConsent`;
+   a new tool defaults to frozen) with `consent-pending` while a prompt is open. The freeze runs before
+   the meta-tool branches, so it covers `invoke` (UIA-pattern actuation that deliberately does not take
+   the input gate) **and** `provision-session` (which could otherwise mint a second, unfrozen instance
+   to drive the dialog with).
 3. The dialog registers itself with `WindowResolver` as never-a-target (the overlay's mechanism), so
    in-process targeting can never resolve it.
 
@@ -264,7 +269,9 @@ overlay narration are the mitigations there.
 ### Why grants are in-memory only
 
 A grant flips the command's `Enabled` flag on the **loaded table** of the running instance; nothing is
-written to `mcec.commands` or `mcec.settings`. A leaked session directory therefore never carries
+written to `mcec.commands` or `mcec.settings`, and `CommandInvoker.Save` serializes consent-granted
+commands as **disabled**, so even a later Commands-window "Save changes" cannot quietly persist an
+agent's grant. A leaked session directory therefore never carries
 permissions beyond its provisioned defaults, a respawned instance resets and must ask again, and the
 co-located files remain a faithful record of what *provisioning* granted (the audit log holds what
 *consent* granted). Consent is deliberately MCEC's own out-of-band dialog, never MCP elicitation, which

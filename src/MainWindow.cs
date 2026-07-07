@@ -703,28 +703,12 @@ public partial class MainWindow : Form, IAppHost {
 
     /// <summary>
     /// The GUI consent-prompt channel for <c>request-command-access</c> (#307), registered as
-    /// <see cref="AgentConsent.Prompter"/> in <see cref="ApplySettings"/>. Marshals the modal
-    /// <see cref="CommandAccessConsentDialog"/> onto the UI thread (unowned: this window may be
-    /// hidden in the tray; the dialog is TopMost + CenterScreen) and blocks the calling MCP worker
-    /// for the operator's decision. Null; reported as <c>consent-unavailable</c>, fail closed; when
-    /// the window cannot host a dialog (torn down, no handle).
+    /// <see cref="AgentConsent.Prompter"/> in <see cref="ApplySettings"/>: the shared
+    /// <see cref="CommandAccessConsentDialog.ShowVia"/> body marshaled onto this window's UI thread
+    /// (unowned: this window may be hidden in the tray; the dialog is TopMost + CenterScreen).
     /// </summary>
-    private CommandAccessDecision? PromptCommandAccess(CommandAccessRequest request) {
-        if (IsDisposed || !IsHandleCreated) {
-            return null;
-        }
-        try {
-            return Invoke(() => {
-                using CommandAccessConsentDialog dialog = new(request);
-                _ = dialog.ShowDialog();
-                return dialog.Decision;
-            });
-        }
-        catch (Exception e) {
-            Logger.Instance.Log4.Warn($"MainWindow: could not show the consent prompt: {e.Message}");
-            return null;
-        }
-    }
+    private CommandAccessDecision? PromptCommandAccess(CommandAccessRequest request) =>
+        CommandAccessConsentDialog.ShowVia(this, nameof(MainWindow), request);
 
     // ShutDown() self-marshals (BeginInvoke when InvokeRequired), so this is callable from any
     // thread; the invoker's dispatcher (mcec:exit) and the updater's async download path both do.

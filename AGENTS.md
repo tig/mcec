@@ -89,13 +89,19 @@ Three safety features layer on top (see [`docs/safety-emergency-stop-and-provisi
 - **Command-access consent** (#307): a `command-disabled` refusal is recovered by the
   `request-command-access` meta-tool, never by editing config files. It shows the OPERATOR a consent
   dialog (`CommandAccessConsentDialog`) with three choices: allow these commands, allow these plus any
-  later requests, or deny (sticky per instance). Grants are **in-memory only** (the loaded table's
-  `Enabled` flags; never persisted), and the dialog is protected from the agent by three layers: the
-  call holds `AgentRuntime.InputGate` while the prompt is up, dispatch refuses actuation-capable tools
-  with `consent-pending` (`AgentToolExecutor.ServedWhileConsentPending` is an allow-list; keep it one),
-  and the dialog registers itself with `WindowResolver` as never-a-target. Do not weaken any of the
-  three, do not persist grants, and do not replace the dialog with MCP elicitation (that routes consent
-  through the agent's own client; the party being constrained).
+  later requests, or deny (sticky per instance; an emergency stop dismissing the prompt is NOT a deny
+  and records nothing). Grants are **in-memory only**: the loaded table's `Enabled` flags, never
+  persisted; `CommandInvoker.Save` serializes consent-granted commands as disabled
+  (`AgentConsent.WasGrantedByConsent`) so the Commands window cannot quietly write a grant into
+  mcec.commands. The dialog is protected from the agent by three layers: the call holds
+  `AgentRuntime.InputGate` while the prompt is up; dispatch freezes everything except the
+  `ToolDescriptor.ServedDuringConsent` observation tools with `consent-pending` (default false, so a
+  new tool stays frozen; the freeze runs BEFORE the meta-tool branches, so `provision-session` cannot
+  mint a second, unfrozen instance mid-prompt); and the dialog registers itself with `WindowResolver`
+  as never-a-target. Do not weaken any of the three, do not persist grants, and do not replace the
+  dialog with MCP elicitation (that routes consent through the agent's own client; the party being
+  constrained). Grants land on the key `CommandInvoker.ResolveGateKey` resolves (the entry Enqueue
+  actually gates on); route any new name-resolution through that one resolver.
 
 ## Dogfood: test MCEC using MCEC (mcec drives mcec)
 

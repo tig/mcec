@@ -121,22 +121,54 @@ internal sealed class CommandAccessConsentDialog : Form {
         };
         _timeout.Start();
 
-        // The operator's panic hotkey wins over an open consent prompt: engaging the stop dismisses
-        // this dialog as a deny (Decision stays Denied). Fires on the hook/pool thread; marshal.
-        _onEmergencyStop = stopped => {
-            if (!stopped) {
-                return;
-            }
-            try {
-                if (IsHandleCreated && !IsDisposed) {
-                    BeginInvoke(Close);
-                }
-            }
-            catch (InvalidOperationException) {
-                // Handle torn down between the check and the post; the dialog is already closing.
-            }
-        };
+        _onEmergencyStop = HandleEmergencyStop;
         EmergencyStop.StateChanged += _onEmergencyStop;
+    }
+
+    /// <summary>
+    /// The operator's panic hotkey wins over an open consent prompt, but it halts the SESSION; it
+    /// does not answer the consent question. So the dialog dismisses as
+    /// <see cref="CommandAccessDecision.TimedOut"/> (never a sticky operator deny; #308 review), and
+    /// the executor reports the standard <c>emergency-stopped</c> refusal while the latch is engaged,
+    /// leaving the command grantable again after the operator re-arms. Fires on the hook/pool thread;
+    /// marshals its own Close. Internal so tests can drive the dismissal without a message pump.
+    /// </summary>
+    internal void HandleEmergencyStop(bool stopped) {
+        if (!stopped) {
+            return;
+        }
+        Decision = CommandAccessDecision.TimedOut;
+        try {
+            if (IsHandleCreated && !IsDisposed) {
+                BeginInvoke(Close);
+            }
+        }
+        catch (InvalidOperationException) {
+            // Handle torn down between the check and the post; the dialog is already closing.
+        }
+    }
+
+    /// <summary>
+    /// Shows the consent prompt modally on <paramref name="marshal"/>'s UI thread and returns the
+    /// operator's decision; the ONE prompter body both hosts register (#308 review: the GUI and
+    /// headless channels must not drift). Null; fail closed, reported as <c>consent-unavailable</c>;
+    /// when the marshal control cannot host a dialog (null, disposed, no handle) or the show fails.
+    /// </summary>
+    internal static CommandAccessDecision? ShowVia(Control? marshal, string logContext, CommandAccessRequest request) {
+        if (marshal is null || marshal.IsDisposed || !marshal.IsHandleCreated) {
+            return null;
+        }
+        try {
+            return marshal.Invoke(() => {
+                using CommandAccessConsentDialog dialog = new(request);
+                _ = dialog.ShowDialog();
+                return dialog.Decision;
+            });
+        }
+        catch (Exception e) {
+            Logger.Instance.Log4.Warn($"{logContext}: could not show the consent prompt: {e.Message}");
+            return null;
+        }
     }
 
     protected override void OnHandleCreated(EventArgs e) {

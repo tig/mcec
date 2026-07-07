@@ -261,6 +261,132 @@ public class RequestCommandAccessTests : IDisposable {
     }
 
     // ---------------------------------------------------------------------------------------------
+    // Review findings (#308): grant persistence, the widened consent freeze, e-stop vs sticky deny,
+    // reason sanitization depth, strict argument validation, single-char resolution
+    // ---------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Grant_DoesNotPersistThroughCommandsSave() {
+        // Finding 1: the dialog promises 'nothing is written to any config file', so a consent grant
+        // must not ride the Commands window's Save into mcec.commands. An enable the OPERATOR made
+        // by hand still persists; only consent-granted enables serialize as disabled.
+        AgentConsent.Prompter = _ => CommandAccessDecision.AllowRequested;
+        _ = Ask(120, "need to launch", "launch");
+        Assert.True((AgentRuntime.Invoker!["launch"] as Command)!.Enabled);
+        (AgentRuntime.Invoker!["mcec:ver"] as Command)!.Enabled = true; // operator-made, not consent
+
+        string path = Path.GetTempFileName();
+        try {
+            AgentRuntime.Invoker!.Save(path);
+            CommandInvoker reloaded = CommandInvoker.Create(path, "9.9.9", disableInternalCommands: false);
+            Assert.False((reloaded["launch"] as Command)!.Enabled);
+            Assert.True((reloaded["mcec:ver"] as Command)!.Enabled);
+            // The live, in-memory grant is untouched by saving.
+            Assert.True((AgentRuntime.Invoker!["launch"] as Command)!.Enabled);
+        }
+        finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void WhilePromptPending_ProvisioningAndSessionLifecycle_AreRefused() {
+        // Finding 2: provision-session mid-prompt would mint a SECOND instance whose input is not
+        // blocked by this process's protections (input gate, never-a-target, dispatch freeze), so the
+        // consent freeze must cover the meta-tools too, not just the catalog.
+        string origRoot = SessionProvisioner.SessionsRoot;
+        string origBin = SessionProvisioner.BinariesDir;
+        string baseTemp = Path.Combine(Path.GetTempPath(), "mcec-consent-freeze-test", Path.GetRandomFileName());
+        string fakeBin = Path.Combine(baseTemp, "install");
+        Directory.CreateDirectory(fakeBin);
+        File.WriteAllText(Path.Combine(fakeBin, "mcec.exe"), "stub");
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true, AllowSessionProvisioning = true };
+        SessionProvisioner.SessionsRoot = Path.Combine(baseTemp, "sessions");
+        SessionProvisioner.BinariesDir = fakeBin;
+        try {
+            JsonObject? provision = null;
+            JsonObject? sessionStart = null;
+            AgentConsent.Prompter = _ => {
+                provision = Envelope(Call(130, "provision-session", []));
+                sessionStart = Envelope(Call(131, "session-start", []));
+                return CommandAccessDecision.Denied;
+            };
+            _ = Ask(129, "r", "launch");
+
+            Assert.False(provision!["ok"]!.GetValue<bool>());
+            Assert.Equal("consent-pending", ErrorCode(provision));
+            Assert.False(sessionStart!["ok"]!.GetValue<bool>());
+            Assert.Equal("consent-pending", ErrorCode(sessionStart));
+        }
+        finally {
+            SessionProvisioner.SessionsRoot = origRoot;
+            SessionProvisioner.BinariesDir = origBin;
+            try { if (Directory.Exists(baseTemp)) { Directory.Delete(baseTemp, recursive: true); } }
+            catch (IOException) { /* best-effort temp cleanup */ }
+            catch (UnauthorizedAccessException) { /* best-effort temp cleanup */ }
+        }
+    }
+
+    [Fact]
+    public void EmergencyStopDuringPrompt_IsEmergencyStopped_NotAStickyDeny() {
+        // Finding 3: the panic hotkey halts the session; it does not answer the consent question.
+        // The dialog dismisses as TimedOut, and with the latch engaged the agent must get the
+        // standard emergency-stopped signal; and the command must NOT be sticky-denied.
+        AgentConsent.Prompter = _ => {
+            AgentRuntime.SetEmergencyStopped(true); // the hotkey engaging mid-prompt
+            return CommandAccessDecision.TimedOut;  // how the dialog now reports that dismissal
+        };
+        try {
+            Assert.Equal("emergency-stopped", ErrorCode(Ask(140, "r", "launch")));
+        }
+        finally {
+            AgentRuntime.SetEmergencyStopped(false);
+        }
+
+        AgentConsent.Prompter = _ => CommandAccessDecision.AllowRequested;
+        JsonObject env = Ask(141, "r", "launch");
+        Assert.True(env["ok"]!.GetValue<bool>()); // re-armed; prompts again and grants
+    }
+
+    [Fact]
+    public void Reason_NeutralizesBidiAndUnicodeSeparators() {
+        // Finding 5: char.IsControl misses Cf (bidi overrides like U+202E), Zl (U+2028), and
+        // Zp (U+2029); untrusted text must not reorder or line-break its way out of the quoting.
+        // Built from char codes so no invisible/bidi character rides in this source file.
+        CommandAccessRequest? seen = null;
+        AgentConsent.Prompter = req => { seen = req; return CommandAccessDecision.Denied; };
+        string hostile = "ok " + (char)0x202E + "evil" + (char)0x2028 + " " + (char)0x2029 + "stuff end";
+        _ = Ask(150, hostile, "launch");
+        Assert.DoesNotContain((char)0x202E, seen!.Reason);
+        Assert.DoesNotContain((char)0x2028, seen.Reason);
+        Assert.DoesNotContain((char)0x2029, seen.Reason);
+        Assert.Equal("ok evil stuff end", seen.Reason);
+    }
+
+    [Fact]
+    public void NonStringCommandEntry_IsBadArguments_NotSilentlyDropped() {
+        // Finding 7: a malformed entry must refuse the whole request, not shrink it to a silent
+        // subset the operator never saw.
+        AgentConsent.Prompter = _ => throw new InvalidOperationException("must not prompt");
+        JsonObject env = Envelope(Call(160, "request-command-access", new JsonObject {
+            ["commands"] = new JsonArray("launch", 1),
+            ["reason"] = "r",
+        }));
+        Assert.Equal("bad-arguments", ErrorCode(env));
+    }
+
+    [Fact]
+    public void SingleCharRequest_GrantsTheCharsGate() {
+        // Finding 8: Enqueue runs a single character as a chars:-gated keypress, so requesting "a"
+        // must grant 'chars:' (the entry the invoker actually gates on), same as the prefix rule.
+        AgentConsent.Prompter = _ => CommandAccessDecision.AllowRequested;
+        JsonObject env = Ask(170, "type a letter", "a");
+        Assert.True(env["ok"]!.GetValue<bool>());
+        Assert.Equal(["chars:"], Strings(env, "granted"));
+        Assert.True((AgentRuntime.Invoker!["chars:"] as Command)!.Enabled);
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // Gates: transport, bootstrap, tools/list
     // ---------------------------------------------------------------------------------------------
 
