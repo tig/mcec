@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using Xunit;
 using MCEControl;
+using MCEControl.xUnit.Helpers;
 
 namespace MCEControl.xUnit.Agent;
 
@@ -28,11 +29,7 @@ public class SessionProvisionerTests : IDisposable {
         string baseTemp = Path.Combine(Path.GetTempPath(), "mcec-provision-test", Path.GetRandomFileName());
         _root = Path.Combine(baseTemp, "sessions");
         _fakeBinaries = Path.Combine(baseTemp, "install");
-        Directory.CreateDirectory(_fakeBinaries);
-
-        // A minimal fake "installed" layout: an exe + a dll (copied), and the installed instance's mutable
-        // config + a log (must NOT be copied; the session gets its own fresh config).
-        File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.exe"), "stub");
+        ProvisionTestFixtures.SeedMinimalInstall(_fakeBinaries);
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.dll"), "stub");
         File.WriteAllText(Path.Combine(_fakeBinaries, SettingsStore.SettingsFileName), "<AppSettings><AgentCommandsEnabled>false</AgentCommandsEnabled></AppSettings>");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.commands"), "<installed/>");
@@ -54,6 +51,28 @@ public class SessionProvisionerTests : IDisposable {
             }
         }
         catch { /* best-effort cleanup */ }
+    }
+
+    [Fact]
+    public void Provision_RequiresAgentDependencies_InTheSourceInstall() {
+        foreach (string dep in SessionProvisioner.RequiredAgentAssemblies) {
+            File.Delete(Path.Combine(_fakeBinaries, dep));
+        }
+
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
+            SessionProvisioner.Provision(mcpServerEnabled: false));
+
+        Assert.Contains("FlaUI", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(Directory.GetDirectories(_root));
+    }
+
+    [Fact]
+    public void Provision_CopiesAgentDependencies_IntoTheSession() {
+        ProvisionedSession session = SessionProvisioner.Provision(mcpServerEnabled: false);
+
+        foreach (string dep in SessionProvisioner.RequiredAgentAssemblies) {
+            Assert.True(File.Exists(Path.Combine(session.Directory, dep)), $"session must include {dep}");
+        }
     }
 
     [Fact]

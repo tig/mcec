@@ -176,8 +176,7 @@ public class AgentServerSafetyTests {
         string origBin = SessionProvisioner.BinariesDir;
         string baseTemp = Path.Combine(Path.GetTempPath(), "mcec-provision-gate-test", Path.GetRandomFileName());
         string fakeBin = Path.Combine(baseTemp, "install");
-        Directory.CreateDirectory(fakeBin);
-        File.WriteAllText(Path.Combine(fakeBin, "mcec.exe"), "stub");
+        MCEControl.xUnit.Helpers.ProvisionTestFixtures.SeedMinimalInstall(fakeBin);
 
         AgentRuntime.Settings = new AppSettings { AllowSessionProvisioning = true };
         SessionProvisioner.SessionsRoot = Path.Combine(baseTemp, "sessions");

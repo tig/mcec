@@ -298,8 +298,7 @@ public class RequestCommandAccessTests : IDisposable {
         string origBin = SessionProvisioner.BinariesDir;
         string baseTemp = Path.Combine(Path.GetTempPath(), "mcec-consent-freeze-test", Path.GetRandomFileName());
         string fakeBin = Path.Combine(baseTemp, "install");
-        Directory.CreateDirectory(fakeBin);
-        File.WriteAllText(Path.Combine(fakeBin, "mcec.exe"), "stub");
+        MCEControl.xUnit.Helpers.ProvisionTestFixtures.SeedMinimalInstall(fakeBin);
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true, AllowSessionProvisioning = true };
         SessionProvisioner.SessionsRoot = Path.Combine(baseTemp, "sessions");
         SessionProvisioner.BinariesDir = fakeBin;
