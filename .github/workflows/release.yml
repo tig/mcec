@@ -40,6 +40,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      # POLICY: releases are cut from `main`, never from `develop` or a feature branch. GitHub Pages
+      # also publishes the docs site from `main/docs`, so gating the release on "commit is on main"
+      # ALSO guarantees the published docs match the released build; a release can never ship ahead of
+      # the docs site again. The fix when this fails is always the same: merge develop into main, then
+      # tag the main commit. Fails fast, before any build/sign work.
+      - name: Enforce release comes from main
+        shell: pwsh
+        run: |
+          git fetch --no-tags origin main
+          $sha = (git rev-parse HEAD).Trim()
+          git merge-base --is-ancestor $sha FETCH_HEAD
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release commit $sha is not on origin/main. Releases must come from main: merge develop into main, then tag the main commit (see RELEASING.md)."
+          }
+          Write-Host "::notice::Verified the release commit is on main."
+
       - name: Setup .NET
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
