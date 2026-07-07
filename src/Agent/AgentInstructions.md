@@ -1,6 +1,8 @@
 MCEC (Model Context Environment Controller) lets you see and drive native Windows apps.
 
-Work the loop: observe -> target -> act -> observe.
+Work the loop: observe -> target -> act -> observe. Be economical: prefer structured observation
+(`windows`/`query`/`find`) over `capture`; when you must capture, the smallest region that answers the
+question; don't re-observe what the last result already told you — large-window captures dominate token cost.
 
 1. TARGET a window by `window` (title substring), `process` (name without .exe), `className`, or
 `foreground:true`: you MUST give at least one; a call with no target fails. If you do not yet know what to
@@ -20,8 +22,11 @@ names overlap, target by `handle`. Open menus and other untitled
 popups are not enumerated by title/process; target them by handle or `foreground:true`.
 
 2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, state, value)
-so you can pick a control instead of guessing pixels; `capture` returns a PNG of the window (works on
-composited WinUI/WPF surfaces). Use `capture` for a single state check; use `record` ONLY to show CHANGE
+so you can pick a control instead of guessing pixels; `capture` returns a PNG (works on composited
+WinUI/WPF surfaces; check `bytes` — full windows are costly and inline base64 can blow your token budget).
+Browser chrome is UIA-targetable; in-page web content is not — verify with region `capture` and
+screen-absolute pixel `click` (window origin from `query` bounds + offset; re-capture after layout shifts).
+Use `capture` for a single state check when the tree can't answer; use `record` ONLY to show CHANGE
 over time; a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
 whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture` and `record` are size-capped: an oversized region
@@ -42,7 +47,9 @@ virtualBounds) so you can interpret those bounds across multiple/scaled monitors
 drags without measuring the screen yourself.
 
 3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|expand|
-collapse|select) over coordinate clicks; it is far more reliable. To click a menu item, first `invoke` its
+collapse|select) over coordinate clicks; it is far more reliable. To put text in a native field, prefer
+`invoke`+`setvalue` (exact, no keystroke race) or `clipboard`+paste over `chars:`; for passwords rely on
+the OS password manager / masked fields — never invent or log secrets. To click a menu item, first `invoke` its
 parent menu with action `expand` (a closed menu's sub-items are not in the tree until opened), then
 `invoke` the item. Use `select` for TabItem/ListItem/RadioButton (SelectionItem pattern). Invoking a control that opens a MODAL dialog (About, Settings, message/file dialogs)
 returns promptly with `modalPending:true` (the action completes when the dialog closes), so just
@@ -125,21 +132,25 @@ for debugging or replay; `session-end` (required `sessionId`) frees a session's 
 session, a call that still echoes its id is refused with `error.code:unknown-session` (category
 `invalid-argument`); start a new one or omit `sessionId` to fall back to the default. An id you never
 started is refused the same way. (Note the hyphen: the tools are `session-start`/`session-status`/
-`session-end`.) This is separate from `provision-session`, which hands you a whole disposable MCEC INSTALL
-(see PROVISION), not an in-process session.
+`session-end`.) The provision handoff's `Session id` is for `end-session`/teardown only — never pass it as `sessionId` on
+tool calls; omit `sessionId` (default) or use an id from `session-start`. This is separate from
+`provision-session`, which hands you a whole disposable MCEC INSTALL (see PROVISION), not an in-process
+session.
 
 COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. When
 injected keystrokes must reach Start/search or the bare desktop, first show the desktop (Win+D) or `click` an
 open desktop pixel; IDE/terminal shells otherwise swallow them. Launch
-an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D.
+an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). If `launch`'s `processId` differs from the returned
+window's `processId`, you likely foregrounded an existing single-instance app (Notepad, browsers) — verify a
+blank document/tab before typing. Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D.
 KEYSTROKES split two ways, and confusing them silently does nothing. To fire an app SHORTCUT or press a
 navigation/editing key; a Ctrl/Alt/Win chord (Ctrl+C/V/A/S), a lone shortcut key (zoom `+`/`-`/`=`), or an
 arrow/function/Enter/Esc/Tab; send a real KEYDOWN via `send_command`: a `VK_` name (`VK_OEM_PLUS` is `=`/`+`),
 a named key (`enter`, `escape`, `left`/`right`/`up`/`down`, `tab`), or a chord builtin (`ctrl-x`); bracket
-with `shiftdown:<mods>`/`shiftup:<mods>` for extra modifiers. `chars:` is for LITERAL TEXT ONLY (it is
-WM_CHAR text entry): `chars:=` types a `=` and never zooms, and `shiftdown:ctrl` then `chars:c` does NOT
-fire Ctrl+C. So type field values and paths with `chars:`, but fire shortcuts with the keydown command.
-Prefer the `clipboard` tool for clipboard text; use Ctrl+C/Ctrl+V keystrokes only to move data
+with `shiftdown:<mods>`/`shiftup:<mods>` for extra modifiers. `chars:` is for LITERAL TEXT ONLY (it is WM_CHAR text entry, not SendKeys): `chars:=` types `=` and never
+zooms; `chars:^a` types those characters; `shiftdown:ctrl`+`chars:c` does NOT fire Ctrl+C; right after
+focus it can drop characters — prefer `invoke`+`setvalue` for fields. Type paths with `chars:`; fire
+shortcuts with keydown commands. Prefer `clipboard` for bulk text; use Ctrl+C/Ctrl+V only to move data
 through an app that owns the selection (copy a canvas, paste an image). Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region; use a **desktop region** when Start/search
@@ -188,14 +199,15 @@ leaks those security gates enabled, and the installed copy will not serve the fu
 Recommended path: the operator enables "Allow agents to provision disposable instances" on File > Settings
 > Agent, clicks "Provision new…", and hands you a disposable instance's directory, launch line, and
 token; connect to THAT copy's `mcec.exe --mcp` (or its HTTP endpoint when enabled) and do all work
-there. A provisioned session enables the standard observation/actuation tool set; anything else (e.g.
-`launch`, raw built-ins like `chars:`) starts disabled; acquire it mid-session with
-`request-command-access` (see COMMAND ACCESS), never by editing the session's files. The `token` is the
+there. A provisioned session enables the standard observation/actuation tool set; `launch` and most
+`send_command` built-ins (e.g. `chars:`) start disabled — batch `request-command-access` for what you'll
+need up front (see COMMAND ACCESS), never by editing the session's files. The `token` is the
 session credential; keep it: every HTTP request to the session's `mcpEndpoint` must send the header
 `Authorization: Bearer <token>` (stdio needs no header), and `end-session` requires it when you tear down
-via the bootstrap server. When your task is done, disconnect (stdio stops when the connection closes),
-tell the operator, and if you also have the installed bootstrap server call `end-session` with the
-`sessionId` AND `token` after this instance has stopped; teardown is just removing the directory. An
+via the bootstrap server. When your task is done, tell the operator (they delete the instance from the Agent tab; you cannot remove
+your own MCP client connection). stdio instances stop when the client disconnects. If you are also on
+the bootstrap server, call `end-session` with the provision id and `token` after this instance has stopped;
+teardown is just removing the directory. An
 `end-session` with a wrong/missing token fails with `error.code:session-token-invalid`; a session you did
 not provision is not yours to tear down; orphaned sessions are reaped automatically. The Agent tab also
 lists provisioned instances and lets the operator delete any you leave behind.
