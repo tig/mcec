@@ -13,6 +13,11 @@ For **installing** MCEC and where its files live, see [Install](install.md); for
 behind the agent gates, see [Agent Safety](safety-emergency-stop-and-provisioning.md); for the agent
 tools themselves, see [Environment Controller](environment-controller.md).
 
+If you want to use MCEC from a desktop agent app, start with the [Environment Controller](environment-controller.md)
+workflow and use provisioning rather than opening up the installed copy. In practice: enable
+**Allow agents to provision disposable instances**, create a disposable session, and point your agent at
+that instance's `mcec.exe mcp` (or its HTTP endpoint).
+
 Installed under Program Files, MCEC keeps its configuration under `%APPDATA%\Kindel\MCEC`
 (`mcec.settings`, `mcec.commands`, `mcec.log`); a copy run from anywhere else reads its config co-located
 in its own folder (see [Install](install.md#side-by-side-copies)).
@@ -75,9 +80,9 @@ The **Agent** tab is where you let an agent (a desktop assistant or computer-use
 
 ![Settings ▸ Agent](settings_agent.png "The Agent tab: the provisioning opt-in and the list of provisioned instances")
 
-* **Allow agents to provision disposable instances**: the one switch to turn on. A connected agent then
-  gets a fresh, throwaway copy of MCEC to drive, deleted when it finishes. It never opens up this installed
-  copy.
+* **Allow agents to provision disposable instances**: the one switch to turn on for a desktop agent app.
+  A connected agent then gets a fresh, throwaway copy of MCEC to drive, deleted when it finishes. It never
+  opens up this installed copy.
 * **Provision new…**: creates a throwaway copy yourself and shows a two-step handoff: the MCP client
   setup line, and a ready-made briefing prompt to paste to your agent (its session id, token, rules of
   engagement, and teardown duty), each with its own copy button.
@@ -115,7 +120,7 @@ Restart MCEC (or relaunch `--mcp`) after editing `mcec.settings`.
 MCEC checks GitHub for a newer release at startup and once every 24 hours. When one is found it enables
 the **Help ▸ Install Latest Version…** menu item and pops up the update dialog. On an unattended
 kiosk/exhibit machine that popup can appear over the interactive application and interrupt people who
-should never see MCEC's UI ([#309](https://github.com/tig/mcec/issues/309)).
+should never see MCEC's UI.
 
 To keep the check but suppress the automatic popup, set this key directly in `mcec.settings` (there is
 no Settings-dialog checkbox for it):

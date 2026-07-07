@@ -11,6 +11,23 @@ app has focus, not MCEC**; so the operator needs (a) a way to instantly interven
 more capability mid-session without ever letting it grant itself. All three exist so the operator stays
 in control.
 
+## How to use this in practice
+
+If you are using MCEC from a desktop agent app, the recommended flow is:
+
+1. Turn on **Allow agents to provision disposable instances** on **File ▸ Settings ▸ Agent**. This keeps
+   the agent on a throwaway copy of MCEC rather than your installed instance.
+2. Provision a fresh session (either by clicking **Provision new…** or by letting the agent call
+   `provision-session` over the bootstrap surface). MCEC gives the agent the launch command, the session
+   token, and the teardown instructions.
+3. Point your agent app at the provisioned instance's `mcec.exe mcp` (or its HTTP endpoint if you enabled
+   one). The agent can then use the normal environment-controller tools, while the safety gates remain in
+   effect.
+4. If the agent needs a command that is disabled, it asks for it with `request-command-access`; you can
+   approve it for that instance, approve it plus later requests, or deny it.
+5. If the run goes wrong, press the emergency-stop hotkey. When you are done, end the session or delete
+   the provisioned instance.
+
 ---
 
 ## 1. Emergency Stop: a global dead-man's-switch hotkey

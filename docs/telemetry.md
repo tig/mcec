@@ -51,4 +51,4 @@ Microsoft Azure Application Insights.
 
 ### Can end-users review the telemetry information collected?
 
-Yes, anyone who would like to review that information should create a GitHub issue requesting access. 
+Yes, anyone who would like to review that information can contact the MCEC maintainers to request access.
