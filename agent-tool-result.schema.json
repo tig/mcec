@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/tig/mcec/blob/develop/docs/design/agent-tool-result.schema.json",
+  "$id": "https://github.com/tig/mcec/blob/develop/agent-tool-result.schema.json",
   "title": "MCEC Agent Tool Result",
-  "description": "The structured result envelope returned by every MCEC 3.0 agent tool (capture, query, find, wait-for, invoke, send_command, session lifecycle). One envelope, one error vocabulary, so an agent can branch on success/failure uniformly. See agent-tool-result-contract.md for prose.",
+  "description": "The structured result envelope returned by every MCEC 3.0 agent tool (capture, query, find, wait-for, invoke, send_command, session lifecycle). One envelope, one error vocabulary, so an agent can branch on success/failure uniformly. Prose reference: docs/agent_control.md.",
   "type": "object",
   "required": ["ok"],
   "additionalProperties": false,
@@ -17,7 +17,7 @@
     },
     "result": {
       "type": ["object", "null"],
-      "description": "Tool-specific success payload (e.g. the PNG for capture, the UIA tree for query, the matched element for find). Shape is owned by each tool's epic, not by this contract. Present when ok is true; omitted or null when ok is false."
+      "description": "Tool-specific success payload (e.g. the PNG for capture, the UIA tree for query, the matched element for find). Shape is owned by each tool, not by this schema. Present when ok is true; omitted or null when ok is false."
     },
     "warnings": {
       "type": "array",

@@ -260,9 +260,8 @@ failing call's own partial payload, e.g. a blank capture's suspect PNG):
 > mandatory `errorCode`/`errorCategory` taxonomy on failure. The `AgentServer` builds the
 > `{ ok, result, error, … }` envelope from that object at the MCP boundary
 > (`AgentToolResult.FromCommandResult`); no serialize/re-parse round-trip and no free-text
-> "categorization"; which is the shape an MCP client actually receives and the one specified by
-> the shared result contract in
-> [`docs/design/agent-tool-result-contract.md`](design/agent-tool-result-contract.md). A
+> "categorization"; which is the shape an MCP client actually receives (see the envelope above;
+> machine-readable schema: [`agent-tool-result.schema.json`](../agent-tool-result.schema.json)). A
 > couple of feature-specific refusals ride in `error.code` while `error.category` stays `internal`:
 > `emergency-stopped` (the operator engaged the [emergency stop](safety-emergency-stop-and-provisioning.md)),
 > `provisioning-not-authorized` (`AllowSessionProvisioning` is off), `command-disabled` (the
@@ -430,8 +429,7 @@ If `file` is omitted, MCEC writes to a timestamped path under the system temp di
 reports it in `file`.
 
 No extra dependency is used: each frame is quantized + LZW-compressed to a GIF by GDI+, and
-the frames are stitched into one GIF89a (Netscape loop extension + per-frame delays). See
-`docs/design/gif-recording.md` for the full design.
+the frames are stitched into one GIF89a (Netscape loop extension + per-frame delays).
 
 ### `query` result example
 

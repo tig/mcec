@@ -28,7 +28,8 @@ which loads the embedded file and collapses each blank-line-separated paragraph 
 >    restore or foreground the window and retry, don't trust the image; a `capture-fallback` warning
 >    means PrintWindow was refused and the picture may be wrong; a `query` with `truncated:true` (a
 >    `tree-truncated` warning) hit the node cap; raise `maxNodes` or target a deeper window. `warnings`
->    are non-fatal; `errorCategory` tells you how to recover. (Shape: `docs/design/agent-tool-result-contract.md`.)
+>    are non-fatal; `errorCategory` tells you how to recover. (Shape: `docs/agent_control.md` and
+>    `agent-tool-result.schema.json`.)
 > 3. **Act**: prefer `invoke` (`by` name/automationId/classname; `action` invoke|toggle|setvalue|
 >    setfocus|expand|collapse|select) over coordinate clicks. `invoke` **fast-fails** if the control isn't present (it does not
 >    wait), so `find`/`wait-for` the control first; an `invoke` that returns `no-target` means it hasn't

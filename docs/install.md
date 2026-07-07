@@ -45,11 +45,10 @@ a fresh, disposable copy to drive (there is no `--provision` flag; provisioning 
 
 1. Turn on **Allow agents to provision disposable instances** on the Settings dialog's **Agent** tab
    (`AllowSessionProvisioning`). This is the one opt-in an operator performs.
-2. A connected agent then calls the `provision-session` MCP tool, and MCEC hands it a throwaway directory
-   under `%LOCALAPPDATA%\MCEC\sessions\<id>` containing `mcec.exe` plus an agent-ready co-located config
-   (agent commands enabled **only** inside that copy). The agent runs from there and calls `end-session`
-   when done; teardown is just deleting the directory, so a crash leaves your install untouched. MCEC also
-   reaps stale session directories on launch.
+2. Click **Provision new…**. MCEC creates a throwaway directory under `%LOCALAPPDATA%\MCEC\sessions\<id>`
+   and shows a handoff dialog: MCP client setup plus a briefing prompt for your agent. The session copy
+   has agent commands enabled **only** inside that directory. When the run is done, delete the instance
+   from the Agent tab (or let MCEC reap stale session directories on launch).
 
 The **Agent** tab (see [Configuration](configuration.html)) also lists provisioned instances and lets you
 delete any an agent left behind. The full provisioning and emergency-stop model is in

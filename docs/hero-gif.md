@@ -84,7 +84,7 @@ observations below, do not hard-code them, and **send integers** (a tool expecti
   **string** inside the JSON-RPC `result.content[]` text block, NOT at the top level. Unwrap it, then
   branch on `ok` (not `success`); read `result` on success, `error.code` on failure. Canonical parser:
   `PayloadData` in [`AgentDesktopE2ETests.cs`](../tests/MCEControl.xUnit/Integration/AgentDesktopE2ETests.cs);
-  full contract: [`agent-tool-result-contract.md`](design/agent-tool-result-contract.md).
+  full envelope: [Agent Control](agent_control.md) (result examples and error taxonomy).
 - **Absolute paths.** The controller's working dir is its temp copy, so any repo path you pass a tool
   (notably `record stop`'s `file`) must be the repo's **absolute** path, or output lands in the temp copy
   and is lost.

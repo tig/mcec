@@ -13,7 +13,7 @@ namespace MCEControl.xUnit.Agent;
 /// Validates the #101 result envelope (<see cref="AgentToolResult"/>) and the Phase 1 (#86) translation
 /// from the legacy <see cref="CommandResult"/>. There is no JSON-Schema validator package referenced, so
 /// these tests assert the schema's structural invariants directly (see
-/// <c>docs/design/agent-tool-result.schema.json</c>): <c>ok</c> required; <c>ok:false</c> ⟹ a complete
+/// <c>agent-tool-result.schema.json</c>): <c>ok</c> required; <c>ok:false</c> ⟹ a complete
 /// <c>error</c>; <c>ok:true</c> ⟹ no <c>error</c>; <c>category</c> from the closed taxonomy.
 /// </summary>
 public class AgentToolResultTests {

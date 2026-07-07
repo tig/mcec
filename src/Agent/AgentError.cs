@@ -11,7 +11,7 @@ namespace MCEControl;
 /// false). Carries a fine-grained, open-ended <see cref="Code"/>, a coarse <see cref="Category"/> from
 /// the closed <see cref="AgentErrorCategory"/> taxonomy, a human-readable <see cref="Detail"/>, and an
 /// optional <see cref="LastObservation"/> (the last good state before the failure, for debugging and
-/// #87's failure-summary). See <c>docs/design/agent-tool-result-contract.md</c> (#101).
+/// failure-summary artifacts). See <c>docs/agent_control.md</c> / <c>agent-tool-result.schema.json</c>.
 /// </summary>
 public sealed class AgentError(string code, AgentErrorCategory category, string detail, JsonObject? lastObservation = null, JsonObject? partialResult = null) {
     /// <summary>Stable, fine-grained machine code (kebab-case); narrows <see cref="Category"/>.</summary>

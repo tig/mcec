@@ -2,47 +2,51 @@ By [Tig Kindel](https://twitter.com/tigkindel) - Copyright © [Kindel](http://ww
 
 ![mcec](docs/hero.gif "MCEC: one agent driving another; launch, File ▸ Settings (every tab), mouse-resize, drag the title bar in circles, Help ▸ About; recorded with MCEC's own agent tools")
 
-**MCEC**: the **Model Context Environment Controller**; is eyes, hands, and a safe front door for AI agents on Windows.
+**MCEC** — the **Model Context Environment Controller** — is eyes, hands, and a safe front door for AI
+agents on Windows, and the same battle-tested TCP/serial remote control for integration systems it has
+always been.
 
-It is a small, self-contained native Windows daemon that a computer-use model can **mount, see through, and drive**. An agent runs the loop *observe → target → act → observe*, and MCEC gives it all four: capture a window as a PNG, read its UI Automation tree, find and wait for controls, launch apps, and actuate keyboard/mouse/window input; exposed to agents and scripts over the **Model Context Protocol (MCP)** (stdio via `mcec.exe --mcp`, or a localhost HTTP floor).
+For agents, it is a small native Windows daemon a computer-use model **mounts, sees through, and drives**
+over the **Model Context Protocol (MCP)**: capture windows, read UI Automation trees, find controls, launch
+apps, and actuate keyboard/mouse input. For control systems, it listens on TCP/IP or a serial port and
+translates remote commands into keystrokes, text, mouse moves, window messages, and app launches
+([Control4](https://www.control4.com/), [Crestron](http://www.crestron.com/), [iRule](http://www.iruleathome.com/),
+and others). The 3.0 agent surface is **purely additive**; classic remote control is unchanged.
 
-**Install with winget:**
+> [!CAUTION]
+> The agent surface is powerful and **off by default**. Once enabled, an agent acts with your rights on
+> whatever it targets. Read [Agent Safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html)
+> before you opt in.
+
+## Getting started
+
+Install with winget (recommended):
 
 ```
 winget install Kindel.mcec
 ```
 
-or [download the installer](https://github.com/tig/mcec/releases).
+Or [download the signed installer](https://github.com/tig/mcec/releases). Launch **MCEC** from the Start
+menu when setup finishes.
 
-> [!CAUTION]
-> MCEC is powerful and off by default: once you enable it, an agent acts with your rights on whatever it targets. See [Agent Safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html).
+To let a desktop agent app drive Windows through MCEC, use **Provision new…** on **File ▸ Settings ▸ Agent**
+(do not enable agent gates on the Program Files install). The full walkthrough — opt-in, handoff dialog,
+MCP client setup, and teardown — is in [Agent Control → Quick start](https://tig.github.io/mcec/agent_control.html#quick-start-use-it-from-a-desktop-agent-app).
 
-MCEC drives the Windows desktop with real user input. There is no sandbox, no permission model inside the session, and no way to give an agent "just a little" control. **Everything a user can do at the keyboard and mouse, an agent can do**: read whatever is on screen, type into any app, click anything, launch programs, open a browser logged in as you, delete files, send email. The gates decide *whether* an agent gets that power; they do not and cannot meter *how much*.
+## Documentation
 
-So the operator stays in control by construction:
+Full guides live on the [docs site](https://tig.github.io/mcec/):
 
-* **Off by default.** Every agent capability is opt-in behind three independent gates (`AgentCommandsEnabled`, per-command `Enabled`, `McpServerEnabled`), and the network door binds to localhost only (a non-loopback bind requires a bearer token, or MCEC refuses to start it).
-* **Visible when on.** An on-by-default on-screen overlay narrates each command as it executes, and every action is logged with a loud `AGENT-AUDIT:` line.
-* **Stoppable.** A global emergency-stop hotkey (default `Ctrl+Alt+Shift+S`) halts a session instantly from any window; it reacts to physical input only, so an agent can never trip or defeat it.
-* **Disposable.** Rather than enabling your installed instance, an authorized agent gets a throwaway provisioned session; teardown is deleting a directory, and a crash leaves the real install untouched.
+* [Install](https://tig.github.io/mcec/install.html) — winget, what gets installed where, side-by-side copies
+* [Configuration](https://tig.github.io/mcec/configuration.html) — Settings, `mcec.settings`, commands, logging
+* [Agent Control](https://tig.github.io/mcec/agent_control.html) — observation, targeting, actuation, MCP/HTTP
+* [Agent Safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html) — consent, provisioning, emergency stop, overlay
+* [Remote Control](https://tig.github.io/mcec/remote_control.html) — TCP/serial commands and User Activity Monitor
+* [Examples](https://tig.github.io/mcec/examples.html) — worked agent-driving recipes
 
-Enable the agent surface only on a machine and session where you accept an agent acting as you. See [Agent safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html) for more details.
+Developers and agents: [AGENTS.md](AGENTS.md) (connect-time guidance and the MCEC-drives-MCEC dogfood test).
 
-MCEC is also the same **battle-tested TCP/serial remote control** it has always been. In its long-standing role it runs in the background listening on the network (or a serial port) for commands, and translates them into keystrokes, text input, mouse moves, window messages, and app launches. Any remote control or home-control system that can send text over TCP/IP or RS-232 ([Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/), [Crestron](http://www.crestron.com/), and others) can use MCEC to drive a Windows PC. The agent surface in 3.0 is **purely additive**: every existing remote-control feature is unchanged.
+## Integrations
 
-It also runs the flow in reverse: the **[User Activity Monitor](https://tig.github.io/mcec/remote_control.html#user-activity-monitor)** reports when someone is actively using the PC, turning the machine into an occupancy sensor a control system can use to drive lighting. It is better than a passive motion detector, which gives up on someone sitting still at a desk. The [Control4 User Activity Driver](https://github.com/tig/User_Activity) packages exactly that.
-
-* [Overview](https://tig.github.io/mcec): start here
-* [Install](https://tig.github.io/mcec/install.html): winget and the signed installer
-* [Configuration](https://tig.github.io/mcec/configuration.html): Settings, `mcec.settings`, and commands
-* [Agent Control](https://tig.github.io/mcec/agent_control.html): the full agent/MCP tool reference
-* [Agent Safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html): emergency stop + isolated session provisioning
-* [Remote Control](https://tig.github.io/mcec/remote_control.html): the classic TCP/serial command surface
-* [Examples](https://tig.github.io/mcec/examples.html): worked agent-driving recipes
-* [AGENTS.md](AGENTS.md): connect-time agent guidance + the dogfood recipe (MCEC driving MCEC)
-
-Links:
-
-# Integrations
 * [Control4 User Activity Driver](https://github.com/tig/User_Activity)
 * [Control4.MceControllerDriver](https://github.com/garrynewman/Control4.MceControllerDriver)
