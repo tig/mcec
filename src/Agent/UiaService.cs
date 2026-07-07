@@ -271,9 +271,16 @@ public static class UiaService {
     // -------------------------------------------------------------------------------------------
 
     private static readonly Lock _workerGate = new();
-    private static BlockingCollection<Action<UIA3Automation>>? _workQueue;
+    // Action (not Action<UIA3Automation>) so Shutdown() never JIT-loads FlaUI when the worker was
+    // never started (#317): a provisioned session that exits without any UIA call must not crash on
+    // File ▸ Exit because PerformShutdown calls Shutdown before FlaUI.UIA3.dll was ever loaded.
+    private static BlockingCollection<Action>? _workQueue;
     private static Thread? _workerThread;
     private static int _workerGeneration;
+    /// <summary>Cached automation; read only on the worker thread while it is running.</summary>
+    private static UIA3Automation? _workerAutomation;
+    /// <summary>Signaled once <see cref="_workerAutomation"/> is ready so enqueued work never races startup.</summary>
+    private static ManualResetEventSlim? _workerReady;
 
     /// <summary>
     /// Runs <paramref name="work"/> on the dedicated UIA worker thread (started lazily) against the
@@ -297,25 +304,34 @@ public static class UiaService {
     private static void EnqueueWork(Action<UIA3Automation> item) {
         lock (_workerGate) {
             if (_workQueue is null) {
-                BlockingCollection<Action<UIA3Automation>> queue = [];
+                BlockingCollection<Action> queue = [];
                 _workQueue = queue;
                 _workerGeneration++;
+                _workerReady = new ManualResetEventSlim(initialState: false);
                 _workerThread = new Thread(() => WorkerMain(queue)) { IsBackground = true, Name = "mcec-uia" };
                 // Explicitly MTA: UIA *clients* are recommended to run MTA (an STA client can deadlock
                 // against providers that marshal back), and MTA lets the invoke path drive a
                 // worker-resolved element from another MTA thread without marshaling.
                 _workerThread.SetApartmentState(ApartmentState.MTA);
                 _workerThread.Start();
+                _workerReady.Wait();
             }
-            _workQueue.Add(item);
+            _workQueue.Add(() => item(_workerAutomation!));
         }
     }
 
     /// <summary>The worker main: one cached automation for the thread's lifetime, disposed at the end.</summary>
-    private static void WorkerMain(BlockingCollection<Action<UIA3Automation>> queue) {
+    private static void WorkerMain(BlockingCollection<Action> queue) {
         using UIA3Automation automation = new();
-        foreach (Action<UIA3Automation> item in queue.GetConsumingEnumerable()) {
-            item(automation);
+        _workerAutomation = automation;
+        _workerReady!.Set();
+        try {
+            foreach (Action item in queue.GetConsumingEnumerable()) {
+                item();
+            }
+        }
+        finally {
+            _workerAutomation = null;
         }
     }
 
@@ -325,13 +341,16 @@ public static class UiaService {
     /// stdio loop ends). Idempotent; a later call lazily restarts the worker (tests rely on this).
     /// </summary>
     public static void Shutdown() {
-        BlockingCollection<Action<UIA3Automation>>? queue;
+        BlockingCollection<Action>? queue;
         Thread? worker;
+        ManualResetEventSlim? ready;
         lock (_workerGate) {
             queue = _workQueue;
             worker = _workerThread;
+            ready = _workerReady;
             _workQueue = null;
             _workerThread = null;
+            _workerReady = null;
         }
         if (queue is null) {
             return;
@@ -341,6 +360,7 @@ public static class UiaService {
             Logger.Instance.Log4.Warn(
                 $"UiaService: the UIA worker did not exit within {ShutdownJoinTimeoutMs}ms (a stuck UIA call); abandoning it (background thread).");
         }
+        ready?.Dispose();
     }
 
     /// <summary>

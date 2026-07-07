@@ -34,6 +34,9 @@ public class SessionProvisionerTests : IDisposable {
         // config + a log (must NOT be copied; the session gets its own fresh config).
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.exe"), "stub");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.dll"), "stub");
+        foreach (string dep in SessionProvisioner.RequiredAgentAssemblies) {
+            File.WriteAllText(Path.Combine(_fakeBinaries, dep), "stub");
+        }
         File.WriteAllText(Path.Combine(_fakeBinaries, SettingsStore.SettingsFileName), "<AppSettings><AgentCommandsEnabled>false</AgentCommandsEnabled></AppSettings>");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.commands"), "<installed/>");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.log"), "old log");
@@ -54,6 +57,28 @@ public class SessionProvisionerTests : IDisposable {
             }
         }
         catch { /* best-effort cleanup */ }
+    }
+
+    [Fact]
+    public void Provision_RequiresAgentDependencies_InTheSourceInstall() {
+        foreach (string dep in SessionProvisioner.RequiredAgentAssemblies) {
+            File.Delete(Path.Combine(_fakeBinaries, dep));
+        }
+
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
+            SessionProvisioner.Provision(mcpServerEnabled: false));
+
+        Assert.Contains("FlaUI", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(Directory.GetDirectories(_root));
+    }
+
+    [Fact]
+    public void Provision_CopiesAgentDependencies_IntoTheSession() {
+        ProvisionedSession session = SessionProvisioner.Provision(mcpServerEnabled: false);
+
+        foreach (string dep in SessionProvisioner.RequiredAgentAssemblies) {
+            Assert.True(File.Exists(Path.Combine(session.Directory, dep)), $"session must include {dep}");
+        }
     }
 
     [Fact]

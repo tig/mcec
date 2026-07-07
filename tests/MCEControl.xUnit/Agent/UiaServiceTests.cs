@@ -150,6 +150,14 @@ public class UiaServiceTests {
     }
 
     [Fact]
+    public void Shutdown_BeforeAnyUiaWork_IsIdempotentAndDoesNotThrow() {
+        // #317: exiting a provisioned session that never called query/invoke must not crash in
+        // PerformShutdown when FlaUI.UIA3 was never loaded.
+        UiaService.Shutdown();
+        UiaService.Shutdown();
+    }
+
+    [Fact]
     public void Shutdown_DisposesWorker_AndALaterCallRestartsIt() {
         (_, _, int genBefore) = UiaService.ProbeWorker();
 
