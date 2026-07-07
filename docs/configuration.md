@@ -101,6 +101,29 @@ The agent surface is configured by these keys. All are off/safe by default; see
 
 Restart MCEC (or relaunch `--mcp`) after editing `mcec.settings`.
 
+### Update checks (in `mcec.settings`)
+
+MCEC checks GitHub for a newer release at startup and once every 24 hours. When one is found it enables
+the **Help ▸ Install Latest Version…** menu item and pops up the update dialog. On an unattended
+kiosk/exhibit machine that popup can appear over the interactive application and interrupt people who
+should never see MCEC's UI ([#309](https://github.com/tig/mcec/issues/309)).
+
+To keep the check but suppress the automatic popup, set this key directly in `mcec.settings` (there is
+no Settings-dialog checkbox for it):
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `DisableUpdatePopup` | `false` | When `true`, MCEC still checks for updates and enables **Help ▸ Install Latest Version…** when one is available, but does **not** pop up the update dialog automatically. Operators update on demand from the Help menu. |
+
+```xml
+<AppSettings>
+  ...
+  <DisableUpdatePopup>true</DisableUpdatePopup>
+</AppSettings>
+```
+
+Restart MCEC after changing it.
+
 ## Enabling or Disabling Commands
 
 For security, **every** command is disabled by default; this reduces the surface area MCEC exposes. This
