@@ -29,21 +29,17 @@ from there. MCEC runs as a normal windowed app that can minimize to a taskbar (t
 main window minimizes it to the tray; double-click the tray icon to show it again, or right-click for a
 menu. To start hidden, check **Hide Window at Startup** in **Settings**.
 
-To run headless as an **MCP server** (no main window, no tray icon; the command overlay and the
-emergency-stop hotkey still work), launch it with `mcp` (or the equivalent `--mcp`); an MCP client can
-spawn it on demand and talk JSON-RPC over stdio:
-
-```
-mcec.exe mcp
-```
+Desktop agent apps connect over **MCP**: the client's configuration spawns a headless MCEC process (no
+main window, no tray icon; the command overlay and the emergency-stop hotkey still work) and talks
+JSON-RPC over stdio. That transport is for MCP clients to launch — not something you run yourself from a
+terminal.
 
 The **installed** copy (under Program Files) never serves the full agent surface: it refuses to start
-the MCP/HTTP endpoint, and over `mcp`/`--mcp` it serves only the provisioning **bootstrap**
-(`provision-session` / `end-session`), because enabling agent gates in the installed configuration would
+the MCP/HTTP endpoint, and when an MCP client spawns it as the bootstrap server it exposes only
+`provision-session` / `end-session`, because enabling agent gates in the installed configuration would
 leak them enabled if a session crashed. Use [session provisioning](safety-emergency-stop-and-provisioning.md)
-to get a disposable, isolated copy that serves everything — call `provision-session` (or click
-**Provision new…** on File ▸ Settings ▸ Agent), or copy the install directory somewhere writable and run
-from there.
+to get a disposable, isolated copy that serves everything — click **Provision new…** on File ▸ Settings ▸
+Agent, or let a connected agent call `provision-session`.
 
 `mcec.exe` also has a command-line surface (built on
 [Terminal.Gui.Cli](https://github.com/gui-cs/cli)): `--help`, `--version`, `--opencli` (machine-readable
