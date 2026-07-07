@@ -15,8 +15,9 @@ tools themselves, see [Environment Controller](environment-controller.md).
 
 If you want to use MCEC from a desktop agent app, start with the [Environment Controller](environment-controller.md)
 workflow and use provisioning rather than opening up the installed copy. In practice: enable
-**Allow agents to provision disposable instances**, create a disposable session, and point your agent at
-that instance's `mcec.exe mcp` (or its HTTP endpoint).
+**Allow agents to provision disposable instances**, create a disposable session (**Provision new…** or
+`provision-session`), and use the MCP client setup line from the handoff (or the session's HTTP endpoint
+when enabled).
 
 Installed under Program Files, MCEC keeps its configuration under `%APPDATA%\Kindel\MCEC`
 (`mcec.settings`, `mcec.commands`, `mcec.log`); a copy run from anywhere else reads its config co-located
@@ -98,6 +99,12 @@ in-memory and die with the instance; nothing is written to your config files. Se
 The agent surface is configured by these keys. All are off/safe by default; see
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)** for the full security model.
 
+> **Program Files install:** the normal installed copy under `C:\Program Files\…` is
+> `ProvisioningBootstrapOnly` — it refuses to start the MCP/HTTP endpoint and, when an MCP client spawns
+> it, serves only `provision-session` / `end-session`. These keys apply to **provisioned sessions** and
+> **non-installed copies** (a writable side-by-side copy; see [Install](install.md#side-by-side-copies)),
+> not to enabling the installed instance directly.
+
 | Setting | Default | Meaning |
 |---------|---------|---------|
 | `AgentCommandsEnabled` | `false` | Master opt-in for the agent observation/actuation commands. Separate from the classic command enable. |
@@ -111,7 +118,8 @@ The agent surface is configured by these keys. All are off/safe by default; see
 | `AllowSessionProvisioning` | `false` | Operator opt-in that lets an agent request a fresh, isolated MCEC instance via `provision-session` (and enables the **Provision new…** button on the Agent tab). |
 | `AgentRecordMaxFps` / `AgentRecordMaxDurationMs` / `AgentRecordMaxFrames` / `AgentRecordMaxWidth` | 30 / 60000 / 600 / 1280 | Safety limits for the `record` tool (requests above them are clamped, not failed). |
 
-Restart MCEC (or relaunch `--mcp`) after editing `mcec.settings`.
+Restart the MCEC instance whose `mcec.settings` you edited (the provisioned copy or a non-installed
+copy).
 
 ### Update checks (in `mcec.settings`)
 
@@ -139,8 +147,9 @@ Restart MCEC after changing it.
 ## Enabling or Disabling Commands
 
 For security, **every** command is disabled by default; this reduces the surface area MCEC exposes. This
-applies to both the classic commands and the agent commands: an agent command runs only when
-`AgentCommandsEnabled=true` **and** that individual command is enabled.
+applies to both the classic commands and the agent commands: in a provisioned session or non-installed
+copy, an agent command runs only when `AgentCommandsEnabled=true` **and** that individual command is
+enabled. (The Program Files install never serves the full agent command surface; see the note above.)
 
 Use the **Commands Window** (**Commands ▸ Enable and Test Commands…**) to enable/disable commands and test
 them. Details, including the `mcec.commands` XML format, are in

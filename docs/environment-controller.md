@@ -61,7 +61,9 @@ instance; enable the agent surface only where you accept an agent acting as you 
 commands can reach.
 
 With that understood: the agent server is locked down by default and uses **layered,
-independent opt-ins**. Turning one thing on does **not** turn the others on.
+independent opt-ins**. Turning one thing on does **not** turn the others on. These gates are
+meaningful in **provisioned sessions** and **non-installed copies**; the Program Files install enforces
+bootstrap-only MCP serving regardless of what you set in `%APPDATA%\Kindel\MCEC\mcec.settings`.
 
 1. **Agent commands are DISABLED by default.**
    The new observation/automation commands require their **own** opt-in,
@@ -144,8 +146,11 @@ cleans up any it leaves behind. See [session provisioning](safety-emergency-stop
 
 ![Settings ▸ Agent](settings_agent.png "The Agent tab: the provisioning opt-in and the list of provisioned instances")
 
-**Alternative (enable the installed instance directly):** edit `mcec.settings` (in your MCEC settings
-directory) and set the opt-ins you want. At minimum, to use the agent commands at all:
+**Alternative (persistent non-installed copy):** for development or advanced setups that need a
+writable MCEC that serves the full agent surface outside provisioning, run from a **copy not under
+Program Files** — see [Side-by-side copies](install.md#side-by-side-copies). That copy reads
+`mcec.settings` and `mcec.commands` co-located next to `mcec.exe`. Edit that co-located settings file
+and set, at minimum:
 
 ```xml
 <AgentCommandsEnabled>true</AgentCommandsEnabled>
@@ -160,10 +165,14 @@ To additionally expose the MCP / HTTP server so agents can connect over a transp
 <McpHttpPort>5151</McpHttpPort>
 ```
 
-Restart MCEC after editing the settings file. Remember you must **also** enable the
-individual agent commands you intend to use (they ship `Enabled=false` like every other
-command). This path keeps the agent on your installed copy; prefer provisioning above when a desktop
-agent app is driving MCEC.
+Restart that copy, enable the individual agent commands you intend to use in its `mcec.commands` (they
+ship `Enabled=false` like every other command), and point your MCP client's spawn config at that copy's
+`mcec.exe`.
+
+**Do not** try this on the normal Program Files install: that copy is `ProvisioningBootstrapOnly`. Editing
+`%APPDATA%\Kindel\MCEC\mcec.settings` will not start the HTTP floor (`AgentServer.StartHttp` refuses), and
+when an MCP client spawns the installed exe it gets only the `provision-session` / `end-session` bootstrap
+— not the full observation/actuation surface. Prefer provisioning above for desktop-agent use.
 
 ---
 
