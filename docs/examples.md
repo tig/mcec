@@ -13,9 +13,9 @@ leads with the artifact and the plain-English prompt, then gives the exact recip
 
 | Example | Flavor | What it shows | Recipe |
 |---------|--------|---------------|--------|
-| **MCEC hero GIF** | Scripted recipe | One MCEC drives a second MCEC through a guided tour (Settings tabs, mouse-resize, drag the title bar, Help ▸ About) while the overlay narrates; recorded with the `record` tool. | [hero-gif.md](hero-gif.md) |
+| **MCEC hero GIF** | Scripted recipe | One MCEC drives a second MCEC through a guided tour (Settings tabs, mouse-resize, drag the title bar, Help ▸ About) while the overlay narrates; recorded with the `record` tool. | [hero-gif.md](https://github.com/tig/mcec/blob/develop/dev/hero-gif.md) |
 | **WinPrint hero GIF** | Scripted recipe | MCEC drives installed **WinPrint** through a guided tour (launch, settings/zoom, Print to PDF), recorded as a clean, window-only GIF. Owned and produced in the WinPrint repo. | [hero-gif-win.md](https://github.com/tig/winprint/blob/develop/docs/hero-gif-win.md) |
-| **Paint → smiley → email** | Prompt demo | Hand a computer-use agent one sentence and it drives the desktop: open Paint, draw a smiley, copy it, start a new email, paste it in. | [paint-smiley-email.md](paint-smiley-email.md) |
+| **Paint → smiley → email** | Prompt demo | Hand a computer-use agent one sentence and it drives the desktop: open Paint, draw a smiley, copy it, start a new email, paste it in. | [paint-smiley-email.md](https://github.com/tig/mcec/blob/develop/dev/paint-smiley-email.md) |
 
 ## Two flavors
 
@@ -26,7 +26,8 @@ leads with the artifact and the plain-English prompt, then gives the exact recip
   [doc-images.md](https://github.com/tig/mcec/blob/develop/dev/doc-images.md).
 - **Prompt demo.** A natural-language **task** you hand a capable computer-use agent, which it *improvises*
   with MCEC's tools. The point is to showcase the capability surface, not a pixel-perfect artifact, so the
-  page is mostly the prompt, the gates it needs, and a captured recording of one good run.
+  maintainer recipe (under `dev/`) is mostly the prompt, the gates it needs, and a reference path — not a
+  committed site GIF.
 
 ## How these examples work
 
@@ -41,7 +42,7 @@ Everything below is common to every example; individual pages assume it and don'
   never leaves your installed MCEC with agent gates enabled.
 - **The MCP envelope is double-wrapped.** A tool's `{ ok, result, error }` envelope arrives as a JSON
   **string** inside the JSON-RPC `result.content[].text` block. Unwrap it, branch on `ok`, then read
-  `result` (success) or `error.code` (failure). See the reference call in [hero-gif.md](hero-gif.md).
+  `result` (success) or `error.code` (failure). See the reference call in [hero-gif.md](https://github.com/tig/mcec/blob/develop/dev/hero-gif.md).
 - **Pass absolute paths.** The controller's working directory is its disposable copy, so any repo path you
   hand a tool (e.g. `record stop`'s `file`) must be absolute or the output lands in the temp copy and is lost.
 - **Targeting gotchas that bite every recipe:**
@@ -72,8 +73,10 @@ Everything below is common to every example; individual pages assume it and don'
 
 ## Adding an example
 
-Copy this skeleton to `docs/<name>.md`, fill it in, and add a row to the gallery table above. Keep the
-artifact and the prompt at the very top so a human sees the payoff first and an agent finds the task fast.
+Copy this skeleton to `dev/<name>.md`, fill it in, and add a row to the gallery table above (link to the
+GitHub blob URL under `dev/`). Keep the prompt at the very top so a human sees the payoff first and an
+agent finds the task fast. Scripted recipes that produce a committed asset (e.g. `hero.gif`) still land
+the GIF/PNG under `docs/`.
 
 ```markdown
 # <Title>

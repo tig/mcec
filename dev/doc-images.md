@@ -8,7 +8,7 @@ committed under `docs/` is produced by **MCEC driving itself**:
 Static **brand assets** (`Guillen256x256.png`, `assets/favicon.png`) are exported from
 `src/Resources/Guillen.Icon.ico` and are not runtime captures.
 
-> **Shared bootstrap, MCP envelope, and targeting gotchas** live in [Examples](examples.md) (read
+> **Shared bootstrap, MCP envelope, and targeting gotchas** live in [Examples](../docs/examples.md) (read
 > "Targeting gotchas that bite every recipe" before any pass). Stand up the first authorized controller
 > with [`scripts/Generate-HeroGif.ps1`](../scripts/Generate-HeroGif.ps1) (prints `HERO_MCP_URL=`).
 
@@ -17,11 +17,9 @@ Static **brand assets** (`Guillen256x256.png`, `assets/favicon.png`) are exporte
 | Asset | Where used | How |
 |-------|------------|-----|
 | `hero.gif` | `index.md`, `README.md` | `record` — [hero-gif.md](hero-gif.md) |
-| `paint-smiley-email.gif` | `paint-smiley-email.md` | `record` — [paint-smiley-email.md](paint-smiley-email.md) |
 | `settings_general.png` … `settings_activity.png` | `configuration.md`, `remote_control.md`, `agent_control.md` | `capture` — [Settings tabs](#settings-dialog-tabs) |
 | `provision_handoff.png` | `agent_control.md` | `capture` — [Provision handoff](#provision-new-handoff-dialog) |
 | `commands_enable.png`, `commands_test.png` | `remote_control.md`, `examples.md` | `capture` — [Commands window](#commands-window) |
-| `telemetry_optin.png` | `telemetry.md` | `capture` — [Installer telemetry page](#installer-telemetry-opt-in) |
 
 After every `capture`, **crop the Win11 `PrintWindow` frame**: 8px black bands on left/right/bottom
 (FixedDialog 491×412 → 475×404). Example:
@@ -58,7 +56,7 @@ or session dirs.
    - **Agent / Client / Server** — `click { handle, at:{ by:name, value:<tab> } }` (or coordinate-click
      the `TabItem` if by-name is ambiguous), dwell, `capture`.
    - **Serial Server / Activity Monitor** — by-name substring-hits **Server**; `TabItem` bounds are
-     null, so coordinate-click the tab header from the window rect (see [Examples](examples.md)), then
+     null, so coordinate-click the tab header from the window rect (see [Examples](../docs/examples.md)), then
      capture.
 5. **Crop** each PNG (see above). Re-view every file before committing — the wrong tab looks plausible.
 
@@ -69,7 +67,7 @@ When **editing dialog layout**, iterate with an in-process render harness in xUn
 
 ## Provision new… handoff dialog
 
-`docs/provision_handoff.png` in [agent_control.md](agent_control.md).
+`docs/provision_handoff.png` in [agent_control.md](../docs/agent_control.md).
 
 The subject must have **`AllowSessionProvisioning=true`** (write it into the subject's co-located
 `mcec.settings` before launch, or tick the checkbox on the Agent tab first).
@@ -100,26 +98,11 @@ The subject must have **`AllowSessionProvisioning=true`** (write it into the sub
 
 ---
 
-## Installer telemetry opt-in
-
-`docs/telemetry_optin.png` in [telemetry.md](telemetry.md).
-
-1. Bootstrap the controller (agent commands + `capture` enabled).
-2. **Launch the signed installer** from a release build (`launch { path: <MCEControllerSetup.exe> }`) or
-   run the NSIS output under `Installer/`.
-3. Step through the wizard until the **telemetry opt-in** page is foreground; `query { foreground:true }`
-   to confirm.
-4. **`capture { handle, file:<repo>/docs/telemetry_optin.png }`**. Crop if the installer window shows a
-   `PrintWindow` frame band.
-5. Cancel the installer (do not complete install on a machine you care about).
-
----
-
 ## Animated examples
 
 | Doc | Recipe |
 |-----|--------|
 | [hero-gif.md](hero-gif.md) | Full numbered `record` tour of a provisioned subject |
-| [paint-smiley-email.md](paint-smiley-email.md) | Prompt demo; `record` one good run |
 
-Both assume the controller bootstrap and disposable-subject pattern in [Examples](examples.md).
+See also [paint-smiley-email.md](paint-smiley-email.md) (prompt demo; no committed GIF). Both assume the
+controller bootstrap and disposable-subject pattern in [Examples](../docs/examples.md).

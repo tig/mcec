@@ -5,17 +5,14 @@
 
 # Paint → smiley → email
 
+Maintainer doc ([`dev/`](README.md)); not published to GitHub Pages.
+
 Hand a computer-use agent **one sentence** and it drives the whole Windows desktop with MCEC: open Paint,
-draw a smiley, copy it, start a new email, and paste the drawing in. A capability demo, not a fixed artifact.
+draw a smiley, copy it, start a new email, and paste the drawing in. A capability prompt demo, not a
+committed site artifact.
 
-![Paint to smiley to email, driven by MCEC](paint-smiley-email.gif)
-
-> **Flavor:** Prompt demo. One of the worked [Examples](examples.md); the shared bootstrap, MCP envelope,
-> and targeting gotchas live there and aren't repeated here.
->
-> **Recording note:** to avoid putting a real inbox in a public GIF, the recording pastes into a neutral
-> mock "New message" page (a local HTML compose form in a chromeless browser window). A real mail client
-> works identically; only the paste *target* differs.
+> **Flavor:** Prompt demo. One of the worked [Examples](../docs/examples.md); the shared bootstrap, MCP
+> envelope, and targeting gotchas live there and aren't repeated here.
 
 ## The prompt
 
@@ -28,7 +25,7 @@ is a reference for what a good run does, not a script the agent has to be handed
 ## Preconditions
 
 - **Agent surface on, for a disposable copy.** Enable the agent gates in a [provisioned
-  session](safety-emergency-stop-and-provisioning.md) rather than your installed MCEC. This demo actuates,
+  session](../docs/safety-emergency-stop-and-provisioning.md) rather than your installed MCEC. This demo actuates,
   so it needs (beyond `AgentCommandsEnabled`) these commands enabled: `launch`, `click`, `drag`, `capture`,
   `clipboard`, and the keyboard primitives used through `send_command` (`chars:`, `shiftdown:`,
   `shiftup:`); `query`/`find` help targeting.
@@ -58,8 +55,7 @@ The agent improvises from the prompt; a known-good path is:
    client (or open the mail app and `click` **New mail**).
 6. **Paste into the body.** `click` the message body to focus it, then `ctrl-v` (again a real VK+modifier
    command). A rich composer pastes the bitmap inline.
-7. **Stop at the draft.** Leave the compose window open; **do not** send. (For a recording, `record` the
-   desktop region from step 1 and `stop` here.)
+7. **Stop at the draft.** Leave the compose window open; **do not** send.
 
 ## Expected result
 
@@ -79,7 +75,6 @@ the clipboard, into an email body, hands-free."
   all**) selects the whole canvas so the copy isn't empty.
 - **Mail client dependency.** `mailto:` uses the OS default. If it opens a browser compose (web mail), that
   still accepts a Ctrl+V image paste in most cases; a client with no rich-paste support is the one setup
-  where step 6 won't embed the image. (This machine had no configured mail client during recording, which is
-  why the published GIF uses a neutral mock compose page.)
+  where step 6 won't embed the image.
 - **Never click Send.** The prompt says leave the draft open; a demo must not send mail. Discard the draft
   when done.

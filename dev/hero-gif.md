@@ -1,16 +1,18 @@
 # Recreating the hero GIF (`docs/hero.gif`)
 
-> **Flavor:** Scripted recipe. One of the worked [Examples](examples.md); the shared bootstrap, MCP
+Maintainer doc ([`dev/`](README.md)); not published to GitHub Pages.
+
+> **Flavor:** Scripted recipe. One of the worked [Examples](../docs/examples.md); the shared bootstrap, MCP
 > envelope, and targeting gotchas live there and aren't repeated here.
 
 `docs/hero.gif` is the hero image shown at the top of [`README.md`](../README.md) and the docs home page
-([`docs/index.md`](index.md), served at `https://tig.github.io/mcec/hero.gif`). It is MCEC dogfooding
-(documented in the [doc images catalog](https://github.com/tig/mcec/blob/develop/dev/doc-images.md));
+([`docs/index.md`](../docs/index.md), served at `https://tig.github.io/mcec/hero.gif`). It is MCEC dogfooding
+(documented in the [doc images catalog](doc-images.md));
 itself: one MCEC drives a **second MCEC** through a guided tour (launch → **File ▸ Settings** (visit
 every tab) → **mouse-resize** the window ~25% smaller by dragging its sizing border → **drag the title
 bar in small circles** → **Help ▸ About** → pause) while the **on-screen command overlay**
 narrates every command in burnt orange, all recorded by the agent
-[`record`](agent_control.md#record--capturing-change-over-time) tool. No external screen-recorder.
+[`record`](../docs/agent_control.md#record--capturing-change-over-time) tool. No external screen-recorder.
 
 The two oranges line up on purpose: the overlay's item background is the **About box's brand orange**,
 so the About dialog and the narration match.
@@ -19,7 +21,7 @@ so the About dialog and the narration match.
 
 An **agent drives MCEC over MCP** and does the whole tour itself; **no tour-logic script ships in the
 repo**. One MCEC is the **controller** the agent is connected to; the agent uses the controller's tools to
-[`provision-session`](safety-emergency-stop-and-provisioning.md) a disposable **subject** MCEC, `launch`
+[`provision-session`](../docs/safety-emergency-stop-and-provisioning.md) a disposable **subject** MCEC, `launch`
 it, tour it, and `record` the region while the controller's overlay narrates. The only scripted step is
 standing up that first controller, because an agent cannot bootstrap it over MCP (there is nothing to
 connect to yet).
@@ -84,7 +86,7 @@ observations below, do not hard-code them, and **send integers** (a tool expecti
   **string** inside the JSON-RPC `result.content[]` text block, NOT at the top level. Unwrap it, then
   branch on `ok` (not `success`); read `result` on success, `error.code` on failure. Canonical parser:
   `PayloadData` in [`AgentDesktopE2ETests.cs`](../tests/MCEControl.xUnit/Integration/AgentDesktopE2ETests.cs);
-  full envelope: [Agent Control](agent_control.md) (result examples and error taxonomy).
+  full envelope: [Agent Control](../docs/agent_control.md) (result examples and error taxonomy).
 - **Absolute paths.** The controller's working dir is its temp copy, so any repo path you pass a tool
   (notably `record stop`'s `file`) must be the repo's **absolute** path, or output lands in the temp copy
   and is lost.

@@ -4,10 +4,6 @@ MCEC (Model Context Environment Controller) includes functionality to collect Te
 
 The MCEC installer provides users an option to opt-in to share statistical data with the developers of the software.
 
-![Installer Screenshot](telemetry_optin.png)
-
-> Regenerate with MCEC `capture` during an installer run — [doc-images.md](https://github.com/tig/mcec/blob/develop/dev/doc-images.md#installer-telemetry-opt-in).
-
 ## Frequently Asked Questions
 
 ### What data is collected?

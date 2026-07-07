@@ -1,9 +1,9 @@
 #requires -version 7
 <#
 .SYNOPSIS
-  Minimal support for the agent-driven hero recording (see docs/hero-gif.md): builds MCEC and stands up
+  Minimal support for the agent-driven hero recording (see dev/hero-gif.md): builds MCEC and stands up
   an authorized, MCP-serving CONTROLLER from a disposable copy for an agent to drive. It does NOT drive
-  the tour or record anything; the agent does that over MCP, following docs/hero-gif.md. This is the only
+  the tour or record anything; the agent does that over MCP, following dev/hero-gif.md. This is the only
   script in the flow, and it exists solely because an agent cannot bootstrap the first controller over
   MCP (there is nothing to connect to yet).
 
@@ -142,7 +142,7 @@ Write-Host ''
 Write-Host "Controller is up (pid=$ctrlPid, detached; survives this script exiting); agent commands and session provisioning are authorized."
 Write-Host "  MCP endpoint : $url"
 Write-Host "  Register it  : claude mcp add --transport http mcec $url"
-Write-Host '  Then ask your agent to recreate the hero per docs/hero-gif.md (it drives entirely via MCP tools).'
+Write-Host '  Then ask your agent to recreate the hero per dev/hero-gif.md (it drives entirely via MCP tools).'
 Write-Host '  When finished: pwsh -NoProfile -File scripts/Generate-HeroGif.ps1 -Stop'
 Write-Host ''
 # Machine-readable handoff: a driver can grep these instead of parsing the prose above.

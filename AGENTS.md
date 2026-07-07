@@ -183,8 +183,10 @@ controller-bootstrap follow-ups.
   and strategy*. Read the trigger by principle, not keyword: it fires on feature work, not just
   dogfooding. Treat it like updating tests.
 - **Doc UI images are dogfood artifacts.** Every PNG/GIF under `docs/` that shows running MCEC (Settings
-  tabs, the provision handoff, Commands window, hero/prompt GIFs, installer shots) must be regenerated with
-  MCEC's own `capture`/`record` tools, following [`dev/doc-images.md`](dev/doc-images.md). No
+  tabs, the provision handoff, Commands window, `hero.gif`) must be regenerated with MCEC's own
+  `capture`/`record` tools, following [`dev/doc-images.md`](dev/doc-images.md) and
+  [`dev/hero-gif.md`](dev/hero-gif.md). Maintainer-only recipes (e.g.
+  [`dev/paint-smiley-email.md`](dev/paint-smiley-email.md)) live under `dev/` and are not site assets. No
   `DrawToBitmap` export tests or hand-taken screenshots for committed assets.
 - Build is strict: `Nullable=enable`, `TreatWarningsAsErrors=true`, and house analyzers **MCEC0001
   (one top-level type per file)** / **MCEC0002 (no nested types)**. New code must be warning-clean.
