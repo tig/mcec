@@ -127,6 +127,10 @@ public static class ToolCatalog {
             BuildCommand = BuildWindowCommand,
             CreateCommandInstance = () => new WindowCommand(),
             Tersify = args => $"window {CommandTersifier.Arg(args, "action") ?? "foreground"}",
+            // animate:true move/resize synthesizes a held-button mouse drag (WindowCommand.AnimateMove /
+            // AnimateResize); serialize the tool on the input gate so that gesture cannot interleave with
+            // send_command / queue-driven keystrokes or another input tool mid-drag (#113, like drag/focus).
+            SerializesOnInput = true,
             ProvisionedByDefault = true,
         },
         new() {
@@ -544,19 +548,31 @@ public static class ToolCatalog {
         };
     }
 
-    private static WindowCommand BuildWindowCommand(JsonObject args) => new() {
-        Window = Str(args, "window")!,
-        Handle = Long(args, "handle"),
-        Process = Str(args, "process")!,
-        ClassName = Str(args, "className")!,
-        Foreground = Bool(args, "foreground"),
-        Action = Str(args, "action") ?? "foreground",
-        X = IntOrNull(args, "x"),
-        Y = IntOrNull(args, "y"),
-        Width = IntOrNull(args, "width"),
-        Height = IntOrNull(args, "height"),
-        Animate = Bool(args, "animate"),
-    };
+    /// <summary>Maps the window tool's arguments onto a <see cref="WindowCommand"/>. The optional move/resize
+    /// dimensions are nullable HERE (to tell "omitted" from a literal 0) but collapse to the command's
+    /// non-nullable coordinates + <c>PositionSpecified</c>/<c>SizeSpecified</c> flags, which are XML-serializable
+    /// (#314 review): x/y count only when BOTH are present, likewise width/height.</summary>
+    private static WindowCommand BuildWindowCommand(JsonObject args) {
+        int? x = IntOrNull(args, "x");
+        int? y = IntOrNull(args, "y");
+        int? width = IntOrNull(args, "width");
+        int? height = IntOrNull(args, "height");
+        return new() {
+            Window = Str(args, "window")!,
+            Handle = Long(args, "handle"),
+            Process = Str(args, "process")!,
+            ClassName = Str(args, "className")!,
+            Foreground = Bool(args, "foreground"),
+            Action = Str(args, "action") ?? "foreground",
+            X = x ?? 0,
+            Y = y ?? 0,
+            Width = width ?? 0,
+            Height = height ?? 0,
+            PositionSpecified = x is not null && y is not null,
+            SizeSpecified = width is not null && height is not null,
+            Animate = Bool(args, "animate"),
+        };
+    }
 
     /// <summary>Flattens the drag tool's <c>path</c> array of <c>{ x, y }</c> points into DragCommand's <c>x,y;x,y</c> spec.</summary>
     private static string BuildPathSpec(JsonArray? path) {

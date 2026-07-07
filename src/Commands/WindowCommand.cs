@@ -18,11 +18,21 @@ namespace MCEControl;
 /// </summary>
 public class WindowCommand : WindowTargetingAgentCommand {
     [XmlAttribute("action")] public string Action { get; set; } = "foreground";
-    [XmlAttribute("x")] public int? X { get; set; }
-    [XmlAttribute("y")] public int? Y { get; set; }
-    [XmlAttribute("width")] public int? Width { get; set; }
-    [XmlAttribute("height")] public int? Height { get; set; }
+    [XmlAttribute("x")] public int X { get; set; }
+    [XmlAttribute("y")] public int Y { get; set; }
+    [XmlAttribute("width")] public int Width { get; set; }
+    [XmlAttribute("height")] public int Height { get; set; }
     [XmlAttribute("animate")] public bool Animate { get; set; }
+
+    // #314 review: the move/resize dimensions are optional, but XmlSerializer cannot encode a
+    // Nullable<int> as an [XmlAttribute] ("XmlAttribute/XmlText cannot be used to encode complex types"),
+    // and SerializedCommands builds a single cached serializer over EVERY registered command type at type
+    // load. int? attributes here therefore threw a TypeInitializationException that broke all
+    // mcec.commands load/save. Keep the XML-facing coordinates non-nullable and carry "was it supplied?"
+    // in these bool flags (the same idiom as FocusCommand.PointSpecified), so a literal 0 is not read as
+    // "omitted"; the nullable semantics live only in the MCP argument mapping (ToolCatalog.BuildWindowCommand).
+    [XmlAttribute("pos")] public bool PositionSpecified { get; set; }
+    [XmlAttribute("size")] public bool SizeSpecified { get; set; }
 
     public static List<Command> BuiltInCommands {
         get => [new WindowCommand { Cmd = "window" }];
@@ -34,7 +44,7 @@ public class WindowCommand : WindowTargetingAgentCommand {
     protected override CommandResult ExecuteCore(WindowInfo? target) {
         WindowInfo window = target!;
         string action = NormalizedAction;
-        string? argsError = ValidateArguments(action, X, Y, Width, Height);
+        string? argsError = ValidateArguments(action, PositionSpecified, SizeSpecified);
         if (argsError is not null) {
             return CommandResult.Fail(Cmd, argsError, "invalid-argument", "invalid-argument");
         }
@@ -43,18 +53,18 @@ public class WindowCommand : WindowTargetingAgentCommand {
         switch (action) {
             case "move":
                 if (Animate) {
-                    AnimateMove(hwnd, window, X!.Value, Y!.Value);
+                    AnimateMove(hwnd, window, X, Y);
                 }
                 else {
-                    ApplyMove(hwnd, window, X!.Value, Y!.Value);
+                    ApplyMove(hwnd, window, X, Y);
                 }
                 break;
             case "resize":
                 if (Animate) {
-                    AnimateResize(hwnd, window, Width!.Value, Height!.Value);
+                    AnimateResize(hwnd, window, Width, Height);
                 }
                 else {
-                    ApplyResize(hwnd, window, Width!.Value, Height!.Value);
+                    ApplyResize(hwnd, window, Width, Height);
                 }
                 break;
             case "minimize":
@@ -84,10 +94,16 @@ public class WindowCommand : WindowTargetingAgentCommand {
         return CommandResult.Ok(Cmd, data);
     }
 
-    internal static string? ValidateArguments(string action, int? x, int? y, int? width, int? height) =>
+    /// <summary>
+    /// Validates the action's required dimensions: <c>move</c> needs an x/y target
+    /// (<paramref name="hasPosition"/>), <c>resize</c> needs a width/height target
+    /// (<paramref name="hasSize"/>); the state-change actions need neither. Returns an error message or
+    /// null when valid.
+    /// </summary>
+    internal static string? ValidateArguments(string action, bool hasPosition, bool hasSize) =>
         NormalizeAction(action) switch {
-            "move" => x is null || y is null ? "move requires x and y." : null,
-            "resize" => width is null || height is null ? "resize requires width and height." : null,
+            "move" => !hasPosition ? "move requires x and y." : null,
+            "resize" => !hasSize ? "resize requires width and height." : null,
             "minimize" or "maximize" or "restore" or "foreground" => null,
             _ => $"Unsupported window action '{action}'.",
         };
@@ -129,7 +145,12 @@ public class WindowCommand : WindowTargetingAgentCommand {
         }
         Thread.Sleep(90);
         sim.Mouse.LeftButtonUp();
-        ApplyMove(hwnd, window, x, y);
+        // #314 review: honor the emergency-stop contract. If the operator engaged the panic hotkey
+        // mid-drag, the loop broke early; do NOT then teleport the window to the requested destination.
+        // Release the button (above) as cleanup, but leave the window where the stop caught it.
+        if (!AgentRuntime.EmergencyStopped) {
+            ApplyMove(hwnd, window, x, y);
+        }
     }
 
     private static void AnimateResize(IntPtr hwnd, WindowInfo window, int width, int height) {
@@ -153,7 +174,11 @@ public class WindowCommand : WindowTargetingAgentCommand {
         }
         Thread.Sleep(90);
         sim.Mouse.LeftButtonUp();
-        ApplyResize(hwnd, window, width, height);
+        // #314 review: as in AnimateMove, do not snap the window to the requested size after an
+        // emergency-stop abort; leave it at the size the stop caught it.
+        if (!AgentRuntime.EmergencyStopped) {
+            ApplyResize(hwnd, window, width, height);
+        }
     }
 
     private static void MoveToPixel(InputSimulator sim, (int X, int Y) pixel) {

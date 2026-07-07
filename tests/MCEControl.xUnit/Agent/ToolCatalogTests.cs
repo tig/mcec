@@ -101,10 +101,10 @@ public class ToolCatalogTests {
     }
 
     [Fact]
-    public void SerializesOnInput_ExactlyDragAndFocus_InTheCatalog() {
-        // drag and focus both synthesize a real click/gesture that must not interleave with queue-driven
-        // input (#113); every other catalog tool runs unlocked.
-        string[] serializing = ["drag", "focus"];
+    public void SerializesOnInput_ExactlyDragFocusAndWindow_InTheCatalog() {
+        // drag, focus, and window (animate:true) all synthesize a real click/gesture that must not
+        // interleave with queue-driven input (#113); every other catalog tool runs unlocked.
+        string[] serializing = ["drag", "focus", "window"];
         foreach (ToolDescriptor d in ToolCatalog.All) {
             Assert.Equal(serializing.Contains(d.Name), d.SerializesOnInput);
         }
