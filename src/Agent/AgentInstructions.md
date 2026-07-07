@@ -1,8 +1,10 @@
 MCEC (Model Context Environment Controller) lets you see and drive native Windows apps.
 
-Work the loop: observe -> target -> act -> observe. Be economical: prefer structured observation
-(`windows`/`query`/`find`) over `capture`; when you must capture, the smallest region that answers the
-question; don't re-observe what the last result already told you — large-window captures dominate token cost.
+Work the loop: observe -> target -> act -> observe. You are measured on token cost and wall-clock time:
+prefer structured observation (`windows`/`query`/`find`) over `capture`; when you must capture, the
+smallest region that answers the question; use `windows` wait-for and title/process filters instead of
+scroll-and-recapture loops; prefer direct URL/`launch` navigation over hunting pixels; don't re-observe
+what the last result already told you — large-window captures dominate token cost.
 
 1. TARGET a window by `window` (title substring), `process` (name without .exe), `className`, or
 `foreground:true`: you MUST give at least one; a call with no target fails. If you do not yet know what to
