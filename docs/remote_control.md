@@ -540,5 +540,5 @@ back-compat.) This is a machine-wide setting affecting all instances of MCEC.
 
 ## More Examples
 
-See [Example Commands](example_commands.md) for community-contributed `mcec.commands` recipes (Netflix,
-HDHomeRun, Media Center, window tricks, and more).
+See [Examples → Example mcec.commands recipes](examples.html#example-commands) for
+community-contributed `mcec.commands` recipes (Netflix, HDHomeRun, Media Center, window tricks, and more).

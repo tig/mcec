@@ -19,6 +19,9 @@ and run it directly.
 
 After installing, launch **MCEC** from the **Start Menu** (setup also adds a Desktop shortcut).
 
+The installer may ask whether to share optional usage telemetry; it is **off unless you opt in**. See
+[How MCEC Uses Telemetry](telemetry.html) for what is and is not collected.
+
 ## What gets installed, and where
 
 - MCEC installs to **`C:\Program Files\Kindel\MCEC`**. It is a self-contained x64 build, so no separate

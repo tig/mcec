@@ -16,7 +16,7 @@ namespace MCEControl;
 /// (<c>PrintWindow</c> with <c>PW_RENDERFULLCONTENT</c>, which correctly captures DirectComposition
 /// surfaces; WinUI 3 / WPF; that plain screen grabs return black for) and top-level window
 /// enumeration/metadata for targeting. Kept separate from the other per-subsystem interop
-/// islands (see ARCHITECTURE.md §6) so the agent subsystem is self-contained. Also declares
+/// interop islands so the agent subsystem is self-contained. Also declares
 /// <c>GetForegroundWindow</c>, shared with SendMessageCommand (#210: one declaration per import).
 /// </summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1060:Move pinvokes to native methods class",

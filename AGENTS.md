@@ -170,6 +170,10 @@ controller-bootstrap follow-ups.
 
 ## Working in this repo
 
+- **User docs vs contributor docs.** [`docs/`](docs/) is published to [GitHub Pages](https://tig.github.io/mcec/)
+  (operator guides: install, configuration, agent control, safety, remote control, examples). **[`dev/`](dev/README.md)**
+  holds contributor and maintainer material only (CI, code signing, agent-server architecture notes, evidence
+  bundles, doc-image regeneration recipes); it is not part of the site.
 - **Agent-facing guidance is part of "Done": not optional, not "later."** Any change to how an agent
   observes/targets/acts (a new tool, arg, failure mode, warning/error category, or driving technique)
   MUST update the connect-time playbook in

@@ -20,7 +20,7 @@ Static **brand assets** (`Guillen256x256.png`, `assets/favicon.png`) are exporte
 | `paint-smiley-email.gif` | `paint-smiley-email.md` | `record` — [paint-smiley-email.md](paint-smiley-email.md) |
 | `settings_general.png` … `settings_activity.png` | `configuration.md`, `remote_control.md`, `agent_control.md` | `capture` — [Settings tabs](#settings-dialog-tabs) |
 | `provision_handoff.png` | `agent_control.md` | `capture` — [Provision handoff](#provision-new-handoff-dialog) |
-| `commands_enable.png`, `commands_test.png` | `remote_control.md`, `example_commands.md` | `capture` — [Commands window](#commands-window) |
+| `commands_enable.png`, `commands_test.png` | `remote_control.md`, `examples.md` | `capture` — [Commands window](#commands-window) |
 | `telemetry_optin.png` | `telemetry.md` | `capture` — [Installer telemetry page](#installer-telemetry-opt-in) |
 
 After every `capture`, **crop the Win11 `PrintWindow` frame**: 8px black bands on left/right/bottom
