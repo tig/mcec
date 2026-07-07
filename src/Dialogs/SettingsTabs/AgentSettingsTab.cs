@@ -24,13 +24,21 @@ namespace MCEControl;
 public partial class AgentSettingsTab : UserControl, ISettingsTab {
     private AppSettings? _settings;
 
+    /// <summary>
+    /// Cached once at construction: whether THIS running copy is itself a provisioned instance. A
+    /// provisioned copy must neither re-authorize provisioning nor provision again (its config is
+    /// disposable and locked to <c>AllowSessionProvisioning=false</c>), so both the checkbox and the
+    /// operator "Provision new…" action are frozen for it.
+    /// </summary>
+    private readonly bool _runningFromSessionsRoot = IsRunningFromSessionsRoot();
+
     public AgentSettingsTab() {
         InitializeComponent();
         // SECURITY: inside a provisioned copy the agent CAN drive this very dialog (agent commands
         // are enabled there), and it must never widen its own permissions by re-authorizing
         // provisioning (Provision writes AllowSessionProvisioning=false into every copy). Freeze the
         // checkbox when this instance is itself running from under the sessions root.
-        if (IsRunningFromSessionsRoot()) {
+        if (_runningFromSessionsRoot) {
             _checkBoxAllowProvisioning.Enabled = false;
             _toolTipAgent.SetToolTip(_checkBoxAllowProvisioning,
                 "This is a provisioned instance; it cannot authorize provisioning.");
@@ -76,7 +84,17 @@ public partial class AgentSettingsTab : UserControl, ISettingsTab {
         }
         _buttonDeleteAll.Enabled = sessions.Count > 0;
         _labelNoSessions.Visible = sessions.Count == 0;
+        UpdateProvisionEnabled();
     }
+
+    /// <summary>
+    /// The operator "Provision new…" action is available only when provisioning is authorized (the
+    /// checkbox above, which maps to <see cref="AppSettings.AllowSessionProvisioning"/>) and this is
+    /// not itself a provisioned copy. Mirrors the same opt-in the MCP <c>provision-session</c> tool
+    /// enforces, so the button never offers what the engine would refuse.
+    /// </summary>
+    private void UpdateProvisionEnabled() =>
+        _buttonProvision.Enabled = _checkBoxAllowProvisioning.Checked && !_runningFromSessionsRoot;
 
     private static bool IsRunningFromSessionsRoot() {
         try {
@@ -101,7 +119,36 @@ public partial class AgentSettingsTab : UserControl, ISettingsTab {
         }
 
         _settings.AllowSessionProvisioning = _checkBoxAllowProvisioning.Checked;
+        UpdateProvisionEnabled();
         SettingsChanged();
+    }
+
+    /// <summary>
+    /// "Provision new…": creates a fresh, disposable, isolated instance right now (no MCP round-trip
+    /// needed; #296) and shows the operator its handoff to paste into an agent's MCP client. Unlike
+    /// the opt-in checkbox this is an immediate on-disk action (like Delete), so it does not wait for
+    /// the dialog's OK. The provisioned instance's MCP/HTTP server is enabled so the handoff can offer
+    /// both the stdio and HTTP connect options; agent commands are enabled ONLY inside that copy.
+    /// </summary>
+    private void ButtonProvisionClick(object? sender, EventArgs e) {
+        // Defense in depth: the button is disabled unless authorized, but never provision without the
+        // opt-in even if some path re-enabled it. Mirrors the MCP tool's own AllowSessionProvisioning gate.
+        if (!_checkBoxAllowProvisioning.Checked || _runningFromSessionsRoot) {
+            return;
+        }
+        ProvisionedSession session;
+        try {
+            session = SessionProvisioner.Provision(mcpServerEnabled: true);
+        }
+        catch (Exception ex) {
+            _ = MessageBox.Show(this,
+                $"Could not provision a new instance:\n\n{ex.Message}",
+                "Provision instance", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        RefreshSessions();
+        using ProvisionedInstanceDialog dialog = new(session);
+        _ = dialog.ShowDialog(this);
     }
 
     private void AgentSettingsTab_VisibleChanged(object? sender, EventArgs e) {

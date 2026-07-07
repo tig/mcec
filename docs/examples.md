@@ -44,15 +44,26 @@ Everything below is common to every example; individual pages assume it and don'
 - **Pass absolute paths.** The controller's working directory is its disposable copy, so any repo path you
   hand a tool (e.g. `record stop`'s `file`) must be absolute or the output lands in the temp copy and is lost.
 - **Targeting gotchas that bite every recipe:**
-  - **Element-by-name is global across windows.** `click`/`query` with `at: { by: name }` resolves across
-    **all** top-level windows, not just the one you targeted by `handle`/`window`/`foreground`. Any name
-    that exists in two windows (a **"File"** menu present in both the controller and the subject; a WinForms
-    tab whose **TabItem header and its page share a Name**) is ambiguous and fails with `selector-matched-2`.
-    Drive menus by **keyboard** (`Alt`+mnemonic via `send_command shiftdown:alt` / `chars:<x>` /
-    `shiftup:alt`; read the real mnemonic from the source `.Designer.cs`), and click tabs/buttons by their
-    **center pixel** from `query` bounds. Unique window titles (`window:"Settings"`) are safe.
+  - **Element-by-name is global AND a substring match.** `click`/`query` with `at: { by: name }` resolves
+    across **all** top-level windows (not just the one you targeted by `handle`/`window`/`foreground`), and
+    it matches on **substring**, not exact text. Two failure modes: a name in two windows (a **"File"** menu
+    in both the controller and the subject; a WinForms tab whose **TabItem header and its page share a
+    Name**) is ambiguous and fails with `selector-matched-2`; and a name that is a substring of another
+    **silently hits the wrong one** (ok, no error): `value:"Serial Server"` selects the **Server** tab.
+    Window-title matching has the same trap: `window:"Settings"` matches the Windows **Settings** app when
+    it is open, not your dialog. Drive menus by **keyboard** (`Alt`+mnemonic via `send_command
+    shiftdown:alt` / `chars:<x>` / `shiftup:alt`; read the real mnemonic from the source `.Designer.cs`).
+    For anything that can collide, target by **handle**: open the window/dialog, read its handle from
+    `query { foreground:true }` (the unwrapped envelope is `result.window.handle`), then pass `handle` to
+    every `capture`/`click`. **Always re-view each screenshot** - the wrong tab looks plausible.
+  - **Tabs report null bounds; compute the header point yourself.** A WinForms `TabItem` comes back from
+    `query` with `bounds: null`, so you can't read a center pixel to click. Compute it from the dialog's
+    window rect (`query { handle }` -> `result.window` gives `x`/`y`): the tab strip sits at client-y ~27,
+    tabs left to right; screen point = `(winX + 8 + tabCenterX, winY + 31 + 27)` (8 = Win11 side border,
+    31 = title bar). Coordinate-click that.
   - **`PrintWindow` captures the Win11 invisible frame as black.** A `capture` of a window includes the
-    ~8px invisible resize-border on the left/right/bottom as a black band; crop it (or capture a region).
+    **8px** invisible resize-border on the left/right/bottom as a black band (top is clean); crop those
+    three sides (or capture a region). A FixedDialog captured at 491x412 crops to 475x404.
   - **Ctrl+key needs a real accelerator, not `chars:`.** A held `shiftdown:ctrl` plus `chars:c` injects a
     *character*, which does not reliably trigger an app's Ctrl+key accelerator (so Ctrl+A/Ctrl+C/Ctrl+V can
     silently do nothing). Send VK+modifier SendInput commands instead (the built-in `ctrl-x`, or define

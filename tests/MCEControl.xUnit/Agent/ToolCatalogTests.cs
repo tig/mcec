@@ -23,7 +23,7 @@ public class ToolCatalogTests {
 
     /// <summary>The meta-tools that are deliberately NOT in the catalog (no 1:1 Command mapping), in tools/list order.</summary>
     private static readonly string[] _metaToolNames = [
-        "send_command", "session-start", "session-status", "session-end", "provision-session", "end-session",
+        "send_command", "session-start", "session-status", "session-end", "request-command-access", "provision-session", "end-session",
     ];
 
     [Fact]
