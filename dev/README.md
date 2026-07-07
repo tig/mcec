@@ -7,6 +7,7 @@ only.
 | Doc | Purpose |
 |-----|---------|
 | [agent-server-architecture.md](agent-server-architecture.md) | Agent/MCP subsystem layering and file map |
+| [RELEASING.md](RELEASING.md) | Cutting releases (`main` ← `develop`, tagging, GitHub Release workflow) |
 | [code-signing.md](code-signing.md) | Azure Trusted Signing and release pipeline |
 | [doc-images.md](doc-images.md) | Regenerating committed PNG/GIF assets under `docs/` via MCEC dogfood |
 | [hero-gif.md](hero-gif.md) | Scripted `record` tour that produces `docs/hero.gif` |
