@@ -5,7 +5,8 @@
 
 # Remote Control
 
-**MCEC** (Model Context Environment Controller) began life as **MCE Controller**, and its original job is
+**MCEC** (Model Context Environment Controller) began life as Media Center Edition Controller (MS later
+dropped the "Edition" from "Windows Media Center"), and its original job is
 still first-class: it is a robust, battle-tested way to control a Windows PC from a control system or
 integration app. It runs in the background listening on the network (or a serial port) for
 *Commands*, and translates them into actions on the PC: keystrokes, text input, mouse movement, window
