@@ -13,7 +13,7 @@ AI agents and scripts running on a Windows PC. It gives an agent three things:
 - **A front door**: query/find windows and UI elements, wait for conditions, and
   drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
 
-The agent surface is a set of new commands (`capture`, `query`, `displays`, `windows`, `find`,
+The agent surface is a set of new commands (`capture`, `query`, `displays`, `windows`, `window`, `find`,
 `wait-for`, `invoke`, `record`, `launch`, `drag`, `click`, and `focus`) exposed as **tools over MCP/HTTP**
 so an agent can call them directly. Each tool call returns a **structured JSON result
 envelope** (`{ ok, result, … }`) instead of free text, so an agent can reason about
@@ -178,6 +178,7 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 | `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6), `maxNodes` (default 1000) |
 | `displays` | Report **display geometry**; every monitor's pixel `bounds`, `workingArea`, `primary` flag, and `dpi`/`scale`, plus the union `virtualBounds`. Lets an agent interpret the absolute-pixel bounds `query`/`find` return and place pixel clicks/drags without measuring the screen itself. | *(none)* |
 | `windows`  | **Discover top-level windows and wait on window state**: list each window's `handle`, `title`, `className`, `processName`, `processId`, and `bounds`, so an agent can target a window instead of guessing. Optionally filtered; with a `timeout` it **waits** for `condition`: `appears` (default; a match exists), `disappears` (no window matches, e.g. a modal closed), or `foreground` (a match is the foreground window). No filter lists all; a wait (or `disappears`/`foreground`) with no filter is refused. A timeout carries `waitedFor` + `lastObservedWindows` for triage. | `window`/`process`/`className` filters, `condition` (appears/disappears/foreground), `timeout` (ms) |
+| `window`   | **Manage a top-level window directly**: move/resize it, minimize/maximize/restore it, or bring it to the foreground. For move/resize, `animate:true` lets the window appear to be dragged instead of instantly teleporting. | window target, `action` (`move`\|`resize`\|`minimize`\|`maximize`\|`restore`\|`foreground`), `x`/`y` or `width`/`height`, optional `animate` |
 | `find`     | Find a **UI Automation element** by name / automation id / class.                 | window target, `by` (`name`\|`automationid`\|`classname`), `value`, `timeout` |
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
 | `invoke`   | Drive a UI Automation element pattern (incl. select for SelectionItem); far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`\|`expand`\|`collapse`\|`select`), `text` |

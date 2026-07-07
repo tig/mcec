@@ -18,7 +18,7 @@ namespace MCEControl.xUnit.Agent;
 public class ToolCatalogTests {
     /// <summary>The thirteen gated agent tools, in the order tools/list advertises them. Pinned by name.</summary>
     private static readonly string[] _catalogNames = [
-        "capture", "query", "displays", "windows", "find", "wait-for", "invoke", "drag", "click", "focus", "clipboard", "record", "launch",
+        "capture", "query", "displays", "windows", "window", "find", "wait-for", "invoke", "drag", "click", "focus", "clipboard", "record", "launch",
     ];
 
     /// <summary>The meta-tools that are deliberately NOT in the catalog (no 1:1 Command mapping), in tools/list order.</summary>
@@ -101,10 +101,10 @@ public class ToolCatalogTests {
     }
 
     [Fact]
-    public void SerializesOnInput_ExactlyDragAndFocus_InTheCatalog() {
-        // drag and focus both synthesize a real click/gesture that must not interleave with queue-driven
-        // input (#113); every other catalog tool runs unlocked.
-        string[] serializing = ["drag", "focus"];
+    public void SerializesOnInput_ExactlyDragFocusAndWindow_InTheCatalog() {
+        // drag, focus, and window (animate:true) all synthesize a real click/gesture that must not
+        // interleave with queue-driven input (#113); every other catalog tool runs unlocked.
+        string[] serializing = ["drag", "focus", "window"];
         foreach (ToolDescriptor d in ToolCatalog.All) {
             Assert.Equal(serializing.Contains(d.Name), d.SerializesOnInput);
         }
@@ -120,7 +120,7 @@ public class ToolCatalogTests {
         }
         // SessionProvisioner.DefaultCommands is derived from the catalog; pin the exact historical set.
         Assert.Equal(
-            ["capture", "query", "displays", "windows", "find", "wait-for", "invoke", "drag", "click", "focus", "clipboard", "record"],
+            ["capture", "query", "displays", "windows", "window", "find", "wait-for", "invoke", "drag", "click", "focus", "clipboard", "record"],
             SessionProvisioner.DefaultCommands);
     }
 
@@ -131,6 +131,7 @@ public class ToolCatalogTests {
             ["query"] = typeof(QueryCommand),
             ["displays"] = typeof(DisplaysCommand),
             ["windows"] = typeof(WindowsCommand),
+            ["window"] = typeof(WindowCommand),
             ["find"] = typeof(FindCommand),
             ["wait-for"] = typeof(FindCommand),
             ["invoke"] = typeof(InvokeCommand),
