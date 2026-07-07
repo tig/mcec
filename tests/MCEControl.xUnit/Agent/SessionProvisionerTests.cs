@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using Xunit;
 using MCEControl;
+using MCEControl.xUnit.Helpers;
 
 namespace MCEControl.xUnit.Agent;
 
@@ -28,15 +29,8 @@ public class SessionProvisionerTests : IDisposable {
         string baseTemp = Path.Combine(Path.GetTempPath(), "mcec-provision-test", Path.GetRandomFileName());
         _root = Path.Combine(baseTemp, "sessions");
         _fakeBinaries = Path.Combine(baseTemp, "install");
-        Directory.CreateDirectory(_fakeBinaries);
-
-        // A minimal fake "installed" layout: an exe + a dll (copied), and the installed instance's mutable
-        // config + a log (must NOT be copied; the session gets its own fresh config).
-        File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.exe"), "stub");
+        ProvisionTestFixtures.SeedMinimalInstall(_fakeBinaries);
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.dll"), "stub");
-        foreach (string dep in SessionProvisioner.RequiredAgentAssemblies) {
-            File.WriteAllText(Path.Combine(_fakeBinaries, dep), "stub");
-        }
         File.WriteAllText(Path.Combine(_fakeBinaries, SettingsStore.SettingsFileName), "<AppSettings><AgentCommandsEnabled>false</AgentCommandsEnabled></AppSettings>");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.commands"), "<installed/>");
         File.WriteAllText(Path.Combine(_fakeBinaries, "mcec.log"), "old log");

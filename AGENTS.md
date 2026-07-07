@@ -183,4 +183,11 @@ controller-bootstrap follow-ups.
   thin static facade over `McpStdioTransport`/`McpHttpTransport`/`JsonRpcDispatcher`/
   `AgentToolExecutor`); commands plug into the existing `Command`/`CommandInvoker` pattern.
   Dev notes: [`docs/agent-server-architecture.md`](docs/agent-server-architecture.md).
-- Tests: `dotnet test tests/MCEControl.xUnit/MCEControl.xUnit.csproj`.
+- Tests: `dotnet test tests/MCEControl.xUnit/MCEControl.xUnit.csproj`. Before opening a PR, run the
+  **full** suite — not a `--filter` on only the tests you touched. Filtered runs miss regressions in
+  other fixtures (e.g. a `SessionProvisioner` guard can break `EndSessionTokenTests` while
+  `SessionProvisionerTests` still pass). When you change provisioning or anything that affects
+  session copies, `grep` for `SessionProvisioner.BinariesDir` and update **every** fake-install
+  fixture together (use `ProvisionTestFixtures.SeedMinimalInstall` in
+  `tests/MCEControl.xUnit/Helpers/ProvisionTestFixtures.cs`). Worker/lifecycle helpers extracted
+  from a service (e.g. #317) belong in their own source files per **MCEC0002**.
