@@ -52,7 +52,7 @@ jobs:
           $sha = (git rev-parse HEAD).Trim()
           git merge-base --is-ancestor $sha FETCH_HEAD
           if ($LASTEXITCODE -ne 0) {
-            throw "Release commit $sha is not on origin/main. Releases must come from main: merge develop into main, then tag the main commit (see RELEASING.md)."
+            throw "Release commit $sha is not on origin/main. Releases must come from main: merge develop into main, then tag the main commit (see dev/RELEASING.md)."
           }
           Write-Host "::notice::Verified the release commit is on main."
 
