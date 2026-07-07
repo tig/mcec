@@ -70,6 +70,8 @@ The **General** tab:
 * **Log Threshold**: how much is shown in the main window (`INFO`, `DEBUG`, or `ALL`). Log *files* always
   contain `ALL` events.
 * **Default command pacing (ms)**: delay MCEC applies before executing each received command (default 0).
+* **Disable automatic update notification popup**: when checked, MCEC still checks for updates and
+  enables **Help ▸ Install Latest Version…**, but does not pop up the update dialog automatically.
 
 The **Client**, **Server**, **Serial Server**, and **Activity Monitor** tabs configure the classic
 remote-control transports and are documented in
@@ -122,8 +124,8 @@ the **Help ▸ Install Latest Version…** menu item and pops up the update dial
 kiosk/exhibit machine that popup can appear over the interactive application and interrupt people who
 should never see MCEC's UI.
 
-To keep the check but suppress the automatic popup, set this key directly in `mcec.settings` (there is
-no Settings-dialog checkbox for it):
+To keep the check but suppress the automatic popup, tick **Disable automatic update notification popup**
+on the **General** tab of **File ▸ Settings…**, or set the key directly in `mcec.settings`:
 
 | Setting | Default | Meaning |
 |---------|---------|---------|
