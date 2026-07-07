@@ -31,7 +31,8 @@ commands enabled only inside that session; your installed Program Files copy sta
 
 1. Turn on **Allow agents to provision disposable instances** on the **Agent** tab (see
    [Configuration](configuration.md#agent-settings-in-mcecsettings)).
-2. Click **Provision new…**. MCEC creates the session and opens the handoff dialog:
+2. Click **Provision new…**. MCEC creates the session and opens the handoff dialog (regenerate
+   `provision_handoff.png` via MCEC `capture` — [doc-images.md](doc-images.md#provision-new-handoff-dialog)):
 
 ![Provision new… handoff dialog](provision_handoff.png "After Provision new…: Step 1 is the MCP client setup block; Step 2 is the agent briefing prompt")
 

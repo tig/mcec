@@ -177,6 +177,10 @@ controller-bootstrap follow-ups.
   `Tool(...)` description is **not** a substitute (those describe *args*); the instructions teach *recovery
   and strategy*. Read the trigger by principle, not keyword: it fires on feature work, not just
   dogfooding. Treat it like updating tests.
+- **Doc UI images are dogfood artifacts.** Every PNG/GIF under `docs/` that shows running MCEC (Settings
+  tabs, the provision handoff, Commands window, hero/prompt GIFs, installer shots) must be regenerated with
+  MCEC's own `capture`/`record` tools, following [`docs/doc-images.md`](docs/doc-images.md). No
+  `DrawToBitmap` export tests or hand-taken screenshots for committed assets.
 - Build is strict: `Nullable=enable`, `TreatWarningsAsErrors=true`, and house analyzers **MCEC0001
   (one top-level type per file)** / **MCEC0002 (no nested types)**. New code must be warning-clean.
 - Agent subsystem lives in `src/Agent/` + the MCP server in `src/Services/` (`AgentServer.cs` is a

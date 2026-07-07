@@ -212,6 +212,7 @@ SIMPL logic latch a digital "occupied" signal on each `activity` string and driv
 By default **all** commands are disabled, to reduce the surface area MCEC exposes on the network. Use the
 **Commands Window** (**Commands ▸ Enable and Test Commands…**) to enable/disable commands.
 
+<!-- Regenerate commands_*.png via MCEC capture: doc-images.md -->
 ![Commands](commands_enable.png "Commands")
 
 Clicking **Save mcec.commands file** saves changes immediately. The `.commands` file is **not** saved

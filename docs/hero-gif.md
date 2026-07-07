@@ -5,6 +5,7 @@
 
 `docs/hero.gif` is the hero image shown at the top of [`README.md`](../README.md) and the docs home page
 ([`docs/index.md`](index.md), served at `https://tig.github.io/mcec/hero.gif`). It is MCEC dogfooding
+(documented in the [doc images catalog](doc-images.md));
 itself: one MCEC drives a **second MCEC** through a guided tour (launch → **File ▸ Settings** (visit
 every tab) → **mouse-resize** the window ~25% smaller by dragging its sizing border → **drag the title
 bar in small circles** → **Help ▸ About** → pause) while the **on-screen command overlay**
