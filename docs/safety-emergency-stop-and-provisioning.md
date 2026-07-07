@@ -103,7 +103,7 @@ full agent surface. It refuses to start the MCP/HTTP endpoint (`AgentServer.Star
 below). The operator's install cannot be turned into an observation/actuation agent server even by editing
 its settings.
 
-### Bootstrapping: how a fresh install gets its first instance (#296)
+### Bootstrapping: how a fresh install gets its first instance
 
 There is a chicken-and-egg to close. `provision-session` is itself an MCP tool, so an agent must reach
 *some* MCEC MCP server to call it; but a fresh install's own copy refuses to serve agents, and a new user
@@ -187,9 +187,9 @@ construction.
 | Provision / teardown / reap | [`SessionProvisioner`](../src/Agent/SessionProvisioner.cs) |
 | Handoff descriptor | [`ProvisionedSession`](../src/Agent/ProvisionedSession.cs) |
 | MCP tools + authorization gate | `AgentServer` (`provision-session`, `end-session`) |
-| Bootstrap-only MCP surface (#296) | `Program.ProvisioningBootstrapOnly`, `JsonRpcDispatcher` (restricted `tools/list` + `BootstrapInstructions`), `AgentToolExecutor.CallTool` (`bootstrap-only`) |
+| Bootstrap-only MCP surface | `Program.ProvisioningBootstrapOnly`, `JsonRpcDispatcher` (restricted `tools/list` + `BootstrapInstructions`), `AgentToolExecutor.CallTool` (`bootstrap-only`) |
 | Operator opt-in + management UI | Settings dialog **Agent** tab ([`AgentSettingsTab`](../src/Dialogs/SettingsTabs/AgentSettingsTab.cs)) → `AppSettings.AllowSessionProvisioning` |
-| Operator "Provision new…" handoff (#296) | [`ProvisionedInstanceDialog`](../src/Dialogs/ProvisionedInstanceDialog.cs) |
+| Operator "Provision new…" handoff | [`ProvisionedInstanceDialog`](../src/Dialogs/ProvisionedInstanceDialog.cs) |
 | Session enumeration for the UI | `SessionProvisioner.ListSessions` |
 | Reap on launch | `Program.Main` |
 

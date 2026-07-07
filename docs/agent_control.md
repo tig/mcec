@@ -544,7 +544,7 @@ mcec.exe mcp        # or the equivalent legacy spelling: mcec.exe --mcp
 
 **Don't drive the installed copy directly; use it to bootstrap.** `mcec.exe` under Program Files never
 serves the full agent surface: it refuses to start the MCP/HTTP endpoint, and over `mcp`/`--mcp` it
-serves **only the provisioning bootstrap** (#296) — `tools/list` and dispatch expose just
+serves **only the provisioning bootstrap** — `tools/list` and dispatch expose just
 `provision-session` and `end-session`, and every observation/actuation tool is refused with
 `error.code: bootstrap-only` (the connect-time `instructions` say so). Serving the full surface from the
 installed, operator-owned copy would mean enabling agent security gates in the one configuration the

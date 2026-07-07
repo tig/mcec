@@ -9,7 +9,7 @@
   "properties": {
     "sessionId": {
       "type": ["string", "null"],
-      "description": "Identifier of the owning session (see #86). Present whenever the call ran inside a mounted session; null/absent for stateless one-shot calls."
+      "description": "Identifier of the owning session. Present whenever the call ran inside a mounted session; null/absent for stateless one-shot calls."
     },
     "ok": {
       "type": "boolean",
@@ -92,7 +92,7 @@
         },
         "lastObservation": {
           "type": ["object", "null"],
-          "description": "The last good observation captured before the failure (e.g. the most recent query/capture result, or the resolved target window). Carries debugging state forward and feeds #87's failure-summary.md. Omitted when no prior observation exists."
+          "description": "The last good observation captured before the failure (e.g. the most recent query/capture result, or the resolved target window). Carries debugging state forward and feeds failure-summary artifacts. Omitted when no prior observation exists."
         },
         "partialResult": {
           "type": ["object", "null"],

@@ -1,4 +1,4 @@
-# Mini-spec: GIF recording for agent sessions (#80)
+# Mini-spec: GIF recording for agent sessions
 
 ## Goal
 
@@ -31,7 +31,7 @@ is resolved and fixed at `start`/`oneshot`; `stop` needs no target.
 Only one recording may be active at a time; `start` while recording returns an error, and
 `stop` with nothing recording (and nothing awaiting fetch) returns an error.
 
-State machine (#157): `idle → (start) → recording → (stop) → idle`, or
+State machine: `idle → (start) → recording → (stop) → idle`, or
 `recording → (auto-stop: max duration/frames hit, or the grab fails) → completed`. While
 completed, `stop` still fetches the buffered GIF exactly once (releasing the frames), and a
 new recording (`start` or `oneshot`) is allowed; it discards an unfetched completed GIF
@@ -84,7 +84,7 @@ Requests above a limit are clamped (not failed), and the clamp is audited.
 ## Security & privacy
 
 - **Disabled by default**, behind the *same* `AgentCommandsEnabled` opt-in as `capture`,
-  plus the per-command `Enabled` gate in `mcec.commands` (fail-closed); honoring #74.
+  plus the per-command `Enabled` gate in `mcec.commands` (fail-closed).
 - Every `start` / `stop` / write emits an `AGENT-AUDIT:` line with target, duration, fps,
   and output path.
 - Docs warn that GIF recording can capture **sensitive on-screen content** for the whole

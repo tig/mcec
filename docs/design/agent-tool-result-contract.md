@@ -5,7 +5,7 @@
 
 # Agent Tool Result & Error Contract (MCEC 3.0)
 
-**Status:** Design artifact; owned by [#101](https://github.com/tig/mcec/issues/101).
+**Status:** Design artifact.
 **Schema:** [`agent-tool-result.schema.json`](./agent-tool-result.schema.json) (JSON Schema draft 2020-12).
 
 This document defines **one** result envelope and **one** error vocabulary for every MCEC 3.0
@@ -14,14 +14,13 @@ of around per-tool ad-hoc envelopes, and so an agent can reason about success an
 uniformly across `capture`, `query`, `find`, `wait-for`, `invoke`, `send_command`, and the
 session-lifecycle tools.
 
-The epics that demand structured results/warnings/errors (sessions #86, trace &
-failure-summary #87, selectors #88, waits #89, observation hardening #90, and
-actions #91) reference **this** contract rather than inventing their own. The walking
-skeleton (#98) emits results that validate against the schema.
+Sessions, tracing, selectors, waits, observation hardening, and actuation tools all reference
+**this** contract rather than inventing their own. The runtime emits results that validate against
+the schema.
 
 > Scope note: this is a design artifact. It defines the shape and vocabulary; the runtime
-> implementation lands with #98 and the individual tool epics. There is intentionally no
-> code-runtime overlap here.
+> implementation conforms to it as each tool lands. There is intentionally no code-runtime overlap
+> here.
 
 ## The envelope
 
@@ -55,7 +54,7 @@ The schema enforces this: `ok: false` requires `error`; `ok: true` forbids an `e
 
 | Field        | Type                | Required | Meaning |
 |--------------|---------------------|----------|---------|
-| `sessionId`  | string \| null      | no       | Owning session id (#86). Present when the call ran inside a mounted session; null/absent for stateless one-shot calls. |
+| `sessionId`  | string \| null      | no       | Owning session id. Present when the call ran inside a mounted session; null/absent for stateless one-shot calls. |
 | `ok`         | boolean             | **yes**  | The single field an agent branches on first. `true` = goal achieved. |
 | `result`     | object \| null      | on success | Tool-specific success payload. Its shape is owned by each tool's epic, not by this contract. |
 | `warnings`   | array of warning    | no       | Non-fatal conditions surfaced alongside the result. Present on success or failure. |
@@ -78,18 +77,18 @@ falling back to `category`.
 | `ambiguous-selector` | A selector matched more than one candidate and the tool refused to guess. | Narrow the element selector (prefer `automationId`, else `className` or a more specific name) and retry. |
 | `stale-element`      | A previously resolved element/handle is no longer valid (window closed, tree re-rendered). | Re-`query`/`find` to get a fresh reference, then retry. |
 | `no-target`          | A selector matched nothing (no window/element). | Broaden the selector, `query` to discover targets, or wait for the target to appear. |
-| `invalid-argument`   | The request itself is malformed or inapplicable (#191): a client-supplied argument is invalid (unknown action, oversized region, ill-formed endpoint) or cannot apply to the target (an element that lacks the pattern an action needs). | Fix the arguments and re-issue. Do **not** retry the same call, broaden a selector, or re-find the target; the request will keep failing until it changes. |
+| `invalid-argument`   | The request itself is malformed or inapplicable: a client-supplied argument is invalid (unknown action, oversized region, ill-formed endpoint) or cannot apply to the target (an element that lacks the pattern an action needs). | Fix the arguments and re-issue. Do **not** retry the same call, broaden a selector, or re-find the target; the request will keep failing until it changes. |
 | `capture-blank`      | A screenshot was produced but detected as black/blank (composited/occluded/locked-session). | Try foreground/region capture; restore/foreground the window; surface the limitation. The suspect image still rides in `error.partialResult`. |
-| `focus`              | An action required keyboard focus and it could not be confirmed on the target. Produced (#91/#270) by the `focus` tool when the window is foreground but no control took focus (`FocusService.IsFocusInWindow`), and by `invoke setfocus` when the element does not end up with `HasKeyboardFocus` (`UiaInvokeResult.FocusNotSet`). | `click` the exact control (a real click focuses what a bare SetFocus misses), or drive it with `invoke` instead of keystrokes. |
-| `elevation`          | The target runs at a higher integrity level (UAC) than MCEC and cannot be driven. Produced (#261) when a UIA attach/read/dispatch on a valid window fails with E_ACCESSDENIED (UIPI). | Surface to the operator; the action cannot proceed without elevation. |
-| `foreground`         | An action required the target to be foreground and it could not be brought forward. Produced (#91/#270) by the `focus` tool when `FocusService.BringToForeground` asks Windows to activate the target and `GetForegroundWindow` confirms it did not land. | Retry the `focus` tool once whatever holds the foreground (a foreground lock, a modal on another app, a full-screen exclusive window) is gone, or ask the operator to click the target. |
-| `internal`           | An unexpected MCEC-side fault (bug, unhandled exception). | Not agent-recoverable; report with `lastObservation` for a bug bundle (#87). |
+| `focus`              | An action required keyboard focus and it could not be confirmed on the target. Produced by the `focus` tool when the window is foreground but no control took focus (`FocusService.IsFocusInWindow`), and by `invoke setfocus` when the element does not end up with `HasKeyboardFocus` (`UiaInvokeResult.FocusNotSet`). | `click` the exact control (a real click focuses what a bare SetFocus misses), or drive it with `invoke` instead of keystrokes. |
+| `elevation`          | The target runs at a higher integrity level (UAC) than MCEC and cannot be driven. Produced when a UIA attach/read/dispatch on a valid window fails with E_ACCESSDENIED (UIPI). | Surface to the operator; the action cannot proceed without elevation. |
+| `foreground`         | An action required the target to be foreground and it could not be brought forward. Produced by the `focus` tool when `FocusService.BringToForeground` asks Windows to activate the target and `GetForegroundWindow` confirms it did not land. | Retry the `focus` tool once whatever holds the foreground (a foreground lock, a modal on another app, a full-screen exclusive window) is gone, or ask the operator to click the target. |
+| `internal`           | An unexpected MCEC-side fault (bug, unhandled exception). | Not agent-recoverable; report with `lastObservation` for a bug bundle. |
 
 `focus`, `elevation`, and `foreground` are kept distinct (rather than one "input" bucket) because
 the recoveries differ: focus is retryable (click the control), foreground is OS-policy-constrained
 (retry once the holder clears), and elevation is not recoverable by the agent at all. In-product
 guidance (`AgentInstructions.md`) documents recovery for every category that can occur; all three now
-have producers (#91/#270).
+have producers.
 
 ### Example error codes per category
 
@@ -114,7 +113,7 @@ should know something was adjusted, degraded, or assumed. Each warning is `{ cod
 the same stability rules as error codes (kebab-case, branchable, tolerate unknowns).
 
 Examples: `minimized-window` (target restored before capture), `tree-truncated` (UIA tree clipped
-to a depth/size limit; see #90), `region-clamped` (requested region clipped to the screen).
+to a depth/size limit), `region-clamped` (requested region clipped to the screen).
 
 Warnings may also accompany a **failure**; e.g. a capture that both warns about a restored window
 and then fails `capture-blank`.
@@ -124,13 +123,13 @@ and then fails `capture-blank`.
 `error.lastObservation` carries the **last good state** observed before the failure so a failed
 call is debuggable without rerunning it. It typically holds the most recent `query`/`find`
 result, a `capture` **summary** (see below), or the resolved target `WindowInfo`. It is the
-primary input to #87's `failure-summary.md` ("last good observation + failing tool call") and to
-bug bundles.
+primary input to failure-summary artifacts ("last good observation + failing tool call") and to bug
+bundles.
 
 When no prior observation exists (e.g. the very first call in a session failed at selector
 resolution), `lastObservation` is omitted.
 
-**Image-bearing observations are summarized, never inlined (#215).** A `capture` result carries
+**Image-bearing observations are summarized, never inlined.** A `capture` result carries
 the full base64 PNG, and replaying that into every later failure would attach megabytes of stale
 screenshot to *errors*. So when the last good observation was a capture, `lastObservation` is a
 compact summary instead:
@@ -150,13 +149,13 @@ same directory teardown/evidence bundles collect); and `lastObservation` never c
 `base64`. If the artifact could not be written, `artifactError` explains why and only the summary
 is retained. This does **not** change the capture tool's own `result` (the agent still receives
 the image inline and as an MCP image block) or `error.partialResult` (a blank capture's suspect
-PNG from the *failing* call, #206).
+PNG from the *failing* call).
 
 ## `partialResult`
 
 `error.partialResult` carries the failing call's **own** partial payload when the tool deliberately
 kept one; e.g. a `capture-blank` failure still carries the (suspect) PNG it grabbed, so the evidence
-the command paid to produce is not discarded (#206). It is distinct from `lastObservation`, which is
+the command paid to produce is not discarded. It is distinct from `lastObservation`, which is
 the last *good* state from a *prior* call. Omitted when the failure produced nothing.
 
 ## Mapping onto the MCP tool-result transport
@@ -190,11 +189,10 @@ shape. This contract is its forward target:
 | `success`               | `ok`          |
 | `data`                  | `result`      |
 | `error` (string)        | `error.detail` (+ `code`, `category`, `lastObservation`) |
-| `command`               | (moves into the trace/transcript, #87) |
+| `command`               | (moves into the trace/transcript) |
 | *(none)*                | `sessionId`, `warnings`, `error.category` |
 
-Migrating `CommandResult` to this envelope is implementation work for #98 / the tool epics, not
-part of this artifact.
+Migrating `CommandResult` to this envelope is runtime implementation work, not part of this artifact.
 
 ## Stability & versioning
 

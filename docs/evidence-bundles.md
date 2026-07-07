@@ -26,7 +26,7 @@ any runner that imports the module emits an identical layout.
 {
   "sessionId": "5f19c9c01a3f",
   "scenario": "customer0-walking-skeleton",
-  "issue": 98,
+  "issue": 0,
   "startedAt": "20260629-195442",
   "passed": true,
   "lastObservation": "About window appeared: 'About' handle=10553630",
@@ -56,7 +56,7 @@ can triage without watching the run.
 
 ```powershell
 Import-Module ./scripts/McecEvidence.psm1
-$s = New-McecSession -Scenario "winprint-hero-gif" -Issue 84 -ArtifactRoot ./artifacts/customer1
+$s = New-McecSession -Scenario "winprint-hero-gif" -ArtifactRoot ./artifacts/customer1
 Add-McecStep $s "launch" "pass" "winprint up"
 Write-McecToolCall $s "request" "tools/call" $req      # called from your MCP wrapper
 # ... write screenshots into $s.ArtifactDir ...
