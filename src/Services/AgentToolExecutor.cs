@@ -844,21 +844,23 @@ public sealed class AgentToolExecutor {
     }
 
     /// <summary>
-    /// Resolves a requested command name to its loaded-table key using the invoker's own rules: a
-    /// direct (lower-cased) lookup first, then the <c>prefix:args</c> spelling (so requesting
-    /// <c>chars:hello</c> resolves to the <c>chars:</c> command, matching how Enqueue parses it).
-    /// Null when nothing in the table matches.
+    /// Resolves a requested command name to its loaded-table key using the invoker's OWN rules,
+    /// in the invoker's OWN order: <see cref="CommandInvoker.Enqueue"/> parses any
+    /// <c>prefix:args</c> spelling as the bare prefix command FIRST (so <c>mcec:exit</c> executes
+    /// the <c>mcec:</c> entry with args <c>exit</c>), and only a string without that shape is looked
+    /// up whole. A grant must enable the entry the invoker will actually gate on; the table also
+    /// holds full spellings like <c>mcec:exit</c> that Enqueue never resolves, and granting one of
+    /// those would leave the very next <c>send_command</c> still refused (PR #308 review). Null when
+    /// nothing in the table matches.
     /// </summary>
     private static string? ResolveTableKey(CommandInvoker invoker, string requested) {
         string name = requested.Trim().ToLowerInvariant();
         if (name.Length == 0) {
             return null;
         }
-        if (invoker[name] is Command) {
-            return name;
-        }
         Match match = Regex.Match(name, @"(\w+:)(.+)");
-        return match.Success && invoker[match.Groups[1].Value] is Command ? match.Groups[1].Value : null;
+        string key = match.Success ? match.Groups[1].Value : name;
+        return invoker[key] is Command ? key : null;
     }
 
     /// <summary>

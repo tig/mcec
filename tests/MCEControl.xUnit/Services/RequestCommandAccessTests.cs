@@ -135,6 +135,23 @@ public class RequestCommandAccessTests : IDisposable {
     }
 
     [Fact]
+    public void PrefixSpelledCommand_GrantsTheKeyEnqueueWillExecute() {
+        // PR #308 review (Codex): the table holds BOTH a blank prefix entry ('mcec:') and full
+        // spellings ('mcec:exit'), but CommandInvoker.Enqueue parses any 'prefix:args' string as the
+        // bare prefix FIRST, so the prefix entry is what a send_command will actually gate on.
+        // A grant for 'mcec:exit' must therefore enable 'mcec:', not the (never-executed) full entry;
+        // otherwise the operator approves and the very next send_command still fails command-disabled.
+        AgentConsent.Prompter = _ => CommandAccessDecision.AllowRequested;
+
+        JsonObject env = Ask(110, "need to exit the instance", "mcec:exit");
+
+        Assert.True(env["ok"]!.GetValue<bool>());
+        Assert.Equal(["mcec:"], Strings(env, "granted"));
+        Assert.True((AgentRuntime.Invoker!["mcec:"] as Command)!.Enabled);
+        Assert.False((AgentRuntime.Invoker!["mcec:exit"] as Command)!.Enabled);
+    }
+
+    [Fact]
     public void Denied_IsSticky_NoSecondPrompt() {
         int prompts = 0;
         AgentConsent.Prompter = _ => { prompts++; return CommandAccessDecision.Denied; };
