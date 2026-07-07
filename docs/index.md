@@ -22,8 +22,8 @@ remote-control command surface (network and serial), which is unchanged.
   tab), the `mcec.settings` file, the command table, and logging.
 * **[Agent Control](agent_control.html)** — the agent surface: the observation,
   targeting, and actuation tools, the structured result envelope, and the MCP / localhost-HTTP transports.
-* **[Agent Safety](safety-emergency-stop-and-provisioning.html)** — the security model: the opt-in gates,
-  the global emergency-stop hotkey, and disposable isolated session provisioning.
+* **[Agent Safety](safety-emergency-stop-and-provisioning.html)** — command-access consent, disposable
+  isolated session provisioning, the emergency-stop hotkey, and the on-screen command overlay.
 * **[Remote Control](remote_control.html)** — the classic role: listen on TCP/IP or a
   serial port and translate remote commands into keystrokes, text, mouse, window messages, and app
   launches ([Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/),

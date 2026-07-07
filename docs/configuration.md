@@ -160,9 +160,9 @@ on-screen, and an approval enables it in-memory for that instance only (see
 
 ## Agent safety
 
-The agent gates above decide *whether* the agent surface is reachable. Three operator-safety features build
-on them: the global **emergency-stop** hotkey, disposable **isolated session provisioning**, and
-on-screen **command-access consent**. All are covered in
+The agent gates above decide *whether* the agent surface is reachable. Four operator-safety features build
+on them: on-screen **command-access consent**, disposable **isolated session provisioning**, the global
+**emergency-stop** hotkey, and the on-screen **command overlay**. All are covered in
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)**.
 
 ## Logging

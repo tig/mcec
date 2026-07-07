@@ -736,9 +736,7 @@ concurrently; past that the server answers `503` rather than queueing.
 
 ## Agent safety
 
-Three operator-safety features build on the gates above: a global **emergency stop** hotkey that halts a
-session instantly from any window, disposable **isolated session provisioning** so an agent drives a
-throwaway copy instead of your installed instance, and **command-access consent**
-(`request-command-access`) so an agent can gain a disabled command mid-session only by asking you
-on-screen. All three are covered in
+Four operator-safety features build on the gates above: **command-access consent**
+(`request-command-access`), disposable **isolated session provisioning**, a global **emergency stop**
+hotkey, and the on-screen **command overlay**. All are covered in
 **[Agent Safety](safety-emergency-stop-and-provisioning.md)**.
