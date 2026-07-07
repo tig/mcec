@@ -9,7 +9,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The single result envelope every MCEC 3.0 agent tool returns, defined by
-/// <c>docs/design/agent-tool-result-contract.md</c> and <c>agent-tool-result.schema.json</c> (#101).
+/// <c>docs/agent_control.md</c> and <c>agent-tool-result.schema.json</c>.
 /// One shape, one error vocabulary, so an agent can branch on success/failure uniformly across
 /// <c>capture</c>/<c>query</c>/<c>find</c>/<c>wait-for</c>/<c>invoke</c>/<c>send_command</c> and the
 /// session-lifecycle tools.

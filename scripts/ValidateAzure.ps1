@@ -40,7 +40,7 @@ Write-Host "ProfileScope: $ProfileScope"
 #    credential's claimsMatchingExpression is visible (the v1.0 `az` list omits it).
 #    Branches are exact-match subjects; tags are a flexible claimsMatchingExpression
 #    (Entra `subject` is exact-match, so a wildcard tag subject can't work; see
-#    SetupAzure.ps1 / docs/code-signing.md). Note ${GhRepo}: the bare $GhRepo:ref form
+#    SetupAzure.ps1 / dev/code-signing.md). Note ${GhRepo}: the bare $GhRepo:ref form
 #    makes PowerShell treat 'GhRepo:' as a scope qualifier and silently drops the repo name.
 $AppObjectId = az ad app show --id $AppId --query id -o tsv
 $fics = (az rest --method get --url "https://graph.microsoft.com/beta/applications/$AppObjectId/federatedIdentityCredentials" | ConvertFrom-Json).value

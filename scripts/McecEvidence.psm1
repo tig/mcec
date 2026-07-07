@@ -15,7 +15,7 @@
           screenshot*.png ... - observation artifacts the runner writes into ArtifactDir
         <artifactDir>.zip     - the same directory, zipped for issue attachment
 
-    See docs/evidence-bundles.md for the format spec and replay/export notes.
+    See dev/evidence-bundles.md for the format spec and replay/export notes.
 #>
 
 # Size cap for the transcript so a long run can't produce an unbounded log.

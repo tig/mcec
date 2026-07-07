@@ -28,7 +28,8 @@ which loads the embedded file and collapses each blank-line-separated paragraph 
 >    restore or foreground the window and retry, don't trust the image; a `capture-fallback` warning
 >    means PrintWindow was refused and the picture may be wrong; a `query` with `truncated:true` (a
 >    `tree-truncated` warning) hit the node cap; raise `maxNodes` or target a deeper window. `warnings`
->    are non-fatal; `errorCategory` tells you how to recover. (Shape: `docs/design/agent-tool-result-contract.md`.)
+>    are non-fatal; `errorCategory` tells you how to recover. (Shape: `docs/agent_control.md` and
+>    `agent-tool-result.schema.json`.)
 > 3. **Act**: prefer `invoke` (`by` name/automationId/classname; `action` invoke|toggle|setvalue|
 >    setfocus|expand|collapse|select) over coordinate clicks. `invoke` **fast-fails** if the control isn't present (it does not
 >    wait), so `find`/`wait-for` the control first; an `invoke` that returns `no-target` means it hasn't
@@ -60,7 +61,7 @@ to keep in sync.
 
 ## Security (do not regress)
 
-Three independent, **off-by-default** gates; see [`docs/environment-controller.md`](docs/environment-controller.md):
+Three independent, **off-by-default** gates; see [`docs/agent_control.md`](docs/agent_control.md):
 `AgentCommandsEnabled` (the observation opt-in, separate from actuation), per-command `Enabled`, and
 `McpServerEnabled` (HTTP floor, localhost-bound). Every agent action is logged with an `AGENT-AUDIT:`
 line. An agent that hits "agent commands are disabled" should tell the user, not retry.
@@ -169,6 +170,11 @@ controller-bootstrap follow-ups.
 
 ## Working in this repo
 
+- **User docs vs contributor docs.** [`docs/`](docs/) is published to [GitHub Pages](https://tig.github.io/mcec/)
+  (operator guides: install, configuration, agent control, safety, remote control, examples). **[`dev/`](dev/README.md)**
+  holds contributor and maintainer material only (CI, releasing, code signing, agent-server architecture
+  notes, evidence bundles, doc-image regeneration recipes); it is not part of the site. **Release
+  instructions:** [`dev/RELEASING.md`](dev/RELEASING.md) (cut from `main`, never `develop`).
 - **Agent-facing guidance is part of "Done": not optional, not "later."** Any change to how an agent
   observes/targets/acts (a new tool, arg, failure mode, warning/error category, or driving technique)
   MUST update the connect-time playbook in
@@ -177,12 +183,18 @@ controller-bootstrap follow-ups.
   `Tool(...)` description is **not** a substitute (those describe *args*); the instructions teach *recovery
   and strategy*. Read the trigger by principle, not keyword: it fires on feature work, not just
   dogfooding. Treat it like updating tests.
+- **Doc UI images are dogfood artifacts.** Every PNG/GIF under `docs/` that shows running MCEC (Settings
+  tabs, the provision handoff, Commands window, `hero.gif`) must be regenerated with MCEC's own
+  `capture`/`record` tools, following [`dev/doc-images.md`](dev/doc-images.md) and
+  [`dev/hero-gif.md`](dev/hero-gif.md). Maintainer-only recipes (e.g.
+  [`dev/paint-smiley-email.md`](dev/paint-smiley-email.md)) live under `dev/` and are not site assets. No
+  `DrawToBitmap` export tests or hand-taken screenshots for committed assets.
 - Build is strict: `Nullable=enable`, `TreatWarningsAsErrors=true`, and house analyzers **MCEC0001
   (one top-level type per file)** / **MCEC0002 (no nested types)**. New code must be warning-clean.
 - Agent subsystem lives in `src/Agent/` + the MCP server in `src/Services/` (`AgentServer.cs` is a
   thin static facade over `McpStdioTransport`/`McpHttpTransport`/`JsonRpcDispatcher`/
   `AgentToolExecutor`); commands plug into the existing `Command`/`CommandInvoker` pattern.
-  Dev notes: [`docs/agent-server-architecture.md`](docs/agent-server-architecture.md).
+  Dev notes: [`dev/agent-server-architecture.md`](dev/agent-server-architecture.md).
 - Tests: `dotnet test tests/MCEControl.xUnit/MCEControl.xUnit.csproj`. Before opening a PR, run the
   **full** suite — not a `--filter` on only the tests you touched. Filtered runs miss regressions in
   other fixtures (e.g. a `SessionProvisioner` guard can break `EndSessionTokenTests` while

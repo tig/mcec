@@ -2,9 +2,7 @@
 
 MCEC (Model Context Environment Controller) includes functionality to collect Telemetry Data, which is a term to denote data about how the software is used or performing. Telemetry Data is collected through a “phone home” mechanism built into the software itself. 
 
-The MCEC installer provides  users an option to opt-in to share statistical data with the developers of the software.
-
-![Installer Screenshot](telemetry_optin.png)
+The MCEC installer provides users an option to opt-in to share statistical data with the developers of the software.
 
 ## Frequently Asked Questions
 

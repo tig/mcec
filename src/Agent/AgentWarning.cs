@@ -10,7 +10,7 @@ namespace MCEControl;
 /// (or failed for a different reason), but the agent should know something was adjusted, degraded, or
 /// assumed (e.g. <c>minimized-window</c>, <c>tree-truncated</c>, <c>region-clamped</c>). Same stability
 /// rules as error codes; kebab-case, branchable, tolerate unknowns. See
-/// <c>docs/design/agent-tool-result-contract.md</c> (#101).
+/// <c>docs/agent_control.md</c> / <c>agent-tool-result.schema.json</c>.
 /// </summary>
 public sealed class AgentWarning(string code, string detail) {
     /// <summary>Stable, kebab-case machine code for the warning condition.</summary>

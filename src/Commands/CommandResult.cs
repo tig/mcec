@@ -11,7 +11,8 @@ namespace MCEControl;
 /// command path keeps returning opaque strings; agent commands additionally return one of these,
 /// serialized as JSON, so an MCP client (or the HTTP façade) can reason over success/error + data.
 ///
-/// The fields here track the shared result contract in <c>docs/design/agent-tool-result-contract.md</c>
+/// The fields here track the shared result envelope in <c>docs/agent_control.md</c> and
+/// <c>agent-tool-result.schema.json</c>
 /// (#101): <see cref="Success"/>→<c>ok</c>, <see cref="Data"/>→<c>result</c>, <see cref="Error"/>→
 /// <c>error.detail</c>, with <see cref="ErrorCode"/>/<see cref="ErrorCategory"/> carrying the stable
 /// taxonomy and <see cref="Warnings"/> the non-fatal conditions. The full envelope rename

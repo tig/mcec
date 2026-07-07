@@ -101,7 +101,7 @@ of this writing does not set `MCEC_DESKTOP_E2E=1` in its test step, and no such 
 2. Cover, at minimum: constructor defaults, `BuiltInCommands` contents, `Clone` independence,
    disabled-command behavior (`Execute()` returns `false`), and any command-specific logic.
 3. If the command is agent-gated, add it to `CommandRegistryTests`/`AgentCommandStructuralGateTests`'
-   completeness checks rather than a bespoke test (see `src/ARCHITECTURE.md`'s Extensibility Points).
+   completeness checks rather than a bespoke test (see `CommandRegistry` / `CommandRegistryTests`).
 
 ### Adding integration tests
 

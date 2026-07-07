@@ -101,7 +101,7 @@ internal static class Program {
         "end-session bootstrap; requires AllowSessionProvisioning=true in Settings) and call " +
         "'provision-session', or (3) copy the MCEC install directory somewhere writable and run it " +
         "from there; a non-installed copy reads its own co-located mcec.settings. See the Environment " +
-        "Controller documentation (docs/environment-controller.md).";
+        "Agent Control documentation (docs/agent_control.md).";
 
     /// <summary>
     ///     Safely launches a URL, file, or folder using the shell (UseShellExecute).

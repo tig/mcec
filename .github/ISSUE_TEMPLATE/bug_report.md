@@ -37,7 +37,7 @@ Paste Logs here.
 ```
 
 **Desktop (please complete the following information):**
-Details of home control system you are interfacing with.
+Details of Remote Control system you are interfacing with.
 
 **Agent evidence (if this is agent / MCP behavior)**
 If the bug is in the agent surface (MCP tools, actuation, observation), attach an MCEC evidence bundle
