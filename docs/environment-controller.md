@@ -23,6 +23,26 @@ success and failure uniformly.
 > is changed. If you do nothing, MCEC behaves exactly as it did before; every new
 > capability is **off by default** and must be explicitly enabled.
 
+## Quick start: use it from a desktop agent app
+
+If your goal is to let a desktop agent app (an MCP client, a desktop assistant, or a custom automation
+app) drive MCEC, use the provisioning workflow below. It is the recommended path because it keeps the agent
+on a disposable copy of MCEC instead of your installed instance.
+
+1. In **File ▸ Settings ▸ Agent**, turn on **Allow agents to provision disposable instances**.
+2. Create a disposable session either by clicking **Provision new…** or by letting the agent call
+   `provision-session` over the bootstrap surface. MCEC returns a throwaway copy of the app and the
+   launch/teardown details.
+3. Point your agent at that instance's `mcec.exe mcp` (or its HTTP endpoint if you configured one) and
+   start driving. The installed copy is only for bootstrapping; the provisioned copy serves the full tool
+   surface.
+4. If the agent needs a command that is disabled, it asks via `request-command-access`; you approve or
+   deny on-screen. Use the emergency-stop hotkey if the session goes off the rails.
+5. When the run is done, end the session or delete the provisioned instance.
+
+This is the primary supported workflow for desktop-agent use. The detailed safety model is in
+[Agent Safety](safety-emergency-stop-and-provisioning.md).
+
 ---
 
 ## SECURITY: read this first
@@ -493,11 +513,11 @@ rest of the tree is returned.
 
 ---
 
-## Using MCEC as an MCP server
+## Using MCEC from a desktop agent app
 
 MCEC can run **headless** as an MCP **stdio** server (no main window, no tray icon; the
-on-screen command overlay and the emergency-stop hotkey still work) so an MCP client
-(such as a desktop AI assistant) can spawn it on demand and talk to it over standard
+on-screen command overlay and the emergency-stop hotkey still work) so a desktop agent app
+(such as a desktop AI assistant or custom MCP client) can spawn it on demand and talk to it over standard
 input/output:
 
 ```
