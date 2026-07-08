@@ -68,8 +68,8 @@ Everything below is common to every example; individual pages assume it and don'
     three sides (or capture a region). A FixedDialog captured at 491x412 crops to 475x404.
   - **Ctrl+key needs a real accelerator, not `chars:`.** A held `shiftdown:ctrl` plus `chars:c` injects a
     *character*, which does not reliably trigger an app's Ctrl+key accelerator (so Ctrl+A/Ctrl+C/Ctrl+V can
-    silently do nothing). Send VK+modifier SendInput commands instead (the built-in `ctrl-x`, or define
-    `ctrl-a`/`ctrl-c`/`ctrl-v`). Menu mnemonics via `chars:` are fine because those are plain characters.
+    silently do nothing). Send VK+modifier SendInput commands instead (built-ins `ctrl-x`, `ctrl-a`, `ctrl-c`,
+    `ctrl-v`, `ctrl-z`, `ctrl-s`). Menu mnemonics via `chars:` are fine because those are plain characters.
 
 ## Adding an example
 
