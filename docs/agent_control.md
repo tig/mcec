@@ -191,7 +191,7 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 
 | Command    | What it does                                                                      | Key args |
 |------------|-----------------------------------------------------------------------------------|----------|
-| `capture`  | Screenshot a window (`PrintWindow` + `PW_RENDERFULLCONTENT`, captures WinUI/WPF surfaces) or a screen region, returned as base64 PNG. Blank/black frames are detected and flagged (see [Observation hardening](#observation-hardening--known-limitations)). | window target, or region `x`/`y`/`width`/`height`; optional `file` |
+| `capture`  | Screenshot a window (`PrintWindow` + `PW_RENDERFULLCONTENT`, captures WinUI/WPF surfaces) or a screen region, returned as PNG metadata plus image bytes (inline by default, or path-only). Blank/black frames are detected and flagged (see [Observation hardening](#observation-hardening--known-limitations)). | window target, or region `x`/`y`/`width`/`height`; optional `maxWidth`, `scale`, `returnImage`, `pathOnly`, `file` |
 | `query`    | Dump the **UI Automation tree** of a window: control type, name, automation id, bounds, enabled/offscreen state, value. | window target, `maxDepth` (default 6), `maxNodes` (default 1000) |
 | `displays` | Report **display geometry**; every monitor's pixel `bounds`, `workingArea`, `primary` flag, and `dpi`/`scale`, plus the union `virtualBounds`. Lets an agent interpret the absolute-pixel bounds `query`/`find` return and place pixel clicks/drags without measuring the screen itself. | *(none)* |
 | `windows`  | **Discover top-level windows and wait on window state**: list each window's `handle`, `title`, `className`, `processName`, `processId`, and `bounds`, so an agent can target a window instead of guessing. Optionally filtered; with a `timeout` it **waits** for `condition`: `appears` (default; a match exists), `disappears` (no window matches, e.g. a modal closed), or `foreground` (a match is the foreground window). No filter lists all; a wait (or `disappears`/`foreground`) with no filter is refused. A timeout carries `waitedFor` + `lastObservedWindows` for triage. | `window`/`process`/`className` filters, `condition` (appears/disappears/foreground), `timeout` (ms) |
@@ -353,8 +353,9 @@ and the rejection is `AGENT-AUDIT:`-logged. The same caps apply to `record` regi
 targets need no cap: they are bounded by the window's own size). These limits are fixed, not
 settings: they are an anti-DoS bound sized well beyond real desktop geometry, not a tuning knob.
 
-On a successful `capture`, MCEC additionally returns the PNG as an MCP `image` content block so
-the model can view it directly, alongside the JSON envelope above.
+On a successful `capture`, MCEC returns the PNG as an MCP `image` content block when inline image
+return is enabled (default). In `pathOnly:true` / `returnImage:false` mode, the result omits inline
+base64 and MCP image content, and instead includes an `artifact` path under the session directory.
 
 ### `record`: capturing change over time
 

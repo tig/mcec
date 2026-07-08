@@ -3,6 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Text.Json.Nodes;
 using System.Xml.Serialization;
@@ -12,7 +15,8 @@ namespace MCEControl;
 /// <summary>
 /// MCEC 3.0 agent "see the screen" command. Captures a target window (by handle / title substring /
 /// process / class / foreground) or an explicit screen region, encodes it as PNG, and returns a
-/// <see cref="CommandResult"/> carrying base64 image bytes (and optionally writes the PNG to a file).
+/// <see cref="CommandResult"/> carrying image metadata + inline bytes (unless the caller later requests
+/// path-only shaping in the MCP layer); optionally writes the PNG to a file.
 ///
 /// SECURITY: gated behind <see cref="AgentRuntime.AgentCommandsEnabled"/> (a separate opt-in from the
 /// actuation enable; enforced structurally by <see cref="AgentCommand"/>) and every capture is
@@ -33,6 +37,12 @@ public class CaptureCommand : WindowTargetingAgentCommand {
 
     [XmlAttribute("file")]
     public string File { get; set; } = null!;
+
+    [XmlIgnore]
+    public int MaxWidth { get; set; }
+
+    [XmlIgnore]
+    public double Scale { get; set; }
 
     public static List<Command> BuiltInCommands {
         get => [new CaptureCommand { Cmd = "capture" }];
@@ -75,6 +85,7 @@ public class CaptureCommand : WindowTargetingAgentCommand {
         AgentRuntime.Audit(Cmd, $"region ({X},{Y}) {Width}x{Height}");
 
         CaptureResult regionCap = ScreenCapture.CaptureRegion(X, Y, Width, Height);
+        regionCap = ApplyDownscaleIfRequested(regionCap);
         JsonObject data = new JsonObject {
             ["encoding"] = "png",
             ["width"] = regionCap.Width,
@@ -99,6 +110,7 @@ public class CaptureCommand : WindowTargetingAgentCommand {
         AgentRuntime.Audit(Cmd, $"window 0x{win.Handle:X} \"{win.Title}\" ({win.ProcessName})");
 
         CaptureResult cap = ScreenCapture.CaptureWindow(new IntPtr(win.Handle));
+        cap = ApplyDownscaleIfRequested(cap);
         JsonObject data = new JsonObject {
             ["handle"] = win.Handle,
             ["width"] = cap.Width,
@@ -132,6 +144,30 @@ public class CaptureCommand : WindowTargetingAgentCommand {
         return res;
     }
 
+    private CaptureResult ApplyDownscaleIfRequested(CaptureResult cap) {
+        int targetWidth = cap.Width;
+        if (MaxWidth > 0) {
+            targetWidth = Math.Min(targetWidth, MaxWidth);
+        }
+        if (Scale > 0) {
+            targetWidth = Math.Min(targetWidth, Math.Max(1, (int)Math.Round(cap.Width * Scale)));
+        }
+        if (targetWidth >= cap.Width) {
+            return cap;
+        }
+        using MemoryStream input = new(cap.Png);
+        using Bitmap src = new(input);
+        int targetHeight = Math.Max(1, (int)Math.Round(src.Height * (targetWidth / (double)src.Width)));
+        using Bitmap scaled = new(targetWidth, targetHeight, PixelFormat.Format32bppArgb);
+        using (Graphics g = Graphics.FromImage(scaled)) {
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.DrawImage(src, 0, 0, targetWidth, targetHeight);
+        }
+        using MemoryStream output = new();
+        scaled.Save(output, ImageFormat.Png);
+        return new CaptureResult(output.ToArray(), targetWidth, targetHeight, cap.UsedFallback, ScreenCapture.AnalyzeBlank(scaled));
+    }
+
     /// <summary>Serializes the blank-frame analysis so an agent can see why a capture was flagged.</summary>
     private static JsonObject BlankCheckJson(ImageStats stats) => new() {
         ["blank"] = stats.IsBlank,
@@ -141,7 +177,8 @@ public class CaptureCommand : WindowTargetingAgentCommand {
 
     /// <summary>
     /// Writes the captured PNG to <see cref="File"/> if set, recording the path in <paramref name="data"/>.
-    /// File IO failures are non-fatal: the base64 image is still returned and the error noted in data.
+    /// File IO failures are non-fatal: the capture result still returns metadata (and inline bytes unless
+    /// path-only shaping is requested at the MCP layer), with the write error noted in data.
     /// </summary>
     private void WriteFileIfRequested(byte[] png, JsonObject data) {
         if (string.IsNullOrEmpty(File)) {

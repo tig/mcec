@@ -25,7 +25,9 @@ popups are not enumerated by title/process; target them by handle or `foreground
 
 2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, state, value)
 so you can pick a control instead of guessing pixels; `capture` returns a PNG (works on composited
-WinUI/WPF surfaces; check `bytes` — full windows are costly and inline base64 can blow your token budget).
+WinUI/WPF surfaces; check `bytes`). For low-cost observation passes, downscale with `maxWidth` or
+`scale` and prefer `pathOnly:true` (or `returnImage:false`) to get metadata + artifact path without
+inline base64 or an MCP image block.
 Browser chrome is UIA-targetable; in-page web content is not — verify with region `capture` and
 screen-absolute pixel `click` (window origin from `query` bounds + offset; re-capture after layout shifts).
 Use `capture` for a single state check when the tree can't answer; use `record` ONLY to show CHANGE
