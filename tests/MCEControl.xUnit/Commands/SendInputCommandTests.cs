@@ -30,6 +30,12 @@ public class SendInputCommandTests
         Assert.Contains(builtIns, c => c.Cmd == "shiftup:");
         Assert.Contains(builtIns, c => c.Cmd == "atlesc");
         Assert.Contains(builtIns, c => c.Cmd == "wintab");
+        // Common editing chord builtins
+        Assert.Contains(builtIns, c => c.Cmd == "ctrl-a");
+        Assert.Contains(builtIns, c => c.Cmd == "ctrl-c");
+        Assert.Contains(builtIns, c => c.Cmd == "ctrl-v");
+        Assert.Contains(builtIns, c => c.Cmd == "ctrl-z");
+        Assert.Contains(builtIns, c => c.Cmd == "ctrl-s");
         // Also includes all VK_ codes
         Assert.Contains(builtIns, c => c.Cmd == "VK_RETURN");
     }

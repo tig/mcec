@@ -329,6 +329,27 @@ public class AgentServerTests {
     }
 
     [Fact]
+    public void Dispatch_ToolsList_CaptureTool_DeclaresPathOnlyAndDownscaleOptions() {
+        JsonObject resp = AgentServer.Dispatch(Request(2, "tools/list"))!;
+        JsonArray tools = resp["result"]!.AsObject()["tools"]!.AsArray();
+
+        JsonObject? capture = null;
+        foreach (JsonNode? tool in tools) {
+            if (tool?["name"]?.GetValue<string>() == "capture") {
+                capture = tool.AsObject();
+                break;
+            }
+        }
+        Assert.NotNull(capture);
+        JsonObject props = capture["inputSchema"]!.AsObject()["properties"]!.AsObject();
+
+        Assert.True(props.ContainsKey("maxWidth"));
+        Assert.True(props.ContainsKey("scale"));
+        Assert.True(props.ContainsKey("returnImage"));
+        Assert.True(props.ContainsKey("pathOnly"));
+    }
+
+    [Fact]
     public void Dispatch_ToolsCall_Capture_WhenAgentDisabled_ReportsError() {
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = null; // agent commands disabled

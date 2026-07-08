@@ -44,6 +44,7 @@ public static class CommandRegistry {
         new("mouse", typeof(MouseCommand), () => MouseCommand.BuiltInCommands),
         new("mceccommand", typeof(McecCommand), () => McecCommand.BuiltInCommands),
         new("capture", typeof(CaptureCommand), () => CaptureCommand.BuiltInCommands),
+        new("get-text", typeof(GetTextCommand), () => GetTextCommand.BuiltInCommands),
         new("query", typeof(QueryCommand), () => QueryCommand.BuiltInCommands),
         new("find", typeof(FindCommand), () => FindCommand.BuiltInCommands),
         new("invoke", typeof(InvokeCommand), () => InvokeCommand.BuiltInCommands),

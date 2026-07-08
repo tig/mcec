@@ -154,6 +154,22 @@ public static class ScreenCapture {
     /// <exception cref="ArgumentException">Thrown when the region has no area or exceeds
     /// <see cref="MaxRegionDimension"/>/<see cref="MaxRegionPixels"/> (#158); thrown BEFORE any
     /// bitmap is allocated, so an oversized agent request costs nothing.</exception>
+    /// <summary>
+    /// Crops <paramref name="source"/> to a sub-rectangle. Throws when the crop extends outside the
+    /// bitmap (window-relative region requests that overshoot the captured window).
+    /// </summary>
+    public static Bitmap CropBitmap(Bitmap source, int x, int y, int width, int height) {
+        if (x < 0 || y < 0 || width <= 0 || height <= 0
+            || x + width > source.Width || y + height > source.Height) {
+            throw new ArgumentException(
+                $"Region ({x},{y}) {width}x{height} is outside the {source.Width}x{source.Height} capture.",
+                nameof(width));
+        }
+
+        Rectangle rect = new(x, y, width, height);
+        return source.Clone(rect, source.PixelFormat);
+    }
+
     public static Bitmap CaptureRegionBitmap(int x, int y, int width, int height) {
         string? sizeError = ValidateRegionSize(width, height);
         if (sizeError is not null) {

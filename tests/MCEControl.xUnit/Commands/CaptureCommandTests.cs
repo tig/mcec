@@ -138,4 +138,17 @@ public class CaptureCommandTests {
             AgentRuntime.Settings = null;
         }
     }
+
+    [Fact]
+    public void BuildCommand_MapsCaptureDownscaleArgs() {
+        CaptureCommand cmd = Assert.IsType<CaptureCommand>(AgentServer.BuildCommand("capture", new JsonObject {
+            ["foreground"] = true,
+            ["maxWidth"] = 640,
+            ["scale"] = 0.5,
+        }));
+
+        Assert.True(cmd.Foreground);
+        Assert.Equal(640, cmd.MaxWidth);
+        Assert.Equal(0.5, cmd.Scale, 3);
+    }
 }

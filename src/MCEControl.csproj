@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net10.0-windows</TargetFramework>
+        <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
         <UseWindowsForms>true</UseWindowsForms>
         <ApplicationIcon>Resources\Guillen.Icon.ico</ApplicationIcon>
         <!-- v3.0: the executable is now `mcec.exe`. RootNamespace stays `MCEControl` (internal only)
@@ -45,6 +45,7 @@
         <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
         <PackageReference Include="log4net" Version="3.3.2" />
         <PackageReference Include="Microsoft.ApplicationInsights" Version="2.23.0" />
+
         <PackageReference Include="Octokit" Version="14.0.0" />
         <PackageReference Include="System.IO.Ports" Version="10.0.9" />
         <PackageReference Include="System.Text.Json" Version="10.0.9" />

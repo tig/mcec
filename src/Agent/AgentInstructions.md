@@ -1,8 +1,9 @@
 MCEC (Model Context Environment Controller) lets you see and drive native Windows apps.
 
 Work the loop: observe -> target -> act -> observe. You are measured on token cost and wall-clock time:
-prefer structured observation (`windows`/`query`/`find`) over `capture`; when you must capture, the
-smallest region that answers the question; use `windows` wait-for and title/process filters instead of
+prefer structured observation (`windows`/`query`/`find`) over `capture`; for opaque web content prefer
+`get-text` on the smallest field region over a PNG `capture`; when you must capture, the smallest region
+that answers the question; use `windows` wait-for and title/process filters instead of
 scroll-and-recapture loops; prefer direct URL/`launch` navigation over hunting pixels; don't re-observe
 what the last result already told you — large-window captures dominate token cost.
 
@@ -26,13 +27,17 @@ popups are not enumerated by title/process; target them by handle or `foreground
 2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, state, value)
 so you can pick a control instead of guessing pixels; `capture` returns a PNG (works on composited
 WinUI/WPF surfaces; check `bytes` — full windows are costly and inline base64 can blow your token budget).
-Browser chrome is UIA-targetable; in-page web content is not — verify with region `capture` and
-pixel `click` (with a window target, `{x,y}` is window-relative to the captured window bounds; without one, screen-absolute;
-re-capture after layout shifts).
-Use `capture` for a single state check when the tree can't answer; use `record` ONLY to show CHANGE
+For low-cost observation passes, downscale with `maxWidth` or `scale` and prefer `pathOnly:true` (or
+`returnImage:false`) to get metadata + artifact path without inline base64 or an MCP image block.
+Browser chrome is UIA-targetable; in-page web content is not — verify field values with `get-text` on a
+window-relative region (`x`/`y`/`width`/`height` from `query` bounds) before reaching for `capture`; use
+pixel `click` when needed (`click at:{x,y}` is window-relative to the captured window bounds when you set a window target, otherwise screen-absolute; re-observe after layout shifts). `get-text` returns extracted
+text plus line/word counts; `ocr-no-text` means OCR could not read the region (try a larger area or
+`capture`); `ocr-blank` means the pixels were a flat fill (like `capture-blank`). Use `capture` for a
+single state check when the tree and OCR can't answer; use `record` ONLY to show CHANGE
 over time; a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
-whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture` and `record` are size-capped: an oversized region
+whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture`, `get-text`, and `record` are size-capped: an oversized region
 fails fast with `errorCode:region-too-large` (category `invalid-argument`; the detail states the limit), so
 request a smaller region or a window target (windows are bounded by their own size). An open `start`
 auto-stops at the operator's limits; `stop`
@@ -98,11 +103,11 @@ foreground a window and confirm focus. It fails `foreground` if the window won't
 control took focus. `invoke setfocus` is also verified now; it fails `focus` (code `focus-not-set`) when
 the element does not end up focused, which is your cue to `focus` (it clicks) or `click` the control.
 
-4. VERIFY with another `query` or `capture`; always confirm the act had the intended effect.
+4. VERIFY with another `query`, `get-text`, or `capture`; always confirm the act had the intended effect.
 
 RESULTS: every tool returns one envelope: `{ ok, result?, warnings?, error? }`. Branch on `ok` first: on
 success read `result`; on failure read `error.category` (a closed set: timeout, ambiguous-selector,
-stale-element, no-target, invalid-argument, capture-blank, focus, elevation, foreground, internal) to
+stale-element, no-target, invalid-argument, capture-blank, ocr-blank, ocr-no-text, focus, elevation, foreground, internal) to
 choose recovery; e.g. `no-target` means broaden the selector, `query` to discover targets, or `wait-for`
 the element; `invalid-argument` means the REQUEST itself is wrong (unknown action, oversized region,
 ill-formed endpoint, an action the element can't perform); fix the arguments, do NOT retry the same call
@@ -151,7 +156,7 @@ blank document/tab before typing. Fallback if `launch` is unavailable: `send_com
 KEYSTROKES split two ways, and confusing them silently does nothing. To fire an app SHORTCUT or press a
 navigation/editing key; a Ctrl/Alt/Win chord (Ctrl+C/V/A/S), a lone shortcut key (zoom `+`/`-`/`=`), or an
 arrow/function/Enter/Esc/Tab; send a real KEYDOWN via `send_command`: a `VK_` name (`VK_OEM_PLUS` is `=`/`+`),
-a named key (`enter`, `escape`, `left`/`right`/`up`/`down`, `tab`), or a chord builtin (`ctrl-x`); bracket
+a named key (`enter`, `escape`, `left`/`right`/`up`/`down`, `tab`), or a chord builtin (`ctrl-x`, `ctrl-a`, `ctrl-c`, `ctrl-v`, `ctrl-z`, `ctrl-s`); bracket
 with `shiftdown:<mods>`/`shiftup:<mods>` for extra modifiers. `chars:` is for LITERAL TEXT ONLY (it is WM_CHAR text entry, not SendKeys): `chars:=` types `=` and never
 zooms; `chars:^a` types those characters; `shiftdown:ctrl`+`chars:c` does NOT fire Ctrl+C; right after
 focus it can drop characters — prefer `invoke`+`setvalue` for fields. Type paths with `chars:`; fire
@@ -165,7 +170,7 @@ prior file before the run and dismiss the viewer with Alt+F4 afterward so the ne
 a `timeout`) rather than sleeping; poll `query` only for a control INSIDE a window you already have. Reach
 for a raw `send_command` before giving up.
 
-CONCURRENCY: observation (`query`/`capture`/`find`/`wait-for`/`record`) runs concurrently and never blocks
+CONCURRENCY: observation (`query`/`capture`/`get-text`/`find`/`wait-for`/`record`) runs concurrently and never blocks
 another call; a long `wait-for` won't stall a `capture`, and `invoke` returns promptly even if it opens a
 modal; so a slow observation is safe to start. Physical-input actuation (`drag`, `send_command`) is
 serialized: it runs one-at-a-time (the desktop has a single input stream), so don't expect two input
@@ -197,7 +202,7 @@ only to deliberately end the session, e.g. stopping a provisioned instance befor
 OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run so the
 operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/UIA targeting;
 you will never see or target it, and it is never a candidate window; but it DOES appear in
-full-screen/region `capture`s and `record`ings (not in window-targeted captures).
+full-screen/region `capture`s/`get-text`/`record`ings (not in window-targeted captures).
 
 PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it; an abnormal exit
 leaks those security gates enabled, and the installed copy will not serve the full agent surface anyway.
@@ -237,7 +242,7 @@ is audited and narrated on the overlay). A deny is FINAL for this instance: re-r
 returns `error.code:consent-denied` with no prompt; do not nag; tell the user what you needed and why.
 `consent-timeout` means the operator never answered (they may be away; you may ask again later, ideally
 after checking in with the user). `consent-pending` means a consent prompt is already open: while it is up,
-only observation (`capture`/`query`/`displays`/`windows`/`find`/`wait-for`/`record`) is served and every
+only observation (`capture`/`get-text`/`query`/`displays`/`windows`/`find`/`wait-for`/`record`) is served and every
 other call is refused with that code; wait for your pending request to return. `consent-unavailable` means
 no operator prompt can be shown (fail closed); ask the user to enable the command themselves. You will
 never see or target the consent dialog; it is excluded from targeting like the overlay, and actuation is
@@ -248,7 +253,7 @@ session from any window. If ANY tool returns `error.code:emergency-stopped` (the
 `error.category` stays `internal`), the operator has engaged it and deliberately halted you; STOP
 immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
-SECURITY: the agent tools (capture/query/displays/windows/find/wait-for/invoke/record/launch/drag/click/clipboard, and the
+SECURITY: the agent tools (capture/get-text/query/displays/windows/find/wait-for/invoke/record/launch/drag/click/clipboard, and the
 session-start/session-status/session-end lifecycle) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error; surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is
