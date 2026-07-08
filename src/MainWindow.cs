@@ -280,9 +280,13 @@ public partial class MainWindow : Form, IAppHost {
         // Load AppSettings (also configures logging; some logging already happened).
         // #216: SettingsStore.Load never shows UI; the GUI host (here) owns the failure dialogs
         // that used to live inside AppSettings.Deserialize, gated the same way (headless = no UI).
-        SettingsLoadResult settingsLoad = SettingsStore.Load($@"{Program.ConfigPath}{SettingsStore.SettingsFileName}");
-        ShowSettingsLoadFailure(settingsLoad, $@"{Program.ConfigPath}{SettingsStore.SettingsFileName}");
+        string settingsFile = $@"{Program.ConfigPath}{SettingsStore.SettingsFileName}";
+        Logger.Instance.Log4.Info($"Settings: Loading from {settingsFile}");
+        SettingsLoadResult settingsLoad = SettingsStore.Load(settingsFile);
+        ShowSettingsLoadFailure(settingsLoad, settingsFile);
         ApplySettings(settingsLoad.Settings);
+
+        Logger.Instance.Log4.Info($"Settings: DisableUpdatePopup = {Settings.DisableUpdatePopup}");
 
         // TELEMETRY:
         // what: Settings
@@ -378,8 +382,11 @@ public partial class MainWindow : Form, IAppHost {
                 Logger.Instance.Log4.Info("A newer version is available at");
                 Logger.Instance.Log4.Info($"   {UpdateService.Instance.ReleasePageUri}");
 
-                if (!Settings.DisableUpdatePopup)
+                if (Settings.DisableUpdatePopup) {
+                    Logger.Instance.Log4.Info("Update Popup is disabled (DisableUpdatePopup=true)");
+                } else {
                     UpdateDialog.Instance.ShowDialog(this);
+                }
             }
             else if (UpdateService.Instance.CompareVersions() > 0) {
                 Logger.Instance.Log4.Info(
