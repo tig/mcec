@@ -560,8 +560,9 @@ The exe also exposes a CLI surface (built on
 command metadata, and `agent-guide` prints the same agent guidance the MCP server
 hands connecting clients.
 
-Wire it into your MCP client config (the `claude_desktop_config.json` / `mcp.json`
-style used by most clients):
+Wire it into your MCP client config.
+
+**Claude / most clients** (claude_desktop_config.json / mcp.json style):
 
 ```json
 {
@@ -574,10 +575,29 @@ style used by most clients):
 }
 ```
 
+**Grok Build** (recommended CLI):
+
+```bash
+grok mcp add mcec -- "C:/mcec/mcec.exe" mcp
+```
+
+Useful commands:
+- `grok mcp list`
+- `grok mcp doctor mcec`
+- In Grok TUI: `/mcps` (or Ctrl+L → MCP Servers tab)
+
 (`C:/mcec` here is a writable copy of the install directory, or a provisioned session's
 `directory`. Pointing it at the Program Files path connects, but that copy serves only the
 `provision-session`/`end-session` bootstrap, per above — use it to mint an instance, then repoint your
 client at the instance's `directory`.)
+
+Grok also supports direct TOML in `~/.grok/config.toml`:
+
+```toml
+[mcp_servers.mcec]
+command = "C:/mcec/mcec.exe"
+args = ["mcp"]
+```
 
 `mcp` is a spawned server, not an interactive command: typed at a terminal it refuses
 (stdin is an interactive console; the server would block on the shared console and
