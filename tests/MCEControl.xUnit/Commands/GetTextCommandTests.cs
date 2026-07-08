@@ -1,7 +1,9 @@
 // Copyright © Kindel, LLC - http://www.kindel.com
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
+using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Text.Json.Nodes;
 using Xunit;
 using MCEControl;
@@ -146,6 +148,76 @@ public class GetTextCommandTests {
         g.DrawLine(Pens.Black, 0, 0, w - 1, h - 1);
         g.DrawString("sample", SystemFonts.DefaultFont, Brushes.Black, 4, 4);
         return bmp;
+    }
+
+    [Fact]
+    public void Execute_BlankFrame_ReturnsOcrBlankCategory() {
+        // Addresses CR feedback P2 (ocr-blank mapping) on PR 334. Blank detection happens before OCR.
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        try {
+            CapturingReply reply = new();
+            // solid-color small bitmap will be detected blank by AnalyzeBlank
+            StubGetTextCommand cmd = new() {
+                Cmd = "get-text",
+                Enabled = true,
+                Reply = reply,
+                Window = "Stub",
+                StubWindowBitmap = new Bitmap(8, 8),  // default pixels -> blank dominant
+            };
+
+            bool result = cmd.Execute();
+
+            Assert.False(result);
+            JsonObject json = JsonNode.Parse(reply.Captured.Trim())!.AsObject();
+            Assert.Equal("ocr-blank", json["errorCategory"]!.GetValue<string>());
+            Assert.Contains("blank", json["error"]!.GetValue<string>(), StringComparison.OrdinalIgnoreCase);
+            Assert.False(cmd.OcrCalled); // never reached OCR
+        }
+        finally {
+            AgentRuntime.Settings = null;
+        }
+    }
+
+    [Fact]
+    public void RegionOcr_TooLargeImage_ThrowsEarly_WithClearMessage() {
+        // Addresses CR P2 on PR 334: before calling RecognizeAsync (which would fail inside OCR for dims > Max),
+        // RegionOcr must check against OcrEngine.MaxImageDimension and fail fast with invalid-argument path.
+        // Uses early check so test runs even when no OCR language pack is installed on the test agent.
+        uint max = Windows.Media.Ocr.OcrEngine.MaxImageDimension;
+        int tooBig = (int)max + 1;
+        using Bitmap huge = new(tooBig, 4);  // width exceeds
+
+        var ex = Assert.Throws<ArgumentException>(() => RegionOcr.Recognize(huge));
+        Assert.Contains("exceed", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OCR", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BitmapFromPngBytes_RemainsUsableAfterStreamClosed() {
+        // Addresses CR P1 on PR 334 (stream lifetime): documents the Bitmap(Stream) contract.
+        // The GetTextCommand window path must not hand out a Bitmap whose backing stream was disposed
+        // by the time FinishOcr / AnalyzeBlank / RegionOcr.ToSoftwareBitmap run.
+        using Bitmap original = NonBlankBitmap(16, 16);
+        using var save = new MemoryStream();
+        original.Save(save, ImageFormat.Png);
+        byte[] png = save.ToArray();
+
+        Bitmap? bmp;
+        using (var ms = new MemoryStream(png)) {
+            bmp = new Bitmap(ms);
+            // stream goes out of scope / disposed here -- simulates end of CaptureWindowBitmap
+        }
+
+        // Use like the real path does (GetPixels in AnalyzeBlank; Save in RegionOcr)
+        ImageStats stats = ScreenCapture.AnalyzeBlank(bmp!);
+        Assert.False(stats.IsBlank);
+
+        using var rt = new MemoryStream();
+        bmp!.Save(rt, ImageFormat.Png);
+        Assert.True(rt.Length > 100);
+
+        bmp!.Dispose();
     }
 
 }

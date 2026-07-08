@@ -31,6 +31,12 @@ public enum AgentErrorCategory {
     /// <summary>A screenshot was produced but detected as black/blank.</summary>
     CaptureBlank,
 
+    /// <summary>OCR produced a blank/flat frame (minimized, cloaked, off-screen, etc.); parallel to <see cref="CaptureBlank"/>.</summary>
+    OcrBlank,
+
+    /// <summary>OCR ran on a non-blank region but produced no readable text (low contrast, too small, wrong script, etc.).</summary>
+    OcrNoText,
+
     /// <summary>An action required keyboard focus and it could not be confirmed on the target. Produced
     /// (#91/#270) by the <c>focus</c> tool when a window is foreground but no control took focus
     /// (<see cref="FocusService.IsFocusInWindow"/>), and by <c>invoke setfocus</c> when the element does

@@ -70,6 +70,11 @@ public class GetTextCommand : WindowTargetingAgentCommand {
             AgentRuntime.Audit(Cmd, "ocr unavailable");
             return CommandResult.Fail(Cmd, e.Message, "ocr-unavailable", "internal");
         }
+        catch (ArgumentException e) when (e.Message.Contains("OCR", StringComparison.OrdinalIgnoreCase) || e.Message.Contains("dimension", StringComparison.OrdinalIgnoreCase) || e.Message.Contains("exceed", StringComparison.OrdinalIgnoreCase)) {
+            // CR P2 (PR 334): oversized for OCR -> invalid-argument so agent can shrink region (distinct from ocr-unavailable).
+            AgentRuntime.Audit(Cmd, "ocr region exceeds engine limit");
+            return CommandResult.Fail(Cmd, e.Message, "ocr-image-too-large", "invalid-argument");
+        }
         catch (Exception e) {
             Logger.Instance.Log4.Error($"{GetType().Name}: get-text failed: {e.Message}");
             return CommandResult.Fail(Cmd, $"get-text failed: {e.Message}", "get-text-exception", "internal");
@@ -130,8 +135,12 @@ public class GetTextCommand : WindowTargetingAgentCommand {
     protected virtual Bitmap CaptureWindowBitmap(WindowInfo win, out bool usedFallback) {
         CaptureResult cap = ScreenCapture.CaptureWindow(new IntPtr(win.Handle));
         usedFallback = cap.UsedFallback;
+        // CR P1 (PR 334): Bitmap(Stream) requires the stream to stay open for the Bitmap lifetime.
+        // Decode while open, then clone the pixels so the returned Bitmap is independent and the
+        // temp stream can be disposed. Downstream AnalyzeBlank/RegionOcr (which Save again) stay safe.
         using MemoryStream ms = new(cap.Png);
-        return new Bitmap(ms);
+        using Bitmap tmp = new Bitmap(ms);
+        return new Bitmap(tmp);
     }
 
     /// <summary>Virtual seam so tests can stub OCR without requiring a language pack.</summary>
@@ -183,7 +192,7 @@ public class GetTextCommand : WindowTargetingAgentCommand {
             return CommandResult.Fail(Cmd,
                 "OCR could not read any text in the region (low contrast, unsupported script, or too small). " +
                 "Try a larger region, foreground the window, or fall back to capture.",
-                "ocr-no-text", "internal", data);
+                "ocr-no-text", "ocr-no-text", data);
         }
 
         AgentRuntime.Audit(Cmd, $"ocr {ocr.WordCount} word(s), {ocr.LineCount} line(s)");

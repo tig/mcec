@@ -30,6 +30,17 @@ public static class RegionOcr {
 
     /// <summary>Async variant of <see cref="Recognize"/>.</summary>
     public static async Task<RegionOcrResult> RecognizeAsync(Bitmap bitmap) {
+        // CR P2 (PR 334): fail fast for images > OcrEngine.MaxImageDimension with a clear message
+        // so caller can surface invalid-argument rather than opaque get-text-exception from deep OCR.
+        // Check the source bitmap (pre SoftwareBitmap) and again after decode.
+        uint max = OcrEngine.MaxImageDimension;
+        if (bitmap.Width > max || bitmap.Height > max) {
+            throw new ArgumentException(
+                $"OCR image dimensions {bitmap.Width}x{bitmap.Height} exceed OcrEngine.MaxImageDimension={max}. " +
+                "Shrink the get-text region (or target a smaller window portion) and retry.",
+                nameof(bitmap));
+        }
+
         OcrEngine? engine = OcrEngine.TryCreateFromUserProfileLanguages();
         if (engine is null) {
             throw new InvalidOperationException(
@@ -37,6 +48,13 @@ public static class RegionOcr {
         }
 
         using SoftwareBitmap softwareBitmap = await ToSoftwareBitmapAsync(bitmap);
+        if (softwareBitmap.PixelWidth > max || softwareBitmap.PixelHeight > max) {
+            throw new ArgumentException(
+                $"OCR image dimensions {softwareBitmap.PixelWidth}x{softwareBitmap.PixelHeight} exceed OcrEngine.MaxImageDimension={max}. " +
+                "Shrink the get-text region and retry.",
+                nameof(bitmap));
+        }
+
         OcrResult ocr = await engine.RecognizeAsync(softwareBitmap);
 
         int lineCount = ocr.Lines.Count;
