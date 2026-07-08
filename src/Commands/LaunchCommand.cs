@@ -101,12 +101,27 @@ public class LaunchCommand : AgentCommand {
                 data["note"] = "Window did not appear within timeout; use query/process or wait-for by process to locate later.";
             }
 
+            int windowProcessId = win?.ProcessId ?? 0;
+            (bool startedNewProcess, bool attachedToExisting) = DeriveLaunchDisposition(pid, windowProcessId);
+            data["startedNewProcess"] = startedNewProcess;
+            data["attachedToExisting"] = attachedToExisting;
+            if (attachedToExisting) {
+                data["launchedProcessId"] = pid;
+                data["windowProcessId"] = windowProcessId;
+            }
+
             return CommandResult.Ok(Cmd, data);
         }
         catch (Exception ex) {
             Logger.Instance.Log4.Error($"{GetType().Name}: launch failed for '{Path}': {ex.Message}");
             return CommandResult.Fail(Cmd, $"Launch failed: {ex.Message}", "launch-failed", "internal");
         }
+    }
+
+    internal static (bool startedNewProcess, bool attachedToExisting) DeriveLaunchDisposition(int launchedProcessId, int windowProcessId) {
+        bool attachedToExisting = windowProcessId > 0 && (launchedProcessId == 0 || windowProcessId != launchedProcessId);
+        bool startedNewProcess = launchedProcessId > 0 && !attachedToExisting;
+        return (startedNewProcess, attachedToExisting);
     }
 
     private static WindowInfo? WaitForWindowByPid(int pid, int timeoutMs) {

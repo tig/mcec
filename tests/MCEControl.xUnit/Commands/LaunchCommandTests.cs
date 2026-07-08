@@ -127,6 +127,24 @@ public class LaunchCommandTests {
         }
     }
 
+    [Theory]
+    [InlineData(4321, 4321, true, false)]
+    [InlineData(4321, 1234, false, true)]
+    [InlineData(4321, 0, true, false)]
+    [InlineData(0, 1234, false, true)]
+    [InlineData(0, 0, false, false)]
+    public void DeriveLaunchDisposition_ReportsStartedVsAttached(
+        int launchedProcessId,
+        int windowProcessId,
+        bool expectedStartedNewProcess,
+        bool expectedAttachedToExisting) {
+        (bool startedNewProcess, bool attachedToExisting) =
+            LaunchCommand.DeriveLaunchDisposition(launchedProcessId, windowProcessId);
+
+        Assert.Equal(expectedStartedNewProcess, startedNewProcess);
+        Assert.Equal(expectedAttachedToExisting, attachedToExisting);
+    }
+
     // Test-first for Codex CR feedback (P2 on shell:.lnk null Process):
     // We expect that even if internal Process.Start returns null (common for shell targets),
     // the command should still succeed (return ok=true) and attempt to surface window info
