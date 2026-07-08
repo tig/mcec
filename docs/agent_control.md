@@ -116,7 +116,13 @@ command whose `Enabled=false` is refused (`error.code: command-disabled`) even w
 `AgentCommandsEnabled=true`. An agent can recover from `command-disabled` mid-session with the
 `request-command-access` tool, which asks **you** on-screen and enables the command (in-memory, that
 instance only) only if you allow it; see
-[command-access consent](safety-emergency-stop-and-provisioning.md).
+[command-access consent](safety-emergency-stop-and-provisioning.md). So the agent need not discover the
+gated set by trial and error, the MCP `initialize` result carries a `commandAccess` map
+(`enabledTools`/`gatedTools`/`enabledRawCommands`) derived from the tool catalog's provisioning defaults,
+and `session-status` reports the same shape live; an agent reads it at connect time and batches one
+`request-command-access` for everything it needs up front (#324). `enabledRawCommands` is an explicit list
+(not a boolean), so a partial raw grant — say the operator enables only `chars:` — reports exactly that
+command and never implies `winr`/`mouse:`/VK/chord commands are open too.
 
 **`send_command` is transport-sensitive.** It is a raw pass-through to the existing command engine,
 so it is a command-injection surface. Over the **local stdio** transport (`mcec.exe --mcp`, launched by its
@@ -287,7 +293,9 @@ tools:
   echoed back on the result.
 - **`session-status`** returns a session's remembered state (active target, last
   observation/action/error, artifact dir, any emergency stop). Pass `sessionId` to inspect a
-  specific session, or omit it for the default.
+  specific session, or omit it for the default. Its result also carries a live `commandAccess`
+  block (`enabledTools`/`gatedTools`/`enabledRawCommands`) reflecting the current command table, so
+  an agent can confirm a grant landed (see [Command access](#command-access)).
 - **`session-end`** frees a session's server-side state. It is idempotent (ending an unknown or
   already-ended id reports `ended: false` rather than erroring). Afterward a tool call that still
   echoes that id is refused with `error.code: unknown-session` (category `invalid-argument`); start
