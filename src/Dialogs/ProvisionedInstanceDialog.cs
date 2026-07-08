@@ -139,6 +139,11 @@ internal sealed class ProvisionedInstanceDialog : Form {
         _ = sb.AppendLine();
         _ = sb.AppendLine("e.g. Claude Code:");
         _ = sb.AppendLine($"  claude mcp add mcec -- \"{session.ExePath}\" --mcp");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("Grok Build:");
+        _ = sb.AppendLine($"  grok mcp add mcec -- \"{session.ExePath}\" mcp");
+        _ = sb.AppendLine("  (or edit ~/.grok/config.toml under [mcp_servers.mcec])");
+        _ = sb.AppendLine("  Useful: grok mcp list | grok mcp doctor mcec | /mcps in TUI");
         if (session.McpServerEnabled) {
             _ = sb.AppendLine();
             _ = sb.AppendLine($"Or launch \"{session.ExePath}\" and POST JSON-RPC to its HTTP endpoint:");
@@ -198,6 +203,12 @@ internal sealed class ProvisionedInstanceDialog : Form {
         _ = sb.AppendLine("   If you are also connected to my installed MCEC's bootstrap server, call its");
         _ = sb.AppendLine("   end-session tool with the provision id and token above once this instance");
         _ = sb.AppendLine("   has stopped.");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("Client setup (for the human operator):");
+        _ = sb.AppendLine("  Grok Build:  grok mcp add mcec -- \"<exe path>\" mcp");
+        _ = sb.AppendLine("               (or add to ~/.grok/config.toml under [mcp_servers.mcec])");
+        _ = sb.AppendLine("  Claude etc.: claude mcp add mcec -- \"<exe path>\" --mcp   or JSON mcpServers");
+        _ = sb.AppendLine("  Check status with: grok mcp doctor mcec  |  /mcps  (in Grok TUI)");
         _ = sb.AppendLine();
         _ = sb.Append("My task for you: <describe the task here>");
         return sb.ToString();
