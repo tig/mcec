@@ -142,6 +142,7 @@ Write-Host ''
 Write-Host "Controller is up (pid=$ctrlPid, detached; survives this script exiting); agent commands and session provisioning are authorized."
 Write-Host "  MCP endpoint : $url"
 Write-Host "  Register it  : claude mcp add --transport http mcec $url"
+Write-Host "               : grok mcp add --transport http mcec $url"
 Write-Host '  Then ask your agent to recreate the hero per dev/hero-gif.md (it drives entirely via MCP tools).'
 Write-Host '  When finished: pwsh -NoProfile -File scripts/Generate-HeroGif.ps1 -Stop'
 Write-Host ''

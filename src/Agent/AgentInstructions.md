@@ -150,8 +150,7 @@ session.
 COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. When
 injected keystrokes must reach Start/search or the bare desktop, first show the desktop (Win+D) or `click` an
 open desktop pixel; IDE/terminal shells otherwise swallow them. Launch
-an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). If `launch`'s `processId` differs from the returned
-window's `processId`, you likely foregrounded an existing single-instance app (Notepad, browsers) — verify a
+an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears, plus `startedNewProcess` / `attachedToExisting`). If `attachedToExisting` is true (or as a fallback, `processId` differs from the returned window's `processId`), you likely foregrounded an existing single-instance app (Notepad, browsers) — verify a
 blank document/tab before typing. Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D.
 KEYSTROKES split two ways, and confusing them silently does nothing. To fire an app SHORTCUT or press a
 navigation/editing key; a Ctrl/Alt/Win chord (Ctrl+C/V/A/S), a lone shortcut key (zoom `+`/`-`/`=`), or an
@@ -210,8 +209,10 @@ Recommended path: the operator enables "Allow agents to provision disposable ins
 > Agent, clicks "Provision new…", and hands you a disposable instance's directory, launch line, and
 token; connect to THAT copy's `mcec.exe --mcp` (or its HTTP endpoint when enabled) and do all work
 there. A provisioned session enables the standard observation/actuation tool set; `launch` and most
-`send_command` built-ins (e.g. `chars:`) start disabled — batch `request-command-access` for what you'll
-need up front (see COMMAND ACCESS), never by editing the session's files. The `token` is the
+`send_command` built-ins (e.g. `chars:`) start disabled — the `initialize` result's `commandAccess` field
+spells out the enabled vs gated set (and flags that raw `send_command` built-ins start gated), so read it
+and batch `request-command-access` for what you'll need up front (see COMMAND ACCESS), never by editing the
+session's files. The `token` is the
 session credential; keep it: every HTTP request to the session's `mcpEndpoint` must send the header
 `Authorization: Bearer <token>` (stdio needs no header), and `end-session` requires it when you tear down
 via the bootstrap server. When your task is done, tell the operator (they delete the instance from the Agent tab; you cannot remove
@@ -231,7 +232,13 @@ while `error.category` stays `internal`), the operator has not opted in; tell th
 on the Agent tab, then retry; do not retry blindly before they do. You own teardown: `end-session` every
 instance you provision.
 
-COMMAND ACCESS: any tool or raw command refused with `error.code:command-disabled` can be requested from
+COMMAND ACCESS: you do not have to discover the gated set by trial and error. The `initialize` result's
+`commandAccess` field lists `enabledTools` vs `gatedTools` and `enabledRawCommands` (the raw `send_command`
+built-ins enabled right now; empty until granted) at connect time — and `session-status` reports the LIVE
+set, reflecting any grant already made — so read it and batch one request for everything your plan needs
+before the first actuation. A raw command NOT in `enabledRawCommands` still needs a request; a partial grant
+does not open the whole raw surface. Any tool or raw command refused with
+`error.code:command-disabled` can be requested from
 the OPERATOR with the `request-command-access` tool: pass the command name(s) the refusal reported (e.g.
 `launch`, `chars:`) and a one-line, honest `reason`; MCEC shows the operator a consent dialog on their
 screen and your call BLOCKS (up to ~2 minutes) for their answer. On a grant the commands are immediately

@@ -42,6 +42,7 @@ pwsh -NoProfile -File scripts/Generate-HeroGif.ps1
 # ...
 #   MCP endpoint : http://127.0.0.1:<free-port>/mcp   (a free port is chosen; -Port pins one)
 #   Register it  : claude mcp add --transport http mcec http://127.0.0.1:<free-port>/mcp
+#                : grok mcp add --transport http mcec http://127.0.0.1:<free-port>/mcp
 #
 # HERO_MCP_URL=http://127.0.0.1:<free-port>/mcp        <- machine-readable; grep these, don't parse prose
 # HERO_MCP_PORT=<free-port>

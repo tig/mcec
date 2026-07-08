@@ -116,7 +116,13 @@ command whose `Enabled=false` is refused (`error.code: command-disabled`) even w
 `AgentCommandsEnabled=true`. An agent can recover from `command-disabled` mid-session with the
 `request-command-access` tool, which asks **you** on-screen and enables the command (in-memory, that
 instance only) only if you allow it; see
-[command-access consent](safety-emergency-stop-and-provisioning.md).
+[command-access consent](safety-emergency-stop-and-provisioning.md). So the agent need not discover the
+gated set by trial and error, the MCP `initialize` result carries a `commandAccess` map
+(`enabledTools`/`gatedTools`/`enabledRawCommands`) derived from the tool catalog's provisioning defaults,
+and `session-status` reports the same shape live; an agent reads it at connect time and batches one
+`request-command-access` for everything it needs up front (#324). `enabledRawCommands` is an explicit list
+(not a boolean), so a partial raw grant — say the operator enables only `chars:` — reports exactly that
+command and never implies `winr`/`mouse:`/VK/chord commands are open too.
 
 **`send_command` is transport-sensitive.** It is a raw pass-through to the existing command engine,
 so it is a command-injection surface. Over the **local stdio** transport (`mcec.exe --mcp`, launched by its
@@ -200,7 +206,7 @@ case-insensitive), `handle` (HWND), `process` (process name without `.exe`),
 | `wait-for` | Same as `find`, but waits up to a timeout for the element to appear (default 5 s). | window target, `by`, `value`, `timeout` |
 | `invoke`   | Drive a UI Automation element pattern (incl. select for SelectionItem); far more reliable than coordinate clicks. | window target, `by`, `value`, `action` (`invoke`\|`toggle`\|`setvalue`\|`setfocus`\|`expand`\|`collapse`\|`select`), `text` |
 | `drag`     | Press → move along a path → release, dispatched **atomically** (nothing interleaves). Each endpoint is a UI Automation element (dragged from/to its centre) or a pixel endpoint: with a window target, endpoint `{ x, y }` is window-relative (window top-left + offset, matching `capture` coordinates); without a window target, `{ x, y }` is absolute screen pixels. `path` waypoints remain absolute screen pixels. Covers window resize/move by chrome, sliders, marquee-select, drag-reorder. | window target (required for element endpoints; optional for window-relative pixel endpoints); `from`/`to` each `{ by, value }` or `{ x, y }`; optional `path` `[{ x, y }, …]` |
-| `launch`   | Launch an app directly (path + args + working dir); gated. Returns pid and primary window handle/info when the window appears. Preferred over Win+R composition. | `path` (required), `arguments`, `workingDirectory`, `timeout` |
+| `launch`   | Launch an app directly (path + args + working dir); gated. Returns pid + primary window handle/info and explicit intent flags (`startedNewProcess`, `attachedToExisting`; attachment also returns `launchedProcessId`/`windowProcessId`). Preferred over Win+R composition. | `path` (required), `arguments`, `workingDirectory`, `timeout` |
 | `click`    | Click at a point (a UI Automation element's centre or a pixel endpoint); move+click is dispatched **atomically**. With a window target, `at: { x, y }` is window-relative (window top-left + offset, matching `capture` coordinates). Without a window target, `{ x, y }` is absolute screen pixels. For element types `invoke` can't drive, or when you must target a pixel. Prefer `invoke` for ordinary buttons/menus. | window target (required for element endpoints; optional for window-relative pixel endpoints); `at` = `{ by, value }` or `{ x, y }`; `button` (`left`\|`right`\|`middle`, default `left`); `count` (`1`\|`2`, default `1`) |
 | `focus`    | Give a window (and optionally a control in it) real **keyboard focus** so `send_command`/`chars` keystrokes reach it. Foregrounds the window, clicks the control (a real click focuses custom-drawn surfaces a bare `setfocus` misses; e.g. a MAUI GraphicsView), then **verifies**. Fails `foreground` if the window won't activate, `focus` if no control takes focus. Use before firing an app's own keyboard shortcut at a specific surface. | window target; optional `at` = `{ by, value }` or `{ x, y }` (omit to just foreground + confirm focus) |
 | `record`   | Record a window or region to an **animated GIF** over time (start/stop or a bounded one-shot). | window target, or region `x`/`y`/`width`/`height`; `action` (`start`\|`stop`\|`oneshot`), `fps`, `durationMs`, `maxWidth`, `file` |
@@ -287,7 +293,9 @@ tools:
   echoed back on the result.
 - **`session-status`** returns a session's remembered state (active target, last
   observation/action/error, artifact dir, any emergency stop). Pass `sessionId` to inspect a
-  specific session, or omit it for the default.
+  specific session, or omit it for the default. Its result also carries a live `commandAccess`
+  block (`enabledTools`/`gatedTools`/`enabledRawCommands`) reflecting the current command table, so
+  an agent can confirm a grant landed (see [Command access](#command-access)).
 - **`session-end`** frees a session's server-side state. It is idempotent (ending an unknown or
   already-ended id reports `ended: false` rather than erroring). Afterward a tool call that still
   echoes that id is refused with `error.code: unknown-session` (category `invalid-argument`); start
@@ -560,8 +568,9 @@ The exe also exposes a CLI surface (built on
 command metadata, and `agent-guide` prints the same agent guidance the MCP server
 hands connecting clients.
 
-Wire it into your MCP client config (the `claude_desktop_config.json` / `mcp.json`
-style used by most clients):
+Wire it into your MCP client config.
+
+**Claude / most clients** (claude_desktop_config.json / mcp.json style):
 
 ```json
 {
@@ -574,10 +583,29 @@ style used by most clients):
 }
 ```
 
+**Grok Build** (recommended CLI):
+
+```bash
+grok mcp add mcec -- "C:/mcec/mcec.exe" mcp
+```
+
+Useful commands:
+- `grok mcp list`
+- `grok mcp doctor mcec`
+- In Grok TUI: `/mcps` (or Ctrl+L → MCP Servers tab)
+
 (`C:/mcec` here is a writable copy of the install directory, or a provisioned session's
 `directory`. Pointing it at the Program Files path connects, but that copy serves only the
 `provision-session`/`end-session` bootstrap, per above — use it to mint an instance, then repoint your
 client at the instance's `directory`.)
+
+Grok also supports direct TOML in `~/.grok/config.toml`:
+
+```toml
+[mcp_servers.mcec]
+command = "C:/mcec/mcec.exe"
+args = ["mcp"]
+```
 
 `mcp` is a spawned server, not an interactive command: typed at a terminal it refuses
 (stdin is an interactive console; the server would block on the shared console and
