@@ -413,7 +413,7 @@ public static class ToolCatalog {
             ["timeout"] = PropSchema("integer", "Milliseconds to wait for the app window to appear (default 5000)"),
         };
         return Tool("launch",
-            "Launch an application directly as a gated agent action. Starts the process and returns its pid plus the primary window (handle + descriptor) when it appears within timeout. Preferred over send_command winr dance for reliability.",
+            "Launch an application directly as a gated agent action. Returns process/window info plus explicit launch intent flags: startedNewProcess and attachedToExisting (with launchedProcessId/windowProcessId when attachment is detected). Preferred over send_command winr dance for reliability.",
             launchProps, ["path"]);
     }
 
