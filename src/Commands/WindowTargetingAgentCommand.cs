@@ -1,6 +1,7 @@
 // Copyright © Kindel, LLC - http://www.kindel.com
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
+using System;
 using System.Xml.Serialization;
 
 namespace MCEControl;
@@ -114,6 +115,29 @@ public abstract class WindowTargetingAgentCommand : AgentCommand {
             "uia-faulted", "internal"),
         _ => null,
     };
+
+    /// <summary>
+    /// Resolves a window's outer-rect origin in absolute screen pixels. Uses
+    /// <see cref="AgentNativeMethods.GetWindowRect"/> so coordinate endpoints inferred from a window
+    /// capture can be replayed without hand-adding monitor offsets.
+    /// </summary>
+    protected static bool TryGetWindowOrigin(IntPtr hwnd, out (int X, int Y) origin) {
+        origin = default;
+        if (hwnd == IntPtr.Zero) {
+            return false;
+        }
+
+        if (!AgentNativeMethods.GetWindowRect(hwnd, out NativeRect rect)) {
+            return false;
+        }
+
+        origin = (rect.Left, rect.Top);
+        return true;
+    }
+
+    /// <summary>Adds a window origin to a window-relative point to get an absolute screen pixel.</summary>
+    protected static (int X, int Y) OffsetByWindowOrigin((int X, int Y) point, (int X, int Y) windowOrigin) =>
+        (windowOrigin.X + point.X, windowOrigin.Y + point.Y);
 
     // No Clone override: the shared selectors are value/string-typed, so the base
     // MemberwiseClone-based Command.Clone (#207) copies them by construction.

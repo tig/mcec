@@ -11,9 +11,10 @@ namespace MCEControl;
 /// <summary>
 /// Agent actuation command: a single mouse click at a target point (issue #122). The point is either an
 /// absolute screen pixel (<c>x</c>/<c>y</c>) or a UI Automation element in the target window (<c>value</c>,
-/// resolved to the centre of its bounds); the same pixel space <c>query</c>/<c>find</c> report, so an
-/// agent can click a control it just observed without converting to normalized coordinates itself. The
-/// move-then-click is dispatched atomically by <see cref="MouseCommand.PerformClick"/> so it cannot
+/// resolved to the centre of its bounds). When a window target is supplied and the endpoint is pixel
+/// coordinates, <c>x</c>/<c>y</c> are interpreted as window-relative and translated to absolute
+/// screen pixels via the target window's outer-rect origin. The move-then-click is dispatched atomically by
+/// <see cref="MouseCommand.PerformClick"/> so it cannot
 /// interleave with another command's mouse input (the hazard #113 warns about when a caller hand-rolls
 /// <c>mt</c>/<c>lbc</c>). Gated by <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited
 /// (structurally, via <see cref="AgentCommand"/>). Disabled by default (security).
@@ -41,8 +42,9 @@ public class ClickCommand : WindowTargetingAgentCommand {
     protected override string AuditDetails() =>
         $"click at (by={By} value='{Value}' {X},{Y}) button={Button} count={Count} window handle={Handle} title='{Window}' process='{Process}'";
 
-    // A window is only needed to resolve an element endpoint; a pure pixel click needs none.
-    protected override bool RequiresWindowTarget => !string.IsNullOrEmpty(Value);
+    // A window is needed for element endpoints, and also for pixel endpoints when a target selector was
+    // provided (pixels become window-relative in that case).
+    protected override bool RequiresWindowTarget => HasWindowTarget || !string.IsNullOrEmpty(Value);
 
     protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr hwnd = target is null ? IntPtr.Zero : new IntPtr(target.Handle);
@@ -70,13 +72,26 @@ public class ClickCommand : WindowTargetingAgentCommand {
     /// <summary>
     /// Resolves the click point to an absolute screen pixel: the centre of an element (<see cref="By"/>/
     /// <see cref="Value"/>) when <see cref="Value"/> is set, else the literal (<see cref="X"/>,
-    /// <see cref="Y"/>). Returns false with a structured <paramref name="failure"/> when the element
-    /// can't be resolved (not found, ambiguous, stale window, elevated target; #261).
+    /// <see cref="Y"/>) when no window target is set, else the target window's outer-rect origin plus
+    /// (<see cref="X"/>, <see cref="Y"/>) when a window target is set. Returns false with a structured
+    /// <paramref name="failure"/> when the element can't be resolved (not found, ambiguous, stale window,
+    /// elevated target; #261), or when a targeted window disappears before its origin can be read.
     /// </summary>
     private bool TryResolvePoint(IntPtr hwnd, out (int X, int Y) point, out CommandResult? failure) {
         failure = null;
         if (string.IsNullOrEmpty(Value)) {
-            point = (X, Y);
+            if (hwnd == IntPtr.Zero) {
+                point = (X, Y);
+                return true;
+            }
+            if (!TryGetWindowOrigin(hwnd, out (int X, int Y) origin)) {
+                point = default;
+                failure = CommandResult.Fail(Cmd,
+                    "The target window disappeared before click coordinates could be resolved. Re-query and retry.",
+                    "window-closed", "stale-element");
+                return false;
+            }
+            point = OffsetByWindowOrigin((X, Y), origin);
             return true;
         }
         string by = string.IsNullOrEmpty(By) ? "name" : By;

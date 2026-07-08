@@ -433,8 +433,8 @@ public static class ToolCatalog {
 
     private static JsonObject BuildDragSchema() {
         JsonObject dragProps = WindowTargetProps();
-        dragProps["from"] = EndpointSchema("Drag start: an element ({ by, value }) in the target window, or a pixel ({ x, y }).");
-        dragProps["to"] = EndpointSchema("Drag end: an element ({ by, value }) in the target window, or a pixel ({ x, y }).");
+        dragProps["from"] = EndpointSchema("Drag start: an element ({ by, value }) in the target window, or a pixel ({ x, y }). With a window target and a pixel endpoint, x/y are window-relative (window top-left + offset); without a window target they are absolute screen pixels.");
+        dragProps["to"] = EndpointSchema("Drag end: an element ({ by, value }) in the target window, or a pixel ({ x, y }). With a window target and a pixel endpoint, x/y are window-relative (window top-left + offset); without a window target they are absolute screen pixels.");
         dragProps["path"] = new JsonObject {
             ["type"] = "array",
             ["description"] = "Optional intermediate waypoints (absolute screen pixels) between from and to.",
@@ -447,17 +447,17 @@ public static class ToolCatalog {
             },
         };
         return Tool("drag",
-            "Press → move along a path → release, dispatched atomically (no interleaving). Endpoints are an element (by/value, dragged from/to its centre) or an absolute screen pixel; add path waypoints for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee select, drag-reorder. Give a window target when either endpoint is an element.",
+            "Press → move along a path → release, dispatched atomically (no interleaving). Endpoints are an element (by/value, dragged from/to its centre) or a pixel: with a window target, pixel endpoints are window-relative (matching capture coordinates); without one, they are absolute screen pixels. Add path waypoints (always absolute pixels) for a curved/multi-stop drag. Covers window resize/move by chrome, sliders, marquee select, drag-reorder. Give a window target when either endpoint is an element.",
             dragProps, ["from", "to"]);
     }
 
     private static JsonObject BuildClickSchema() {
         JsonObject clickProps = WindowTargetProps();
-        clickProps["at"] = EndpointSchema("Where to click: an element ({ by, value }) in the target window (its centre) or an absolute screen pixel ({ x, y }).");
+        clickProps["at"] = EndpointSchema("Where to click: an element ({ by, value }) in the target window (its centre) or a pixel ({ x, y }). With a window target and a pixel endpoint, x/y are window-relative (window top-left + offset); without a window target they are absolute screen pixels.");
         clickProps["button"] = PropSchema("string", "Button: left | right | middle (default left)");
         clickProps["count"] = PropSchema("integer", "Click count: 1 = single, 2 = double (default 1)");
         return Tool("click",
-            "Click at a point; an element (by/value, clicked at its centre) or an absolute screen pixel (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element.",
+            "Click at a point; an element (by/value, clicked at its centre) or a pixel endpoint. With a window target, pixel endpoints are window-relative (window top-left + offset, matching capture coordinates); without one they are absolute screen pixels (the space query/find bounds report). Move+click is dispatched atomically. Prefer invoke for buttons/menus; use click for element types invoke cannot drive or when you must target a pixel. Give a window target when 'at' is an element or when you want window-relative pixels.",
             clickProps, ["at"]);
     }
 
