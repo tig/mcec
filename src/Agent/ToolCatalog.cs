@@ -65,6 +65,8 @@ public static class ToolCatalog {
                 Y = Int(args, "y"),
                 Width = Int(args, "width"),
                 Height = Int(args, "height"),
+                MaxWidth = Int(args, "maxWidth"),
+                Scale = Dbl(args, "scale"),
                 File = Str(args, "file")!,
             },
             CreateCommandInstance = () => new CaptureCommand(),
@@ -285,6 +287,10 @@ public static class ToolCatalog {
         captureProps["y"] = PropSchema("integer", "Region top");
         captureProps["width"] = PropSchema("integer", "Region width (max 16384/side, 64000000 px total; oversized fails with region-too-large)");
         captureProps["height"] = PropSchema("integer", "Region height (same limits as width)");
+        captureProps["maxWidth"] = PropSchema("integer", "Optionally downscale output so width fits this (no upscaling)");
+        captureProps["scale"] = PropSchema("number", "Optionally downscale output by this factor (0 < scale <= 1; no upscaling)");
+        captureProps["returnImage"] = PropSchema("boolean", "When false, omit inline base64 from the result and do not emit an MCP image content block");
+        captureProps["pathOnly"] = PropSchema("boolean", "Alias for returnImage:false; write the PNG to the session artifact directory and return metadata + path only");
         captureProps["file"] = PropSchema("string", "Optional path to also save the PNG to");
         return Tool("capture",
             "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG. Blank/black frames are detected and reported as a capture-blank error (window) or warning (region) rather than a silent bad image.",
@@ -627,6 +633,9 @@ public static class ToolCatalog {
 
     private static int Int(JsonObject a, string key) =>
         a[key] is JsonValue v && v.TryGetValue(out int i) ? i : 0;
+
+    private static double Dbl(JsonObject a, string key) =>
+        a[key] is JsonValue v && v.TryGetValue(out double d) ? d : 0;
 
     private static int? IntOrNull(JsonObject a, string key) =>
         a[key] is JsonValue v && v.TryGetValue(out int i) ? i : null;

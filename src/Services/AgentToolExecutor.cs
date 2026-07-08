@@ -245,14 +245,8 @@ public sealed class AgentToolExecutor {
             // `drag`/`click` generate real mouse input from their endpoints, and a missing pixel field would
             // otherwise default to 0 and actuate at a bogus coordinate. Reject an ill-formed endpoint up
             // front rather than actuating it.
-            if (name == "drag" && DragArgsError(args) is { } dragError) {
-                return ToolError(dragError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
-            }
-            if (name == "click" && ClickArgsError(args) is { } clickError) {
-                return ToolError(clickError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
-            }
-            if (name == "focus" && FocusArgsError(args) is { } focusError) {
-                return ToolError(focusError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
+            if (ToolArgsError(name, args) is { } toolArgsError) {
+                return ToolError(toolArgsError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
             }
             return RunAgentCommand(name, args, session);
         }
@@ -334,6 +328,15 @@ public sealed class AgentToolExecutor {
         }
         return null;
     }
+
+    /// <summary>Returns a tool-specific argument validation error, or null when the args are valid.</summary>
+    private static string? ToolArgsError(string toolName, JsonObject args) => toolName switch {
+        "drag" => DragArgsError(args),
+        "click" => ClickArgsError(args),
+        "focus" => FocusArgsError(args),
+        "capture" => CaptureContent.ValidateArgs(args),
+        _ => null,
+    };
 
     /// <summary>
     /// Validates the <c>click</c> tool's <c>at</c> argument: it must be an object that is EITHER an element
@@ -460,13 +463,18 @@ public sealed class AgentToolExecutor {
             session.RecordError(noOutput.ToJsonObject());
             return McpResult(AgentToolResult.Failure(noOutput, session.SessionId));
         }
+        if (name == "capture") {
+            CaptureContent.ApplyPathOnlyMode(commandResult.Data, args, session);
+        }
 
         AgentToolResult env = AgentToolResult.FromCommandResult(commandResult, name, session.SessionId, priorObservation);
 
-        // For capture, additionally surface the PNG as an MCP image content block so image-aware clients
-        // render it. The base64 stays in the envelope's result so text-only agents (which do not consume
-        // MCP image blocks) still get the bytes, as the result contract requires.
-        JsonObject? image = name == "capture" && env.Ok ? CaptureContent.TryBuildImageBlock(env.Result) : null;
+        // For capture, optionally surface the PNG as an MCP image content block so image-aware clients
+        // render it. In path-only mode (pathOnly:true or returnImage:false), the payload omits inline
+        // base64 and no image block is emitted.
+        JsonObject? image = name == "capture" && env.Ok && CaptureContent.WantsInlineImage(args)
+            ? CaptureContent.TryBuildImageBlock(env.Result)
+            : null;
 
         // Record this call's outcome so the next call's sessionId/lastObservation reflect it. Every
         // observation tool (wait-for included) records its observation + the resolved window as the target.

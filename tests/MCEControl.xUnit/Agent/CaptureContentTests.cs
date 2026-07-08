@@ -2,17 +2,14 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System.Text.Json.Nodes;
+using System.IO;
 using Xunit;
 using MCEControl;
 
 namespace MCEControl.xUnit.Agent;
 
 /// <summary>
-/// Tests for <see cref="CaptureContent"/>: building the MCP image content block for a capture result
-/// WITHOUT stripping the base64 bytes from the envelope's <c>result</c>. The contract says the PNG is
-/// "additionally" emitted as an image block while "the same image is referenced from result for
-/// text-only agents"; so clients that parse the envelope text but ignore MCP image blocks must still
-/// get the bytes (Codex P2 on #115).
+/// Tests for <see cref="CaptureContent"/>: image-content block shaping and path-only behavior.
 /// </summary>
 public class CaptureContentTests {
     [Fact]
@@ -34,5 +31,48 @@ public class CaptureContentTests {
     public void TryBuildImageBlock_ReturnsNull_WhenNoBase64() {
         Assert.Null(CaptureContent.TryBuildImageBlock(new JsonObject { ["width"] = 10 }));
         Assert.Null(CaptureContent.TryBuildImageBlock(null));
+    }
+
+    [Fact]
+    public void WantsInlineImage_ReturnsFalse_ForPathOnlyOrReturnImageFalse() {
+        Assert.False(CaptureContent.WantsInlineImage(new JsonObject { ["pathOnly"] = true }));
+        Assert.False(CaptureContent.WantsInlineImage(new JsonObject { ["returnImage"] = false }));
+        Assert.True(CaptureContent.WantsInlineImage([]));
+    }
+
+    [Fact]
+    public void ApplyPathOnlyMode_WritesArtifact_AndStripsBase64() {
+        string tempRoot = Path.Combine(Path.GetTempPath(), "mcec-capture-content-tests", Path.GetRandomFileName());
+        AgentSession session = AgentSession.Create(tempRoot);
+        JsonObject result = new() {
+            ["encoding"] = "png",
+            ["base64"] = "QUJD",
+            ["width"] = 1,
+            ["height"] = 1,
+        };
+
+        CaptureContent.ApplyPathOnlyMode(result, new JsonObject { ["pathOnly"] = true }, session);
+
+        Assert.False(result.ContainsKey("base64"));
+        string artifact = result["artifact"]!.GetValue<string>();
+        Assert.True(File.Exists(artifact));
+        Assert.Equal("ABC", File.ReadAllText(artifact));
+
+        Directory.Delete(session.ArtifactDir, true);
+    }
+
+    [Theory]
+    [InlineData("maxWidth", 0)]
+    [InlineData("maxWidth", -1)]
+    public void ValidateArgs_RejectsNonPositiveMaxWidth(string key, int value) {
+        Assert.NotNull(CaptureContent.ValidateArgs(new JsonObject { [key] = value }));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-0.1)]
+    [InlineData(1.1)]
+    public void ValidateArgs_RejectsOutOfRangeScale(double value) {
+        Assert.NotNull(CaptureContent.ValidateArgs(new JsonObject { ["scale"] = value }));
     }
 }

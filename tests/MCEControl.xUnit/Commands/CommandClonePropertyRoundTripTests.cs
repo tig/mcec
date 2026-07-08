@@ -105,6 +105,9 @@ public class CommandClonePropertyRoundTripTests {
         if (p.PropertyType == typeof(long)) {
             return (long)current! + 700001L + salt;
         }
+        if (p.PropertyType == typeof(double)) {
+            return (double)current! + 0.125d + (salt * 0.001d);
+        }
         Assert.Fail(
             $"{p.DeclaringType!.Name}.{p.Name} has unhandled type {p.PropertyType.Name}. " +
             "Add a probe here AND verify Command.Clone handles it (value/string types are copied by " +
