@@ -2,7 +2,6 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 
 using System;
-using System.Drawing;
 using System.Xml.Serialization;
 
 namespace MCEControl;
@@ -118,28 +117,27 @@ public abstract class WindowTargetingAgentCommand : AgentCommand {
     };
 
     /// <summary>
-    /// Resolves a window's client-area origin in absolute screen pixels. Uses
-    /// <see cref="AgentNativeMethods.ClientToScreen"/> (0,0) so coordinate endpoints inferred from a
-    /// window capture can be replayed without hand-adding monitor offsets.
+    /// Resolves a window's outer-rect origin in absolute screen pixels. Uses
+    /// <see cref="AgentNativeMethods.GetWindowRect"/> so coordinate endpoints inferred from a window
+    /// capture can be replayed without hand-adding monitor offsets.
     /// </summary>
-    protected static bool TryGetWindowClientOrigin(IntPtr hwnd, out (int X, int Y) origin) {
+    protected static bool TryGetWindowOrigin(IntPtr hwnd, out (int X, int Y) origin) {
         origin = default;
         if (hwnd == IntPtr.Zero) {
             return false;
         }
 
-        Point clientOrigin = new(0, 0);
-        if (!AgentNativeMethods.ClientToScreen(hwnd, ref clientOrigin)) {
+        if (!AgentNativeMethods.GetWindowRect(hwnd, out NativeRect rect)) {
             return false;
         }
 
-        origin = (clientOrigin.X, clientOrigin.Y);
+        origin = (rect.Left, rect.Top);
         return true;
     }
 
-    /// <summary>Adds a client-area origin to a window-relative point to get an absolute screen pixel.</summary>
-    protected static (int X, int Y) OffsetByClientOrigin((int X, int Y) point, (int X, int Y) clientOrigin) =>
-        (clientOrigin.X + point.X, clientOrigin.Y + point.Y);
+    /// <summary>Adds a window origin to a window-relative point to get an absolute screen pixel.</summary>
+    protected static (int X, int Y) OffsetByWindowOrigin((int X, int Y) point, (int X, int Y) windowOrigin) =>
+        (windowOrigin.X + point.X, windowOrigin.Y + point.Y);
 
     // No Clone override: the shared selectors are value/string-typed, so the base
     // MemberwiseClone-based Command.Clone (#207) copies them by construction.

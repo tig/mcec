@@ -159,7 +159,7 @@ public class AgentServerTests {
         Assert.True(props.ContainsKey("at"));
         Assert.True(props.ContainsKey("button"));
         Assert.True(props.ContainsKey("count"));
-        Assert.Contains("window-client-relative", props["at"]!["description"]!.GetValue<string>(), StringComparison.Ordinal);
+        Assert.Contains("window-relative", props["at"]!["description"]!.GetValue<string>(), StringComparison.Ordinal);
 
         List<string> required = [];
         foreach (JsonNode? r in schema["required"]!.AsArray()) {
@@ -317,8 +317,8 @@ public class AgentServerTests {
         Assert.True(props.ContainsKey("from"));
         Assert.True(props.ContainsKey("to"));
         Assert.True(props.ContainsKey("path"));
-        Assert.Contains("window-client-relative", props["from"]!["description"]!.GetValue<string>(), StringComparison.Ordinal);
-        Assert.Contains("window-client-relative", props["to"]!["description"]!.GetValue<string>(), StringComparison.Ordinal);
+        Assert.Contains("window-relative", props["from"]!["description"]!.GetValue<string>(), StringComparison.Ordinal);
+        Assert.Contains("window-relative", props["to"]!["description"]!.GetValue<string>(), StringComparison.Ordinal);
 
         List<string> required = [];
         foreach (JsonNode? r in schema["required"]!.AsArray()) {

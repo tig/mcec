@@ -55,14 +55,14 @@ public class WindowTargetingAgentCommandTests {
     }
 
     [Fact]
-    public void OffsetByClientOrigin_AddsWindowClientOriginToWindowRelativePoint() {
+    public void OffsetByWindowOrigin_AddsWindowOriginToWindowRelativePoint() {
         (int X, int Y) point = UiaFailureProbeCommand.OffsetPoint((412, 88), (1923, 45));
 
         Assert.Equal((2335, 133), point);
     }
 
     [Fact]
-    public void OffsetByClientOrigin_PreservesNegativeOffsets() {
+    public void OffsetByWindowOrigin_PreservesNegativeOffsets() {
         (int X, int Y) point = UiaFailureProbeCommand.OffsetPoint((-8, 0), (3200, 120));
 
         Assert.Equal((3192, 120), point);

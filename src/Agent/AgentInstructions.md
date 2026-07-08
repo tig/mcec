@@ -27,7 +27,7 @@ popups are not enumerated by title/process; target them by handle or `foreground
 so you can pick a control instead of guessing pixels; `capture` returns a PNG (works on composited
 WinUI/WPF surfaces; check `bytes` — full windows are costly and inline base64 can blow your token budget).
 Browser chrome is UIA-targetable; in-page web content is not — verify with region `capture` and
-pixel `click` (with a window target, `{x,y}` is window-client-relative; without one, screen-absolute;
+pixel `click` (with a window target, `{x,y}` is window-relative to the captured window bounds; without one, screen-absolute;
 re-capture after layout shifts).
 Use `capture` for a single state check when the tree can't answer; use `record` ONLY to show CHANGE
 over time; a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
@@ -48,7 +48,7 @@ non-fatal; errorCategory tells you how to recover. The bounds `query`/`find` rep
 pixels; the `displays` tool reports every monitor's pixel bounds and DPI/scale (and the union
 virtualBounds) so you can interpret those bounds across multiple/scaled monitors and place pixel clicks or
 drags without measuring the screen yourself. Window-relative click/drag endpoints are interpreted in that
-same per-monitor pixel space after adding the target window's client origin.
+same per-monitor pixel space after adding the target window's top-left.
 
 3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|expand|
 collapse|select) over coordinate clicks; it is far more reliable. To put text in a native field, prefer
@@ -67,7 +67,7 @@ that action; re-finding it will never help; pick a different action or `click` i
 expand|collapse|select). To DRAG (resize a window by its
 sizing border, move one by its title bar, drag a slider/handle, marquee-select, or reorder; there is no
 `invoke` for these), use the `drag` tool: give a `from` and a `to`, each either an element `{ by, value }`
-in the target window (dragged from/to its centre) or a pixel `{ x, y }` (window-client-relative when a
+in the target window (dragged from/to its centre) or a pixel `{ x, y }` (window-relative when a
 window target is set, otherwise screen-absolute), plus optional
 `path` waypoints for a curved or multi-stop drag. The whole press→move→release is dispatched ATOMICALLY, so
 prefer it over hand-rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands).
@@ -77,7 +77,7 @@ bounds. For window-level move/resize, use the `window` tool: `action:"move"`/`"r
 coordinates and optional `animate:true` to make the window appear to be dragged rather than instantly
 teleported. `window` also handles `minimize`, `maximize`, `restore`, and `foreground`.
 To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a barepixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or a
-pixel `{ x, y }` (window-client-relative when a window target is set, otherwise absolute screen pixels), with optional `button` (left|right|middle) and `count`
+pixel `{ x, y }` (window-relative when a window target is set, otherwise absolute screen pixels), with optional `button` (left|right|middle) and `count`
 (2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items;
 it doesn't depend on the control being on-screen and unobscured. System file dialogs (Open, Save Print
 Output As) are separate windows; `wait-for`/`query` by title, reuse the returned `handle`, and act on that

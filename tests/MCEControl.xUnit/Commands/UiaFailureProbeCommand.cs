@@ -19,5 +19,5 @@ public sealed class UiaFailureProbeCommand : WindowTargetingAgentCommand {
     public static CommandResult? Failure(string cmd, UiaFailureKind kind) => UiaFailureFor(cmd, kind);
 
     public static (int X, int Y) OffsetPoint((int X, int Y) point, (int X, int Y) origin) =>
-        OffsetByClientOrigin(point, origin);
+        OffsetByWindowOrigin(point, origin);
 }
