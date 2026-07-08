@@ -119,7 +119,7 @@ public class LaunchCommand : AgentCommand {
     }
 
     internal static (bool startedNewProcess, bool attachedToExisting) DeriveLaunchDisposition(int launchedProcessId, int windowProcessId) {
-        bool attachedToExisting = launchedProcessId > 0 && windowProcessId > 0 && windowProcessId != launchedProcessId;
+        bool attachedToExisting = windowProcessId > 0 && (launchedProcessId == 0 || windowProcessId != launchedProcessId);
         bool startedNewProcess = launchedProcessId > 0 && !attachedToExisting;
         return (startedNewProcess, attachedToExisting);
     }

@@ -131,7 +131,7 @@ public class LaunchCommandTests {
     [InlineData(4321, 4321, true, false)]
     [InlineData(4321, 1234, false, true)]
     [InlineData(4321, 0, true, false)]
-    [InlineData(0, 1234, false, false)]
+    [InlineData(0, 1234, false, true)]
     [InlineData(0, 0, false, false)]
     public void DeriveLaunchDisposition_ReportsStartedVsAttached(
         int launchedProcessId,
