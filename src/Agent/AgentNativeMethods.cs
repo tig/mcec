@@ -86,6 +86,10 @@ internal static class AgentNativeMethods {
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetClientRect(IntPtr hwnd, out NativeRect lpRect);
 
+    [DllImport(User32, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool ClientToScreen(IntPtr hwnd, ref Point lpPoint);
+
     [DllImport(User32, SetLastError = true, CharSet = CharSet.Unicode)]
     public static extern int GetWindowText(IntPtr hwnd, StringBuilder lpString, int nMaxCount);
 

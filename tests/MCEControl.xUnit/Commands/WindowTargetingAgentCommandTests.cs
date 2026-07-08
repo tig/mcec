@@ -53,4 +53,18 @@ public class WindowTargetingAgentCommandTests {
         Assert.Null(UiaFailureProbeCommand.FindFailure("find", "name", "OK", found));
         Assert.Null(UiaFailureProbeCommand.FindFailure("find", "name", "OK", UiaFindOutcome.NotFound));
     }
+
+    [Fact]
+    public void OffsetByClientOrigin_AddsWindowClientOriginToWindowRelativePoint() {
+        (int X, int Y) point = UiaFailureProbeCommand.OffsetPoint((412, 88), (1923, 45));
+
+        Assert.Equal((2335, 133), point);
+    }
+
+    [Fact]
+    public void OffsetByClientOrigin_PreservesNegativeOffsets() {
+        (int X, int Y) point = UiaFailureProbeCommand.OffsetPoint((-8, 0), (3200, 120));
+
+        Assert.Equal((3192, 120), point);
+    }
 }

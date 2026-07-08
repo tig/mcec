@@ -27,7 +27,8 @@ popups are not enumerated by title/process; target them by handle or `foreground
 so you can pick a control instead of guessing pixels; `capture` returns a PNG (works on composited
 WinUI/WPF surfaces; check `bytes` — full windows are costly and inline base64 can blow your token budget).
 Browser chrome is UIA-targetable; in-page web content is not — verify with region `capture` and
-screen-absolute pixel `click` (window origin from `query` bounds + offset; re-capture after layout shifts).
+pixel `click` (with a window target, `{x,y}` is window-client-relative; without one, screen-absolute;
+re-capture after layout shifts).
 Use `capture` for a single state check when the tree can't answer; use `record` ONLY to show CHANGE
 over time; a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
@@ -46,7 +47,8 @@ raise `maxNodes` or target a deeper window so you don't reason over a partial tr
 non-fatal; errorCategory tells you how to recover. The bounds `query`/`find` report are ABSOLUTE screen
 pixels; the `displays` tool reports every monitor's pixel bounds and DPI/scale (and the union
 virtualBounds) so you can interpret those bounds across multiple/scaled monitors and place pixel clicks or
-drags without measuring the screen yourself.
+drags without measuring the screen yourself. Window-relative click/drag endpoints are interpreted in that
+same per-monitor pixel space after adding the target window's client origin.
 
 3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|expand|
 collapse|select) over coordinate clicks; it is far more reliable. To put text in a native field, prefer
@@ -65,16 +67,17 @@ that action; re-finding it will never help; pick a different action or `click` i
 expand|collapse|select). To DRAG (resize a window by its
 sizing border, move one by its title bar, drag a slider/handle, marquee-select, or reorder; there is no
 `invoke` for these), use the `drag` tool: give a `from` and a `to`, each either an element `{ by, value }`
-in the target window (dragged from/to its centre) or an absolute screen pixel `{ x, y }`, plus optional
+in the target window (dragged from/to its centre) or a pixel `{ x, y }` (window-client-relative when a
+window target is set, otherwise screen-absolute), plus optional
 `path` waypoints for a curved or multi-stop drag. The whole press→move→release is dispatched ATOMICALLY, so
 prefer it over hand-rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands).
-Coords are absolute screen pixels (the same space `query`/`find` bounds report), so you can drag straight
+Without a window target, coords are absolute screen pixels (the same space `query`/`find` bounds report), so you can drag straight
 from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls are at new
 bounds. For window-level move/resize, use the `window` tool: `action:"move"`/`"resize"` with target
 coordinates and optional `animate:true` to make the window appear to be dragged rather than instantly
 teleported. `window` also handles `minimize`, `maximize`, `restore`, and `foreground`.
-To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a barepixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
-absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and `count`
+To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a barepixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or a
+pixel `{ x, y }` (window-client-relative when a window target is set, otherwise absolute screen pixels), with optional `button` (left|right|middle) and `count`
 (2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items;
 it doesn't depend on the control being on-screen and unobscured. System file dialogs (Open, Save Print
 Output As) are separate windows; `wait-for`/`query` by title, reuse the returned `handle`, and act on that

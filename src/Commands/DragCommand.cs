@@ -12,7 +12,9 @@ namespace MCEControl;
 /// Agent actuation command: a first-class press → move-path → release drag (issue #123). Each endpoint
 /// is either an absolute screen pixel (<c>fromX/fromY</c>, <c>toX/toY</c>) or a UI Automation element in
 /// the target window (<c>fromValue</c>/<c>toValue</c>, resolved to its bounds' centre), with optional
-/// intermediate waypoints (<see cref="PathSpec"/>). The whole gesture is dispatched atomically by
+/// intermediate waypoints (<see cref="PathSpec"/>). When a window target is supplied and an endpoint is
+/// pixel coordinates, that endpoint is interpreted as window-client-relative and translated to absolute
+/// screen pixels via the target window's client origin. The whole gesture is dispatched atomically by
 /// <see cref="MouseCommand.PerformDrag"/> so it cannot interleave with another command's mouse input
 /// (the hazard #113 warns about when a caller hand-rolls <c>lbd</c>/<c>mt</c>/<c>lbu</c>). Gated by
 /// <see cref="AgentRuntime.AgentCommandsEnabled"/> and audited (structurally, via
@@ -46,8 +48,9 @@ public class DragCommand : WindowTargetingAgentCommand {
     protected override string AuditDetails() =>
         $"drag from (by={FromBy} value='{FromValue}' {FromX},{FromY}) to (by={ToBy} value='{ToValue}' {ToX},{ToY}) window handle={Handle} title='{Window}' process='{Process}'";
 
-    // A window is only needed to resolve element endpoints; a pure coordinate drag needs none.
-    protected override bool RequiresWindowTarget => !string.IsNullOrEmpty(FromValue) || !string.IsNullOrEmpty(ToValue);
+    // A window is needed for element endpoints, and also for pixel endpoints when a target selector was
+    // provided (pixel endpoints become window-client-relative in that case).
+    protected override bool RequiresWindowTarget => HasWindowTarget || !string.IsNullOrEmpty(FromValue) || !string.IsNullOrEmpty(ToValue);
 
     protected override CommandResult ExecuteCore(WindowInfo? target) {
         IntPtr hwnd = target is null ? IntPtr.Zero : new IntPtr(target.Handle);
@@ -79,16 +82,29 @@ public class DragCommand : WindowTargetingAgentCommand {
     /// <summary>
     /// Resolves one drag endpoint to an absolute screen pixel: an element (by/value, centre of its
     /// bounds) when <paramref name="value"/> is set, else the literal (<paramref name="x"/>,
-    /// <paramref name="y"/>). Returns false with a structured <paramref name="failure"/> when an
-    /// element endpoint has no window or can't be resolved (not found, ambiguous, stale window,
-    /// elevated target; #261). <paramref name="endpoint"/> ("Drag start"/"Drag end") is prefixed onto
-    /// the detail of EVERY failure category (via <see cref="LabelEndpoint"/>) so a two-endpoint drag
-    /// always says which end failed (#262 review).
+    /// <paramref name="y"/>) when no window target is set, else the target window's client-origin
+    /// offset plus (<paramref name="x"/>, <paramref name="y"/>) when a window target is set. Returns
+    /// false with a structured <paramref name="failure"/> when an element endpoint has no window or
+    /// can't be resolved (not found, ambiguous, stale window, elevated target; #261), or when a targeted
+    /// window disappears before its client origin can be read. <paramref name="endpoint"/> ("Drag
+    /// start"/"Drag end") is prefixed onto the detail of EVERY failure category (via
+    /// <see cref="LabelEndpoint"/>) so a two-endpoint drag always says which end failed (#262 review).
     /// </summary>
     private static bool TryResolvePoint(IntPtr hwnd, string by, string value, int x, int y, string endpoint, string cmd, out (int X, int Y) point, out CommandResult? failure) {
         failure = null;
         if (string.IsNullOrEmpty(value)) {
-            point = (x, y);
+            if (hwnd == IntPtr.Zero) {
+                point = (x, y);
+                return true;
+            }
+            if (!TryGetWindowClientOrigin(hwnd, out (int X, int Y) origin)) {
+                point = default;
+                failure = LabelEndpoint(endpoint, CommandResult.Fail(cmd,
+                    "The target window disappeared before drag coordinates could be resolved. Re-query and retry.",
+                    "window-closed", "stale-element"));
+                return false;
+            }
+            point = OffsetByClientOrigin((x, y), origin);
             return true;
         }
         if (hwnd == IntPtr.Zero) {
