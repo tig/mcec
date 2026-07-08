@@ -9,7 +9,7 @@ namespace MCEControl;
 
 /// <summary>
 /// The single registry of the gated agent tools (#205): one <see cref="ToolDescriptor"/> per tool;
-/// capture, query, displays, find, wait-for, invoke, drag, click, record, launch; carrying its
+/// capture, get-text, query, displays, find, wait-for, invoke, drag, click, record, launch; carrying its
 /// <c>tools/list</c> schema, its argument→<see cref="Command"/> mapping, its overlay tersifier, and its
 /// policy flags. Every consumer (the <see cref="AgentServer"/> gate/dispatch/schema sites,
 /// <see cref="AgentSession"/>, <see cref="CommandTersifier"/>, <see cref="SessionProvisioner"/>) looks
@@ -69,6 +69,26 @@ public static class ToolCatalog {
             },
             CreateCommandInstance = () => new CaptureCommand(),
             Tersify = args => $"capture {CommandTersifier.Target(args)}",
+            IsObservation = true,
+            ProvisionedByDefault = true,
+            ServedDuringConsent = true,
+        },
+        new() {
+            Name = "get-text",
+            BuildSchema = BuildGetTextSchema,
+            BuildCommand = args => new GetTextCommand {
+                Window = Str(args, "window")!,
+                Handle = Long(args, "handle"),
+                Process = Str(args, "process")!,
+                ClassName = Str(args, "className")!,
+                Foreground = Bool(args, "foreground"),
+                X = Int(args, "x"),
+                Y = Int(args, "y"),
+                Width = Int(args, "width"),
+                Height = Int(args, "height"),
+            },
+            CreateCommandInstance = () => new GetTextCommand(),
+            Tersify = args => $"get-text {CommandTersifier.Target(args)}",
             IsObservation = true,
             ProvisionedByDefault = true,
             ServedDuringConsent = true,
@@ -269,6 +289,17 @@ public static class ToolCatalog {
         return Tool("capture",
             "Screenshot a window (PrintWindow PW_RENDERFULLCONTENT, captures WinUI/WPF surfaces) or a screen region; returns PNG. Blank/black frames are detected and reported as a capture-blank error (window) or warning (region) rather than a silent bad image.",
             captureProps, []);
+    }
+
+    private static JsonObject BuildGetTextSchema() {
+        JsonObject props = WindowTargetProps();
+        props["x"] = PropSchema("integer", "Region left: screen-absolute when no window target, window-relative when a window is targeted");
+        props["y"] = PropSchema("integer", "Region top (same coordinate space as x)");
+        props["width"] = PropSchema("integer", "Region width (max 16384/side, 64000000 px total; oversized fails with region-too-large)");
+        props["height"] = PropSchema("integer", "Region height (same limits as width)");
+        return Tool("get-text",
+            "Read visible text from a window or screen region via Windows OCR; returns text plus line/word counts (cheaper than capture for web field verification). Blank regions fail with ocr-blank; unreadable text fails with ocr-no-text.",
+            props, []);
     }
 
     private static JsonObject BuildQuerySchema() {

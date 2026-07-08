@@ -119,6 +119,8 @@ public sealed class AgentToolResult {
             case "no-target": category = AgentErrorCategory.NoTarget; return true;
             case "invalid-argument": category = AgentErrorCategory.InvalidArgument; return true;
             case "capture-blank": category = AgentErrorCategory.CaptureBlank; return true;
+            case "ocr-blank": category = AgentErrorCategory.OcrBlank; return true;
+            case "ocr-no-text": category = AgentErrorCategory.OcrNoText; return true;
             case "focus": category = AgentErrorCategory.Focus; return true;
             case "elevation": category = AgentErrorCategory.Elevation; return true;
             case "foreground": category = AgentErrorCategory.Foreground; return true;

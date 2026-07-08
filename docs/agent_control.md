@@ -236,7 +236,7 @@ Over MCP, the transport's `isError` flag mirrors the envelope (`isError = !ok`).
 
 On failure the `error` object carries a stable, fine-grained `code`, a coarse `category` from
 the closed taxonomy (`timeout`, `ambiguous-selector`, `stale-element`, `no-target`,
-`invalid-argument`, `capture-blank`, `focus`, `elevation`, `foreground`, `internal`; the `focus`
+`invalid-argument`, `capture-blank`, `ocr-blank`, `ocr-no-text`, `focus`, `elevation`, `foreground`, `internal`; the `focus`
 tool produces `focus` and `foreground` when it cannot confirm focus or foreground on the target), a
 human-readable `detail`, and (when available) a `lastObservation` (the last good state before
 the failure, so a failed call is debuggable without rerunning it) and a `partialResult` (the
