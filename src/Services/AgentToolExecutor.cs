@@ -245,14 +245,8 @@ public sealed class AgentToolExecutor {
             // `drag`/`click` generate real mouse input from their endpoints, and a missing pixel field would
             // otherwise default to 0 and actuate at a bogus coordinate. Reject an ill-formed endpoint up
             // front rather than actuating it.
-            if (name == "drag" && DragArgsError(args) is { } dragError) {
-                return ToolError(dragError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
-            }
-            if (name == "click" && ClickArgsError(args) is { } clickError) {
-                return ToolError(clickError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
-            }
-            if (name == "focus" && FocusArgsError(args) is { } focusError) {
-                return ToolError(focusError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
+            if (ToolArgsError(name, args) is { } toolArgsError) {
+                return ToolError(toolArgsError, "bad-arguments", AgentErrorCategory.InvalidArgument, session.SessionId);
             }
             return RunAgentCommand(name, args, session);
         }
@@ -272,7 +266,48 @@ public sealed class AgentToolExecutor {
     private JsonObject RunSessionStart() {
         AgentSession session = _startSession();
         AgentRuntime.Audit("session-start", session.SessionId);
-        return McpResult(AgentToolResult.Success(session.ToStatusJson(), session.SessionId));
+        return McpResult(AgentToolResult.Success(WithCommandAccess(session.ToStatusJson()), session.SessionId));
+    }
+
+    /// <summary>
+    /// The LIVE command-access map (#324) for the connected instance: the same shape as
+    /// <see cref="ToolCatalog.CommandAccessDefaults"/>, but read from the actual loaded command table so it
+    /// reflects any command the operator has since granted (via <c>request-command-access</c>) as enabled.
+    /// Stamped onto <c>session-start</c>/<c>session-status</c> results so an agent can re-check the gated set
+    /// after a grant, where <c>initialize</c> only ever shows the provisioning defaults. A catalog tool whose
+    /// table entry is missing or disabled is gated; the raw <c>send_command</c> built-ins that are enabled
+    /// right now are enumerated explicitly into <c>enabledRawCommands</c>, so a PARTIAL grant (e.g. only
+    /// <c>chars:</c>) reports exactly that command and never implies the rest of the raw surface is open
+    /// (#340 CR).
+    /// </summary>
+    public JsonObject LiveCommandAccess() {
+        CommandInvoker? invoker = _invoker();
+        List<string> enabledTools = [];
+        List<string> gatedTools = [];
+        foreach (ToolDescriptor descriptor in ToolCatalog.All) {
+            bool on = (invoker?[descriptor.Name] as Command)?.Enabled == true;
+            (on ? enabledTools : gatedTools).Add(descriptor.Name);
+        }
+        // The raw send_command built-ins currently enabled: every enabled table entry whose key is NOT a
+        // catalog tool (those are already reported above). Enumerating the actual table — instead of probing
+        // a single canary — is what makes a partial raw grant honest: `winr` disabled while `chars:` is
+        // granted shows chars: present and winr absent, so the agent knows winr still needs a request.
+        List<string> enabledRawCommands = [];
+        if (invoker is not null) {
+            foreach (System.Collections.DictionaryEntry entry in invoker) {
+                if (entry.Key is string key && entry.Value is Command { Enabled: true } && !ToolCatalog.Contains(key)) {
+                    enabledRawCommands.Add(key);
+                }
+            }
+            enabledRawCommands.Sort(StringComparer.Ordinal);
+        }
+        return ToolCatalog.CommandAccessMap(enabledTools, gatedTools, enabledRawCommands);
+    }
+
+    /// <summary>Adds the live <c>commandAccess</c> block (#324) to a session-status/start snapshot.</summary>
+    private JsonObject WithCommandAccess(JsonObject status) {
+        status["commandAccess"] = LiveCommandAccess();
+        return status;
     }
 
     /// <summary>
@@ -289,7 +324,7 @@ public sealed class AgentToolExecutor {
                 "unknown-session", AgentErrorCategory.InvalidArgument, sessionId!);
         }
         AgentRuntime.Audit("session-status", session.SessionId);
-        return McpResult(AgentToolResult.Success(session.ToStatusJson(), session.SessionId));
+        return McpResult(AgentToolResult.Success(WithCommandAccess(session.ToStatusJson()), session.SessionId));
     }
 
     /// <summary>
@@ -334,6 +369,15 @@ public sealed class AgentToolExecutor {
         }
         return null;
     }
+
+    /// <summary>Returns a tool-specific argument validation error, or null when the args are valid.</summary>
+    private static string? ToolArgsError(string toolName, JsonObject args) => toolName switch {
+        "drag" => DragArgsError(args),
+        "click" => ClickArgsError(args),
+        "focus" => FocusArgsError(args),
+        "capture" => CaptureContent.ValidateArgs(args),
+        _ => null,
+    };
 
     /// <summary>
     /// Validates the <c>click</c> tool's <c>at</c> argument: it must be an object that is EITHER an element
@@ -460,13 +504,18 @@ public sealed class AgentToolExecutor {
             session.RecordError(noOutput.ToJsonObject());
             return McpResult(AgentToolResult.Failure(noOutput, session.SessionId));
         }
+        if (name == "capture") {
+            CaptureContent.ApplyPathOnlyMode(commandResult.Data, args, session);
+        }
 
         AgentToolResult env = AgentToolResult.FromCommandResult(commandResult, name, session.SessionId, priorObservation);
 
-        // For capture, additionally surface the PNG as an MCP image content block so image-aware clients
-        // render it. The base64 stays in the envelope's result so text-only agents (which do not consume
-        // MCP image blocks) still get the bytes, as the result contract requires.
-        JsonObject? image = name == "capture" && env.Ok ? CaptureContent.TryBuildImageBlock(env.Result) : null;
+        // For capture, optionally surface the PNG as an MCP image content block so image-aware clients
+        // render it. In path-only mode (pathOnly:true or returnImage:false), the payload omits inline
+        // base64 and no image block is emitted.
+        JsonObject? image = name == "capture" && env.Ok && CaptureContent.WantsInlineImage(args)
+            ? CaptureContent.TryBuildImageBlock(env.Result)
+            : null;
 
         // Record this call's outcome so the next call's sessionId/lastObservation reflect it. Every
         // observation tool (wait-for included) records its observation + the resolved window as the target.

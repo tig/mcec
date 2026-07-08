@@ -131,7 +131,7 @@ internal sealed class ProvisionedInstanceDialog : Form {
         // ever copy/keep this one, and a stdio-only session would otherwise show the token nowhere
         // outside the briefing.
         _ = sb.AppendLine($"Directory:  {session.Directory}");
-        _ = sb.AppendLine($"Session id: {session.SessionId}");
+        _ = sb.AppendLine($"Provision id: {session.SessionId} (for end-session only — not tool-call sessionId)");
         _ = sb.AppendLine($"Token:      {session.Token}");
         _ = sb.AppendLine();
         _ = sb.AppendLine("Connect over stdio (recommended): configure your MCP client to spawn:");
@@ -139,6 +139,11 @@ internal sealed class ProvisionedInstanceDialog : Form {
         _ = sb.AppendLine();
         _ = sb.AppendLine("e.g. Claude Code:");
         _ = sb.AppendLine($"  claude mcp add mcec -- \"{session.ExePath}\" --mcp");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("Grok Build:");
+        _ = sb.AppendLine($"  grok mcp add mcec -- \"{session.ExePath}\" mcp");
+        _ = sb.AppendLine("  (or edit ~/.grok/config.toml under [mcp_servers.mcec])");
+        _ = sb.AppendLine("  Useful: grok mcp list | grok mcp doctor mcec | /mcps in TUI");
         if (session.McpServerEnabled) {
             _ = sb.AppendLine();
             _ = sb.AppendLine($"Or launch \"{session.ExePath}\" and POST JSON-RPC to its HTTP endpoint:");
@@ -148,7 +153,7 @@ internal sealed class ProvisionedInstanceDialog : Form {
         _ = sb.AppendLine();
         _ = sb.AppendLine("Teardown: the briefing below tells the agent to stop the instance and report");
         _ = sb.AppendLine("done; you can then delete it from this Agent tab (or an agent connected to");
-        _ = sb.AppendLine("the installed bootstrap calls end-session with the session id and token");
+        _ = sb.AppendLine("the installed bootstrap calls end-session with the provision id and token");
         _ = sb.AppendLine("above). Stale instances are also cleaned up automatically.");
         return sb.ToString();
     }
@@ -170,7 +175,7 @@ internal sealed class ProvisionedInstanceDialog : Form {
         _ = sb.AppendLine("and launch apps.");
         _ = sb.AppendLine();
         _ = sb.AppendLine("You are driving a DISPOSABLE, provisioned MCEC instance, not my installed copy:");
-        _ = sb.AppendLine($"  Session id: {session.SessionId}");
+        _ = sb.AppendLine($"  Provision id: {session.SessionId} (for end-session only — not tool-call sessionId)");
         _ = sb.AppendLine($"  Directory:  {session.Directory}");
         _ = sb.AppendLine($"  Token:      {session.Token}");
         _ = sb.AppendLine("Keep the token: it is the session credential, required for teardown"
@@ -193,12 +198,17 @@ internal sealed class ProvisionedInstanceDialog : Form {
         // Teardown must work UNATTENDED, so the briefing never routes it through a command that
         // needs a consent round-trip: the raw mcec: built-in is disabled in every provisioned
         // instance (#308 review). Disconnecting ends a stdio instance (the server stops at EOF).
-        _ = sb.AppendLine("3. When your task is complete: disconnect from this instance (removing it from");
-        _ = sb.AppendLine("   your MCP client stops it; the server exits when its stdio connection closes),");
-        _ = sb.AppendLine("   then tell me it is finished so I can delete the session from Settings > Agent.");
-        _ = sb.AppendLine("   If you are also connected to my installed MCEC's bootstrap server, instead");
-        _ = sb.AppendLine("   call its end-session tool with the session id and token above once this");
-        _ = sb.AppendLine("   instance has stopped.");
+        _ = sb.AppendLine("3. When your task is complete: tell me it is finished so I can delete the");
+        _ = sb.AppendLine("   session from Settings > Agent (you cannot disconnect your own MCP client).");
+        _ = sb.AppendLine("   If you are also connected to my installed MCEC's bootstrap server, call its");
+        _ = sb.AppendLine("   end-session tool with the provision id and token above once this instance");
+        _ = sb.AppendLine("   has stopped.");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("Client setup (for the human operator):");
+        _ = sb.AppendLine("  Grok Build:  grok mcp add mcec -- \"<exe path>\" mcp");
+        _ = sb.AppendLine("               (or add to ~/.grok/config.toml under [mcp_servers.mcec])");
+        _ = sb.AppendLine("  Claude etc.: claude mcp add mcec -- \"<exe path>\" --mcp   or JSON mcpServers");
+        _ = sb.AppendLine("  Check status with: grok mcp doctor mcec  |  /mcps  (in Grok TUI)");
         _ = sb.AppendLine();
         _ = sb.Append("My task for you: <describe the task here>");
         return sb.ToString();

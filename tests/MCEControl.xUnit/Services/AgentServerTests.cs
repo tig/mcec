@@ -75,6 +75,42 @@ public class AgentServerTests {
     }
 
     [Fact]
+    public void Dispatch_Initialize_IncludesCommandAccessDefaults() {
+        // #324: connect-time discovery of the gated set, so an agent can batch one request-command-access
+        // instead of probing command-disabled per command. The map is derived from the ToolCatalog's
+        // ProvisionedByDefault flags (single source of truth), so today only `launch` is gated among tools.
+        JsonObject result = AgentServer.Dispatch(Request(1, "initialize"))!["result"]!.AsObject();
+        JsonObject access = result["commandAccess"]!.AsObject();
+
+        List<string> enabled = Names(access["enabledTools"]!.AsArray());
+        List<string> gated = Names(access["gatedTools"]!.AsArray());
+        Assert.Contains("capture", enabled);
+        Assert.Contains("invoke", enabled);
+        Assert.Contains("launch", gated);
+        Assert.DoesNotContain("launch", enabled);
+        // No raw send_command built-in (chars:, winr, …) is provisioned by default, so the enabled-raw list
+        // is empty at connect time.
+        Assert.Empty(Names(access["enabledRawCommands"]!.AsArray()));
+        Assert.False(string.IsNullOrWhiteSpace(access["note"]!.GetValue<string>()));
+
+        // Every gated tool the map names is a real advertised tool the agent could request (#324): the
+        // list must be derived, never a hand-typed set that could name a tool that no longer exists.
+        foreach (string name in gated) {
+            Assert.True(ToolCatalog.Contains(name), $"gated tool '{name}' should be a real catalog tool");
+        }
+    }
+
+    private static List<string> Names(JsonArray arr) {
+        List<string> names = [];
+        foreach (JsonNode? n in arr) {
+            if (n?.GetValue<string>() is { } s) {
+                names.Add(s);
+            }
+        }
+        return names;
+    }
+
+    [Fact]
     public void StdioLoop_DispatchesRequestsConcurrently_NotOneAtATime() {
         // #113: the stdio transport must dispatch each request on its own worker, or a slow call blocks
         // later ones. Two requests rendezvous: each signals its arrival in dispatch and waits for the
@@ -159,6 +195,7 @@ public class AgentServerTests {
         Assert.True(props.ContainsKey("at"));
         Assert.True(props.ContainsKey("button"));
         Assert.True(props.ContainsKey("count"));
+        Assert.Contains("window-relative", props["at"]!["description"]!.GetValue<string>(), StringComparison.Ordinal);
 
         List<string> required = [];
         foreach (JsonNode? r in schema["required"]!.AsArray()) {
@@ -316,6 +353,8 @@ public class AgentServerTests {
         Assert.True(props.ContainsKey("from"));
         Assert.True(props.ContainsKey("to"));
         Assert.True(props.ContainsKey("path"));
+        Assert.Contains("window-relative", props["from"]!["description"]!.GetValue<string>(), StringComparison.Ordinal);
+        Assert.Contains("window-relative", props["to"]!["description"]!.GetValue<string>(), StringComparison.Ordinal);
 
         List<string> required = [];
         foreach (JsonNode? r in schema["required"]!.AsArray()) {
@@ -323,6 +362,27 @@ public class AgentServerTests {
         }
         Assert.Contains("from", required);
         Assert.Contains("to", required);
+    }
+
+    [Fact]
+    public void Dispatch_ToolsList_CaptureTool_DeclaresPathOnlyAndDownscaleOptions() {
+        JsonObject resp = AgentServer.Dispatch(Request(2, "tools/list"))!;
+        JsonArray tools = resp["result"]!.AsObject()["tools"]!.AsArray();
+
+        JsonObject? capture = null;
+        foreach (JsonNode? tool in tools) {
+            if (tool?["name"]?.GetValue<string>() == "capture") {
+                capture = tool.AsObject();
+                break;
+            }
+        }
+        Assert.NotNull(capture);
+        JsonObject props = capture["inputSchema"]!.AsObject()["properties"]!.AsObject();
+
+        Assert.True(props.ContainsKey("maxWidth"));
+        Assert.True(props.ContainsKey("scale"));
+        Assert.True(props.ContainsKey("returnImage"));
+        Assert.True(props.ContainsKey("pathOnly"));
     }
 
     [Fact]
@@ -843,6 +903,49 @@ public class AgentServerTests {
         }
         finally {
             AgentRuntime.Settings = null;
+            AgentRuntime.ResetSession();
+        }
+    }
+
+    [Fact]
+    public void Dispatch_SessionStatus_IncludesLiveCommandAccess_ReflectingTheTable() {
+        // #324: unlike initialize (the provisioning DEFAULTS), session-status reports the LIVE table, so a
+        // command the operator has since granted shows as enabled. Here `launch` is enabled in the table (a
+        // grant would look the same), so it must appear enabled and NOT gated; `invoke` absent from the table
+        // stays gated.
+        //
+        // #340 CR: `chars:` is granted but `mouse:` is not. A partial raw grant must report ONLY chars: in
+        // enabledRawCommands — never imply the whole raw send_command surface (mouse:, winr, …) is open, which
+        // a single canary boolean did. `launch` is a catalog tool, so it belongs in enabledTools, NOT the raw
+        // list.
+        AgentTestSupport.EnsureTelemetry();
+        AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
+        AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
+        AgentRuntime.ResetSession();
+        AgentRuntime.Invoker = new CommandInvoker {
+            ["launch"] = new LaunchCommand { Cmd = "launch", Enabled = true },
+            ["chars:"] = new CharsCommand { Cmd = "chars:", Enabled = true },
+            ["mouse:"] = new MouseCommand { Cmd = "mouse:", Enabled = false },
+        };
+        try {
+            JsonObject access = CallEnvelope(55, "session-status")["result"]!.AsObject()["commandAccess"]!.AsObject();
+            List<string> enabled = Names(access["enabledTools"]!.AsArray());
+            List<string> gated = Names(access["gatedTools"]!.AsArray());
+            List<string> enabledRaw = Names(access["enabledRawCommands"]!.AsArray());
+
+            Assert.Contains("launch", enabled);   // enabled in the table (a grant would read the same)
+            Assert.DoesNotContain("launch", gated);
+            Assert.Contains("invoke", gated);      // absent from the table → gated
+
+            // The partial raw grant is honest: chars: present, mouse: (disabled) absent, and the catalog
+            // launch is NOT double-reported as a raw command.
+            Assert.Contains("chars:", enabledRaw);
+            Assert.DoesNotContain("mouse:", enabledRaw);
+            Assert.DoesNotContain("launch", enabledRaw);
+        }
+        finally {
+            AgentRuntime.Settings = null;
+            AgentRuntime.Invoker = null;
             AgentRuntime.ResetSession();
         }
     }

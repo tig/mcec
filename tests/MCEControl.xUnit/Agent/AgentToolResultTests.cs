@@ -19,7 +19,7 @@ namespace MCEControl.xUnit.Agent;
 public class AgentToolResultTests {
     private static readonly HashSet<string> _categoryEnum = [
         "timeout", "ambiguous-selector", "stale-element", "no-target", "invalid-argument",
-        "capture-blank", "focus", "elevation", "foreground", "internal",
+        "capture-blank", "ocr-blank", "ocr-no-text", "focus", "elevation", "foreground", "internal",
     ];
 
     /// <summary>Asserts an emitted envelope honors the schema's required-field and success/failure invariants.</summary>
@@ -134,6 +134,8 @@ public class AgentToolResultTests {
     [InlineData(AgentErrorCategory.NoTarget, "no-target")]
     [InlineData(AgentErrorCategory.InvalidArgument, "invalid-argument")]
     [InlineData(AgentErrorCategory.CaptureBlank, "capture-blank")]
+    [InlineData(AgentErrorCategory.OcrBlank, "ocr-blank")]
+    [InlineData(AgentErrorCategory.OcrNoText, "ocr-no-text")]
     [InlineData(AgentErrorCategory.Focus, "focus")]
     [InlineData(AgentErrorCategory.Elevation, "elevation")]
     [InlineData(AgentErrorCategory.Foreground, "foreground")]
@@ -289,5 +291,20 @@ public class AgentToolResultTests {
         Assert.Contains("\"ok\":true", json);
         Assert.DoesNotContain("sessionId", json); // null -> omitted
         Assert.DoesNotContain("\"error\"", json);
+    }
+
+    [Fact]
+    public void FromCommandResult_OcrBlankCategory_MapsToOcrBlank_NotInternal() {
+        // Addresses CR P2 on PR 334: get-text emits errorCategory "ocr-blank" for blank frames;
+        // FromCommandResult must map it (not downgrade to internal) so MCP clients and schema see it.
+        CommandResult command = CommandResult
+            .Fail("get-text", "Captured region is blank (a flat fill).", "frame-all-black", "ocr-blank");
+
+        JsonObject env = AgentToolResult.FromCommandResult(command, "get-text").ToJsonObject();
+
+        AssertValidEnvelope(env);
+        Assert.False(env["ok"]!.GetValue<bool>());
+        Assert.Equal("ocr-blank", env["error"]!["category"]!.GetValue<string>());
+        Assert.Equal("frame-all-black", env["error"]!["code"]!.GetValue<string>());
     }
 }

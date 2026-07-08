@@ -43,7 +43,8 @@ the dogfood recipe (MCEC driving MCEC).
   off by default.
 * **2.x (2019)**: Major rework: robust client/server, User Activity Monitor (occupancy sensing), Commands
   Window with built-in test mode, per-monitor DPI support, config in `%APPDATA%`.
-* **1.x (2004–2017)**: Born as "MCE Controller" for Windows Media Center HTPCs. Grew keyboard/mouse/window-message
+* **1.x (2004–2017)**: Born as Media Center Edition Controller (MS later dropped the "Edition" from
+  "Windows Media Center") for Windows Media Center HTPCs. Grew keyboard/mouse/window-message
   simulation, `chars:` with Unicode escapes, serial support, multi-client TCP, and the `.commands`
   extension file. Moved from SourceForge to CodePlex to GitHub.
 

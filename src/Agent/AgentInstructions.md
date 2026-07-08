@@ -1,6 +1,11 @@
 MCEC (Model Context Environment Controller) lets you see and drive native Windows apps.
 
-Work the loop: observe -> target -> act -> observe.
+Work the loop: observe -> target -> act -> observe. You are measured on token cost and wall-clock time:
+prefer structured observation (`windows`/`query`/`find`) over `capture`; for opaque web content prefer
+`get-text` on the smallest field region over a PNG `capture`; when you must capture, the smallest region
+that answers the question; use `windows` wait-for and title/process filters instead of
+scroll-and-recapture loops; prefer direct URL/`launch` navigation over hunting pixels; don't re-observe
+what the last result already told you — large-window captures dominate token cost.
 
 1. TARGET a window by `window` (title substring), `process` (name without .exe), `className`, or
 `foreground:true`: you MUST give at least one; a call with no target fails. If you do not yet know what to
@@ -20,11 +25,19 @@ names overlap, target by `handle`. Open menus and other untitled
 popups are not enumerated by title/process; target them by handle or `foreground:true`.
 
 2. OBSERVE: `query` dumps the UI Automation tree (controlType, name, automationId, bounds, state, value)
-so you can pick a control instead of guessing pixels; `capture` returns a PNG of the window (works on
-composited WinUI/WPF surfaces). Use `capture` for a single state check; use `record` ONLY to show CHANGE
+so you can pick a control instead of guessing pixels; `capture` returns a PNG (works on composited
+WinUI/WPF surfaces; check `bytes` — full windows are costly and inline base64 can blow your token budget).
+For low-cost observation passes, downscale with `maxWidth` or `scale` and prefer `pathOnly:true` (or
+`returnImage:false`) to get metadata + artifact path without inline base64 or an MCP image block.
+Browser chrome is UIA-targetable; in-page web content is not — verify field values with `get-text` on a
+window-relative region (`x`/`y`/`width`/`height` from `query` bounds) before reaching for `capture`; use
+pixel `click` when needed (`click at:{x,y}` is window-relative to the captured window bounds when you set a window target, otherwise screen-absolute; re-observe after layout shifts). `get-text` returns extracted
+text plus line/word counts; `ocr-no-text` means OCR could not read the region (try a larger area or
+`capture`); `ocr-blank` means the pixels were a flat fill (like `capture-blank`). Use `capture` for a
+single state check when the tree and OCR can't answer; use `record` ONLY to show CHANGE
 over time; a bounded one-shot (`durationMs`) or `action:start` then `action:stop`; keep recordings short
 (fps/duration are capped and frames downscaled), and remember it captures whatever is on screen for the
-whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture` and `record` are size-capped: an oversized region
+whole duration. Region targets (`x`/`y`/`width`/`height`) for `capture`, `get-text`, and `record` are size-capped: an oversized region
 fails fast with `errorCode:region-too-large` (category `invalid-argument`; the detail states the limit), so
 request a smaller region or a window target (windows are bounded by their own size). An open `start`
 auto-stops at the operator's limits; `stop`
@@ -39,10 +52,13 @@ raise `maxNodes` or target a deeper window so you don't reason over a partial tr
 non-fatal; errorCategory tells you how to recover. The bounds `query`/`find` report are ABSOLUTE screen
 pixels; the `displays` tool reports every monitor's pixel bounds and DPI/scale (and the union
 virtualBounds) so you can interpret those bounds across multiple/scaled monitors and place pixel clicks or
-drags without measuring the screen yourself.
+drags without measuring the screen yourself. Window-relative click/drag endpoints are interpreted in that
+same per-monitor pixel space after adding the target window's top-left.
 
 3. ACT: prefer `invoke` (by name/automationId/classname; action invoke|toggle|setvalue|setfocus|expand|
-collapse|select) over coordinate clicks; it is far more reliable. To click a menu item, first `invoke` its
+collapse|select) over coordinate clicks; it is far more reliable. To put text in a native field, prefer
+`invoke`+`setvalue` (exact, no keystroke race) or `clipboard`+paste over `chars:`; for passwords rely on
+the OS password manager / masked fields — never invent or log secrets. To click a menu item, first `invoke` its
 parent menu with action `expand` (a closed menu's sub-items are not in the tree until opened), then
 `invoke` the item. Use `select` for TabItem/ListItem/RadioButton (SelectionItem pattern). Invoking a control that opens a MODAL dialog (About, Settings, message/file dialogs)
 returns promptly with `modalPending:true` (the action completes when the dialog closes), so just
@@ -56,16 +72,17 @@ that action; re-finding it will never help; pick a different action or `click` i
 expand|collapse|select). To DRAG (resize a window by its
 sizing border, move one by its title bar, drag a slider/handle, marquee-select, or reorder; there is no
 `invoke` for these), use the `drag` tool: give a `from` and a `to`, each either an element `{ by, value }`
-in the target window (dragged from/to its centre) or an absolute screen pixel `{ x, y }`, plus optional
+in the target window (dragged from/to its centre) or a pixel `{ x, y }` (window-relative when a
+window target is set, otherwise screen-absolute), plus optional
 `path` waypoints for a curved or multi-stop drag. The whole press→move→release is dispatched ATOMICALLY, so
 prefer it over hand-rolling `mouse:lbd`/`mouse:mt`/`mouse:lbu` (which can interleave with other commands).
-Coords are absolute screen pixels (the same space `query`/`find` bounds report), so you can drag straight
+Without a window target, coords are absolute screen pixels (the same space `query`/`find` bounds report), so you can drag straight
 from one control's bounds to another's. Re-`query` afterward: a moved/resized window's controls are at new
 bounds. For window-level move/resize, use the `window` tool: `action:"move"`/`"resize"` with target
 coordinates and optional `animate:true` to make the window appear to be dragged rather than instantly
 teleported. `window` also handles `minimize`, `maximize`, `restore`, and `foreground`.
-To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a barepixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or an
-absolute screen pixel `{ x, y }`, with optional `button` (left|right|middle) and `count`
+To CLICK a point `invoke` can't reach (a custom-drawn cell, a canvas/map coordinate, or a barepixel), use the `click` tool: give `at` as an element `{ by, value }` (clicked at its centre) or a
+pixel `{ x, y }` (window-relative when a window target is set, otherwise absolute screen pixels), with optional `button` (left|right|middle) and `count`
 (2 = double-click); the move+click is dispatched atomically. Still prefer `invoke` for ordinary buttons and menu items;
 it doesn't depend on the control being on-screen and unobscured. System file dialogs (Open, Save Print
 Output As) are separate windows; `wait-for`/`query` by title, reuse the returned `handle`, and act on that
@@ -86,11 +103,11 @@ foreground a window and confirm focus. It fails `foreground` if the window won't
 control took focus. `invoke setfocus` is also verified now; it fails `focus` (code `focus-not-set`) when
 the element does not end up focused, which is your cue to `focus` (it clicks) or `click` the control.
 
-4. VERIFY with another `query` or `capture`; always confirm the act had the intended effect.
+4. VERIFY with another `query`, `get-text`, or `capture`; always confirm the act had the intended effect.
 
 RESULTS: every tool returns one envelope: `{ ok, result?, warnings?, error? }`. Branch on `ok` first: on
 success read `result`; on failure read `error.category` (a closed set: timeout, ambiguous-selector,
-stale-element, no-target, invalid-argument, capture-blank, focus, elevation, foreground, internal) to
+stale-element, no-target, invalid-argument, capture-blank, ocr-blank, ocr-no-text, focus, elevation, foreground, internal) to
 choose recovery; e.g. `no-target` means broaden the selector, `query` to discover targets, or `wait-for`
 the element; `invalid-argument` means the REQUEST itself is wrong (unknown action, oversized region,
 ill-formed endpoint, an action the element can't perform); fix the arguments, do NOT retry the same call
@@ -125,21 +142,24 @@ for debugging or replay; `session-end` (required `sessionId`) frees a session's 
 session, a call that still echoes its id is refused with `error.code:unknown-session` (category
 `invalid-argument`); start a new one or omit `sessionId` to fall back to the default. An id you never
 started is refused the same way. (Note the hyphen: the tools are `session-start`/`session-status`/
-`session-end`.) This is separate from `provision-session`, which hands you a whole disposable MCEC INSTALL
-(see PROVISION), not an in-process session.
+`session-end`.) The provision handoff's `Session id` is for `end-session`/teardown only — never pass it as `sessionId` on
+tool calls; omit `sessionId` (default) or use an id from `session-start`. This is separate from
+`provision-session`, which hands you a whole disposable MCEC INSTALL (see PROVISION), not an in-process
+session.
 
 COMPOSE: many tasks have no single dedicated tool; build them by combining primitives creatively. When
 injected keystrokes must reach Start/search or the bare desktop, first show the desktop (Win+D) or `click` an
 open desktop pixel; IDE/terminal shells otherwise swallow them. Launch
-an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears). Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D.
+an app with the dedicated `launch` tool (`path` required, optional `arguments`/`workingDirectory`; returns the pid and the app's window handle once it appears, plus `startedNewProcess` / `attachedToExisting`). If `attachedToExisting` is true (or as a fallback, `processId` differs from the returned window's `processId`), you likely foregrounded an existing single-instance app (Notepad, browsers) — verify a
+blank document/tab before typing. Fallback if `launch` is unavailable: `send_command winr` then `chars:<path>` then `enter`, or Start Menu: `send_command desktop` (Win+D) then Win+S, type the app name, Enter, then `wait-for`/`query` for its process (the new window is foreground: `query {foreground}` for its handle). If the process never appears, Win+D and retry Win+S once before concluding the app is missing; an IDE/terminal in the foreground can swallow the first attempt even after Win+D.
 KEYSTROKES split two ways, and confusing them silently does nothing. To fire an app SHORTCUT or press a
 navigation/editing key; a Ctrl/Alt/Win chord (Ctrl+C/V/A/S), a lone shortcut key (zoom `+`/`-`/`=`), or an
 arrow/function/Enter/Esc/Tab; send a real KEYDOWN via `send_command`: a `VK_` name (`VK_OEM_PLUS` is `=`/`+`),
-a named key (`enter`, `escape`, `left`/`right`/`up`/`down`, `tab`), or a chord builtin (`ctrl-x`); bracket
-with `shiftdown:<mods>`/`shiftup:<mods>` for extra modifiers. `chars:` is for LITERAL TEXT ONLY (it is
-WM_CHAR text entry): `chars:=` types a `=` and never zooms, and `shiftdown:ctrl` then `chars:c` does NOT
-fire Ctrl+C. So type field values and paths with `chars:`, but fire shortcuts with the keydown command.
-Prefer the `clipboard` tool for clipboard text; use Ctrl+C/Ctrl+V keystrokes only to move data
+a named key (`enter`, `escape`, `left`/`right`/`up`/`down`, `tab`), or a chord builtin (`ctrl-x`, `ctrl-a`, `ctrl-c`, `ctrl-v`, `ctrl-z`, `ctrl-s`); bracket
+with `shiftdown:<mods>`/`shiftup:<mods>` for extra modifiers. `chars:` is for LITERAL TEXT ONLY (it is WM_CHAR text entry, not SendKeys): `chars:=` types `=` and never
+zooms; `chars:^a` types those characters; `shiftdown:ctrl`+`chars:c` does NOT fire Ctrl+C; right after
+focus it can drop characters — prefer `invoke`+`setvalue` for fields. Type paths with `chars:`; fire
+shortcuts with keydown commands. Prefer `clipboard` for bulk text; use Ctrl+C/Ctrl+V only to move data
 through an app that owns the selection (copy a canvas, paste an image). Use `invoke` with `action: "select"` for tabs/list items/radios. 
 Drag/resize/move with the `drag` tool (`from`/`to`, optional `path` waypoints). Switch a tab/list item by `invoke` `select` (preferred) or `click` its centre. Record a window by
 `query`ing its bounds and passing them as the `record` region; use a **desktop region** when Start/search
@@ -149,7 +169,7 @@ prior file before the run and dismiss the viewer with Alt+F4 afterward so the ne
 a `timeout`) rather than sleeping; poll `query` only for a control INSIDE a window you already have. Reach
 for a raw `send_command` before giving up.
 
-CONCURRENCY: observation (`query`/`capture`/`find`/`wait-for`/`record`) runs concurrently and never blocks
+CONCURRENCY: observation (`query`/`capture`/`get-text`/`find`/`wait-for`/`record`) runs concurrently and never blocks
 another call; a long `wait-for` won't stall a `capture`, and `invoke` returns promptly even if it opens a
 modal; so a slow observation is safe to start. Physical-input actuation (`drag`, `send_command`) is
 serialized: it runs one-at-a-time (the desktop has a single input stream), so don't expect two input
@@ -181,21 +201,24 @@ only to deliberately end the session, e.g. stopping a provisioned instance befor
 OVERLAY: MCEC may show a small on-screen overlay (default on) that narrates each command you run so the
 operator can see MCEC is driving. It is deliberately excluded from `query`/`find`/`capture`/UIA targeting;
 you will never see or target it, and it is never a candidate window; but it DOES appear in
-full-screen/region `capture`s and `record`ings (not in window-targeted captures).
+full-screen/region `capture`s/`get-text`/`record`ings (not in window-targeted captures).
 
 PROVISION: do NOT drive the operator's installed MCEC by enabling agent commands in it; an abnormal exit
 leaks those security gates enabled, and the installed copy will not serve the full agent surface anyway.
 Recommended path: the operator enables "Allow agents to provision disposable instances" on File > Settings
 > Agent, clicks "Provision new…", and hands you a disposable instance's directory, launch line, and
 token; connect to THAT copy's `mcec.exe --mcp` (or its HTTP endpoint when enabled) and do all work
-there. A provisioned session enables the standard observation/actuation tool set; anything else (e.g.
-`launch`, raw built-ins like `chars:`) starts disabled; acquire it mid-session with
-`request-command-access` (see COMMAND ACCESS), never by editing the session's files. The `token` is the
+there. A provisioned session enables the standard observation/actuation tool set; `launch` and most
+`send_command` built-ins (e.g. `chars:`) start disabled — the `initialize` result's `commandAccess` field
+spells out the enabled vs gated set (and flags that raw `send_command` built-ins start gated), so read it
+and batch `request-command-access` for what you'll need up front (see COMMAND ACCESS), never by editing the
+session's files. The `token` is the
 session credential; keep it: every HTTP request to the session's `mcpEndpoint` must send the header
 `Authorization: Bearer <token>` (stdio needs no header), and `end-session` requires it when you tear down
-via the bootstrap server. When your task is done, disconnect (stdio stops when the connection closes),
-tell the operator, and if you also have the installed bootstrap server call `end-session` with the
-`sessionId` AND `token` after this instance has stopped; teardown is just removing the directory. An
+via the bootstrap server. When your task is done, tell the operator (they delete the instance from the Agent tab; you cannot remove
+your own MCP client connection). stdio instances stop when the client disconnects. If you are also on
+the bootstrap server, call `end-session` with the provision id and `token` after this instance has stopped;
+teardown is just removing the directory. An
 `end-session` with a wrong/missing token fails with `error.code:session-token-invalid`; a session you did
 not provision is not yours to tear down; orphaned sessions are reaped automatically. The Agent tab also
 lists provisioned instances and lets the operator delete any you leave behind.
@@ -209,7 +232,13 @@ while `error.category` stays `internal`), the operator has not opted in; tell th
 on the Agent tab, then retry; do not retry blindly before they do. You own teardown: `end-session` every
 instance you provision.
 
-COMMAND ACCESS: any tool or raw command refused with `error.code:command-disabled` can be requested from
+COMMAND ACCESS: you do not have to discover the gated set by trial and error. The `initialize` result's
+`commandAccess` field lists `enabledTools` vs `gatedTools` and `enabledRawCommands` (the raw `send_command`
+built-ins enabled right now; empty until granted) at connect time — and `session-status` reports the LIVE
+set, reflecting any grant already made — so read it and batch one request for everything your plan needs
+before the first actuation. A raw command NOT in `enabledRawCommands` still needs a request; a partial grant
+does not open the whole raw surface. Any tool or raw command refused with
+`error.code:command-disabled` can be requested from
 the OPERATOR with the `request-command-access` tool: pass the command name(s) the refusal reported (e.g.
 `launch`, `chars:`) and a one-line, honest `reason`; MCEC shows the operator a consent dialog on their
 screen and your call BLOCKS (up to ~2 minutes) for their answer. On a grant the commands are immediately
@@ -220,7 +249,7 @@ is audited and narrated on the overlay). A deny is FINAL for this instance: re-r
 returns `error.code:consent-denied` with no prompt; do not nag; tell the user what you needed and why.
 `consent-timeout` means the operator never answered (they may be away; you may ask again later, ideally
 after checking in with the user). `consent-pending` means a consent prompt is already open: while it is up,
-only observation (`capture`/`query`/`displays`/`windows`/`find`/`wait-for`/`record`) is served and every
+only observation (`capture`/`get-text`/`query`/`displays`/`windows`/`find`/`wait-for`/`record`) is served and every
 other call is refused with that code; wait for your pending request to return. `consent-unavailable` means
 no operator prompt can be shown (fail closed); ask the user to enable the command themselves. You will
 never see or target the consent dialog; it is excluded from targeting like the overlay, and actuation is
@@ -231,7 +260,7 @@ session from any window. If ANY tool returns `error.code:emergency-stopped` (the
 `error.category` stays `internal`), the operator has engaged it and deliberately halted you; STOP
 immediately, tell the user, and do NOT retry; nothing will actuate until they re-arm.
 
-SECURITY: the agent tools (capture/query/displays/windows/find/wait-for/invoke/record/launch/drag/click/clipboard, and the
+SECURITY: the agent tools (capture/get-text/query/displays/windows/find/wait-for/invoke/record/launch/drag/click/clipboard, and the
 session-start/session-status/session-end lifecycle) only work when the operator has set
 AgentCommandsEnabled=true; otherwise they return an error; surface that to the user rather than retrying.
 `send_command` is also gated by AgentCommandsEnabled when you are connected over the HTTP transport (it is

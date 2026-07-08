@@ -28,8 +28,8 @@ public sealed class CommandResult {
     public string? ErrorCode { get; set; }
 
     /// <summary>Coarse failure class from the closed taxonomy in the agent result contract
-    /// (timeout, ambiguous-selector, stale-element, no-target, capture-blank, focus, elevation,
-    /// foreground, internal).</summary>
+    /// (timeout, ambiguous-selector, stale-element, no-target, invalid-argument, capture-blank,
+    /// ocr-blank, ocr-no-text, focus, elevation, foreground, internal).</summary>
     public string? ErrorCategory { get; set; }
 
     public JsonObject? Data { get; private init; }

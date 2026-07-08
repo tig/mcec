@@ -145,7 +145,8 @@ public class AgentSettingsTabTests : IDisposable {
         // credential; the operator may only ever copy this block).
         Assert.Contains(@"C:\sessions\0123456789ab\mcec.exe"" --mcp", text);
         Assert.Contains("claude mcp add mcec", text);
-        Assert.Contains("Session id: 0123456789ab", text);
+        Assert.Contains("grok mcp add mcec", text);
+        Assert.Contains("Provision id: 0123456789ab", text);
         Assert.Contains(@"C:\sessions\0123456789ab", text);
         Assert.Contains("deadbeefcafef00d", text);
         // The HTTP endpoint + bearer line only when the session's MCP server is enabled.

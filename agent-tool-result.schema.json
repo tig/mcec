@@ -80,6 +80,8 @@
             "no-target",
             "invalid-argument",
             "capture-blank",
+            "ocr-blank",
+            "ocr-no-text",
             "focus",
             "elevation",
             "foreground",

@@ -87,18 +87,28 @@ public sealed class JsonRpcDispatcher {
         "the full connect-time instructions. When finished, stop the instance's mcec.exe, then call " +
         "end-session here with the sessionId AND token to delete it.";
 
-    private JsonObject BuildInitializeResult() => new() {
-        ["protocolVersion"] = ProtocolVersion,
-        ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() },
-        ["serverInfo"] = new JsonObject {
-            ["name"] = "MCEC",
-            ["version"] = Application.ProductVersion,
-        },
-        // Built-in agent guidance: surfaced to the model by the MCP client so it knows how to drive
-        // MCEC effectively (the observe -> target -> act loop) and understands the security model. In
-        // bootstrap mode (#296) the playbook would teach refused tools, so serve the handoff recipe.
-        ["instructions"] = Program.ProvisioningBootstrapOnly ? BootstrapInstructions : _instructions(),
-    };
+    private JsonObject BuildInitializeResult() {
+        JsonObject result = new() {
+            ["protocolVersion"] = ProtocolVersion,
+            ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() },
+            ["serverInfo"] = new JsonObject {
+                ["name"] = "MCEC",
+                ["version"] = Application.ProductVersion,
+            },
+            // Built-in agent guidance: surfaced to the model by the MCP client so it knows how to drive
+            // MCEC effectively (the observe -> target -> act loop) and understands the security model. In
+            // bootstrap mode (#296) the playbook would teach refused tools, so serve the handoff recipe.
+            ["instructions"] = Program.ProvisioningBootstrapOnly ? BootstrapInstructions : _instructions(),
+        };
+        // #324: the connect-time command-access map — which tools a provisioned session enables vs gates
+        // (launch + raw send_command built-ins start gated), derived from the ToolCatalog so an agent can
+        // batch ONE request-command-access up front instead of probing command-disabled one call at a time.
+        // Omitted in bootstrap mode, whose only tools are provision-session/end-session (no gated surface).
+        if (!Program.ProvisioningBootstrapOnly) {
+            result["commandAccess"] = ToolCatalog.CommandAccessDefaults();
+        }
+        return result;
+    }
 
     // -------------------------------------------------------------------------------------------
     // tools/list

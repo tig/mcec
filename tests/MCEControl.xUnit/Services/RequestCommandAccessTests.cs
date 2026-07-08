@@ -252,7 +252,7 @@ public class RequestCommandAccessTests : IDisposable {
 
     [Fact]
     public void ServedWhilePending_IsAnObservationOnlyAllowList() {
-        foreach (string tool in (string[])["capture", "query", "displays", "windows", "find", "wait-for", "record"]) {
+        foreach (string tool in (string[])["capture", "get-text", "query", "displays", "windows", "find", "wait-for", "record"]) {
             Assert.True(AgentToolExecutor.ServedWhileConsentPending(tool), tool);
         }
         foreach (string tool in (string[])["invoke", "drag", "click", "focus", "clipboard", "launch", "send_command", "request-command-access"]) {
