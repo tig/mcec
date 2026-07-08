@@ -272,7 +272,34 @@ public sealed class AgentToolExecutor {
     private JsonObject RunSessionStart() {
         AgentSession session = _startSession();
         AgentRuntime.Audit("session-start", session.SessionId);
-        return McpResult(AgentToolResult.Success(session.ToStatusJson(), session.SessionId));
+        return McpResult(AgentToolResult.Success(WithCommandAccess(session.ToStatusJson()), session.SessionId));
+    }
+
+    /// <summary>
+    /// The LIVE command-access map (#324) for the connected instance: the same shape as
+    /// <see cref="ToolCatalog.CommandAccessDefaults"/>, but read from the actual loaded command table so it
+    /// reflects any command the operator has since granted (via <c>request-command-access</c>) as enabled.
+    /// Stamped onto <c>session-start</c>/<c>session-status</c> results so an agent can re-check the gated set
+    /// after a grant, where <c>initialize</c> only ever shows the provisioning defaults. A tool whose table
+    /// entry is missing or disabled is gated; <c>chars:</c> is the canary for the raw <c>send_command</c>
+    /// built-ins (a provisioned session enables none of them).
+    /// </summary>
+    public JsonObject LiveCommandAccess() {
+        CommandInvoker? invoker = _invoker();
+        List<string> enabled = [];
+        List<string> gated = [];
+        foreach (ToolDescriptor descriptor in ToolCatalog.All) {
+            bool on = (invoker?[descriptor.Name] as Command)?.Enabled == true;
+            (on ? enabled : gated).Add(descriptor.Name);
+        }
+        bool rawSendCommandGated = (invoker?["chars:"] as Command)?.Enabled != true;
+        return ToolCatalog.CommandAccessMap(enabled, gated, rawSendCommandGated);
+    }
+
+    /// <summary>Adds the live <c>commandAccess</c> block (#324) to a session-status/start snapshot.</summary>
+    private JsonObject WithCommandAccess(JsonObject status) {
+        status["commandAccess"] = LiveCommandAccess();
+        return status;
     }
 
     /// <summary>
@@ -289,7 +316,7 @@ public sealed class AgentToolExecutor {
                 "unknown-session", AgentErrorCategory.InvalidArgument, sessionId!);
         }
         AgentRuntime.Audit("session-status", session.SessionId);
-        return McpResult(AgentToolResult.Success(session.ToStatusJson(), session.SessionId));
+        return McpResult(AgentToolResult.Success(WithCommandAccess(session.ToStatusJson()), session.SessionId));
     }
 
     /// <summary>
