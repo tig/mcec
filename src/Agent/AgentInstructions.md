@@ -226,9 +226,11 @@ on the Agent tab, then retry; do not retry blindly before they do. You own teard
 instance you provision.
 
 COMMAND ACCESS: you do not have to discover the gated set by trial and error. The `initialize` result's
-`commandAccess` field lists `enabledTools` vs `gatedTools` and a `rawSendCommandGated` flag at connect time
-(and `session-status` reports the LIVE set, reflecting any grant already made), so read it and batch one
-request for everything your plan needs before the first actuation. Any tool or raw command refused with
+`commandAccess` field lists `enabledTools` vs `gatedTools` and `enabledRawCommands` (the raw `send_command`
+built-ins enabled right now; empty until granted) at connect time — and `session-status` reports the LIVE
+set, reflecting any grant already made — so read it and batch one request for everything your plan needs
+before the first actuation. A raw command NOT in `enabledRawCommands` still needs a request; a partial grant
+does not open the whole raw surface. Any tool or raw command refused with
 `error.code:command-disabled` can be requested from
 the OPERATOR with the `request-command-access` tool: pass the command name(s) the refusal reported (e.g.
 `launch`, `chars:`) and a one-line, honest `reason`; MCEC shows the operator a consent dialog on their

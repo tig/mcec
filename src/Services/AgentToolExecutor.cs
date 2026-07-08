@@ -280,20 +280,34 @@ public sealed class AgentToolExecutor {
     /// <see cref="ToolCatalog.CommandAccessDefaults"/>, but read from the actual loaded command table so it
     /// reflects any command the operator has since granted (via <c>request-command-access</c>) as enabled.
     /// Stamped onto <c>session-start</c>/<c>session-status</c> results so an agent can re-check the gated set
-    /// after a grant, where <c>initialize</c> only ever shows the provisioning defaults. A tool whose table
-    /// entry is missing or disabled is gated; <c>chars:</c> is the canary for the raw <c>send_command</c>
-    /// built-ins (a provisioned session enables none of them).
+    /// after a grant, where <c>initialize</c> only ever shows the provisioning defaults. A catalog tool whose
+    /// table entry is missing or disabled is gated; the raw <c>send_command</c> built-ins that are enabled
+    /// right now are enumerated explicitly into <c>enabledRawCommands</c>, so a PARTIAL grant (e.g. only
+    /// <c>chars:</c>) reports exactly that command and never implies the rest of the raw surface is open
+    /// (#340 CR).
     /// </summary>
     public JsonObject LiveCommandAccess() {
         CommandInvoker? invoker = _invoker();
-        List<string> enabled = [];
-        List<string> gated = [];
+        List<string> enabledTools = [];
+        List<string> gatedTools = [];
         foreach (ToolDescriptor descriptor in ToolCatalog.All) {
             bool on = (invoker?[descriptor.Name] as Command)?.Enabled == true;
-            (on ? enabled : gated).Add(descriptor.Name);
+            (on ? enabledTools : gatedTools).Add(descriptor.Name);
         }
-        bool rawSendCommandGated = (invoker?["chars:"] as Command)?.Enabled != true;
-        return ToolCatalog.CommandAccessMap(enabled, gated, rawSendCommandGated);
+        // The raw send_command built-ins currently enabled: every enabled table entry whose key is NOT a
+        // catalog tool (those are already reported above). Enumerating the actual table — instead of probing
+        // a single canary — is what makes a partial raw grant honest: `winr` disabled while `chars:` is
+        // granted shows chars: present and winr absent, so the agent knows winr still needs a request.
+        List<string> enabledRawCommands = [];
+        if (invoker is not null) {
+            foreach (System.Collections.DictionaryEntry entry in invoker) {
+                if (entry.Key is string key && entry.Value is Command { Enabled: true } && !ToolCatalog.Contains(key)) {
+                    enabledRawCommands.Add(key);
+                }
+            }
+            enabledRawCommands.Sort(StringComparer.Ordinal);
+        }
+        return ToolCatalog.CommandAccessMap(enabledTools, gatedTools, enabledRawCommands);
     }
 
     /// <summary>Adds the live <c>commandAccess</c> block (#324) to a session-status/start snapshot.</summary>

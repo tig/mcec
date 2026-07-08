@@ -52,8 +52,10 @@ public static class ToolCatalog {
     internal const string CommandAccessNote =
         "Gated commands need the operator's consent before first use: call request-command-access with the " +
         "names you need, batched in ONE call, then actuate. Raw send_command built-ins (chars:, winr, mouse:, " +
-        "VK_* keys, key chords) start gated too and are requested the same way. Never edit mcec.commands / " +
-        "mcec.settings to self-grant.";
+        "VK_* keys, key chords) start gated and are requested the same way; enabledRawCommands lists the ones " +
+        "enabled RIGHT NOW (empty until granted), and any raw command not in that list still needs a request " +
+        "— a partial grant does NOT open the whole raw surface. Never edit mcec.commands / mcec.settings to " +
+        "self-grant.";
 
     /// <summary>
     /// The connect-time command-access map (#324): which agent tools a freshly provisioned session enables
@@ -61,25 +63,28 @@ public static class ToolCatalog {
     /// from the actual provisioning defaults (today only <c>launch</c> is gated). Served on the MCP
     /// <c>initialize</c> result so an agent can batch a single <c>request-command-access</c> for everything it
     /// needs before its first actuation, instead of discovering the gated set one <c>command-disabled</c>
-    /// refusal at a time. Raw <c>send_command</c> built-ins are never provisioned by default, so the flag is
-    /// always set here; <see cref="AgentToolExecutor.LiveCommandAccess"/> reports the live table for a
-    /// re-check after a grant.
+    /// refusal at a time. No raw <c>send_command</c> built-in is provisioned by default, so
+    /// <c>enabledRawCommands</c> is empty here; <see cref="AgentToolExecutor.LiveCommandAccess"/> reports the
+    /// live table (which raw commands a grant has since enabled) for a re-check.
     /// </summary>
     public static JsonObject CommandAccessDefaults() => CommandAccessMap(
-        enabled: All.Where(d => d.ProvisionedByDefault).Select(d => d.Name),
-        gated: All.Where(d => !d.ProvisionedByDefault).Select(d => d.Name),
-        rawSendCommandGated: true);
+        enabledTools: All.Where(d => d.ProvisionedByDefault).Select(d => d.Name),
+        gatedTools: All.Where(d => !d.ProvisionedByDefault).Select(d => d.Name),
+        enabledRawCommands: []);
 
     /// <summary>
     /// Builds the <c>commandAccess</c> block shared by <c>initialize</c> (the provisioning defaults) and
-    /// <c>session-status</c> (the live table): the enabled/gated tool split, the raw-<c>send_command</c>
-    /// flag, and the shared recovery <see cref="CommandAccessNote"/>. One builder so both surfaces render the
-    /// exact same shape and guidance.
+    /// <c>session-status</c> (the live table): the enabled/gated tool split, the list of enabled raw
+    /// <c>send_command</c> built-ins, and the shared recovery <see cref="CommandAccessNote"/>. One builder so
+    /// both surfaces render the exact same shape and guidance. <paramref name="enabledRawCommands"/> is an
+    /// explicit list (not a boolean) so a PARTIAL raw grant — e.g. the operator enabled only <c>chars:</c> —
+    /// reports exactly that one and never implies <c>winr</c>/<c>mouse:</c>/VK/chord commands are open too
+    /// (#340 CR).
     /// </summary>
-    internal static JsonObject CommandAccessMap(IEnumerable<string> enabled, IEnumerable<string> gated, bool rawSendCommandGated) => new() {
-        ["enabledTools"] = NamesArray(enabled),
-        ["gatedTools"] = NamesArray(gated),
-        ["rawSendCommandGated"] = rawSendCommandGated,
+    internal static JsonObject CommandAccessMap(IEnumerable<string> enabledTools, IEnumerable<string> gatedTools, IEnumerable<string> enabledRawCommands) => new() {
+        ["enabledTools"] = NamesArray(enabledTools),
+        ["gatedTools"] = NamesArray(gatedTools),
+        ["enabledRawCommands"] = NamesArray(enabledRawCommands),
         ["note"] = CommandAccessNote,
     };
 

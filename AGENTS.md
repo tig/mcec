@@ -104,10 +104,12 @@ Three safety features layer on top (see [`docs/safety-emergency-stop-and-provisi
   constrained). Grants land on the key `CommandInvoker.ResolveGateKey` resolves (the entry Enqueue
   actually gates on); route any new name-resolution through that one resolver. To spare the agent
   discovering the gated set one `command-disabled` at a time (#324), the `initialize` result carries a
-  `commandAccess` map (`enabledTools`/`gatedTools`/`rawSendCommandGated`) derived from
+  `commandAccess` map (`enabledTools`/`gatedTools`/`enabledRawCommands`) derived from
   `ToolCatalog.CommandAccessDefaults` (the `ProvisionedByDefault` flags — single source of truth, so it
   never drifts as defaults change), and `session-status` stamps the LIVE table via
-  `AgentToolExecutor.LiveCommandAccess`; keep both derived, never a hand-typed list.
+  `AgentToolExecutor.LiveCommandAccess`; keep both derived, never a hand-typed list. `enabledRawCommands`
+  is an explicit list, not a canary boolean, so a partial raw grant (only `chars:`) can't read as the whole
+  raw `send_command` surface being open (#340 CR).
 
 ## Dogfood: test MCEC using MCEC (mcec drives mcec)
 

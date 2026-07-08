@@ -88,8 +88,9 @@ public class AgentServerTests {
         Assert.Contains("invoke", enabled);
         Assert.Contains("launch", gated);
         Assert.DoesNotContain("launch", enabled);
-        // Raw send_command built-ins (chars:, winr, …) are never provisioned by default.
-        Assert.True(access["rawSendCommandGated"]!.GetValue<bool>());
+        // No raw send_command built-in (chars:, winr, …) is provisioned by default, so the enabled-raw list
+        // is empty at connect time.
+        Assert.Empty(Names(access["enabledRawCommands"]!.AsArray()));
         Assert.False(string.IsNullOrWhiteSpace(access["note"]!.GetValue<string>()));
 
         // Every gated tool the map names is a real advertised tool the agent could request (#324): the
@@ -886,8 +887,13 @@ public class AgentServerTests {
     public void Dispatch_SessionStatus_IncludesLiveCommandAccess_ReflectingTheTable() {
         // #324: unlike initialize (the provisioning DEFAULTS), session-status reports the LIVE table, so a
         // command the operator has since granted shows as enabled. Here `launch` is enabled in the table (a
-        // grant would look the same), so it must appear enabled and NOT gated; `chars:` enabled clears the
-        // raw-send_command flag; `invoke` absent from the table stays gated.
+        // grant would look the same), so it must appear enabled and NOT gated; `invoke` absent from the table
+        // stays gated.
+        //
+        // #340 CR: `chars:` is granted but `mouse:` is not. A partial raw grant must report ONLY chars: in
+        // enabledRawCommands — never imply the whole raw send_command surface (mouse:, winr, …) is open, which
+        // a single canary boolean did. `launch` is a catalog tool, so it belongs in enabledTools, NOT the raw
+        // list.
         AgentTestSupport.EnsureTelemetry();
         AgentRuntime.Settings = new AppSettings { AgentCommandsEnabled = true };
         AgentRuntime.ArtifactRoot = Path.Combine(Path.GetTempPath(), "mcec-session-test", Path.GetRandomFileName());
@@ -895,16 +901,23 @@ public class AgentServerTests {
         AgentRuntime.Invoker = new CommandInvoker {
             ["launch"] = new LaunchCommand { Cmd = "launch", Enabled = true },
             ["chars:"] = new CharsCommand { Cmd = "chars:", Enabled = true },
+            ["mouse:"] = new MouseCommand { Cmd = "mouse:", Enabled = false },
         };
         try {
             JsonObject access = CallEnvelope(55, "session-status")["result"]!.AsObject()["commandAccess"]!.AsObject();
             List<string> enabled = Names(access["enabledTools"]!.AsArray());
             List<string> gated = Names(access["gatedTools"]!.AsArray());
+            List<string> enabledRaw = Names(access["enabledRawCommands"]!.AsArray());
 
             Assert.Contains("launch", enabled);   // enabled in the table (a grant would read the same)
             Assert.DoesNotContain("launch", gated);
             Assert.Contains("invoke", gated);      // absent from the table → gated
-            Assert.False(access["rawSendCommandGated"]!.GetValue<bool>()); // chars: enabled clears the flag
+
+            // The partial raw grant is honest: chars: present, mouse: (disabled) absent, and the catalog
+            // launch is NOT double-reported as a raw command.
+            Assert.Contains("chars:", enabledRaw);
+            Assert.DoesNotContain("mouse:", enabledRaw);
+            Assert.DoesNotContain("launch", enabledRaw);
         }
         finally {
             AgentRuntime.Settings = null;
