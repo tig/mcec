@@ -41,6 +41,8 @@ public sealed class AgentError(string code, AgentErrorCategory category, string 
         AgentErrorCategory.NoTarget => "no-target",
         AgentErrorCategory.InvalidArgument => "invalid-argument",
         AgentErrorCategory.CaptureBlank => "capture-blank",
+        AgentErrorCategory.OcrBlank => "ocr-blank",
+        AgentErrorCategory.OcrNoText => "ocr-no-text",
         AgentErrorCategory.Focus => "focus",
         AgentErrorCategory.Elevation => "elevation",
         AgentErrorCategory.Foreground => "foreground",
