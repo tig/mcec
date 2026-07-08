@@ -152,7 +152,7 @@ blank document/tab before typing. Fallback if `launch` is unavailable: `send_com
 KEYSTROKES split two ways, and confusing them silently does nothing. To fire an app SHORTCUT or press a
 navigation/editing key; a Ctrl/Alt/Win chord (Ctrl+C/V/A/S), a lone shortcut key (zoom `+`/`-`/`=`), or an
 arrow/function/Enter/Esc/Tab; send a real KEYDOWN via `send_command`: a `VK_` name (`VK_OEM_PLUS` is `=`/`+`),
-a named key (`enter`, `escape`, `left`/`right`/`up`/`down`, `tab`), or a chord builtin (`ctrl-x`); bracket
+a named key (`enter`, `escape`, `left`/`right`/`up`/`down`, `tab`), or a chord builtin (`ctrl-x`, `ctrl-a`, `ctrl-c`, `ctrl-v`, `ctrl-z`, `ctrl-s`); bracket
 with `shiftdown:<mods>`/`shiftup:<mods>` for extra modifiers. `chars:` is for LITERAL TEXT ONLY (it is WM_CHAR text entry, not SendKeys): `chars:=` types `=` and never
 zooms; `chars:^a` types those characters; `shiftdown:ctrl`+`chars:c` does NOT fire Ctrl+C; right after
 focus it can drop characters — prefer `invoke`+`setvalue` for fields. Type paths with `chars:`; fire
