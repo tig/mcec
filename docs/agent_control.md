@@ -3,7 +3,7 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# Agent Control
+# Agent Control (Computer Use)
 
 MCEC 3.0 turns the MCE Controller daemon into a small, opt-in **computer use** server (the same
 capability Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse) for
