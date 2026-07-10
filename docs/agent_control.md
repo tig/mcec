@@ -5,8 +5,8 @@
 
 # Agent Control
 
-MCEC 3.0 turns the MCE Controller daemon into a small, opt-in **computer use** server — the same
-capability Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse — for
+MCEC 3.0 turns the MCE Controller daemon into a small, opt-in **computer use** server (the same
+capability Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse) for
 AI agents and scripts running on a Windows PC. It gives an agent three things:
 
 - **Eyes**: capture a screenshot of a window (or the foreground window) as a PNG.

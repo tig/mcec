@@ -6,8 +6,8 @@
 agents on Windows, and the same battle-tested TCP/serial remote control for integration systems it has
 always been.
 
-It is a small, self-contained native Windows daemon that gives a **computer use** model — the same
-capability Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse —
+It is a small, self-contained native Windows daemon that gives a **computer use** model (the same
+capability Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse)
 something to **mount, see through, and drive**: capture a window as a PNG, read its UI Automation tree,
 find and wait for controls, launch apps, and actuate keyboard/mouse/window input, over the **Model Context
 Protocol (MCP)**. The agent surface is opt-in and off by default; the 3.0 agent features are purely
@@ -17,21 +17,21 @@ additive over the classic remote-control command surface (network and serial), w
 
 ## The chapters
 
-* **[Install](install.html)** — install with winget or the signed installer; what gets installed where,
+* **[Install](install.html)**: install with winget or the signed installer; what gets installed where,
   running side-by-side copies, and disposable provisioned instances for agents.
-* **[Configuration](configuration.html)** — everything you can configure: the Settings dialog (every
+* **[Configuration](configuration.html)** - everything you can configure: the Settings dialog (every
   tab), the `mcec.settings` file, the command table, and logging.
-* **[Agent Control](agent_control.html)** — the computer use surface: the observation,
+* **[Agent Control](agent_control.html)** - the computer use surface: the observation,
   targeting, and actuation tools, the structured result envelope, and the MCP / localhost-HTTP transports.
-* **[Agent Safety](safety-emergency-stop-and-provisioning.html)** — command-access consent, disposable
+* **[Agent Safety](safety-emergency-stop-and-provisioning.html)**: command-access consent, disposable
   isolated session provisioning, the emergency-stop hotkey, and the on-screen command overlay.
-* **[Remote Control](remote_control.html)** — the classic role: listen on TCP/IP or a
+* **[Remote Control](remote_control.html)** - the classic role: listen on TCP/IP or a
   serial port and translate remote commands into keystrokes, text, mouse, window messages, and app
   launches ([Control4](https://www.control4.com/), [iRule](http://www.iruleathome.com/),
   [Crestron](http://www.crestron.com/), and others). The same chapter covers the **User Activity Monitor**,
   which runs the flow in reverse: it reports when someone is actively using the PC, turning the machine into
   an occupancy sensor that can drive lighting and scenes.
-* **[Examples](examples.html)** — worked agent-driving recipes (hero GIFs, prompt demos) and how to add more.
+* **[Examples](examples.html)**: worked agent-driving recipes (hero GIFs, prompt demos) and how to add more.
 
 See also [AGENTS.md](https://github.com/tig/mcec/blob/main/AGENTS.md) for connect-time agent guidance and
 the dogfood recipe (MCEC driving MCEC).

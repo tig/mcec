@@ -6,8 +6,8 @@ By [Tig Kindel](https://twitter.com/tigkindel) - Copyright © [Kindel](http://ww
 agents on Windows, and the same battle-tested TCP/serial remote control for integration systems it has
 always been.
 
-For agents, it is a small native Windows daemon that gives a **computer use** model — the same capability
-Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse — something to
+For agents, it is a small native Windows daemon that gives a **computer use** model (the same capability
+Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse) something to
 **mount, see through, and drive** over the **Model Context Protocol (MCP)**: capture windows, read UI
 Automation trees, find controls, launch apps, and actuate keyboard/mouse input. For control systems, it
 listens on TCP/IP or a serial port and
@@ -39,12 +39,12 @@ MCP client setup, and teardown — is in [Agent Control → Quick start](https:/
 
 Full guides live on the [docs site](https://tig.github.io/mcec/):
 
-* [Install](https://tig.github.io/mcec/install.html) — winget, what gets installed where, side-by-side copies
-* [Configuration](https://tig.github.io/mcec/configuration.html) — Settings, `mcec.settings`, commands, logging
-* [Agent Control](https://tig.github.io/mcec/agent_control.html) — the computer use surface: observation, targeting, actuation, MCP/HTTP
-* [Agent Safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html) — consent, provisioning, emergency stop, overlay
-* [Remote Control](https://tig.github.io/mcec/remote_control.html) — TCP/serial commands and User Activity Monitor
-* [Examples](https://tig.github.io/mcec/examples.html) — worked agent-driving recipes
+* [Install](https://tig.github.io/mcec/install.html): winget, what gets installed where, side-by-side copies
+* [Configuration](https://tig.github.io/mcec/configuration.html): Settings, `mcec.settings`, commands, logging
+* [Agent Control](https://tig.github.io/mcec/agent_control.html) - the computer use surface: observation, targeting, actuation, MCP/HTTP
+* [Agent Safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html): consent, provisioning, emergency stop, overlay
+* [Remote Control](https://tig.github.io/mcec/remote_control.html): TCP/serial commands and User Activity Monitor
+* [Examples](https://tig.github.io/mcec/examples.html): worked agent-driving recipes
 
 Developers and agents: [AGENTS.md](AGENTS.md) (connect-time guidance and the MCEC-drives-MCEC dogfood test).
 Contributor docs (CI, signing, architecture, image regeneration) live in [`dev/`](dev/).
