@@ -5,7 +5,8 @@
 
 # Agent Control
 
-MCEC 3.0 turns the MCE Controller daemon into a small, opt-in automation server for
+MCEC 3.0 turns the MCE Controller daemon into a small, opt-in **computer use** server — the same
+capability Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse — for
 AI agents and scripts running on a Windows PC. It gives an agent three things:
 
 - **Eyes**: capture a screenshot of a window (or the foreground window) as a PNG.
@@ -541,9 +542,9 @@ rest of the tree is returned.
 ## Using MCEC from a desktop agent app
 
 MCEC can run **headless** as an MCP **stdio** server (no main window, no tray icon; the
-on-screen command overlay and the emergency-stop hotkey still work) so a desktop agent app
-(such as a desktop AI assistant or custom MCP client) can spawn it on demand and talk to it over standard
-input/output:
+on-screen command overlay and the emergency-stop hotkey still work) so a desktop agent app with
+computer use capability (such as a desktop AI assistant or custom MCP client) can spawn it on demand
+and talk to it over standard input/output:
 
 ```
 mcec.exe mcp        # or the equivalent legacy spelling: mcec.exe --mcp

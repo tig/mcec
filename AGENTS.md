@@ -6,7 +6,8 @@
 # AGENTS.md: driving (and testing) MCEC with an agent
 
 MCEC 3.0 (the **Model Context Environment Controller**) gives an AI agent eyes, hands, and a safe
-front door on Windows. This file is the **self-reinforcing guidance loop**: the canonical guidance an
+front door on Windows — Windows **computer use**, in the sense Claude, Codex, and similar agents use the
+term. This file is the **self-reinforcing guidance loop**: the canonical guidance an
 agent needs, plus the recipe to *dogfood* it (drive MCEC through its own MCP server) so the guidance
 stays honest. Each time MCEC changes, re-run the dogfood and refine the guidance below and in
 `AgentServer.Instructions`.

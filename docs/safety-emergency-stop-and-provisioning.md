@@ -5,7 +5,9 @@
 
 # Agent Safety
 
-Four related safety features for MCEC's agent surface. When MCEC is agent-driving the desktop, the **target
+Four related safety features for MCEC's agent surface — MCEC's **computer use** capability, in the same
+sense Claude, Codex, and similar agents use the term for seeing a screen and driving a keyboard and mouse.
+When MCEC is agent-driving the desktop, the **target
 app has focus, not MCEC**; so the operator needs (a) a controlled way to grant more capability mid-session,
 (b) assurance that a session cannot leave the installed copy in an unsafe state, (c) a way to instantly
 intervene when a run goes wrong, and (d) visible narration that MCEC is driving. Command-access consent,

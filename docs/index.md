@@ -6,11 +6,12 @@
 agents on Windows, and the same battle-tested TCP/serial remote control for integration systems it has
 always been.
 
-It is a small, self-contained native Windows daemon that a computer-use model can **mount, see through,
-and drive**: capture a window as a PNG, read its UI Automation tree, find and wait for controls, launch
-apps, and actuate keyboard/mouse/window input, over the **Model Context Protocol (MCP)**. The agent
-surface is opt-in and off by default; the 3.0 agent features are purely additive over the classic
-remote-control command surface (network and serial), which is unchanged.
+It is a small, self-contained native Windows daemon that gives a **computer use** model — the same
+capability Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse —
+something to **mount, see through, and drive**: capture a window as a PNG, read its UI Automation tree,
+find and wait for controls, launch apps, and actuate keyboard/mouse/window input, over the **Model Context
+Protocol (MCP)**. The agent surface is opt-in and off by default; the 3.0 agent features are purely
+additive over the classic remote-control command surface (network and serial), which is unchanged.
 
 **Install with winget:** `winget install Kindel.mcec` — see [Install](install.html).
 
@@ -20,7 +21,7 @@ remote-control command surface (network and serial), which is unchanged.
   running side-by-side copies, and disposable provisioned instances for agents.
 * **[Configuration](configuration.html)** — everything you can configure: the Settings dialog (every
   tab), the `mcec.settings` file, the command table, and logging.
-* **[Agent Control](agent_control.html)** — the agent surface: the observation,
+* **[Agent Control](agent_control.html)** — the computer use surface: the observation,
   targeting, and actuation tools, the structured result envelope, and the MCP / localhost-HTTP transports.
 * **[Agent Safety](safety-emergency-stop-and-provisioning.html)** — command-access consent, disposable
   isolated session provisioning, the emergency-stop hotkey, and the on-screen command overlay.

@@ -42,9 +42,10 @@ This directory-per-instance isolation is exactly what provisioning (below) autom
 ## Provisioning: disposable instances for agents
 
 The installed copy under Program Files deliberately **refuses to serve agents**: running `mcec.exe --mcp`
-or starting the MCP/HTTP endpoint from Program Files is refused, because enabling the agent gates in your
-installed config would leave them enabled if a session crashed. Instead, an authorized agent asks MCEC for
-a fresh, disposable copy to drive (there is no `--provision` flag; provisioning is an in-product feature):
+or starting the MCP/HTTP endpoint from Program Files is refused, because enabling the computer use gates
+in your installed config would leave them enabled if a session crashed. Instead, an authorized agent asks
+MCEC for a fresh, disposable copy to drive (there is no `--provision` flag; provisioning is an in-product
+feature):
 
 1. Turn on **Allow agents to provision disposable instances** on the Settings dialog's **Agent** tab
    (`AllowSessionProvisioning`). This is the one opt-in an operator performs.

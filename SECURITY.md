@@ -24,7 +24,8 @@ Security fixes target the latest 3.0.x release. Please reproduce on the current 
 
 ## What is most valuable
 
-MCEC's agent surface is **off by default** and gated behind explicit, independent opt-ins (see
+MCEC's agent surface — its **computer use** capability — is **off by default** and gated behind explicit,
+independent opt-ins (see
 [Agent Safety](docs/safety-emergency-stop-and-provisioning.md)). Reports are especially valuable when they
 show a way to:
 

@@ -6,9 +6,11 @@ By [Tig Kindel](https://twitter.com/tigkindel) - Copyright © [Kindel](http://ww
 agents on Windows, and the same battle-tested TCP/serial remote control for integration systems it has
 always been.
 
-For agents, it is a small native Windows daemon a computer-use model **mounts, sees through, and drives**
-over the **Model Context Protocol (MCP)**: capture windows, read UI Automation trees, find controls, launch
-apps, and actuate keyboard/mouse input. For control systems, it listens on TCP/IP or a serial port and
+For agents, it is a small native Windows daemon that gives a **computer use** model — the same capability
+Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse — something to
+**mount, see through, and drive** over the **Model Context Protocol (MCP)**: capture windows, read UI
+Automation trees, find controls, launch apps, and actuate keyboard/mouse input. For control systems, it
+listens on TCP/IP or a serial port and
 translates remote commands into keystrokes, text, mouse moves, window messages, and app launches
 ([Control4](https://www.control4.com/), [Crestron](http://www.crestron.com/), [iRule](http://www.iruleathome.com/),
 and others). The 3.0 agent surface is **purely additive**; classic remote control is unchanged.
@@ -39,7 +41,7 @@ Full guides live on the [docs site](https://tig.github.io/mcec/):
 
 * [Install](https://tig.github.io/mcec/install.html) — winget, what gets installed where, side-by-side copies
 * [Configuration](https://tig.github.io/mcec/configuration.html) — Settings, `mcec.settings`, commands, logging
-* [Agent Control](https://tig.github.io/mcec/agent_control.html) — observation, targeting, actuation, MCP/HTTP
+* [Agent Control](https://tig.github.io/mcec/agent_control.html) — the computer use surface: observation, targeting, actuation, MCP/HTTP
 * [Agent Safety](https://tig.github.io/mcec/safety-emergency-stop-and-provisioning.html) — consent, provisioning, emergency stop, overlay
 * [Remote Control](https://tig.github.io/mcec/remote_control.html) — TCP/serial commands and User Activity Monitor
 * [Examples](https://tig.github.io/mcec/examples.html) — worked agent-driving recipes
