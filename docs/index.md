@@ -40,7 +40,7 @@ the dogfood recipe (MCEC driving MCEC).
 
 **Q: Claude, Copilot, and other agent platforms already support computer use. Why would I use MCEC?**
 
-A: Those platforms aim for cross-platform reach, so their computer use is built primarily on computer
+Those platforms aim for cross-platform reach, so their computer use is built primarily on computer
 vision: a screenshot, interpreted by a vision model, on every step. That is slow (a network round trip per
 observation) and token-expensive (a full-window PNG on every turn). MCEC is Windows-only by design, so it
 can go deeper than pixels: `query` reads the real Windows UI Automation tree (control type, name,
@@ -52,27 +52,12 @@ AI provider.
 
 **Q: Is it safe?**
 
-A: It depends on how you use it, but the defaults are safe. The agent surface is off until you opt in;
+It depends on how you use it, but the defaults are safe. The agent surface is off until you opt in;
 every command ships individually disabled; every agent action is audit-logged on screen (the overlay) and
 in the log; and a global emergency-stop hotkey lets the operator halt a session instantly. See
 [Agent Safety](safety-emergency-stop-and-provisioning.html) for the full model.
 
 **Q: What's the history of this thing?**
-
-A:
-
-* **3.0 (2026)**: Rebranded to the **Model Context Environment Controller**. Agent automation over MCP:
-  observation (`capture`/`query`/`record`), targeting (`find`/`wait-for`), actuation
-  (`invoke`/`launch`/`drag`/`click`), emergency stop, and isolated session provisioning; all opt-in and
-  off by default.
-* **2.x (2019)**: Major rework: robust client/server, User Activity Monitor (occupancy sensing), Commands
-  Window with built-in test mode, per-monitor DPI support, config in `%APPDATA%`.
-* **1.x (2004–2017)**: Born as Media Center Edition Controller (MS later dropped the "Edition" from
-  "Windows Media Center") for Windows Media Center HTPCs. Grew keyboard/mouse/window-message
-  simulation, `chars:` with Unicode escapes, serial support, multi-client TCP, and the `.commands`
-  extension file. Moved from SourceForge to CodePlex to GitHub.
-
-## Version history
 
 * **3.0 (2026)**: Rebranded to the **Model Context Environment Controller**. Agent automation over MCP:
   observation (`capture`/`query`/`record`), targeting (`find`/`wait-for`), actuation
