@@ -22,7 +22,8 @@ MCEC was originally built to integrate a Windows Media Center home-theater PC (H
 whole-house A/V system, but it is general enough for any control system that can send text to a TCP/IP
 port or serial port.
 
-> **Looking for the agent/AI side?** MCEC 3.0 is also an opt-in automation server for AI agents over the
+> **Looking for the agent/AI side?** MCEC 3.0 is also an opt-in **computer use** server (the same
+> capability Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse) over the
 > **Model Context Protocol (MCP)**: see the [Agent Control](agent_control.md) and
 > [Configuration](configuration.md) chapters. This page covers the classic remote-control features, which are
 > unchanged and remain the default behavior.

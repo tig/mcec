@@ -6,7 +6,8 @@
 # AGENTS.md: driving (and testing) MCEC with an agent
 
 MCEC 3.0 (the **Model Context Environment Controller**) gives an AI agent eyes, hands, and a safe
-front door on Windows. This file is the **self-reinforcing guidance loop**: the canonical guidance an
+front door on Windows (Windows **computer use**, in the sense Claude, Codex, and similar agents use the
+term). This file is the **self-reinforcing guidance loop**: the canonical guidance an
 agent needs, plus the recipe to *dogfood* it (drive MCEC through its own MCP server) so the guidance
 stays honest. Each time MCEC changes, re-run the dogfood and refine the guidance below and in
 `AgentServer.Instructions`.
@@ -182,6 +183,9 @@ controller-bootstrap follow-ups.
   holds contributor and maintainer material only (CI, releasing, code signing, agent-server architecture
   notes, evidence bundles, doc-image regeneration recipes); it is not part of the site. **Release
   instructions:** [`dev/RELEASING.md`](dev/RELEASING.md) (cut from `main`, never `develop`).
+- **No em dashes (—) in prose, anywhere in this repo.** Use parentheses or semicolons for an aside; for a
+  bullet-point heading (`* [Link](url) — description`) use a plain hyphen (`-`) or a colon (`:`) instead.
+  This applies to Markdown docs and code comments alike.
 - **Agent-facing guidance is part of "Done": not optional, not "later."** Any change to how an agent
   observes/targets/acts (a new tool, arg, failure mode, warning/error category, or driving technique)
   MUST update the connect-time playbook in

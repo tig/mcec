@@ -10,8 +10,8 @@ Everything MCEC does is configured in one of three places: the **File ▸ Settin
 running MCEC, every Settings tab, the agent gates in `mcec.settings`, enabling commands, and logging.
 
 For **installing** MCEC and where its files live, see [Install](install.md); for the **security model**
-behind the agent gates, see [Agent Safety](safety-emergency-stop-and-provisioning.md); for the agent
-tools themselves, see [Agent Control](agent_control.md).
+behind the agent gates, see [Agent Safety](safety-emergency-stop-and-provisioning.md); for the computer
+use tools themselves, see [Agent Control](agent_control.md).
 
 If you want to use MCEC from a desktop agent app, see [Agent Control](agent_control.md).
 In practice: enable

@@ -3,15 +3,21 @@
 // Published under the MIT License - Source on GitHub: https://github.com/tig/mcec
 -->
 
-# Agent Control
+# Agent Control (Computer Use)
 
-MCEC 3.0 turns the MCE Controller daemon into a small, opt-in automation server for
+MCEC 3.0 turns the MCE Controller daemon into a small, opt-in **computer use** server (the same
+capability Claude, Codex, and similar agents use to see a screen and drive a keyboard and mouse) for
 AI agents and scripts running on a Windows PC. It gives an agent three things:
 
-- **Eyes**: capture a screenshot of a window (or the foreground window) as a PNG.
+- **Eyes**: far more than a screenshot. `capture` still takes a PNG of a window (or a screen
+  region), but `query` reads a window's live **UI Automation tree** (control type, name,
+  automation ID, bounds, enabled/offscreen state, value), `displays` reports per-monitor
+  geometry (bounds, DPI, scale), and `windows`/`find`/`wait-for` discover and wait on windows
+  and UI elements by name, class, or automation ID. An agent can see structured state, not
+  just pixels.
 - **Hands**: invoke any existing MCEC command (the actuation layer you already use).
-- **A front door**: query/find windows and UI elements, wait for conditions, and
-  drive all of the above over **MCP** (Model Context Protocol) or a tiny **HTTP** floor.
+- **A front door**: drive all of the above over **MCP** (Model Context Protocol) or a tiny
+  **HTTP** floor, gated off by default and audited when on.
 
 The agent surface is a set of new commands (`capture`, `query`, `displays`, `windows`, `window`, `find`,
 `wait-for`, `invoke`, `record`, `launch`, `drag`, `click`, and `focus`) exposed as **tools over MCP/HTTP**
@@ -541,9 +547,9 @@ rest of the tree is returned.
 ## Using MCEC from a desktop agent app
 
 MCEC can run **headless** as an MCP **stdio** server (no main window, no tray icon; the
-on-screen command overlay and the emergency-stop hotkey still work) so a desktop agent app
-(such as a desktop AI assistant or custom MCP client) can spawn it on demand and talk to it over standard
-input/output:
+on-screen command overlay and the emergency-stop hotkey still work) so a desktop agent app with
+computer use capability (such as a desktop AI assistant or custom MCP client) can spawn it on demand
+and talk to it over standard input/output:
 
 ```
 mcec.exe mcp        # or the equivalent legacy spelling: mcec.exe --mcp
