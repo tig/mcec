@@ -24,7 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GitVersion.MsBuild" Version="6.8.1" PrivateAssets="all" />
+    <PackageReference Include="GitVersion.MsBuild" Version="6.8.2" PrivateAssets="all" />
   </ItemGroup>
 
   <!-- House-style analyzers (one type per file, no nested types). Excluded from the
